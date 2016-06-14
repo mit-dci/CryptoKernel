@@ -169,7 +169,7 @@ std::string CryptoKernel::Crypto::decrypt(std::string cipherText)
     }
 }
 
-bool CryptoKernel::crypto::verify(std::string message, std::string signature)
+bool CryptoKernel::Crypto::verify(std::string message, std::string signature)
 {
     if(!status || signature == "" || message == "")
     {

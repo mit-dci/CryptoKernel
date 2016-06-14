@@ -1,8 +1,8 @@
-#include <crypto.h>
+#include "crypto.h"
 
 int main()
 {
-    CryptoKernel::Crypto crypto = new CryptoKernel::Crypto(false);
+    CryptoKernel::Crypto *crypto = new CryptoKernel::Crypto(false);
     
     delete crypto;
     
