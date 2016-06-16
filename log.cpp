@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include "log.h"
+#include "version.h"
 
 CryptoKernel::Log::Log(std::string filename, bool printToConsole)
 {
