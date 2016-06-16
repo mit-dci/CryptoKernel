@@ -161,7 +161,7 @@ std::string CryptoKernel::Crypto::decrypt(std::string cipherText)
 
         EVP_CIPHER_CTX_cleanup(rsaCtx);
 
-        std::string returning((const char*)decMsg, decLen);
+        std::string returning((const char*)decMsg, decLen-1);
 
         delete[] decMsg;
 
