@@ -68,6 +68,27 @@ int main()
         }
     }
 
+    std::string signature = crypto->sign(plainText);
+    if(signature != "")
+    {
+        if(crypto->verify(plainText, signature))
+        {
+            std::cout << "Successfully signed and verified message.\n";
+        }
+        else
+        {
+            std::cout << "Failed to sign or verify message correctly.";
+            delete crypto;
+            return 0;
+        }
+    }
+    else
+    {
+        std::cout << "Failed to sign message.";
+        delete crypto;
+        return 0;
+    }
+
     delete crypto;
 
     return 0;
