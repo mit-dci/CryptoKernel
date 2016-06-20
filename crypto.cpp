@@ -8,7 +8,11 @@ CryptoKernel::Crypto::Crypto(bool fGenerate)
     keypair = NULL;
     status = true;
 
-    OpenSSL_add_all_digests();
+    if(!EVP_get_digestbyname("sha1"))
+    {
+        OpenSSL_add_all_digests();
+        OpenSSL_add_all_algorithms();
+    }
 
     rsaCtx = new EVP_CIPHER_CTX;
 
@@ -185,8 +189,6 @@ bool CryptoKernel::Crypto::verify(std::string message, std::string signature)
             return false;
         }
 
-        OpenSSL_add_all_algorithms();
-
         const EVP_MD* md = EVP_get_digestbyname("SHA256");
         if(md == NULL)
         {
@@ -239,8 +241,6 @@ std::string CryptoKernel::Crypto::sign(std::string message)
         {
             return "";
         }
-
-        OpenSSL_add_all_algorithms();
 
         const EVP_MD *md = EVP_get_digestbyname("SHA256");
         if(md == NULL)
