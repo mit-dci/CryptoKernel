@@ -90,7 +90,6 @@ int main()
         return 0;
     }
 
-    std::string test = crypto->sha256(plainText);
     if(crypto->sha256(plainText) == "qKL26+KGaXxSfrNaWLVTlTLps647ZNTrCkb7ZXtBViw=")
     {
         std::cout << "Successfully hashed a string.\n";
