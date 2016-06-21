@@ -76,3 +76,52 @@ bool CryptoKernel::Storage::erase(std::string key)
         return false;
     }
 }
+
+CryptoKernel::Storage::Iterator* CryptoKernel::Storage::newIterator()
+{
+    Iterator* it = new Iterator(db, &dbMutex);
+    return it;
+}
+
+CryptoKernel::Storage::Iterator::Iterator(leveldb::DB* db, std::mutex* mut)
+{
+    dbMutex = mut;
+    dbMutex->lock();
+    it = db->NewIterator(leveldb::ReadOptions());
+}
+
+CryptoKernel::Storage::Iterator::~Iterator()
+{
+    delete it;
+    dbMutex->unlock();
+}
+
+void CryptoKernel::Storage::Iterator::SeekToFirst()
+{
+    it->SeekToFirst();
+}
+
+void CryptoKernel::Storage::Iterator::Next()
+{
+    it->Next();
+}
+
+bool CryptoKernel::Storage::Iterator::Valid()
+{
+    return it->Valid();
+}
+
+std::string CryptoKernel::Storage::Iterator::key()
+{
+    return it->key().ToString();
+}
+
+std::string CryptoKernel::Storage::Iterator::value()
+{
+    return it->value().ToString();
+}
+
+bool CryptoKernel::Storage::Iterator::getStatus()
+{
+    return it->status().ok();
+}
