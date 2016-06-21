@@ -5,6 +5,7 @@
 #include <thread>
 #include <mutex>
 #include <queue>
+#include <vector>
 
 #include "log.h"
 
@@ -28,7 +29,7 @@ class Network
         ENetHost *client;
         bool status;
         int connections;
-        std::queue <std::string>messageQueue;
+        std::queue<std::string> messageQueue;
         std::mutex queueMutex;
         std::mutex connectionsMutex;
         std::mutex serverMutex;
@@ -38,6 +39,8 @@ class Network
         void HandleEvents();
         void HandlePacket(ENetEvent *event);
         void HandleConnections();
+        std::queue<ENetPacket*> packets;
+        std::mutex packetsMutex;
 };
 
 }
