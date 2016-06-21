@@ -36,6 +36,7 @@
 			<Add option="-lcrypto" />
 			<Add option="-lenet" />
 			<Add option="-pthread" />
+			<Add option="-lleveldb" />
 		</Linker>
 		<Unit filename="base64.cpp" />
 		<Unit filename="base64.h" />
@@ -46,6 +47,8 @@
 		<Unit filename="main.cpp" />
 		<Unit filename="network.cpp" />
 		<Unit filename="network.h" />
+		<Unit filename="storage.cpp" />
+		<Unit filename="storage.h" />
 		<Unit filename="version.h" />
 		<Extensions>
 			<code_completion />
