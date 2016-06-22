@@ -4,14 +4,12 @@
 #include <mutex>
 #include <leveldb/db.h>
 
-#include "log.h"
-
 namespace CryptoKernel
 {
     class Storage
     {
         public:
-            Storage(Log *GlobalLog, std::string filename);
+            Storage(std::string filename);
             ~Storage();
             bool store(std::string key, std::string value);
             std::string get(std::string key);
@@ -38,7 +36,6 @@ namespace CryptoKernel
         private:
             leveldb::DB* db;
             std::mutex dbMutex;
-            Log *log;
             bool status;
     };
 }
