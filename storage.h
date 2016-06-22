@@ -11,7 +11,7 @@ namespace CryptoKernel
     class Storage
     {
         public:
-            Storage(Log *GlobalLog);
+            Storage(Log *GlobalLog, std::string filename);
             ~Storage();
             bool store(std::string key, std::string value);
             std::string get(std::string key);

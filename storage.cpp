@@ -1,6 +1,6 @@
 #include "storage.h"
 
-CryptoKernel::Storage::Storage(Log *GlobalLog)
+CryptoKernel::Storage::Storage(Log *GlobalLog, std::string filename)
 {
     log = GlobalLog;
     leveldb::Options options;
@@ -8,7 +8,7 @@ CryptoKernel::Storage::Storage(Log *GlobalLog)
 
     log->printf(LOG_LEVEL_INFO, "Opening storage database");
     dbMutex.lock();
-    leveldb::Status dbstatus = leveldb::DB::Open(options, "./storagedb", &db);
+    leveldb::Status dbstatus = leveldb::DB::Open(options, filename, &db);
     dbMutex.unlock();
 
     if(!dbstatus.ok())
