@@ -37,11 +37,14 @@
 			<Add option="-lenet" />
 			<Add option="-pthread" />
 			<Add option="-lleveldb" />
+			<Add option="-ljsoncpp" />
 		</Linker>
 		<Unit filename="base64.cpp" />
 		<Unit filename="base64.h" />
 		<Unit filename="crypto.cpp" />
 		<Unit filename="crypto.h" />
+		<Unit filename="currency.cpp" />
+		<Unit filename="currency.h" />
 		<Unit filename="log.cpp" />
 		<Unit filename="log.h" />
 		<Unit filename="main.cpp" />
