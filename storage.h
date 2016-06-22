@@ -2,6 +2,9 @@
 #define STORAGE_H_INCLUDED
 
 #include <mutex>
+
+#include <jsoncpp/json/writer.h>
+#include <jsoncpp/json/reader.h>
 #include <leveldb/db.h>
 
 namespace CryptoKernel
@@ -11,8 +14,8 @@ namespace CryptoKernel
         public:
             Storage(std::string filename);
             ~Storage();
-            bool store(std::string key, std::string value);
-            std::string get(std::string key);
+            bool store(std::string key, Json::Value value);
+            Json::Value get(std::string key);
             bool erase(std::string key);
             bool getStatus();
             class Iterator
@@ -24,7 +27,7 @@ namespace CryptoKernel
                     bool Valid();
                     void Next();
                     std::string key();
-                    std::string value();
+                    Json::Value value();
                     bool getStatus();
 
                 private:
@@ -32,6 +35,9 @@ namespace CryptoKernel
                     std::mutex* dbMutex;
             };
             Iterator* newIterator();
+
+            static Json::Value toJson(std::string json);
+            static std::string toString(Json::Value json);
 
         private:
             leveldb::DB* db;

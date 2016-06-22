@@ -1,3 +1,8 @@
+#include <sstream>
+
+#include <jsoncpp/json/writer.h>
+#include <jsoncpp/json/reader.h>
+
 #include "storage.h"
 
 CryptoKernel::Storage::Storage(std::string filename)
@@ -31,10 +36,12 @@ bool CryptoKernel::Storage::getStatus()
     return status;
 }
 
-bool CryptoKernel::Storage::store(std::string key, std::string value)
+bool CryptoKernel::Storage::store(std::string key, Json::Value value)
 {
+    std::string dataToStore = toString(value);
+
     dbMutex.lock();
-    leveldb::Status status = db->Put(leveldb::WriteOptions(), key, value);
+    leveldb::Status status = db->Put(leveldb::WriteOptions(), key, dataToStore);
     dbMutex.unlock();
 
     if(status.ok())
@@ -47,13 +54,15 @@ bool CryptoKernel::Storage::store(std::string key, std::string value)
     }
 }
 
-std::string CryptoKernel::Storage::get(std::string key)
+Json::Value CryptoKernel::Storage::get(std::string key)
 {
-    std::string returning;
+    std::string jsonString;
 
     dbMutex.lock();
-    db->Get(leveldb::ReadOptions(), key, &returning);
+    db->Get(leveldb::ReadOptions(), key, &jsonString);
     dbMutex.unlock();
+
+    Json::Value returning = toJson(jsonString);
 
     return returning;
 }
@@ -113,12 +122,36 @@ std::string CryptoKernel::Storage::Iterator::key()
     return it->key().ToString();
 }
 
-std::string CryptoKernel::Storage::Iterator::value()
+Json::Value CryptoKernel::Storage::Iterator::value()
 {
-    return it->value().ToString();
+    std::string jsonString = it->value().ToString();
+
+    return toJson(jsonString);
 }
 
 bool CryptoKernel::Storage::Iterator::getStatus()
 {
     return it->status().ok();
+}
+
+Json::Value CryptoKernel::Storage::toJson(std::string json)
+{
+    Json::Value returning;
+    Json::CharReaderBuilder rbuilder;
+    rbuilder["collectComments"] = false;
+    std::string errs;
+    std::stringstream input;
+    input << json;
+    Json::parseFromStream(rbuilder, input, &returning, &errs);
+
+    return returning;
+}
+
+std::string CryptoKernel::Storage::toString(Json::Value json)
+{
+    Json::StreamWriterBuilder wbuilder;
+    wbuilder["indentation"] = "\t";
+    std::string returning = Json::writeString(wbuilder, json);
+
+    return returning;
 }
