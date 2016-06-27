@@ -128,3 +128,13 @@ std::string CryptoKernel::Blockchain::calculateTransactionId(transaction tx)
 
     return crypto.sha256(buffer.str());
 }
+
+std::string CryptoKernel::Blockchain::calculateOutputId(output Output)
+{
+    std::stringstream buffer;
+
+    buffer << Output.publicKey << Output.value << CryptoKernel::Storage::toString(Output.data);
+
+    CryptoKernel::Crypto crypto;
+    return crypto.sha256(buffer.str());
+}
