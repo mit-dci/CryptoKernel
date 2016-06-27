@@ -92,3 +92,16 @@ Json::Value CryptoKernel::Blockchain::transactionToJson(transaction tx)
 
     return returning;
 }
+
+Json::Value CryptoKernel::Blockchain::outputToJson(output Output)
+{
+    Json::Value returning;
+
+    returning["id"] = Output.id;
+    returning["value"] = Output.value;
+    returning["signature"] = Output.signature;
+    returning["publicKey"] = Output.publicKey;
+    returning["data"] = Output.data;
+
+    return returning;
+}
