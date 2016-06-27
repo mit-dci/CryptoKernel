@@ -26,7 +26,7 @@ namespace CryptoKernel
                 std::string id;
                 std::vector<output> inputs;
                 std::vector<output> outputs;
-                unsigned int timestamp;
+                unsigned long int timestamp;
             };
             struct block
             {
@@ -49,6 +49,9 @@ namespace CryptoKernel
             Currency *currency;
             std::queue<transaction> unconfirmedTransactions;
             Json::Value transactionToJson(transaction tx);
+            Json::Value outputToJson(output Output);
+            std::string calculateOutputId(output Output);
+            std::string calculateTransactionId(transaction tx);
     };
 }
 

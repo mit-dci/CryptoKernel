@@ -23,9 +23,23 @@ double CryptoKernel::Blockchain::getBalance(std::string publicKey)
 
 bool CryptoKernel::Blockchain::submitTransaction(transaction tx)
 {
-    //Check that tx hasn't already been sent
-    //Check that id sent == actual id
-    //Check that timestamp is realistic
+    if(transactions->get(tx.id)["id"] == "")
+    {
+        return false;
+    }
+
+    if(calculateTransactionId(tx) != tx.id)
+    {
+        return false;
+    }
+
+    time_t t = std::time(0);
+    long long int now = static_cast<unsigned long int> (t);
+    if(tx.timestamp < (now - 60 * 60))
+    {
+        return false;
+    }
+
     double inputTotal = 0;
     double outputTotal = 0;
     std::vector<output>::iterator it;
