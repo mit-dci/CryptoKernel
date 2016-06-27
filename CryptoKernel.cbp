@@ -41,6 +41,8 @@
 		</Linker>
 		<Unit filename="base64.cpp" />
 		<Unit filename="base64.h" />
+		<Unit filename="blockchain.cpp" />
+		<Unit filename="blockchain.h" />
 		<Unit filename="crypto.cpp" />
 		<Unit filename="crypto.h" />
 		<Unit filename="currency.cpp" />
