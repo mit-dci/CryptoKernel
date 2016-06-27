@@ -26,7 +26,7 @@ namespace CryptoKernel
                 std::string id;
                 std::vector<output> inputs;
                 std::vector<output> outputs;
-                unsigned long int timestamp;
+                unsigned int timestamp;
             };
             struct block
             {

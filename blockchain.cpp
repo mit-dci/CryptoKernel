@@ -36,7 +36,7 @@ bool CryptoKernel::Blockchain::submitTransaction(transaction tx)
     }
 
     time_t t = std::time(0);
-    long long int now = static_cast<unsigned long int> (t);
+    unsigned int now = static_cast<unsigned int> (t);
     if(tx.timestamp < (now - 60 * 60))
     {
         return false;
@@ -72,4 +72,23 @@ bool CryptoKernel::Blockchain::submitTransaction(transaction tx)
     return true;
 }
 
+Json::Value CryptoKernel::Blockchain::transactionToJson(transaction tx)
+{
+    Json::Value returning;
 
+    std::vector<output>::iterator it;
+    for(it = tx.inputs.begin(); it < tx.inputs.end(); it++)
+    {
+        returning["inputs"].append(outputToJson((*it)));
+    }
+
+    for(it = tx.outputs.begin(); it < tx.outputs.end(); it++)
+    {
+        returning["inputs"].append(outputToJson((*it)));
+    }
+
+    returning["timestamp"] = tx.timestamp;
+    returning["id"] = tx.id;
+
+    return returning;
+}
