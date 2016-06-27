@@ -1,4 +1,5 @@
 #include <ctime>
+#include <sstream>
 
 #include "blockchain.h"
 #include "crypto.h"
@@ -104,4 +105,26 @@ Json::Value CryptoKernel::Blockchain::outputToJson(output Output)
     returning["data"] = Output.data;
 
     return returning;
+}
+
+std::string CryptoKernel::Blockchain::calculateTransactionId(transaction tx)
+{
+    std::stringstream buffer;
+
+    std::vector<output>::iterator it;
+    for(it = tx.inputs.begin(); it < tx.inputs.end(); it++)
+    {
+        buffer << calculateOutputId((*it));
+    }
+
+    for(it = tx.outputs.begin(); it < tx.outputs.end(); it++)
+    {
+        buffer << calculateOutputId((*it));
+    }
+
+    buffer << tx.timestamp;
+
+    CryptoKernel::Crypto crypto;
+
+    return crypto.sha256(buffer.str());
 }
