@@ -10,19 +10,19 @@ CryptoKernel::Blockchain::Blockchain()
     transactions = new CryptoKernel::Storage("./transactiondb");
     blocks = new CryptoKernel::Storage("./blockdb");
     utxos = new CryptoKernel::Storage("./utxodb");
-    currency = new CryptoKernel::Currency();
 }
 
 CryptoKernel::Blockchain::~Blockchain()
 {
     delete transactions;
     delete blocks;
-    delete currency;
+    delete utxos;
 }
 
 double CryptoKernel::Blockchain::getBalance(std::string publicKey)
 {
-    return currency->getBalance(publicKey);
+    //Implement this
+    return 0;
 }
 
 bool CryptoKernel::Blockchain::verifyTransaction(transaction tx)

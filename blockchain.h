@@ -45,7 +45,6 @@ namespace CryptoKernel
             Storage *transactions;
             Storage *blocks;
             Storage *utxos;
-            Currency *currency;
             std::vector<transaction> unconfirmedTransactions;
             Json::Value transactionToJson(transaction tx);
             Json::Value outputToJson(output Output);
