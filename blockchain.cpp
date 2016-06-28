@@ -103,7 +103,7 @@ bool CryptoKernel::Blockchain::submitTransaction(transaction tx)
             else
             {
                 //Transaction is already in the unconfirmed vector
-                return false;
+                return true;
             }
         }
     }
@@ -179,4 +179,85 @@ std::string CryptoKernel::Blockchain::calculateOutputId(output Output)
     return crypto.sha256(buffer.str());
 }
 
+bool CryptoKernel::Blockchain::submitBlock(block newBlock)
+{
+    //Check block does not already exist
+    if(blocks->get(newBlock.id)["id"] != "")
+    {
+        return false;
+    }
 
+    //Check the id is correct
+    if(calculateBlockId(newBlock) != newBlock.id)
+    {
+        return false;
+    }
+
+    //Check the previous block exists
+    if(blocks->get(newBlock.previousBlockId)["id"] == "")
+    {
+        return false;
+    }
+
+    //Check that the timestamp is realistic
+    time_t t = std::time(0);
+    unsigned int now = static_cast<unsigned int> (t);
+    if(newBlock.timestamp < (now - 60 * 60))
+    {
+        return false;
+    }
+
+    //Verify Transactions
+    std::vector<transaction>::iterator it;
+    for(it = newBlock.transactions.begin(); it < newBlock.transactions.end(); it++)
+    {
+        if(!submitTransaction((*it)))
+        {
+            return false;
+        }
+    }
+
+    //Move transactions from unconfirmed to confirmed and add transaction utxos to db
+    for(it = newBlock.transactions.begin(); it < newBlock.transactions.end(); it++)
+    {
+        confirmTransaction((*it));
+    }
+
+    blocks->store(newBlock.id, blockToJson(newBlock));
+
+    return true;
+}
+
+std::string CryptoKernel::Blockchain::calculateBlockId(block Block)
+{
+    std::stringstream buffer;
+
+    std::vector<transaction>::iterator it;
+    for(it = Block.transactions.begin(); it < Block.transactions.end(); it++)
+    {
+        //This should probably be converted to calculate a merkle root
+        buffer << calculateTransactionId((*it));
+    }
+
+    buffer << Block.previousBlockId << Block.timestamp;
+
+    CryptoKernel::Crypto crypto;
+    return crypto.sha256(buffer.str());
+}
+
+Json::Value CryptoKernel::Blockchain::blockToJson(block Block)
+{
+    Json::Value returning;
+
+    returning["id"] = Block.id;
+    returning["height"] = Block.height;
+    returning["previousBlockId"] = Block.previousBlockId;
+    returning["timestamp"] = Block.timestamp;
+    std::vector<transaction>::iterator it;
+    for(it = Block.transactions.begin(); it < Block.transactions.end(); it++)
+    {
+        returning["transactions"].append(transactionToJson((*it)));
+    }
+
+    return returning;
+}

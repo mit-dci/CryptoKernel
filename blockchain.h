@@ -49,9 +49,12 @@ namespace CryptoKernel
             std::vector<transaction> unconfirmedTransactions;
             Json::Value transactionToJson(transaction tx);
             Json::Value outputToJson(output Output);
+            Json::Value blockToJson(block Block);
             std::string calculateOutputId(output Output);
             std::string calculateTransactionId(transaction tx);
+            std::string calculateBlockId(block Block);
             bool verifyTransaction(transaction tx);
+            bool confirmTransaction(transaction tx);
     };
 }
 
