@@ -261,3 +261,30 @@ Json::Value CryptoKernel::Blockchain::blockToJson(block Block)
 
     return returning;
 }
+
+bool CryptoKernel::Blockchain::confirmTransaction(transaction tx)
+{
+    //Check if transaction is already confirmed
+    if(transactions->get(tx.id)["id"] != "")
+    {
+        return false;
+    }
+
+    //"Spend" UTXOs
+    std::vector<output>::iterator it;
+    for(it = tx.inputs.begin(); it < tx.inputs.end(); it++)
+    {
+        utxos->erase((*it).id);
+    }
+
+    //Add new outputs to UTXOs
+    for(it = tx.outputs.begin(); it < tx.outputs.end(); it++)
+    {
+        utxos->store((*it).id, outputToJson((*it)));
+    }
+
+    //Commit transaction
+    transactions->store(tx.id, transactionToJson(tx));
+
+    return true;
+}
