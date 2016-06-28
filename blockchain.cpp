@@ -270,6 +270,12 @@ bool CryptoKernel::Blockchain::confirmTransaction(transaction tx)
         return false;
     }
 
+    //Prevent against double spends by checking again before confirmation
+    if(!verifyTransaction(tx))
+    {
+        return false;
+    }
+
     //"Spend" UTXOs
     std::vector<output>::iterator it;
     for(it = tx.inputs.begin(); it < tx.inputs.end(); it++)
