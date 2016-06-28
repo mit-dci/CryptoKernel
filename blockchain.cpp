@@ -1,5 +1,6 @@
 #include <ctime>
 #include <sstream>
+#include <algorithm>
 
 #include "blockchain.h"
 #include "crypto.h"
@@ -24,13 +25,8 @@ double CryptoKernel::Blockchain::getBalance(std::string publicKey)
     return currency->getBalance(publicKey);
 }
 
-bool CryptoKernel::Blockchain::submitTransaction(transaction tx)
+bool CryptoKernel::Blockchain::verifyTransaction(transaction tx)
 {
-    if(transactions->get(tx.id)["id"] == "")
-    {
-        return false;
-    }
-
     if(calculateTransactionId(tx) != tx.id)
     {
         return false;
@@ -56,6 +52,14 @@ bool CryptoKernel::Blockchain::submitTransaction(transaction tx)
         {
             return false;
         }
+        else
+        {
+            //Check if input has already been spent
+            if(utxos->get((*it).id)["id"] == "")
+            {
+                return false;
+            }
+        }
     }
 
     for(it = tx.outputs.begin(); it < tx.outputs.end(); it++)
@@ -68,9 +72,45 @@ bool CryptoKernel::Blockchain::submitTransaction(transaction tx)
         return false;
     }
 
-    unconfirmedTransactions.push(tx);
-
     return true;
+}
+
+bool CryptoKernel::Blockchain::submitTransaction(transaction tx)
+{
+    if(verifyTransaction(tx))
+    {
+        if(transactions->get(tx.id)["id"] != "")
+        {
+            //Transaction has already been submitted and verified
+            return false;
+        }
+        else
+        {
+            //Transaction has not already been verified
+
+            //Check if transaction is already in the unconfirmed vector
+            std::vector<transaction>::iterator it;
+            it = std::find_if(unconfirmedTransactions.begin(), unconfirmedTransactions.end(), [&](const transaction & utx)
+            {
+                return (utx.id == tx.id);
+            });
+
+            if(it->id == "")
+            {
+                unconfirmedTransactions.push_back(tx);
+                return true;
+            }
+            else
+            {
+                //Transaction is already in the unconfirmed vector
+                return false;
+            }
+        }
+    }
+    else
+    {
+        return false;
+    }
 }
 
 Json::Value CryptoKernel::Blockchain::transactionToJson(transaction tx)
@@ -138,3 +178,5 @@ std::string CryptoKernel::Blockchain::calculateOutputId(output Output)
     CryptoKernel::Crypto crypto;
     return crypto.sha256(buffer.str());
 }
+
+

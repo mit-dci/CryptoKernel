@@ -37,7 +37,6 @@ namespace CryptoKernel
                 unsigned int timestamp;
             };
             bool submitTransaction(transaction tx);
-            std::vector<transaction> getUnconfirmedTransactions();
             bool submitBlock(block newBlock);
             double getBalance(std::string publicKey);
 
@@ -47,11 +46,12 @@ namespace CryptoKernel
             Storage *blocks;
             Storage *utxos;
             Currency *currency;
-            std::queue<transaction> unconfirmedTransactions;
+            std::vector<transaction> unconfirmedTransactions;
             Json::Value transactionToJson(transaction tx);
             Json::Value outputToJson(output Output);
             std::string calculateOutputId(output Output);
             std::string calculateTransactionId(transaction tx);
+            bool verifyTransaction(transaction tx);
     };
 }
 
