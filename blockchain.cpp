@@ -197,6 +197,13 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock)
         return false;
     }
 
+    if(newBlock.previousBlockId != chainTipId)
+    {
+        //This block does not directly lead on from last block
+        //Check if its PoW is bigger than the longest chain
+        //If so, reorg, otherwise ignore it
+    }
+
     //Check the id is correct
     if(calculateBlockId(newBlock) != newBlock.id)
     {
@@ -234,6 +241,8 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock)
     }
 
     blocks->store(newBlock.id, blockToJson(newBlock));
+
+    chainTipId = newBlock.id;
 
     return true;
 }

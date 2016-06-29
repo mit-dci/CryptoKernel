@@ -54,6 +54,7 @@ namespace CryptoKernel
             std::string calculateBlockId(block Block);
             bool verifyTransaction(transaction tx);
             bool confirmTransaction(transaction tx);
+            std::string chainTipId;
     };
 }
 
