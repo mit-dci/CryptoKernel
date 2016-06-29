@@ -155,3 +155,11 @@ std::string CryptoKernel::Storage::toString(Json::Value json)
 
     return returning;
 }
+
+bool CryptoKernel::Storage::destroy(std::string filename)
+{
+    leveldb::Options options;
+    leveldb::DestroyDB(filename, options);
+
+    return true;
+}

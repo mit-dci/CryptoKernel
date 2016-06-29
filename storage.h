@@ -36,6 +36,7 @@ namespace CryptoKernel
             };
             Iterator* newIterator();
 
+            static bool destroy(std::string filename);
             static Json::Value toJson(std::string json);
             static std::string toString(Json::Value json);
 

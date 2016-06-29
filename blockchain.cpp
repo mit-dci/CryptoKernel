@@ -1,6 +1,7 @@
 #include <ctime>
 #include <sstream>
 #include <algorithm>
+#include <stack>
 
 #include "blockchain.h"
 #include "crypto.h"
@@ -43,7 +44,7 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx)
     }
 
     time_t t = std::time(0);
-    unsigned int now = static_cast<unsigned int> (t);
+    uint64_t now = static_cast<uint64_t> (t);
     if(tx.timestamp < (now - 60 * 60))
     {
         return false;
@@ -138,7 +139,7 @@ Json::Value CryptoKernel::Blockchain::transactionToJson(transaction tx)
         returning["inputs"].append(outputToJson((*it)));
     }
 
-    returning["timestamp"] = tx.timestamp;
+    returning["timestamp"] = static_cast<unsigned long long int>(tx.timestamp);
     returning["id"] = tx.id;
 
     return returning;
@@ -197,12 +198,14 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock)
         return false;
     }
 
-    if(newBlock.previousBlockId != chainTipId)
+    /*if(newBlock.previousBlockId != chainTipId)
     {
         //This block does not directly lead on from last block
         //Check if its PoW is bigger than the longest chain
         //If so, reorg, otherwise ignore it
-    }
+
+        reorgChain(newBlock.id);
+    }*/
 
     //Check the id is correct
     if(calculateBlockId(newBlock) != newBlock.id)
@@ -218,7 +221,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock)
 
     //Check that the timestamp is realistic
     time_t t = std::time(0);
-    unsigned int now = static_cast<unsigned int> (t);
+    uint64_t now = static_cast<uint64_t> (t);
     if(newBlock.timestamp < (now - 60 * 60))
     {
         return false;
@@ -271,7 +274,7 @@ Json::Value CryptoKernel::Blockchain::blockToJson(block Block)
     returning["id"] = Block.id;
     returning["height"] = Block.height;
     returning["previousBlockId"] = Block.previousBlockId;
-    returning["timestamp"] = Block.timestamp;
+    returning["timestamp"] = static_cast<unsigned long long int>(Block.timestamp);
     std::vector<transaction>::iterator it;
     for(it = Block.transactions.begin(); it < Block.transactions.end(); it++)
     {
@@ -312,4 +315,89 @@ bool CryptoKernel::Blockchain::confirmTransaction(transaction tx)
     transactions->store(tx.id, transactionToJson(tx));
 
     return true;
+}
+
+bool CryptoKernel::Blockchain::reorgChain(std::string newTipId)
+{
+    std::stack<block> blockList;
+
+    delete transactions;
+    CryptoKernel::Storage::destroy("./transactiondb");
+    transactions = new CryptoKernel::Storage("./transactiondb");
+
+    delete utxos;
+    CryptoKernel::Storage::destroy("./utxodb");
+    utxos = new CryptoKernel::Storage("./utxodb");
+
+    block currentBlock = jsonToBlock(blocks->get(newTipId));
+    while(currentBlock.previousBlockId != "")
+    {
+        blockList.push(currentBlock);
+        currentBlock = jsonToBlock(blocks->get(currentBlock.previousBlockId));
+    }
+
+    delete blocks;
+    CryptoKernel::Storage::destroy("./blockdb");
+    blocks = new CryptoKernel::Storage("./blockdb");
+
+    while(!blockList.empty())
+    {
+        submitBlock(currentBlock);
+        currentBlock = blockList.top();
+        blockList.pop();
+    }
+
+    submitBlock(currentBlock);
+
+    return true;
+}
+
+CryptoKernel::Blockchain::block CryptoKernel::Blockchain::jsonToBlock(Json::Value Block)
+{
+    block returning;
+
+    returning.id = Block["id"].asString();
+    returning.previousBlockId = Block["previousBlockId"].asString();
+    returning.timestamp = Block["timestamp"].asUInt64();
+    returning.height = Block["height"].asUInt();
+
+    for(unsigned int i = 0; i < Block["transactions"].size(); i++)
+    {
+        returning.transactions.push_back(jsonToTransaction(Block["transactions"][i]));
+    }
+
+    return returning;
+}
+
+CryptoKernel::Blockchain::transaction CryptoKernel::Blockchain::jsonToTransaction(Json::Value tx)
+{
+    transaction returning;
+
+    returning.id = tx["id"].asString();
+    returning.timestamp = tx["timestamp"].asUInt64();
+
+    for(unsigned int i = 0; i < tx["inputs"].size(); i++)
+    {
+        returning.inputs.push_back(jsonToOutput(tx["inputs"][i]));
+    }
+
+    for(unsigned int i = 0; i < tx["outputs"].size(); i++)
+    {
+        returning.outputs.push_back(jsonToOutput(tx["outputs"][i]));
+    }
+
+    return returning;
+}
+
+CryptoKernel::Blockchain::output CryptoKernel::Blockchain::jsonToOutput(Json::Value Output)
+{
+    output returning;
+
+    returning.id = Output["id"].asString();
+    returning.publicKey = Output["publicKey"].asString();
+    returning.signature = Output["signature"].asString();
+    returning.data = Output["data"];
+    returning.value = Output["value"].asDouble();
+
+    return returning;
 }

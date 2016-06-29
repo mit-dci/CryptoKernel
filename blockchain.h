@@ -26,7 +26,7 @@ namespace CryptoKernel
                 std::string id;
                 std::vector<output> inputs;
                 std::vector<output> outputs;
-                unsigned int timestamp;
+                uint64_t timestamp;
             };
             struct block
             {
@@ -34,7 +34,7 @@ namespace CryptoKernel
                 unsigned int height;
                 std::vector<transaction> transactions;
                 std::string previousBlockId;
-                unsigned int timestamp;
+                uint64_t timestamp;
             };
             bool submitTransaction(transaction tx);
             bool submitBlock(block newBlock);
@@ -49,12 +49,16 @@ namespace CryptoKernel
             Json::Value transactionToJson(transaction tx);
             Json::Value outputToJson(output Output);
             Json::Value blockToJson(block Block);
+            block jsonToBlock(Json::Value Block);
+            transaction jsonToTransaction(Json::Value tx);
+            output jsonToOutput(Json::Value Output);
             std::string calculateOutputId(output Output);
             std::string calculateTransactionId(transaction tx);
             std::string calculateBlockId(block Block);
             bool verifyTransaction(transaction tx);
             bool confirmTransaction(transaction tx);
             std::string chainTipId;
+            bool reorgChain(std::string newTipId);
     };
 }
 
