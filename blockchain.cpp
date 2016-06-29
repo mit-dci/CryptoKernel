@@ -21,8 +21,18 @@ CryptoKernel::Blockchain::~Blockchain()
 
 double CryptoKernel::Blockchain::getBalance(std::string publicKey)
 {
-    //Implement this
-    return 0;
+    double total = 0;
+
+    CryptoKernel::Storage::Iterator *it = utxos->newIterator();
+    for(it->SeekToFirst(); it->Valid(); it->Next())
+    {
+        if(it->value()["publicKey"] == publicKey)
+        {
+            total += it->value()["value"].asDouble();
+        }
+    }
+
+    return total;
 }
 
 bool CryptoKernel::Blockchain::verifyTransaction(transaction tx)
