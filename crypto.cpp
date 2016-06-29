@@ -450,6 +450,37 @@ std::string CryptoKernel::Crypto::sha256(std::string message)
     }
 }
 
+unsigned char* CryptoKernel::Crypto::sha256uchar(std::string message)
+{
+    if(message != "")
+    {
+        unsigned char hash[SHA256_DIGEST_LENGTH];
+
+        SHA256_CTX sha256CTX;
+
+        if(!SHA256_Init(&sha256CTX))
+        {
+            return NULL;
+        }
+
+        if(!SHA256_Update(&sha256CTX, (unsigned char*)message.c_str(), message.size()))
+        {
+            return NULL;
+        }
+
+        if(!SHA256_Final(hash, &sha256CTX))
+        {
+            return NULL;
+        }
+
+        return hash;
+    }
+    else
+    {
+        return NULL;
+    }
+}
+
 bool CryptoKernel::Crypto::getStatus()
 {
     return status;

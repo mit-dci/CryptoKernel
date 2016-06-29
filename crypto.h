@@ -29,6 +29,7 @@ public:
     std::string sha256(std::string message);
     std::string getEk();
     bool setEk(std::string Ek);
+    unsigned char* sha256uchar(std::string message);
 
 private:
     EVP_PKEY *keypair;
