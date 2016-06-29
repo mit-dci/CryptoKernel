@@ -11,6 +11,8 @@ CryptoKernel::Blockchain::Blockchain()
     transactions = new CryptoKernel::Storage("./transactiondb");
     blocks = new CryptoKernel::Storage("./blockdb");
     utxos = new CryptoKernel::Storage("./utxodb");
+
+    chainTipId = blocks->get("tip")["id"];
 }
 
 CryptoKernel::Blockchain::~Blockchain()
@@ -246,6 +248,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock)
     blocks->store(newBlock.id, blockToJson(newBlock));
 
     chainTipId = newBlock.id;
+    blocks->store("tip", blockToJson(newBlock));
 
     return true;
 }
@@ -320,6 +323,8 @@ bool CryptoKernel::Blockchain::confirmTransaction(transaction tx)
 bool CryptoKernel::Blockchain::reorgChain(std::string newTipId)
 {
     std::stack<block> blockList;
+
+    chainTipId = "";
 
     delete transactions;
     CryptoKernel::Storage::destroy("./transactiondb");
