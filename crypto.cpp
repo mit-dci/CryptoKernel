@@ -440,44 +440,13 @@ std::string CryptoKernel::Crypto::sha256(std::string message)
             return "";
         }
 
-        std::string returning = base64_encode(hash, SHA256_DIGEST_LENGTH);
+        std::string returning = base16_encode(hash, SHA256_DIGEST_LENGTH);
 
         return returning;
     }
     else
     {
         return "";
-    }
-}
-
-unsigned char* CryptoKernel::Crypto::sha256uchar(std::string message)
-{
-    if(message != "")
-    {
-        unsigned char hash[SHA256_DIGEST_LENGTH];
-
-        SHA256_CTX sha256CTX;
-
-        if(!SHA256_Init(&sha256CTX))
-        {
-            return NULL;
-        }
-
-        if(!SHA256_Update(&sha256CTX, (unsigned char*)message.c_str(), message.size()))
-        {
-            return NULL;
-        }
-
-        if(!SHA256_Final(hash, &sha256CTX))
-        {
-            return NULL;
-        }
-
-        return hash;
-    }
-    else
-    {
-        return NULL;
     }
 }
 
@@ -522,4 +491,80 @@ bool CryptoKernel::Crypto::setEk(std::string Ek)
 
         return true;
     }
+}
+
+std::string base16_encode(unsigned char const* bytes_to_encode, unsigned int in_len)
+{
+    std::stringstream ss;
+    for(unsigned int i = 0; i < in_len; i++)
+    {
+        ss << std::hex << (unsigned int)bytes_to_encode[i];
+    }
+    return ss.str();
+}
+
+bool hex_greater(std::string first, std::string second)
+{
+    unsigned int firstSize = first.size();
+    unsigned int secondSize = second.size();
+    if(firstSize > secondSize)
+    {
+        return true;
+    }
+    else if(firstSize < secondSize)
+    {
+        return false;
+    }
+
+    std::transform(first.begin(), first.end(), first.begin(), ::tolower);
+    std::transform(second.begin(), second.end(), second.begin(), ::tolower);
+
+    if(first > second)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+std::string addHex(std::string first, std::string second)
+{
+    std::stringstream buffer;
+
+    unsigned long carry = 0;
+
+    unsigned int i = 0;
+    while(carry != 0 || i < first.size() || i < second.size())
+    {
+        unsigned long ul = 0;
+        if(i < first.size())
+        {
+            ul += std::stoul(first.substr(first.size() - 1 - i, 1), nullptr, 16);
+        }
+        if(i < second.size())
+        {
+            ul += std::stoul(second.substr(second.size() - 1 - i, 1), nullptr, 16);
+        }
+
+        ul += carry;
+        carry = 0;
+
+        if(ul > 15)
+        {
+            carry = 1;
+            buffer << std::hex << ul - 16;
+        }
+        else
+        {
+            buffer << std::hex << ul;
+        }
+
+        i++;
+    }
+
+    std::string returning = buffer.str();
+
+    std::reverse(returning.begin(), returning.end());
+
+    return returning;
 }

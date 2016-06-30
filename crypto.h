@@ -6,6 +6,7 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 #include <string>
+#include <sstream>
 
 #define RSA_KEYLEN 2048
 
@@ -42,5 +43,9 @@ private:
 };
 
 }
+
+std::string base16_encode(unsigned char const* bytes_to_encode, unsigned int in_len);
+bool hex_greater(std::string first, std::string second);
+std::string addHex(std::string first, std::string second);
 
 #endif // CRYPTO_H_INCLUDED
