@@ -35,6 +35,9 @@ namespace CryptoKernel
                 std::vector<transaction> transactions;
                 std::string previousBlockId;
                 uint64_t timestamp;
+                std::string target;
+                std::string PoW;
+                std::string totalWork;
             };
             bool submitTransaction(transaction tx);
             bool submitBlock(block newBlock);

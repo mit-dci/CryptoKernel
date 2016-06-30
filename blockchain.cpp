@@ -12,7 +12,7 @@ CryptoKernel::Blockchain::Blockchain()
     blocks = new CryptoKernel::Storage("./blockdb");
     utxos = new CryptoKernel::Storage("./utxodb");
 
-    chainTipId = blocks->get("tip")["id"];
+    chainTipId = blocks->get("tip")["id"].asString();
 }
 
 CryptoKernel::Blockchain::~Blockchain()
@@ -200,23 +200,49 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock)
         return false;
     }
 
-    /*if(newBlock.previousBlockId != chainTipId)
-    {
-        //This block does not directly lead on from last block
-        //Check if its PoW is bigger than the longest chain
-        //If so, reorg, otherwise ignore it
-
-        reorgChain(newBlock.id);
-    }*/
-
-    //Check the id is correct
-    if(calculateBlockId(newBlock) != newBlock.id)
+    //Check the previous block exists
+    if(blocks->get(newBlock.previousBlockId)["id"] == "")
     {
         return false;
     }
 
-    //Check the previous block exists
-    if(blocks->get(newBlock.previousBlockId)["id"] == "")
+    //Check target
+    /*if(newBlock.target != calulateTarget(newBlock.previousBlockId))
+    {
+        return false;
+    }*/
+
+    //Check proof of work
+    if(!hex_greater(newBlock.target, newBlock.PoW))
+    {
+        return false;
+    }
+
+    //Check total work
+    if(newBlock.totalWork != addHex(newBlock.PoW, jsonToBlock(blocks->get(newBlock.previousBlockId)).totalWork))
+    {
+        return false;
+    }
+
+    bool needToReorg = false;
+
+    if(newBlock.previousBlockId != chainTipId)
+    {
+        //This block does not directly lead on from last block
+        //Check if its PoW is bigger than the longest chain
+        //If so, reorg, otherwise ignore it
+        if(hex_greater(jsonToBlock(blocks->get("tip")).totalWork, newBlock.totalWork))
+        {
+            needToReorg = true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    //Check the id is correct
+    if(calculateBlockId(newBlock) != newBlock.id)
     {
         return false;
     }
@@ -249,6 +275,11 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock)
 
     chainTipId = newBlock.id;
     blocks->store("tip", blockToJson(newBlock));
+
+    if(needToReorg)
+    {
+        reorgChain(newBlock.id);
+    }
 
     return true;
 }
