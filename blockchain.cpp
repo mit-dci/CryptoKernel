@@ -315,6 +315,10 @@ Json::Value CryptoKernel::Blockchain::blockToJson(block Block)
         returning["transactions"].append(transactionToJson((*it)));
     }
 
+    returning["PoW"] = Block.PoW;
+    returning["target"] = Block.target;
+    returning["totalWork"] = Block.totalWork;
+
     return returning;
 }
 
@@ -396,6 +400,9 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::jsonToBlock(Json::Valu
     returning.previousBlockId = Block["previousBlockId"].asString();
     returning.timestamp = Block["timestamp"].asUInt64();
     returning.height = Block["height"].asUInt();
+    returning.PoW = Block["PoW"].asString();
+    returning.target = Block["target"].asString();
+    returning.totalWork = Block["totalWork"].asString();
 
     for(unsigned int i = 0; i < Block["transactions"].size(); i++)
     {

@@ -62,6 +62,7 @@ namespace CryptoKernel
             bool confirmTransaction(transaction tx);
             std::string chainTipId;
             bool reorgChain(std::string newTipId);
+            std::string calculateTarget(std::string previousBlockId);
     };
 }
 
