@@ -248,9 +248,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock)
     }
 
     //Check that the timestamp is realistic
-    time_t t = std::time(0);
-    uint64_t now = static_cast<uint64_t> (t);
-    if(newBlock.timestamp < (now - 60 * 60))
+    if(newBlock.timestamp < (jsonToBlock(blocks->get(newBlock.previousBlockId)).timestamp - 24 * 60 * 60))
     {
         return false;
     }
