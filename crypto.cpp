@@ -2,6 +2,7 @@
 #include "base64.h"
 #include <sstream>
 #include <algorithm>
+#include <iostream>
 
 CryptoKernel::Crypto::Crypto(bool fGenerate)
 {
@@ -553,6 +554,67 @@ std::string addHex(std::string first, std::string second)
         {
             carry = 1;
             buffer << std::hex << ul - 16;
+        }
+        else
+        {
+            buffer << std::hex << ul;
+        }
+
+        i++;
+    }
+
+    std::string returning = buffer.str();
+
+    std::reverse(returning.begin(), returning.end());
+
+    return returning;
+}
+
+std::string subtractHex(std::string first, std::string second)
+{
+    std::stringstream buffer;
+
+    unsigned int i = 0;
+    while(i < first.size() || i < second.size())
+    {
+        long ul = 0;
+        if(i < first.size())
+        {
+            ul += std::stoul(first.substr(first.size() - 1 - i, 1), nullptr, 16);
+        }
+        if(i < second.size())
+        {
+            ul -= std::stoul(second.substr(second.size() - 1 - i, 1), nullptr, 16);
+        }
+
+        if(ul < 0)
+        {
+            ul = std::stoul(first.substr(first.size() - 1 - i, 1), nullptr, 16);
+            unsigned int offset = 0;
+            bool found = false;
+            while(!found)
+            {
+                offset++;
+                unsigned long value = std::stoul(first.substr(first.size() - 1 - i - offset, 1), nullptr, 16);
+                if(value > 0)
+                {
+                    found = true;
+                    ul += 16;
+
+                    value--;
+                    for(unsigned int i2 = offset; i2 > 0; i2--)
+                    {
+                        std::stringstream buffer2;
+                        buffer2 << std::hex << value;
+                        first.replace(first.size() - 1 - i - i2, 1, buffer2.str());
+                        value = 15;
+                    }
+                }
+            }
+
+            ul -= std::stoul(second.substr(second.size() - 1 - i, 1), nullptr, 16);
+
+            buffer << std::hex << ul;
         }
         else
         {
