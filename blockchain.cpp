@@ -207,10 +207,10 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock)
     }
 
     //Check target
-    /*if(newBlock.target != calulateTarget(newBlock.previousBlockId))
+    if(newBlock.target != calculateTarget(newBlock.previousBlockId))
     {
         return false;
-    }*/
+    }
 
     //Check proof of work
     if(!hex_greater(newBlock.target, newBlock.PoW))
@@ -443,4 +443,58 @@ CryptoKernel::Blockchain::output CryptoKernel::Blockchain::jsonToOutput(Json::Va
     returning.value = Output["value"].asDouble();
 
     return returning;
+}
+
+std::string CryptoKernel::Blockchain::calculateTarget(std::string previousBlockId)
+{
+    if(previousBlockId == "")
+    {
+        return "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+    }
+    else
+    {
+        uint64_t totalTime = 0;
+
+        unsigned int i;
+        block currentBlock = jsonToBlock(blocks->get(previousBlockId));
+        for(i = 0; i < 200; i++)
+        {
+            block nextBlock;
+            if(currentBlock.previousBlockId != "")
+            {
+                nextBlock = jsonToBlock(blocks->get(currentBlock.previousBlockId));
+            }
+            else
+            {
+                break;
+            }
+            uint64_t timeDifference = currentBlock.timestamp - nextBlock.timestamp;
+            totalTime += timeDifference;
+            currentBlock = nextBlock;
+        }
+
+        uint64_t blockTime = totalTime / i;
+        uint64_t delta = blockTime - 150;
+
+        std::stringstream buffer;
+
+        std::string newTarget;
+
+        if(delta > 0)
+        {
+            buffer << std::hex << delta;
+            newTarget = addHex(jsonToBlock(blocks->get(previousBlockId)).target, buffer.str());
+        }
+        else if(delta < 0)
+        {
+            buffer << std::hex << -delta;
+            newTarget = subtractHex(jsonToBlock(blocks->get(previousBlockId)).target, buffer.str());
+        }
+        else
+        {
+            newTarget = jsonToBlock(blocks->get(previousBlockId)).target;
+        }
+
+        return newTarget;
+    }
 }
