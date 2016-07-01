@@ -350,6 +350,13 @@ bool CryptoKernel::Blockchain::confirmTransaction(transaction tx)
     //Commit transaction
     transactions->store(tx.id, transactionToJson(tx));
 
+    //Remove transaction from unconfirmed transactions vector
+    std::vector<transaction>::iterator it2;
+    it2 = std::remove_if(unconfirmedTransactions.begin(), unconfirmedTransactions.end(), [&](const transaction & utx)
+    {
+        return (utx.id == tx.id);
+    });
+
     return true;
 }
 
