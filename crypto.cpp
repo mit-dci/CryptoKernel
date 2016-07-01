@@ -2,7 +2,6 @@
 #include "base64.h"
 #include <sstream>
 #include <algorithm>
-#include <iostream>
 
 CryptoKernel::Crypto::Crypto(bool fGenerate)
 {
