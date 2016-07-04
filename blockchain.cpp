@@ -541,3 +541,31 @@ std::string CryptoKernel::Blockchain::calculateTarget(std::string previousBlockI
         return newTarget;
     }
 }
+
+double CryptoKernel::Blockchain::getTransactionFee(transaction tx)
+{
+    double fee = 0;
+
+    std::vector<output>::iterator it;
+    for(it = tx.inputs.begin(); it < tx.inputs.end(); it++)
+    {
+        if((*it).value < 0.01)
+        {
+            fee += 0.001;
+        }
+
+        fee += CryptoKernel::Storage::toString((*it).data).size() * 0.00001;
+    }
+
+    for(it = tx.outputs.begin(); it < tx.outputs.end(); it++)
+    {
+        if((*it).value < 0.01)
+        {
+            fee += 0.001;
+        }
+
+        fee += CryptoKernel::Storage::toString((*it).data).size() * 0.00001;
+    }
+
+    return fee;
+}

@@ -65,6 +65,7 @@ namespace CryptoKernel
             std::string calculateTarget(std::string previousBlockId);
             double getBlockReward();
             bool isCoinbaseTransaction(transaction tx);
+            double getTransactionFee(transaction tx);
     };
 }
 
