@@ -22,6 +22,34 @@ CryptoKernel::Blockchain::~Blockchain()
     delete utxos;
 }
 
+double CryptoKernel::Blockchain::getBlockReward()
+{
+    return 50;
+}
+
+bool CryptoKernel::Blockchain::isCoinbaseTransaction(transaction tx)
+{
+    if(!tx.inputs.empty())
+    {
+        return false;
+    }
+
+    double outputTotal = 0;
+
+    std::vector<output>::iterator it;
+    for(it = tx.outputs.begin(); it < tx.outputs.end(); it++)
+    {
+        outputTotal += (*it).value;
+    }
+
+    if(outputTotal != getBlockReward())
+    {
+        return false;
+    }
+
+    return true;
+}
+
 double CryptoKernel::Blockchain::getBalance(std::string publicKey)
 {
     double total = 0;
@@ -80,7 +108,7 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx)
         outputTotal += (*it).value;
     }
 
-    if(outputTotal != inputTotal)
+    if(outputTotal != inputTotal || !isCoinbaseTransaction(tx))
     {
         return false;
     }
@@ -90,7 +118,7 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx)
 
 bool CryptoKernel::Blockchain::submitTransaction(transaction tx)
 {
-    if(verifyTransaction(tx))
+    if(verifyTransaction(tx) && !isCoinbaseTransaction(tx))
     {
         if(transactions->get(tx.id)["id"] != "")
         {
@@ -253,13 +281,23 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock)
         return false;
     }
 
+    bool foundCoinbaseTransaction = false;
+
     //Verify Transactions
     std::vector<transaction>::iterator it;
     for(it = newBlock.transactions.begin(); it < newBlock.transactions.end(); it++)
     {
         if(!submitTransaction((*it)))
         {
-            return false;
+            if(isCoinbaseTransaction((*it)) && !foundCoinbaseTransaction)
+            {
+                //Make sure the block has only one coinbase transaction
+                foundCoinbaseTransaction = true;
+            }
+            else
+            {
+                return false;
+            }
         }
     }
 
