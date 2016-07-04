@@ -27,29 +27,6 @@ double CryptoKernel::Blockchain::getBlockReward()
     return 50;
 }
 
-bool CryptoKernel::Blockchain::isCoinbaseTransaction(transaction tx)
-{
-    if(!tx.inputs.empty())
-    {
-        return false;
-    }
-
-    double outputTotal = 0;
-
-    std::vector<output>::iterator it;
-    for(it = tx.outputs.begin(); it < tx.outputs.end(); it++)
-    {
-        outputTotal += (*it).value;
-    }
-
-    if(outputTotal != getBlockReward())
-    {
-        return false;
-    }
-
-    return true;
-}
-
 double CryptoKernel::Blockchain::getBalance(std::string publicKey)
 {
     double total = 0;
@@ -127,7 +104,7 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
 
 bool CryptoKernel::Blockchain::submitTransaction(transaction tx)
 {
-    if(verifyTransaction(tx) && !isCoinbaseTransaction(tx))
+    if(verifyTransaction(tx))
     {
         if(transactions->get(tx.id)["id"] != "")
         {
@@ -384,6 +361,7 @@ Json::Value CryptoKernel::Blockchain::blockToJson(block Block)
     returning["PoW"] = Block.PoW;
     returning["target"] = Block.target;
     returning["totalWork"] = Block.totalWork;
+    returning["coinbaseTx"] = transactionToJson(Block.coinbaseTx);
 
     return returning;
 }
@@ -481,6 +459,8 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::jsonToBlock(Json::Valu
     {
         returning.transactions.push_back(jsonToTransaction(Block["transactions"][i]));
     }
+
+    returning.coinbaseTx = jsonToTransaction(Block["coinbaseTx"]);
 
     return returning;
 }

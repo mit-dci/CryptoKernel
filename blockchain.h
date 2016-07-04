@@ -65,7 +65,6 @@ namespace CryptoKernel
             bool reorgChain(std::string newTipId);
             std::string calculateTarget(std::string previousBlockId);
             double getBlockReward();
-            bool isCoinbaseTransaction(transaction tx);
             double getTransactionFee(transaction tx);
             double calculateTransactionFee(transaction tx);
     };
