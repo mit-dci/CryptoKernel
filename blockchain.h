@@ -39,6 +39,7 @@ namespace CryptoKernel
                 std::string target;
                 std::string PoW;
                 std::string totalWork;
+                uint64_t nonce;
             };
             bool submitTransaction(transaction tx);
             bool submitBlock(block newBlock);
@@ -52,7 +53,7 @@ namespace CryptoKernel
             std::vector<transaction> unconfirmedTransactions;
             Json::Value transactionToJson(transaction tx);
             Json::Value outputToJson(output Output);
-            Json::Value blockToJson(block Block);
+            Json::Value blockToJson(block Block, bool PoW = false);
             block jsonToBlock(Json::Value Block);
             transaction jsonToTransaction(Json::Value tx);
             output jsonToOutput(Json::Value Output);
@@ -67,6 +68,7 @@ namespace CryptoKernel
             double getBlockReward();
             double getTransactionFee(transaction tx);
             double calculateTransactionFee(transaction tx);
+            std::string calculatePoW(block Block);
     };
 }
 

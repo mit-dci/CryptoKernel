@@ -227,7 +227,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock)
     }
 
     //Check proof of work
-    if(!hex_greater(newBlock.target, newBlock.PoW))
+    if(!hex_greater(newBlock.target, newBlock.PoW) || calculatePoW(newBlock) != newBlock.PoW)
     {
         return false;
     }
@@ -344,7 +344,7 @@ std::string CryptoKernel::Blockchain::calculateBlockId(block Block)
     return crypto.sha256(buffer.str());
 }
 
-Json::Value CryptoKernel::Blockchain::blockToJson(block Block)
+Json::Value CryptoKernel::Blockchain::blockToJson(block Block, bool PoW)
 {
     Json::Value returning;
 
@@ -358,10 +358,14 @@ Json::Value CryptoKernel::Blockchain::blockToJson(block Block)
         returning["transactions"].append(transactionToJson((*it)));
     }
 
-    returning["PoW"] = Block.PoW;
+    if(!PoW)
+    {
+        returning["PoW"] = Block.PoW;
+    }
     returning["target"] = Block.target;
     returning["totalWork"] = Block.totalWork;
     returning["coinbaseTx"] = transactionToJson(Block.coinbaseTx);
+    returning["nonce"] = static_cast<unsigned long long int>(Block.nonce);
 
     return returning;
 }
@@ -461,6 +465,7 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::jsonToBlock(Json::Valu
     }
 
     returning.coinbaseTx = jsonToTransaction(Block["coinbaseTx"]);
+    returning.nonce = Block["nonce"].asUInt64();
 
     return returning;
 }
@@ -597,4 +602,12 @@ double CryptoKernel::Blockchain::calculateTransactionFee(transaction tx)
     }
 
     return inputTotal - outputTotal;
+}
+
+std::string CryptoKernel::Blockchain::calculatePoW(block Block)
+{
+    std::string data = CryptoKernel::Storage::toString(blockToJson(Block, true));
+
+    CryptoKernel::Crypto crypto;
+    return crypto.sha256(data);
 }
