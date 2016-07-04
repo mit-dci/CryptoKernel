@@ -33,6 +33,7 @@ namespace CryptoKernel
                 std::string id;
                 unsigned int height;
                 std::vector<transaction> transactions;
+                transaction coinbaseTx;
                 std::string previousBlockId;
                 uint64_t timestamp;
                 std::string target;
@@ -58,14 +59,15 @@ namespace CryptoKernel
             std::string calculateOutputId(output Output);
             std::string calculateTransactionId(transaction tx);
             std::string calculateBlockId(block Block);
-            bool verifyTransaction(transaction tx);
-            bool confirmTransaction(transaction tx);
+            bool verifyTransaction(transaction tx, bool coinbaseTx = false);
+            bool confirmTransaction(transaction tx, bool coinbaseTx = false);
             std::string chainTipId;
             bool reorgChain(std::string newTipId);
             std::string calculateTarget(std::string previousBlockId);
             double getBlockReward();
             bool isCoinbaseTransaction(transaction tx);
             double getTransactionFee(transaction tx);
+            double calculateTransactionFee(transaction tx);
     };
 }
 

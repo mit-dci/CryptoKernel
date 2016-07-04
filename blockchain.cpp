@@ -66,7 +66,7 @@ double CryptoKernel::Blockchain::getBalance(std::string publicKey)
     return total;
 }
 
-bool CryptoKernel::Blockchain::verifyTransaction(transaction tx)
+bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx)
 {
     if(calculateTransactionId(tx) != tx.id)
     {
@@ -108,15 +108,18 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx)
         outputTotal += (*it).value;
     }
 
-    if(outputTotal > inputTotal || !isCoinbaseTransaction(tx))
+    if(!coinbaseTx)
     {
-        return false;
-    }
+        if(outputTotal > inputTotal)
+        {
+            return false;
+        }
 
-    double fee = inputTotal - outputTotal;
-    if(fee < getTransactionFee(tx) * 0.5)
-    {
-        return false;
+        double fee = inputTotal - outputTotal;
+        if(fee < getTransactionFee(tx) * 0.5)
+        {
+            return false;
+        }
     }
 
     return true;
@@ -287,7 +290,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock)
         return false;
     }
 
-    bool foundCoinbaseTransaction = false;
+    double fees = 0;
 
     //Verify Transactions
     std::vector<transaction>::iterator it;
@@ -295,15 +298,36 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock)
     {
         if(!submitTransaction((*it)))
         {
-            if(isCoinbaseTransaction((*it)) && !foundCoinbaseTransaction)
-            {
-                //Make sure the block has only one coinbase transaction
-                foundCoinbaseTransaction = true;
-            }
-            else
-            {
-                return false;
-            }
+            return false;
+        }
+        fees += calculateTransactionFee((*it));
+    }
+
+    if(!newBlock.coinbaseTx.inputs.empty())
+    {
+        return false;
+    }
+    else
+    {
+        double outputTotal = 0;
+        std::vector<output>::iterator it2;
+        for(it2 = newBlock.coinbaseTx.outputs.begin(); it2 < newBlock.coinbaseTx.outputs.end(); it2++)
+        {
+            outputTotal += (*it2).value;
+        }
+
+        if(outputTotal != fees + getBlockReward())
+        {
+            return false;
+        }
+
+        if(verifyTransaction(newBlock.coinbaseTx, true))
+        {
+            confirmTransaction(newBlock.coinbaseTx, true);
+        }
+        else
+        {
+            return false;
         }
     }
 
@@ -364,7 +388,7 @@ Json::Value CryptoKernel::Blockchain::blockToJson(block Block)
     return returning;
 }
 
-bool CryptoKernel::Blockchain::confirmTransaction(transaction tx)
+bool CryptoKernel::Blockchain::confirmTransaction(transaction tx, bool coinbaseTx)
 {
     //Check if transaction is already confirmed
     if(transactions->get(tx.id)["id"] != "")
@@ -373,7 +397,7 @@ bool CryptoKernel::Blockchain::confirmTransaction(transaction tx)
     }
 
     //Prevent against double spends by checking again before confirmation
-    if(!verifyTransaction(tx))
+    if(!verifyTransaction(tx, coinbaseTx))
     {
         return false;
     }
@@ -574,4 +598,23 @@ double CryptoKernel::Blockchain::getTransactionFee(transaction tx)
     }
 
     return fee;
+}
+
+double CryptoKernel::Blockchain::calculateTransactionFee(transaction tx)
+{
+    double inputTotal = 0;
+    double outputTotal = 0;
+    std::vector<output>::iterator it;
+
+    for(it = tx.inputs.begin(); it < tx.inputs.end(); it++)
+    {
+        inputTotal += (*it).value;
+    }
+
+    for(it = tx.outputs.begin(); it < tx.outputs.end(); it++)
+    {
+        outputTotal += (*it).value;
+    }
+
+    return inputTotal - outputTotal;
 }
