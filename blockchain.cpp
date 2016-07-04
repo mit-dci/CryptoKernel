@@ -108,7 +108,13 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx)
         outputTotal += (*it).value;
     }
 
-    if(outputTotal != inputTotal || !isCoinbaseTransaction(tx))
+    if(outputTotal > inputTotal || !isCoinbaseTransaction(tx))
+    {
+        return false;
+    }
+
+    double fee = inputTotal - outputTotal;
+    if(fee < getTransactionFee(tx) * 0.5)
     {
         return false;
     }
