@@ -44,7 +44,7 @@ namespace CryptoKernel
             bool submitTransaction(transaction tx);
             bool submitBlock(block newBlock);
             double getBalance(std::string publicKey);
-
+            block generateMiningBlock(std::string publicKey);
 
         private:
             Storage *transactions;

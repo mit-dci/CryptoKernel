@@ -13,6 +13,11 @@ CryptoKernel::Blockchain::Blockchain()
     utxos = new CryptoKernel::Storage("./utxodb");
 
     chainTipId = blocks->get("tip")["id"].asString();
+    if(chainTipId == "")
+    {
+        //Generate and save genesis block
+        //block genesisBlock;
+    }
 }
 
 CryptoKernel::Blockchain::~Blockchain()
@@ -610,4 +615,40 @@ std::string CryptoKernel::Blockchain::calculatePoW(block Block)
 
     CryptoKernel::Crypto crypto;
     return crypto.sha256(data);
+}
+
+CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateMiningBlock(std::string publicKey)
+{
+    block returning;
+
+    returning.transactions = unconfirmedTransactions;
+    time_t t = std::time(0);
+    uint64_t now = static_cast<uint64_t> (t);
+    returning.timestamp = now;
+
+    block previousBlock;
+    previousBlock = jsonToBlock(blocks->get("tip"));
+
+    returning.height = previousBlock.height + 1;
+    returning.previousBlockId = previousBlock.id;
+    returning.target = calculateTarget(previousBlock.id);
+
+    output toMe;
+    toMe.value = getBlockReward();
+
+    std::vector<transaction>::iterator it;
+    for(it = returning.transactions.begin(); it < returning.transactions.end(); it++)
+    {
+        toMe.value += calculateTransactionFee((*it));
+    }
+    toMe.publicKey = publicKey;
+    toMe.id = calculateOutputId(toMe);
+
+    transaction coinbaseTx;
+    coinbaseTx.outputs.push_back(toMe);
+    coinbaseTx.timestamp = now;
+    coinbaseTx.id = calculateTransactionId(coinbaseTx);
+    returning.coinbaseTx = coinbaseTx;
+
+    return returning;
 }
