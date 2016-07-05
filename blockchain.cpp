@@ -343,6 +343,8 @@ std::string CryptoKernel::Blockchain::calculateBlockId(block Block)
         buffer << calculateTransactionId((*it));
     }
 
+    buffer << calculateTransactionId(Block.coinbaseTx);
+
     buffer << Block.previousBlockId << Block.timestamp;
 
     CryptoKernel::Crypto crypto;
