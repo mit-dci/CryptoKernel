@@ -368,9 +368,9 @@ Json::Value CryptoKernel::Blockchain::blockToJson(block Block, bool PoW)
     if(!PoW)
     {
         returning["PoW"] = Block.PoW;
+        returning["totalWork"] = Block.totalWork;
     }
     returning["target"] = Block.target;
-    returning["totalWork"] = Block.totalWork;
     returning["coinbaseTx"] = transactionToJson(Block.coinbaseTx);
     returning["nonce"] = static_cast<unsigned long long int>(Block.nonce);
 
