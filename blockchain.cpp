@@ -28,7 +28,7 @@ CryptoKernel::Blockchain::Blockchain()
         }
         while(!hex_greater(Block.target, Block.PoW));
 
-        Block.totalWork = addHex(Block.PoW, Block.target);
+        Block.totalWork = Block.PoW;
 
         submitBlock(Block, true);
     }
@@ -39,6 +39,11 @@ CryptoKernel::Blockchain::~Blockchain()
     delete transactions;
     delete blocks;
     delete utxos;
+}
+
+CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlock(std::string id)
+{
+    return jsonToBlock(blocks->get(id));
 }
 
 double CryptoKernel::Blockchain::getBlockReward()
@@ -171,7 +176,7 @@ Json::Value CryptoKernel::Blockchain::transactionToJson(transaction tx)
 
     for(it = tx.outputs.begin(); it < tx.outputs.end(); it++)
     {
-        returning["inputs"].append(outputToJson((*it)));
+        returning["outputs"].append(outputToJson((*it)));
     }
 
     returning["timestamp"] = static_cast<unsigned long long int>(tx.timestamp);
@@ -529,7 +534,7 @@ std::string CryptoKernel::Blockchain::calculateTarget(std::string previousBlockI
 {
     if(previousBlockId == "")
     {
-        return "fffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+        return "ffffffffffffffffffffffffffffffffffffffffffffffffffff";
     }
     else
     {
@@ -554,7 +559,7 @@ std::string CryptoKernel::Blockchain::calculateTarget(std::string previousBlockI
         }
 
         uint64_t blockTime = totalTime / i;
-        uint64_t delta = blockTime - 150;
+        int64_t delta = blockTime - 150;
 
         std::stringstream buffer;
 
@@ -562,12 +567,12 @@ std::string CryptoKernel::Blockchain::calculateTarget(std::string previousBlockI
 
         if(delta > 0)
         {
-            buffer << std::hex << delta;
+            buffer << std::hex << delta * 6553600000000000;
             newTarget = addHex(jsonToBlock(blocks->get(previousBlockId)).target, buffer.str());
         }
         else if(delta < 0)
         {
-            buffer << std::hex << -delta;
+            buffer << std::hex << -delta * 6553600000000000;
             newTarget = subtractHex(jsonToBlock(blocks->get(previousBlockId)).target, buffer.str());
         }
         else

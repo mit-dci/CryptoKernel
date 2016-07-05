@@ -52,6 +52,7 @@ namespace CryptoKernel
             transaction jsonToTransaction(Json::Value tx);
             output jsonToOutput(Json::Value Output);
             std::string calculatePoW(block Block);
+            block getBlock(std::string id);
 
         private:
             Storage *transactions;
