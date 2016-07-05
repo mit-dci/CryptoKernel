@@ -3,3 +3,6 @@ obj
 CryptoKernel.depend
 CryptoKernel.layout
 accountsdb
+utxodb
+transactiondb
+blockdb
