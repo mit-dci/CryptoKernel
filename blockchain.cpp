@@ -650,5 +650,7 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateMiningBlock(st
     coinbaseTx.id = calculateTransactionId(coinbaseTx);
     returning.coinbaseTx = coinbaseTx;
 
+    returning.id = calculateBlockId(returning);
+
     return returning;
 }
