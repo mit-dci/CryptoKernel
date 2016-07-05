@@ -45,18 +45,19 @@ namespace CryptoKernel
             bool submitBlock(block newBlock);
             double getBalance(std::string publicKey);
             block generateMiningBlock(std::string publicKey);
-
-        private:
-            Storage *transactions;
-            Storage *blocks;
-            Storage *utxos;
-            std::vector<transaction> unconfirmedTransactions;
             Json::Value transactionToJson(transaction tx);
             Json::Value outputToJson(output Output);
             Json::Value blockToJson(block Block, bool PoW = false);
             block jsonToBlock(Json::Value Block);
             transaction jsonToTransaction(Json::Value tx);
             output jsonToOutput(Json::Value Output);
+            std::string calculatePoW(block Block);
+
+        private:
+            Storage *transactions;
+            Storage *blocks;
+            Storage *utxos;
+            std::vector<transaction> unconfirmedTransactions;
             std::string calculateOutputId(output Output);
             std::string calculateTransactionId(transaction tx);
             std::string calculateBlockId(block Block);
@@ -68,7 +69,6 @@ namespace CryptoKernel
             double getBlockReward();
             double getTransactionFee(transaction tx);
             double calculateTransactionFee(transaction tx);
-            std::string calculatePoW(block Block);
     };
 }
 

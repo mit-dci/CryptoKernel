@@ -370,6 +370,7 @@ Json::Value CryptoKernel::Blockchain::blockToJson(block Block, bool PoW)
         returning["PoW"] = Block.PoW;
         returning["totalWork"] = Block.totalWork;
     }
+
     returning["target"] = Block.target;
     returning["coinbaseTx"] = transactionToJson(Block.coinbaseTx);
     returning["nonce"] = static_cast<unsigned long long int>(Block.nonce);
@@ -514,7 +515,7 @@ std::string CryptoKernel::Blockchain::calculateTarget(std::string previousBlockI
 {
     if(previousBlockId == "")
     {
-        return "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+        return "fffffffffffffffffffffffffffffffffffffffffffffffffffffff";
     }
     else
     {
