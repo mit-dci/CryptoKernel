@@ -50,12 +50,12 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
         return false;
     }
 
-    time_t t = std::time(0);
+    /*time_t t = std::time(0);
     uint64_t now = static_cast<uint64_t> (t);
     if(tx.timestamp < (now - 5 * 60 * 60))
     {
         return false;
-    }
+    }*/
 
     double inputTotal = 0;
     double outputTotal = 0;
