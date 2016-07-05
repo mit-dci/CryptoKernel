@@ -42,7 +42,7 @@ namespace CryptoKernel
                 uint64_t nonce;
             };
             bool submitTransaction(transaction tx);
-            bool submitBlock(block newBlock);
+            bool submitBlock(block newBlock, bool genesisBlock = false);
             double getBalance(std::string publicKey);
             block generateMiningBlock(std::string publicKey);
             Json::Value transactionToJson(transaction tx);

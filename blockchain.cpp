@@ -13,10 +13,24 @@ CryptoKernel::Blockchain::Blockchain()
     utxos = new CryptoKernel::Storage("./utxodb");
 
     chainTipId = blocks->get("tip")["id"].asString();
-    if(chainTipId == "")
+    if(chainTipId.size() < 1)
     {
-        //Generate and save genesis block
-        //block genesisBlock;
+        block Block;
+        Block = generateMiningBlock("-----BEGIN PUBLIC KEY-----MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0crGv6V1L3BAeX+eBy75HuddNn/jBENmdPmaZsuUzYd/RfAsqd5aupFHa5XSixCBxsLvZzPc0UHzz23C7Q9nnNMrfxdNsVB36RO9LUXVUluY5VpXoJZizFpqSSPQLdzpC/4ETfdqVY5meFe5Q49/Sn7VI3iBcoehUOLa4rbYDKbobe1YJtPNWyVsZ6hnUlR0H97O4DSqfzH7fYoSjIZn4xep7Ow0yO29kClx2VbpKJRifPkcwDUJojqP1BcA7CbVpbddNAwk4ohqEmVFSBoUdjY8ew3P5UOFZzepBwFdoOZhqtzSXWLs3ApOITCWJuHHWwrxRqSXmPLqy7e5knjXpQIDAQAB-----END PUBLIC KEY-----");
+        Block.nonce = 0;
+
+        CryptoKernel::Crypto crypto;
+
+        do
+        {
+            Block.nonce += 1;
+            Block.PoW = calculatePoW(Block);
+        }
+        while(!hex_greater(Block.target, Block.PoW));
+
+        Block.totalWork = addHex(Block.PoW, Block.target);
+
+        submitBlock(Block, true);
     }
 }
 
@@ -211,16 +225,16 @@ std::string CryptoKernel::Blockchain::calculateOutputId(output Output)
     return crypto.sha256(buffer.str());
 }
 
-bool CryptoKernel::Blockchain::submitBlock(block newBlock)
+bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
 {
     //Check block does not already exist
-    if(blocks->get(newBlock.id)["id"] != "")
+    if(blocks->get(newBlock.id)["id"] == newBlock.id)
     {
         return false;
     }
 
     //Check the previous block exists
-    if(blocks->get(newBlock.previousBlockId)["id"] == "")
+    if(blocks->get(newBlock.previousBlockId)["id"] != newBlock.previousBlockId && !genesisBlock)
     {
         return false;
     }
@@ -238,14 +252,14 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock)
     }
 
     //Check total work
-    if(newBlock.totalWork != addHex(newBlock.PoW, jsonToBlock(blocks->get(newBlock.previousBlockId)).totalWork))
+    if(newBlock.totalWork != addHex(newBlock.PoW, jsonToBlock(blocks->get(newBlock.previousBlockId)).totalWork) && !genesisBlock)
     {
         return false;
     }
 
     bool needToReorg = false;
 
-    if(newBlock.previousBlockId != chainTipId)
+    if(newBlock.previousBlockId != chainTipId && !genesisBlock)
     {
         //This block does not directly lead on from last block
         //Check if its PoW is bigger than the longest chain
@@ -267,7 +281,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock)
     }
 
     //Check that the timestamp is realistic
-    if(newBlock.timestamp < (jsonToBlock(blocks->get(newBlock.previousBlockId)).timestamp - 24 * 60 * 60))
+    if(newBlock.timestamp < (jsonToBlock(blocks->get(newBlock.previousBlockId)).timestamp - 24 * 60 * 60) && !genesisBlock)
     {
         return false;
     }
@@ -521,7 +535,7 @@ std::string CryptoKernel::Blockchain::calculateTarget(std::string previousBlockI
     {
         uint64_t totalTime = 0;
 
-        unsigned int i;
+        uint64_t i;
         block currentBlock = jsonToBlock(blocks->get(previousBlockId));
         for(i = 0; i < 200; i++)
         {
