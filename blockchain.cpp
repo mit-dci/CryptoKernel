@@ -704,3 +704,19 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateMiningBlock(st
 
     return returning;
 }
+
+std::vector<CryptoKernel::Blockchain::output> CryptoKernel::Blockchain::getUnspentOutputs(std::string publicKey)
+{
+    std::vector<output> returning;
+
+    CryptoKernel::Storage::Iterator *it = utxos->newIterator();
+    for(it->SeekToFirst(); it->Valid(); it->Next())
+    {
+        if(it->value()["publicKey"] == publicKey)
+        {
+            returning.push_back(jsonToOutput(it->value()));
+        }
+    }
+
+    return returning;
+}

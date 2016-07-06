@@ -53,6 +53,7 @@ namespace CryptoKernel
             output jsonToOutput(Json::Value Output);
             std::string calculatePoW(block Block);
             block getBlock(std::string id);
+            std::vector<output> getUnspentOutputs(std::string publicKey);
 
         private:
             Storage *transactions;
