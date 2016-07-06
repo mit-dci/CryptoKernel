@@ -32,6 +32,7 @@ int main()
 
         data = CryptoKernel::Storage::toString(blockchain.blockToJson(Block));
         std::cout << data << std::endl;
+        //std::cout << blockchain.getBalance("-----BEGIN PUBLIC KEY-----MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0crGv6V1L3BAeX+eBy75HuddNn/jBENmdPmaZsuUzYd/RfAsqd5aupFHa5XSixCBxsLvZzPc0UHzz23C7Q9nnNMrfxdNsVB36RO9LUXVUluY5VpXoJZizFpqSSPQLdzpC/4ETfdqVY5meFe5Q49/Sn7VI3iBcoehUOLa4rbYDKbobe1YJtPNWyVsZ6hnUlR0H97O4DSqfzH7fYoSjIZn4xep7Ow0yO29kClx2VbpKJRifPkcwDUJojqP1BcA7CbVpbddNAwk4ohqEmVFSBoUdjY8ew3P5UOFZzepBwFdoOZhqtzSXWLs3ApOITCWJuHHWwrxRqSXmPLqy7e5knjXpQIDAQAB-----END PUBLIC KEY-----") << std::endl;
     }
 
     return 0;

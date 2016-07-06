@@ -16,7 +16,7 @@ double CryptoKernel::Currency::getTotalCoins()
 {
     CryptoKernel::Storage::Iterator* it = accounts->newIterator();
 
-    double total;
+    double total = 0;
     for(it->SeekToFirst(); it->Valid(); it->Next())
     {
         account Account = jsonToAccount(it->value());

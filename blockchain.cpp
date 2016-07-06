@@ -551,7 +551,7 @@ std::string CryptoKernel::Blockchain::calculateTarget(std::string previousBlockI
         block currentBlock = jsonToBlock(blocks->get(previousBlockId));
         if(currentBlock.previousBlockId != "")
         {
-            for(i = 1; i < 5; i++)
+            for(i = 1; i < 200; i++)
             {
                 block nextBlock;
                 if(currentBlock.previousBlockId != "")
