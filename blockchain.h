@@ -54,14 +54,14 @@ namespace CryptoKernel
             std::string calculatePoW(block Block);
             block getBlock(std::string id);
             std::vector<output> getUnspentOutputs(std::string publicKey);
+            std::string calculateOutputId(output Output);
+            std::string calculateTransactionId(transaction tx);
 
         private:
             Storage *transactions;
             Storage *blocks;
             Storage *utxos;
             std::vector<transaction> unconfirmedTransactions;
-            std::string calculateOutputId(output Output);
-            std::string calculateTransactionId(transaction tx);
             std::string calculateBlockId(block Block);
             bool verifyTransaction(transaction tx, bool coinbaseTx = false);
             bool confirmTransaction(transaction tx, bool coinbaseTx = false);

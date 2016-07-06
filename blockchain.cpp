@@ -63,6 +63,7 @@ double CryptoKernel::Blockchain::getBalance(std::string publicKey)
             total += it->value()["value"].asDouble();
         }
     }
+    delete it;
 
     return total;
 }
@@ -717,6 +718,7 @@ std::vector<CryptoKernel::Blockchain::output> CryptoKernel::Blockchain::getUnspe
             returning.push_back(jsonToOutput(it->value()));
         }
     }
+    delete it;
 
     return returning;
 }
