@@ -375,7 +375,7 @@ bool CryptoKernel::Crypto::setPublicKey(std::string publicKey)
 {
     if(!status || publicKey == "")
     {
-        return "";
+        return false;
     }
     else
     {

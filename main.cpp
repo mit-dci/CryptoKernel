@@ -26,7 +26,7 @@ int main()
     std::vector<CryptoKernel::Blockchain::output>::iterator it;
     for(it = inputs.begin(); it < inputs.end(); it++)
     {
-        if(accumulator < amount)
+        if(accumulator < amount + 0.1)
         {
             accumulator += (*it).value;
             (*it).signature = crypto.sign((*it).id);
@@ -48,7 +48,7 @@ int main()
     toThem.id = blockchain.calculateOutputId(toThem);
 
     CryptoKernel::Blockchain::output change;
-    change.value = accumulator - amount;
+    change.value = accumulator - amount - 0.1;
     change.publicKey = publicKey1;
     change.nonce = now;
     change.id = blockchain.calculateOutputId(change);
@@ -86,7 +86,8 @@ int main()
 
         data = CryptoKernel::Storage::toString(blockchain.blockToJson(Block));
         std::cout << data << std::endl;
-        //std::cout << blockchain.getBalance(publicKey1) << std::endl;
+        std::cout << blockchain.getBalance(publicKey1) << std::endl;
+        std::cout << blockchain.getBalance(publicKey2) << std::endl;
     }
 
     return 0;

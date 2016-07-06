@@ -152,7 +152,7 @@ bool CryptoKernel::Blockchain::submitTransaction(transaction tx)
                 return (utx.id == tx.id);
             });
 
-            if(it->id == "")
+            if(it == unconfirmedTransactions.end())
             {
                 unconfirmedTransactions.push_back(tx);
                 return true;
@@ -436,10 +436,13 @@ bool CryptoKernel::Blockchain::confirmTransaction(transaction tx, bool coinbaseT
 
     //Remove transaction from unconfirmed transactions vector
     std::vector<transaction>::iterator it2;
-    it2 = std::remove_if(unconfirmedTransactions.begin(), unconfirmedTransactions.end(), [&](const transaction & utx)
+    for(it2 = unconfirmedTransactions.begin(); it2 < unconfirmedTransactions.end(); it2++)
     {
-        return (utx.id == tx.id);
-    });
+        if((*it2).id == tx.id)
+        {
+            it2 = unconfirmedTransactions.erase(it2);
+        }
+    }
 
     return true;
 }
