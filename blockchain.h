@@ -2,7 +2,6 @@
 #define BLOCKCHAIN_H_INCLUDED
 
 #include <vector>
-#include <queue>
 
 #include "currency.h"
 
@@ -19,6 +18,7 @@ namespace CryptoKernel
                 double value;
                 std::string signature;
                 std::string publicKey;
+                uint64_t nonce;
                 Json::Value data;
             };
             struct transaction

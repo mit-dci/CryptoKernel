@@ -505,6 +505,8 @@ std::string base16_encode(unsigned char const* bytes_to_encode, unsigned int in_
 
 bool hex_greater(std::string first, std::string second)
 {
+    first.erase(0, first.find_first_not_of('0'));
+    second.erase(0, second.find_first_not_of('0'));
     unsigned int firstSize = first.size();
     unsigned int secondSize = second.size();
     if(firstSize > secondSize)

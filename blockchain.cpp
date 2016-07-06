@@ -97,7 +97,7 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
         else
         {
             //Check if input has already been spent
-            if(utxos->get((*it).id)["id"] == "")
+            if(utxos->get((*it).id)["id"] != (*it).id)
             {
                 return false;
             }
@@ -106,6 +106,11 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
 
     for(it = tx.outputs.begin(); it < tx.outputs.end(); it++)
     {
+        if(utxos->get((*it).id)["id"] == (*it).id)
+        {
+            //Duplicate output
+            return false;
+        }
         outputTotal += (*it).value;
     }
 
@@ -130,7 +135,7 @@ bool CryptoKernel::Blockchain::submitTransaction(transaction tx)
 {
     if(verifyTransaction(tx))
     {
-        if(transactions->get(tx.id)["id"] != "")
+        if(transactions->get(tx.id)["id"] == tx.id)
         {
             //Transaction has already been submitted and verified
             return false;
@@ -193,6 +198,7 @@ Json::Value CryptoKernel::Blockchain::outputToJson(output Output)
     returning["value"] = Output.value;
     returning["signature"] = Output.signature;
     returning["publicKey"] = Output.publicKey;
+    returning["nonce"] = static_cast<unsigned long long int>(Output.nonce);
     returning["data"] = Output.data;
 
     return returning;
@@ -224,7 +230,7 @@ std::string CryptoKernel::Blockchain::calculateOutputId(output Output)
 {
     std::stringstream buffer;
 
-    buffer << Output.publicKey << Output.value << CryptoKernel::Storage::toString(Output.data);
+    buffer << Output.publicKey << Output.value << Output.nonce << CryptoKernel::Storage::toString(Output.data);
 
     CryptoKernel::Crypto crypto;
     return crypto.sha256(buffer.str());
@@ -400,7 +406,7 @@ Json::Value CryptoKernel::Blockchain::blockToJson(block Block, bool PoW)
 bool CryptoKernel::Blockchain::confirmTransaction(transaction tx, bool coinbaseTx)
 {
     //Check if transaction is already confirmed
-    if(transactions->get(tx.id)["id"] != "")
+    if(transactions->get(tx.id)["id"] == tx.id)
     {
         return false;
     }
@@ -526,6 +532,7 @@ CryptoKernel::Blockchain::output CryptoKernel::Blockchain::jsonToOutput(Json::Va
     returning.signature = Output["signature"].asString();
     returning.data = Output["data"];
     returning.value = Output["value"].asDouble();
+    returning.nonce = Output["nonce"].asUInt64();
 
     return returning;
 }
@@ -534,7 +541,7 @@ std::string CryptoKernel::Blockchain::calculateTarget(std::string previousBlockI
 {
     if(previousBlockId == "")
     {
-        return "ffffffffffffffffffffffffffffffffffffffffffffffffffff";
+        return "0000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff";
     }
     else
     {
@@ -542,20 +549,27 @@ std::string CryptoKernel::Blockchain::calculateTarget(std::string previousBlockI
 
         uint64_t i;
         block currentBlock = jsonToBlock(blocks->get(previousBlockId));
-        for(i = 1; i < 200; i++)
+        if(currentBlock.previousBlockId != "")
         {
-            block nextBlock;
-            if(currentBlock.previousBlockId != "")
+            for(i = 1; i < 5; i++)
             {
-                nextBlock = jsonToBlock(blocks->get(currentBlock.previousBlockId));
+                block nextBlock;
+                if(currentBlock.previousBlockId != "")
+                {
+                    nextBlock = jsonToBlock(blocks->get(currentBlock.previousBlockId));
+                }
+                else
+                {
+                    break;
+                }
+                uint64_t timeDifference = currentBlock.timestamp - nextBlock.timestamp;
+                totalTime += timeDifference;
+                currentBlock = nextBlock;
             }
-            else
-            {
-                break;
-            }
-            uint64_t timeDifference = currentBlock.timestamp - nextBlock.timestamp;
-            totalTime += timeDifference;
-            currentBlock = nextBlock;
+        }
+        else
+        {
+            return "0000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff";
         }
 
         uint64_t blockTime = totalTime / i;
@@ -565,19 +579,31 @@ std::string CryptoKernel::Blockchain::calculateTarget(std::string previousBlockI
 
         std::string newTarget;
 
+        block previousBlock = jsonToBlock(blocks->get(previousBlockId));
+
         if(delta > 0)
         {
-            buffer << std::hex << delta * 6553600000000000;
-            newTarget = addHex(jsonToBlock(blocks->get(previousBlockId)).target, buffer.str());
+            for(int64_t i2 = 0; i2 < delta / 2 && i2 < 50; i2++)
+            {
+                buffer << "1";
+            }
+            newTarget = addHex(previousBlock.target, buffer.str());
         }
         else if(delta < 0)
         {
-            buffer << std::hex << -delta * 6553600000000000;
-            newTarget = subtractHex(jsonToBlock(blocks->get(previousBlockId)).target, buffer.str());
+            for(int64_t i2 = 0; i2 < -delta / 2; i2++)
+            {
+                if(!hex_greater(previousBlock.target, buffer.str() + "1"))
+                {
+                    break;
+                }
+                buffer << "1";
+            }
+            newTarget = subtractHex(previousBlock.target, buffer.str());
         }
         else
         {
-            newTarget = jsonToBlock(blocks->get(previousBlockId)).target;
+            newTarget = previousBlock.target;
         }
 
         return newTarget;
@@ -664,6 +690,8 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateMiningBlock(st
         toMe.value += calculateTransactionFee((*it));
     }
     toMe.publicKey = publicKey;
+    toMe.nonce = now;
+
     toMe.id = calculateOutputId(toMe);
 
     transaction coinbaseTx;
