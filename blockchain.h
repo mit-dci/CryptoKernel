@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include "currency.h"
+#include "storage.h"
 
 namespace CryptoKernel
 {
