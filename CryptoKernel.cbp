@@ -87,7 +87,6 @@
 		<Unit filename="storage.cpp" />
 		<Unit filename="storage.h" />
 		<Unit filename="version.h" />
-		<Unit filename="wallet.h" />
 		<Extensions>
 			<code_completion />
 			<debugger />
