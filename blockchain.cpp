@@ -67,33 +67,38 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
     double outputTotal = 0;
     std::vector<output>::iterator it;
 
+    std::string outputHash = "";
+    CryptoKernel::Crypto crypto;
+
+    for(it = tx.outputs.begin(); it < tx.outputs.end(); it++)
+    {
+        if(utxos->get((*it).id)["id"] == (*it).id || (*it).value <= 0)
+        {
+            //Duplicate output
+            return false;
+        }
+        outputHash = crypto.sha256(outputHash + (*it).id);
+        outputTotal += (*it).value;
+    }
+
     for(it = tx.inputs.begin(); it < tx.inputs.end(); it++)
     {
         inputTotal += (*it).value;
         CryptoKernel::Crypto crypto;
         crypto.setPublicKey((*it).publicKey);
-        if(!crypto.verify((*it).id, (*it).signature))
+        if(!crypto.verify((*it).id + outputHash, (*it).signature) || (*it).value <= 0)
         {
             return false;
         }
         else
         {
             //Check if input has already been spent
-            if(utxos->get((*it).id)["id"] != (*it).id)
+            std::string id = utxos->get((*it).id)["id"].asString();
+            if(id != (*it).id)
             {
                 return false;
             }
         }
-    }
-
-    for(it = tx.outputs.begin(); it < tx.outputs.end(); it++)
-    {
-        if(utxos->get((*it).id)["id"] == (*it).id)
-        {
-            //Duplicate output
-            return false;
-        }
-        outputTotal += (*it).value;
     }
 
     if(!coinbaseTx)
@@ -117,7 +122,7 @@ bool CryptoKernel::Blockchain::submitTransaction(transaction tx)
 {
     if(verifyTransaction(tx))
     {
-        if(transactions->get(tx.id)["id"] == tx.id)
+        if(transactions->get(tx.id)["id"].asString() == tx.id)
         {
             //Transaction has already been submitted and verified
             return false;
@@ -126,14 +131,20 @@ bool CryptoKernel::Blockchain::submitTransaction(transaction tx)
         {
             //Transaction has not already been verified
 
+            bool found = false;
+
             //Check if transaction is already in the unconfirmed vector
             std::vector<transaction>::iterator it;
-            it = std::find_if(unconfirmedTransactions.begin(), unconfirmedTransactions.end(), [&](const transaction & utx)
+            for(it = unconfirmedTransactions.begin(); it < unconfirmedTransactions.end(); it++)
             {
-                return (utx.id == tx.id);
-            });
+                found = ((*it).id == tx.id);
+                if(found)
+                {
+                    break;
+                }
+            }
 
-            if(it == unconfirmedTransactions.end())
+            if(!found)
             {
                 unconfirmedTransactions.push_back(tx);
                 return true;
@@ -281,8 +292,16 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
 
     double fees = 0;
 
-    //Verify Transactions
     std::vector<transaction>::iterator it;
+    for(it = newBlock.transactions.begin(); it < newBlock.transactions.end(); it++)
+    {
+        if(!verifyTransaction(*it))
+        {
+            return false;
+        }
+    }
+
+    //Verify Transactions
     for(it = newBlock.transactions.begin(); it < newBlock.transactions.end(); it++)
     {
         if(!submitTransaction((*it)))
@@ -417,11 +436,15 @@ bool CryptoKernel::Blockchain::confirmTransaction(transaction tx, bool coinbaseT
 
     //Remove transaction from unconfirmed transactions vector
     std::vector<transaction>::iterator it2;
-    for(it2 = unconfirmedTransactions.begin(); it2 < unconfirmedTransactions.end(); it2++)
+    for(it2 = unconfirmedTransactions.begin(); it2 < unconfirmedTransactions.end();)
     {
         if((*it2).id == tx.id)
         {
             it2 = unconfirmedTransactions.erase(it2);
+        }
+        else
+        {
+            ++it2;
         }
     }
 
@@ -568,8 +591,12 @@ std::string CryptoKernel::Blockchain::calculateTarget(std::string previousBlockI
 
         if(delta > 0)
         {
-            for(int64_t i2 = 0; i2 < delta / 2 && i2 < 50; i2++)
+            for(int64_t i2 = 0; i2 < delta / 2; i2++)
             {
+                if(hex_greater(previousBlock.target, buffer.str() + "1"))
+                {
+                    break;
+                }
                 buffer << "1";
             }
             newTarget = addHex(previousBlock.target, buffer.str());
