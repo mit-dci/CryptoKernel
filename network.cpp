@@ -167,11 +167,16 @@ void CryptoKernel::Network::HandleEvents()
         clientMutex.unlock();
 
         packetsMutex.lock();
-        ENetPacket *packet = packets.front();
-        if(packet->flags == ENET_PACKET_FLAG_SENT)
+
+        if(packets.size() > 0)
         {
-            enet_packet_destroy(packet);
-            packets.pop();
+            ENetPacket *packet = packets.front();
+
+            if(packet->flags == ENET_PACKET_FLAG_SENT)
+            {
+                enet_packet_destroy(packet);
+                packets.pop();
+            }
         }
         packetsMutex.unlock();
 

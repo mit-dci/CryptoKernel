@@ -8,12 +8,6 @@ CryptoKernel::Crypto::Crypto(bool fGenerate)
     keypair = NULL;
     status = true;
 
-    if(!EVP_get_digestbyname("sha1"))
-    {
-        OpenSSL_add_all_digests();
-        OpenSSL_add_all_algorithms();
-    }
-
     rsaCtx = new EVP_CIPHER_CTX;
 
     if(rsaCtx == NULL)
@@ -73,6 +67,17 @@ CryptoKernel::Crypto::~Crypto()
     }
 
     delete rsaCtx;
+}
+
+void CryptoKernel::Crypto::init()
+{
+    OpenSSL_add_all_digests();
+    OpenSSL_add_all_algorithms();
+}
+
+void CryptoKernel::Crypto::destroy()
+{
+    EVP_cleanup();
 }
 
 std::string CryptoKernel::Crypto::encrypt(std::string plainText)
