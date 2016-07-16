@@ -2,6 +2,7 @@
 #include <sstream>
 #include <algorithm>
 #include <stack>
+#include <queue>
 
 #include "blockchain.h"
 #include "crypto.h"
@@ -67,8 +68,7 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
     double outputTotal = 0;
     std::vector<output>::iterator it;
 
-    std::string outputHash = "";
-    CryptoKernel::Crypto crypto;
+    std::string outputHash = calculateOutputSetId(tx.outputs);
 
     for(it = tx.outputs.begin(); it < tx.outputs.end(); it++)
     {
@@ -77,7 +77,6 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
             //Duplicate output
             return false;
         }
-        outputHash = crypto.sha256(outputHash + (*it).id);
         outputTotal += (*it).value;
     }
 
@@ -730,6 +729,42 @@ std::vector<CryptoKernel::Blockchain::output> CryptoKernel::Blockchain::getUnspe
         }
     }
     delete it;
+
+    return returning;
+}
+std::string CryptoKernel::Blockchain::calculateOutputSetId(std::vector<output> outputs)
+{
+    std::queue<output> orderedOutputs;
+
+    while(!outputs.empty())
+    {
+        std::string lowestId = outputs[0].id;
+        std::vector<output>::iterator it;
+        for(it = outputs.begin(); it < outputs.end(); it++)
+        {
+            if(!hex_greater((*it).id, lowestId))
+            {
+                lowestId = (*it).id;
+            }
+        }
+
+        for(it = outputs.begin(); it < outputs.end(); it++)
+        {
+            if((*it).id == lowestId)
+            {
+                orderedOutputs.push(*it);
+                it = outputs.erase(it);
+            }
+        }
+    }
+
+    std::string returning = "";
+    CryptoKernel::Crypto crypto;
+    while(!orderedOutputs.empty())
+    {
+        returning = crypto.sha256(returning + orderedOutputs.front().id);
+        orderedOutputs.pop();
+    }
 
     return returning;
 }

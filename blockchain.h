@@ -56,6 +56,7 @@ namespace CryptoKernel
             std::vector<output> getUnspentOutputs(std::string publicKey);
             std::string calculateOutputId(output Output);
             std::string calculateTransactionId(transaction tx);
+            std::string calculateOutputSetId(std::vector<output> outputs);
 
         private:
             Storage *transactions;
