@@ -54,8 +54,6 @@ CryptoKernel::Crypto::~Crypto()
 
     EVP_CIPHER_CTX_cleanup(rsaCtx);
 
-    EVP_cleanup();
-
     if(ek != NULL)
     {
         delete[] ek;
