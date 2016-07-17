@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "storage.h"
+#include "log.h"
 
 namespace CryptoKernel
 {
@@ -62,6 +63,7 @@ namespace CryptoKernel
             Storage *transactions;
             Storage *blocks;
             Storage *utxos;
+            Log *log;
             std::vector<transaction> unconfirmedTransactions;
             std::string calculateBlockId(block Block);
             bool verifyTransaction(transaction tx, bool coinbaseTx = false);

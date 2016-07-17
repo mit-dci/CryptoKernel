@@ -12,6 +12,7 @@ CryptoKernel::Blockchain::Blockchain()
     transactions = new CryptoKernel::Storage("./transactiondb");
     blocks = new CryptoKernel::Storage("./blockdb");
     utxos = new CryptoKernel::Storage("./utxodb");
+    log = new CryptoKernel::Log("blockchain.log", true);
 
     chainTipId = blocks->get("tip")["id"].asString();
 }
@@ -21,6 +22,7 @@ CryptoKernel::Blockchain::~Blockchain()
     delete transactions;
     delete blocks;
     delete utxos;
+    delete log;
 }
 
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlock(std::string id)
@@ -230,37 +232,41 @@ std::string CryptoKernel::Blockchain::calculateOutputId(output Output)
 
 bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
 {
+    log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock() received block: " + CryptoKernel::Storage::toString(blockToJson(newBlock)));
     //Check block does not already exist
-    if(blocks->get(newBlock.id)["id"] == newBlock.id)
+    if(blocks->get(newBlock.id)["id"].asString() == newBlock.id)
     {
+        log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Block already exists");
         return false;
     }
 
     //Check the previous block exists
-    if(blocks->get(newBlock.previousBlockId)["id"] != newBlock.previousBlockId && !genesisBlock)
+    if(blocks->get(newBlock.previousBlockId)["id"].asString() != newBlock.previousBlockId && !genesisBlock)
     {
+        log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Previous block does not exist");
         return false;
     }
 
     //Check target
     if(newBlock.target != calculateTarget(newBlock.previousBlockId))
     {
+        log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Block target is incorrect");
         return false;
     }
 
     //Check proof of work
     if(!hex_greater(newBlock.target, newBlock.PoW) || calculatePoW(newBlock) != newBlock.PoW)
     {
+        log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Proof of work is incorrect");
         return false;
     }
 
     //Check total work
     if(newBlock.totalWork != addHex(newBlock.PoW, jsonToBlock(blocks->get(newBlock.previousBlockId)).totalWork) && !genesisBlock)
     {
+        log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Total work is incorrect");
         return false;
     }
-
-    bool needToReorg = false;
 
     if(newBlock.previousBlockId != chainTipId && !genesisBlock)
     {
@@ -269,10 +275,12 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         //If so, reorg, otherwise ignore it
         if(hex_greater(jsonToBlock(blocks->get("tip")).totalWork, newBlock.totalWork))
         {
-            needToReorg = true;
+            log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Forking the chain");
+            reorgChain(newBlock.previousBlockId);
         }
         else
         {
+            log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Chain has a lower PoW than current chain");
             return false;
         }
     }
@@ -280,12 +288,14 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
     //Check the id is correct
     if(calculateBlockId(newBlock) != newBlock.id)
     {
+        log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Block id is incorrect");
         return false;
     }
 
     //Check that the timestamp is realistic
     if(newBlock.timestamp < (jsonToBlock(blocks->get(newBlock.previousBlockId)).timestamp - 24 * 60 * 60) && !genesisBlock)
     {
+        log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Timestamp is unrealistic");
         return false;
     }
 
@@ -296,6 +306,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
     {
         if(!verifyTransaction(*it))
         {
+            log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Transaction could not be verified");
             return false;
         }
     }
@@ -305,6 +316,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
     {
         if(!submitTransaction((*it)))
         {
+            log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Transaction could not be submitted");
             return false;
         }
         fees += calculateTransactionFee((*it));
@@ -312,6 +324,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
 
     if(!newBlock.coinbaseTx.inputs.empty())
     {
+        log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Coinbase tx has inputs");
         return false;
     }
     else
@@ -325,6 +338,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
 
         if(outputTotal != fees + getBlockReward())
         {
+            log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Coinbase output exceeds limit");
             return false;
         }
 
@@ -334,6 +348,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         }
         else
         {
+            log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Could not verify coinbase transaction");
             return false;
         }
     }
@@ -348,11 +363,6 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
 
     chainTipId = newBlock.id;
     blocks->store("tip", blockToJson(newBlock));
-
-    if(needToReorg)
-    {
-        reorgChain(newBlock.id);
-    }
 
     return true;
 }
