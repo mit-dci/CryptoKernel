@@ -368,7 +368,11 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
     //Move transactions from unconfirmed to confirmed and add transaction utxos to db
     for(it = newBlock.transactions.begin(); it < newBlock.transactions.end(); it++)
     {
-        confirmTransaction((*it));
+        if(!confirmTransaction((*it)))
+        {
+            reorgChain(chainTipId);
+            return false;
+        }
     }
 
     blocks->store(newBlock.id, blockToJson(newBlock));
