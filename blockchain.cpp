@@ -66,6 +66,12 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
         return false;
     }
 
+    if(transactions->get(tx.id)["id"].asString() == tx.id)
+    {
+        log->printf(LOG_LEVEL_ERR, "blockchain::verifyTransaction(): tx already exists");
+        return false;
+    }
+
     /*time_t t = std::time(0);
     uint64_t now = static_cast<uint64_t> (t);
     if(tx.timestamp < (now - 5 * 60 * 60))
