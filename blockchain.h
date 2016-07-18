@@ -58,6 +58,7 @@ namespace CryptoKernel
             std::string calculateOutputId(output Output);
             std::string calculateTransactionId(transaction tx);
             std::string calculateOutputSetId(std::vector<output> outputs);
+            std::vector<transaction> getUnconfirmedTransactions();
 
         private:
             Storage *transactions;

@@ -25,6 +25,11 @@ CryptoKernel::Blockchain::~Blockchain()
     delete log;
 }
 
+std::vector<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::getUnconfirmedTransactions()
+{
+    return unconfirmedTransactions;
+}
+
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlock(std::string id)
 {
     return jsonToBlock(blocks->get(id));
@@ -293,11 +298,11 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
     }
 
     //Check that the timestamp is realistic
-    if(newBlock.timestamp < (jsonToBlock(blocks->get(newBlock.previousBlockId)).timestamp - 24 * 60 * 60) && !genesisBlock)
+    /*if(newBlock.timestamp < (jsonToBlock(blocks->get(newBlock.previousBlockId)).timestamp - 24 * 60 * 60) && !genesisBlock)
     {
         log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Timestamp is unrealistic");
         return false;
-    }
+    }*/
 
     double fees = 0;
 
