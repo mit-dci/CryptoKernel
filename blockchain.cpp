@@ -15,6 +15,7 @@ CryptoKernel::Blockchain::Blockchain()
     log = new CryptoKernel::Log("blockchain.log", true);
 
     chainTipId = blocks->get("tip")["id"].asString();
+    reorgChain(chainTipId);
 }
 
 CryptoKernel::Blockchain::~Blockchain()
@@ -61,6 +62,7 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
 {
     if(calculateTransactionId(tx) != tx.id)
     {
+        log->printf(LOG_LEVEL_ERR, "blockchain::verifyTransaction(): tx id is incorrect");
         return false;
     }
 
@@ -81,6 +83,7 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
     {
         if(utxos->get((*it).id)["id"] == (*it).id || (*it).value <= 0)
         {
+            log->printf(LOG_LEVEL_ERR, "blockchain::verifyTransaction(): Duplicate output in tx");
             //Duplicate output
             return false;
         }
@@ -94,6 +97,7 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
         crypto.setPublicKey((*it).publicKey);
         if(!crypto.verify((*it).id + outputHash, (*it).signature) || (*it).value <= 0)
         {
+            log->printf(LOG_LEVEL_ERR, "blockchain::verifyTransaction(): Could not verify input signature");
             return false;
         }
         else
@@ -102,6 +106,7 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
             std::string id = utxos->get((*it).id)["id"].asString();
             if(id != (*it).id)
             {
+                log->printf(LOG_LEVEL_ERR, "blockchain::verifyTransaction(): Output has already been spent");
                 return false;
             }
         }
@@ -111,12 +116,14 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
     {
         if(outputTotal > inputTotal)
         {
+            log->printf(LOG_LEVEL_ERR, "blockchain::verifyTransaction(): The output total is greater than the input total");
             return false;
         }
 
         double fee = inputTotal - outputTotal;
         if(fee < getTransactionFee(tx) * 0.5)
         {
+            log->printf(LOG_LEVEL_ERR, "blockchain::verifyTransaction(): tx fee is too low");
             return false;
         }
     }
@@ -490,14 +497,14 @@ bool CryptoKernel::Blockchain::reorgChain(std::string newTipId)
     CryptoKernel::Storage::destroy("./blockdb");
     blocks = new CryptoKernel::Storage("./blockdb");
 
+    submitBlock(currentBlock, true);
+
     while(!blockList.empty())
     {
-        submitBlock(currentBlock);
         currentBlock = blockList.top();
         blockList.pop();
+        submitBlock(currentBlock);
     }
-
-    submitBlock(currentBlock);
 
     return true;
 }
