@@ -23,7 +23,7 @@ CryptoKernel::Blockchain::Blockchain()
             std::ifstream t("genesisblock.txt");
             std::string buffer((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
 
-            if(submitBlock(jsonToBlock(CryptoKernel::Storage::toJson(buffer))))
+            if(submitBlock(jsonToBlock(CryptoKernel::Storage::toJson(buffer)), true))
             {
                 log->printf(LOG_LEVEL_INFO, "blockchain(): Successfully imported genesis block");
             }
