@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <stack>
 #include <queue>
+#include <fstream>
 
 #include "blockchain.h"
 #include "crypto.h"
@@ -15,6 +16,25 @@ CryptoKernel::Blockchain::Blockchain()
     log = new CryptoKernel::Log("blockchain.log", true);
 
     chainTipId = blocks->get("tip")["id"].asString();
+    if(chainTipId == "")
+    {
+        const std::string genesisBlockId = "a04b19a331da1bc0f27f1f23f15def19c58f1b4be65fec63299b37b91749a97";
+        if(blocks->get(genesisBlockId)["id"].asString() != genesisBlockId)
+        {
+            std::ifstream t("genesisblock.txt");
+            std::string buffer((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
+
+            if(submitBlock(jsonToBlock(CryptoKernel::Storage::toJson(buffer))))
+            {
+                log->printf(LOG_LEVEL_INFO, "blockchain(): Successfully imported genesis block");
+            }
+            else
+            {
+                log->printf(LOG_LEVEL_WARN, "blockchain(): Failed to import genesis block");
+            }
+        }
+    }
+
     reorgChain(chainTipId);
 }
 
@@ -166,13 +186,13 @@ bool CryptoKernel::Blockchain::submitTransaction(transaction tx)
             if(!found)
             {
                 unconfirmedTransactions.push_back(tx);
-                log->printf(LOG_LEVEL_ERR, "blockchain::submitTransaction(): Received transaction we already knew about");
+                log->printf(LOG_LEVEL_ERR, "blockchain::submitTransaction(): Received transaction we didn't already know about");
                 return true;
             }
             else
             {
                 //Transaction is already in the unconfirmed vector
-                log->printf(LOG_LEVEL_ERR, "blockchain::submitTransaction(): Received transaction we already knew about");
+                log->printf(LOG_LEVEL_ERR, "blockchain::submitTransaction(): Received transaction we already know about");
                 return true;
             }
         }
