@@ -144,12 +144,12 @@ bool CryptoKernel::Blockchain::submitTransaction(transaction tx)
         if(transactions->get(tx.id)["id"].asString() == tx.id)
         {
             //Transaction has already been submitted and verified
+            log->printf(LOG_LEVEL_ERR, "blockchain::submitTransaction(): Received transaction that has already been verified");
             return false;
         }
         else
         {
             //Transaction has not already been verified
-
             bool found = false;
 
             //Check if transaction is already in the unconfirmed vector
@@ -166,17 +166,20 @@ bool CryptoKernel::Blockchain::submitTransaction(transaction tx)
             if(!found)
             {
                 unconfirmedTransactions.push_back(tx);
+                log->printf(LOG_LEVEL_ERR, "blockchain::submitTransaction(): Received transaction we already knew about");
                 return true;
             }
             else
             {
                 //Transaction is already in the unconfirmed vector
+                log->printf(LOG_LEVEL_ERR, "blockchain::submitTransaction(): Received transaction we already knew about");
                 return true;
             }
         }
     }
     else
     {
+        log->printf(LOG_LEVEL_ERR, "blockchain::submitTransaction(): Failed to verify transaction");
         return false;
     }
 }
@@ -250,7 +253,6 @@ std::string CryptoKernel::Blockchain::calculateOutputId(output Output)
 
 bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
 {
-    log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock() received block: " + CryptoKernel::Storage::toString(blockToJson(newBlock)));
     //Check block does not already exist
     if(blocks->get(newBlock.id)["id"].asString() == newBlock.id)
     {
@@ -385,6 +387,8 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
 
     chainTipId = newBlock.id;
     blocks->store("tip", blockToJson(newBlock));
+
+    log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): successfully submitted block: " + CryptoKernel::Storage::toString(blockToJson(newBlock)));
 
     return true;
 }
