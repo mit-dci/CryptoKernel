@@ -280,7 +280,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
     }
 
     //Check the previous block exists
-    if(blocks->get(newBlock.previousBlockId)["id"].asString() != newBlock.previousBlockId && !genesisBlock)
+    if((blocks->get(newBlock.previousBlockId)["id"].asString() != newBlock.previousBlockId || newBlock.previousBlockId != "") && !genesisBlock)
     {
         log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Previous block does not exist");
         return false;
