@@ -18,7 +18,6 @@ CryptoKernel::Blockchain::Blockchain()
     chainTipId = blocks->get("tip")["id"].asString();
     if(chainTipId == "")
     {
-        const std::string genesisBlockId = "a04b19a331da1bc0f27f1f23f15def19c58f1b4be65fec63299b37b91749a97";
         if(blocks->get(genesisBlockId)["id"].asString() != genesisBlockId)
         {
             std::ifstream t("genesisblock.txt");
@@ -510,6 +509,19 @@ bool CryptoKernel::Blockchain::reorgChain(std::string newTipId)
 {
     std::stack<block> blockList;
 
+    block currentBlock = jsonToBlock(blocks->get(newTipId));
+    while(currentBlock.previousBlockId != "")
+    {
+        blockList.push(currentBlock);
+        currentBlock = jsonToBlock(blocks->get(currentBlock.previousBlockId));
+    }
+
+    if(currentBlock.id != genesisBlockId)
+    {
+        log->printf(LOG_LEVEL_WARN, "blockchain::reorgChain(): Chain has incorrect genesis block");
+        return false;
+    }
+
     chainTipId = "";
 
     delete transactions;
@@ -519,13 +531,6 @@ bool CryptoKernel::Blockchain::reorgChain(std::string newTipId)
     delete utxos;
     CryptoKernel::Storage::destroy("./utxodb");
     utxos = new CryptoKernel::Storage("./utxodb");
-
-    block currentBlock = jsonToBlock(blocks->get(newTipId));
-    while(currentBlock.previousBlockId != "")
-    {
-        blockList.push(currentBlock);
-        currentBlock = jsonToBlock(blocks->get(currentBlock.previousBlockId));
-    }
 
     delete blocks;
     CryptoKernel::Storage::destroy("./blockdb");
