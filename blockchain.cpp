@@ -163,7 +163,7 @@ bool CryptoKernel::Blockchain::submitTransaction(transaction tx)
         if(transactions->get(tx.id)["id"].asString() == tx.id)
         {
             //Transaction has already been submitted and verified
-            log->printf(LOG_LEVEL_ERR, "blockchain::submitTransaction(): Received transaction that has already been verified");
+            log->printf(LOG_LEVEL_INFO, "blockchain::submitTransaction(): Received transaction that has already been verified");
             return false;
         }
         else
@@ -185,13 +185,13 @@ bool CryptoKernel::Blockchain::submitTransaction(transaction tx)
             if(!found)
             {
                 unconfirmedTransactions.push_back(tx);
-                log->printf(LOG_LEVEL_ERR, "blockchain::submitTransaction(): Received transaction we didn't already know about");
+                log->printf(LOG_LEVEL_INFO, "blockchain::submitTransaction(): Received transaction we didn't already know about");
                 return true;
             }
             else
             {
                 //Transaction is already in the unconfirmed vector
-                log->printf(LOG_LEVEL_ERR, "blockchain::submitTransaction(): Received transaction we already know about");
+                log->printf(LOG_LEVEL_INFO, "blockchain::submitTransaction(): Received transaction we already know about");
                 return true;
             }
         }
