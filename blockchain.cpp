@@ -192,7 +192,7 @@ bool CryptoKernel::Blockchain::submitTransaction(transaction tx)
             {
                 //Transaction is already in the unconfirmed vector
                 log->printf(LOG_LEVEL_INFO, "blockchain::submitTransaction(): Received transaction we already know about");
-                return true;
+                return false;
             }
         }
     }
