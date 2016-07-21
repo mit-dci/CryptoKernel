@@ -48,7 +48,21 @@ CryptoKernel::Blockchain::~Blockchain()
 
 std::vector<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::getUnconfirmedTransactions()
 {
-    return unconfirmedTransactions;
+    std::vector<CryptoKernel::Blockchain::transaction> returning;
+    std::vector<CryptoKernel::Blockchain::transaction>::iterator it;
+    for(it = unconfirmedTransactions.begin(); it < unconfirmedTransactions.end(); it++)
+    {
+        if(!verifyTransaction((*it)))
+        {
+            it = unconfirmedTransactions.erase(it);
+        }
+        else
+        {
+            returning.push_back(*it);
+        }
+    }
+
+    return returning;
 }
 
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlock(std::string id)
@@ -67,8 +81,6 @@ double CryptoKernel::Blockchain::getBalance(std::string publicKey)
 
     if(status)
     {
-
-
         CryptoKernel::Storage::Iterator *it = utxos->newIterator();
         for(it->SeekToFirst(); it->Valid(); it->Next())
         {
@@ -555,7 +567,10 @@ bool CryptoKernel::Blockchain::reorgChain(std::string newTipId)
     {
         currentBlock = blockList.top();
         blockList.pop();
-        submitBlock(currentBlock);
+        if(!submitBlock(currentBlock))
+        {
+            return false;
+        }
     }
 
     status = true;
