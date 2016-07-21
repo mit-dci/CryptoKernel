@@ -10,6 +10,7 @@
 
 CryptoKernel::Blockchain::Blockchain()
 {
+    status = false;
     transactions = new CryptoKernel::Storage("./transactiondb");
     blocks = new CryptoKernel::Storage("./blockdb");
     utxos = new CryptoKernel::Storage("./utxodb");
@@ -64,15 +65,21 @@ double CryptoKernel::Blockchain::getBalance(std::string publicKey)
 {
     double total = 0;
 
-    CryptoKernel::Storage::Iterator *it = utxos->newIterator();
-    for(it->SeekToFirst(); it->Valid(); it->Next())
+    if(status)
     {
-        if(it->value()["publicKey"] == publicKey)
+
+
+        CryptoKernel::Storage::Iterator *it = utxos->newIterator();
+        for(it->SeekToFirst(); it->Valid(); it->Next())
         {
-            total += it->value()["value"].asDouble();
+            if(it->value()["publicKey"] == publicKey)
+            {
+                total += it->value()["value"].asDouble();
+            }
         }
+        delete it;
+
     }
-    delete it;
 
     return total;
 }
@@ -526,6 +533,8 @@ bool CryptoKernel::Blockchain::reorgChain(std::string newTipId)
         return false;
     }
 
+    status = false;
+
     chainTipId = "";
 
     delete transactions;
@@ -548,6 +557,8 @@ bool CryptoKernel::Blockchain::reorgChain(std::string newTipId)
         blockList.pop();
         submitBlock(currentBlock);
     }
+
+    status = true;
 
     return true;
 }
