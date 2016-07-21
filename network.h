@@ -39,8 +39,6 @@ class Network
         void HandleEvents();
         void HandlePacket(ENetEvent *event);
         void HandleConnections();
-        std::queue<ENetPacket*> packets;
-        std::mutex packetsMutex;
 };
 
 }

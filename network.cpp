@@ -102,10 +102,6 @@ void CryptoKernel::Network::HandleEvents()
                     log->printf(LOG_LEVEL_INFO, "Asking for peer information from " + location.str());
                     ENetPacket *packet = enet_packet_create("sendinfo=>", 11, ENET_PACKET_FLAG_RELIABLE);
 
-                    packetsMutex.lock();
-                    packets.push(packet);
-                    packetsMutex.unlock();
-
                     enet_peer_send(event.peer, 0, packet);
                     break;
                 }
@@ -165,21 +161,6 @@ void CryptoKernel::Network::HandleEvents()
             }
         }
         clientMutex.unlock();
-
-        packetsMutex.lock();
-
-        if(packets.size() > 0)
-        {
-            ENetPacket *packet = packets.front();
-
-            if(packet->flags == ENET_PACKET_FLAG_SENT)
-            {
-                enet_packet_destroy(packet);
-                packets.pop();
-            }
-        }
-        packetsMutex.unlock();
-
     }
 }
 
@@ -195,11 +176,6 @@ void CryptoKernel::Network::HandlePacket(ENetEvent *event)
         std::stringstream packetstring;
         packetstring << "info=>" << version;
         ENetPacket *packet = enet_packet_create(packetstring.str().c_str(), packetstring.str().length() + 1, ENET_PACKET_FLAG_RELIABLE);
-
-        packetsMutex.lock();
-        packets.push(packet);
-        packetsMutex.unlock();
-
         enet_peer_send(event->peer, 0, packet);
     }
     else if(request == "info")
@@ -292,10 +268,6 @@ bool CryptoKernel::Network::connectPeer(std::string peeraddress)
             log->printf(LOG_LEVEL_INFO, "Asking for peer information from " + peeraddress);
             ENetPacket *packet = enet_packet_create("sendinfo=>", 11, ENET_PACKET_FLAG_RELIABLE);
 
-            packetsMutex.lock();
-            packets.push(packet);
-            packetsMutex.unlock();
-
             enet_peer_send(peer, 0, packet);
             clientMutex.unlock();
             return true;
@@ -324,10 +296,6 @@ bool CryptoKernel::Network::sendMessage(std::string message)
         {
             ENetPacket *packet = enet_packet_create(packetstaging.str().c_str(), packetstaging.str().length(), ENET_PACKET_FLAG_RELIABLE);
 
-            packetsMutex.lock();
-            packets.push(packet);
-            packetsMutex.unlock();
-
             clientMutex.lock();
             enet_host_broadcast(client, 0, packet);
             clientMutex.unlock();
@@ -336,9 +304,6 @@ bool CryptoKernel::Network::sendMessage(std::string message)
         if(server != NULL)
         {
             ENetPacket *packet2 = enet_packet_create(packetstaging.str().c_str(), packetstaging.str().length(), ENET_PACKET_FLAG_RELIABLE);
-            packetsMutex.lock();
-            packets.push(packet2);
-            packetsMutex.unlock();
 
             serverMutex.lock();
             enet_host_broadcast(server, 0, packet2);
