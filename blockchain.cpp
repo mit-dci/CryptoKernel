@@ -811,15 +811,18 @@ std::vector<CryptoKernel::Blockchain::output> CryptoKernel::Blockchain::getUnspe
 {
     std::vector<output> returning;
 
-    CryptoKernel::Storage::Iterator *it = utxos->newIterator();
-    for(it->SeekToFirst(); it->Valid(); it->Next())
+    if(status)
     {
-        if(it->value()["publicKey"] == publicKey)
+        CryptoKernel::Storage::Iterator *it = utxos->newIterator();
+        for(it->SeekToFirst(); it->Valid(); it->Next())
         {
-            returning.push_back(jsonToOutput(it->value()));
+            if(it->value()["publicKey"] == publicKey)
+            {
+                returning.push_back(jsonToOutput(it->value()));
+            }
         }
+        delete it;
     }
-    delete it;
 
     return returning;
 }
