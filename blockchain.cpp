@@ -320,7 +320,8 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
     }
 
     //Check total work
-    if(newBlock.totalWork != addHex(newBlock.PoW, jsonToBlock(blocks->get(newBlock.previousBlockId)).totalWork) && !genesisBlock)
+    std::string inverse = subtractHex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", newBlock.PoW);
+    if(newBlock.totalWork != addHex(inverse, jsonToBlock(blocks->get(newBlock.previousBlockId)).totalWork) && !genesisBlock)
     {
         log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Total work is incorrect");
         return false;
@@ -331,7 +332,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         //This block does not directly lead on from last block
         //Check if its PoW is bigger than the longest chain
         //If so, reorg, otherwise ignore it
-        if(hex_greater(jsonToBlock(blocks->get("tip")).totalWork, newBlock.totalWork))
+        if(hex_greater(newBlock.totalWork, getBlock("tip").totalWork))
         {
             log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Forking the chain");
             if(!reorgChain(newBlock.previousBlockId))
