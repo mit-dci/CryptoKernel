@@ -647,7 +647,7 @@ CryptoKernel::Blockchain::output CryptoKernel::Blockchain::jsonToOutput(Json::Va
 
 std::string CryptoKernel::Blockchain::calculateTarget(std::string previousBlockId)
 {
-    if(previousBlockId == "")
+    if(previousBlockId == "" || previousBlockId == genesisBlockId)
     {
         return "0000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff";
     }
@@ -657,27 +657,21 @@ std::string CryptoKernel::Blockchain::calculateTarget(std::string previousBlockI
 
         uint64_t i;
         block currentBlock = jsonToBlock(blocks->get(previousBlockId));
-        if(currentBlock.previousBlockId != "")
+
+        for(i = 1; i < 201; i++)
         {
-            for(i = 1; i < 200; i++)
+            block nextBlock;
+            if(currentBlock.previousBlockId != genesisBlockId)
             {
-                block nextBlock;
-                if(currentBlock.previousBlockId != "")
-                {
-                    nextBlock = jsonToBlock(blocks->get(currentBlock.previousBlockId));
-                }
-                else
-                {
-                    break;
-                }
-                uint64_t timeDifference = currentBlock.timestamp - nextBlock.timestamp;
-                totalTime += timeDifference;
-                currentBlock = nextBlock;
+                nextBlock = jsonToBlock(blocks->get(currentBlock.previousBlockId));
             }
-        }
-        else
-        {
-            return "0000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+            else
+            {
+                break;
+            }
+            uint64_t timeDifference = currentBlock.timestamp - nextBlock.timestamp;
+            totalTime += timeDifference;
+            currentBlock = nextBlock;
         }
 
         uint64_t blockTime = totalTime / i;
