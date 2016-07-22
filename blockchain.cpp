@@ -327,6 +327,12 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         return false;
     }
 
+    if(newBlock.height != getBlock(newBlock.previousBlockId).height + 1 && !genesisBlock)
+    {
+        log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Block height is incorrect");
+        return false;
+    }
+
     bool onlySave = false;
 
     if(newBlock.previousBlockId != chainTipId && !genesisBlock)
