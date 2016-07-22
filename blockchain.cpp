@@ -327,6 +327,8 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         return false;
     }
 
+    bool onlySave = false;
+
     if(newBlock.previousBlockId != chainTipId && !genesisBlock)
     {
         //This block does not directly lead on from last block
@@ -343,8 +345,8 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         }
         else
         {
-            log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Chain has a lower PoW than current chain");
-            return false;
+            log->printf(LOG_LEVEL_WARN, "blockchain::submitBlock(): Chain has a lower PoW than current chain");
+            onlySave = true;
         }
     }
 
@@ -362,76 +364,83 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         return false;
     }*/
 
-    double fees = 0;
-
-    std::vector<transaction>::iterator it;
-    for(it = newBlock.transactions.begin(); it < newBlock.transactions.end(); it++)
+    if(!onlySave)
     {
-        if(!verifyTransaction(*it))
+        double fees = 0;
+
+        std::vector<transaction>::iterator it;
+        for(it = newBlock.transactions.begin(); it < newBlock.transactions.end(); it++)
         {
-            log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Transaction could not be verified");
+            if(!verifyTransaction(*it))
+            {
+                log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Transaction could not be verified");
+                return false;
+            }
+        }
+
+        //Verify Transactions
+        for(it = newBlock.transactions.begin(); it < newBlock.transactions.end(); it++)
+        {
+            if(!submitTransaction((*it)))
+            {
+                log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Transaction could not be submitted");
+                return false;
+            }
+            fees += calculateTransactionFee((*it));
+        }
+
+        if(!newBlock.coinbaseTx.inputs.empty())
+        {
+            log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Coinbase tx has inputs");
             return false;
-        }
-    }
-
-    //Verify Transactions
-    for(it = newBlock.transactions.begin(); it < newBlock.transactions.end(); it++)
-    {
-        if(!submitTransaction((*it)))
-        {
-            log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Transaction could not be submitted");
-            return false;
-        }
-        fees += calculateTransactionFee((*it));
-    }
-
-    if(!newBlock.coinbaseTx.inputs.empty())
-    {
-        log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Coinbase tx has inputs");
-        return false;
-    }
-    else
-    {
-        double outputTotal = 0;
-        std::vector<output>::iterator it2;
-        for(it2 = newBlock.coinbaseTx.outputs.begin(); it2 < newBlock.coinbaseTx.outputs.end(); it2++)
-        {
-            outputTotal += (*it2).value;
-        }
-
-        if(outputTotal != fees + getBlockReward())
-        {
-            log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Coinbase output exceeds limit");
-            return false;
-        }
-
-        if(verifyTransaction(newBlock.coinbaseTx, true))
-        {
-            confirmTransaction(newBlock.coinbaseTx, true);
         }
         else
         {
-            log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Could not verify coinbase transaction");
-            return false;
-        }
-    }
+            double outputTotal = 0;
+            std::vector<output>::iterator it2;
+            for(it2 = newBlock.coinbaseTx.outputs.begin(); it2 < newBlock.coinbaseTx.outputs.end(); it2++)
+            {
+                outputTotal += (*it2).value;
+            }
 
-    //Move transactions from unconfirmed to confirmed and add transaction utxos to db
-    for(it = newBlock.transactions.begin(); it < newBlock.transactions.end(); it++)
-    {
-        if(!confirmTransaction((*it)))
-        {
-            reorgChain(chainTipId);
-            return false;
+            if(outputTotal != fees + getBlockReward())
+            {
+                log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Coinbase output exceeds limit");
+                return false;
+            }
+
+            if(verifyTransaction(newBlock.coinbaseTx, true))
+            {
+                confirmTransaction(newBlock.coinbaseTx, true);
+            }
+            else
+            {
+                log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Could not verify coinbase transaction");
+                return false;
+            }
         }
+
+        //Move transactions from unconfirmed to confirmed and add transaction utxos to db
+        for(it = newBlock.transactions.begin(); it < newBlock.transactions.end(); it++)
+        {
+            if(!confirmTransaction((*it)))
+            {
+                reorgChain(chainTipId);
+                return false;
+            }
+        }
+
     }
 
     blocks->store(newBlock.id, blockToJson(newBlock));
 
-    chainTipId = newBlock.id;
-    blocks->store("tip", blockToJson(newBlock));
+    if(!onlySave)
+    {
+        chainTipId = newBlock.id;
+        blocks->store("tip", blockToJson(newBlock));
 
-    log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): successfully submitted block: " + CryptoKernel::Storage::toString(blockToJson(newBlock)));
+        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): successfully submitted block: " + CryptoKernel::Storage::toString(blockToJson(newBlock)));
+    }
 
     return true;
 }
