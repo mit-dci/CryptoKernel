@@ -77,6 +77,7 @@ namespace CryptoKernel
             double calculateTransactionFee(transaction tx);
             const std::string genesisBlockId = "a04b19a331da1bc0f27f1f23f15def19c58f1b4be65fec63299b37b91749a97";
             bool status;
+            bool reverseBlock();
     };
 }
 

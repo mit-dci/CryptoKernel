@@ -872,3 +872,42 @@ std::string CryptoKernel::Blockchain::calculateOutputSetId(std::vector<output> o
 
     return returning;
 }
+
+bool CryptoKernel::Blockchain::reverseBlock()
+{
+    block tip = getBlock("tip");
+
+    std::vector<transaction>::iterator it;
+    for(it = tip.transactions.begin(); it < tip.transactions.end(); it++)
+    {
+        std::vector<output>::iterator it2;
+        for(it2 = (*it).outputs.begin(); it2 < (*it).outputs.end(); it2++)
+        {
+            if(!utxos->erase((*it2).id))
+            {
+                reorgChain(tip.id);
+                return false;
+            }
+        }
+
+        for(it2 = (*it).inputs.begin(); it2 < (*it).inputs.end(); it2++)
+        {
+            (*it2).signature = "";
+            utxos->store((*it2).id, outputToJson(*it2));
+        }
+
+        if(!transactions->erase((*it).id))
+        {
+            return false;
+        }
+
+        if(!submitTransaction(*it))
+        {
+            return false;
+        }
+    }
+
+    blocks->store("tip", blockToJson(getBlock(tip.previousBlockId)));
+
+    return true;
+}
