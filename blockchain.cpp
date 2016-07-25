@@ -910,5 +910,7 @@ bool CryptoKernel::Blockchain::reverseBlock()
     blocks->store("tip", blockToJson(getBlock(tip.previousBlockId)));
     chainTipId = tip.previousBlockId;
 
+    blocks->erase(tip.id);
+
     return true;
 }
