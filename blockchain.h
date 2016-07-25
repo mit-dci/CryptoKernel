@@ -41,6 +41,7 @@ namespace CryptoKernel
                 std::string PoW;
                 std::string totalWork;
                 uint64_t nonce;
+                bool mainChain;
             };
             bool submitTransaction(transaction tx);
             bool submitBlock(block newBlock, bool genesisBlock = false);
@@ -70,7 +71,7 @@ namespace CryptoKernel
             bool verifyTransaction(transaction tx, bool coinbaseTx = false);
             bool confirmTransaction(transaction tx, bool coinbaseTx = false);
             std::string chainTipId;
-            bool reorgChain(std::string newTipId);
+            bool reindexChain(std::string newTipId);
             std::string calculateTarget(std::string previousBlockId);
             double getBlockReward();
             double getTransactionFee(transaction tx);
@@ -78,6 +79,7 @@ namespace CryptoKernel
             const std::string genesisBlockId = "a04b19a331da1bc0f27f1f23f15def19c58f1b4be65fec63299b37b91749a97";
             bool status;
             bool reverseBlock();
+            bool reorgChain(std::string newTipId);
     };
 }
 

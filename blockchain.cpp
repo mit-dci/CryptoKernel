@@ -35,7 +35,7 @@ CryptoKernel::Blockchain::Blockchain()
         }
     }
 
-    reorgChain(chainTipId);
+    reindexChain(chainTipId);
 }
 
 CryptoKernel::Blockchain::~Blockchain()
@@ -292,7 +292,7 @@ std::string CryptoKernel::Blockchain::calculateOutputId(output Output)
 bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
 {
     //Check block does not already exist
-    if(blocks->get(newBlock.id)["id"].asString() == newBlock.id)
+    if(blocks->get(newBlock.id)["id"].asString() == newBlock.id && blocks->get(newBlock.id)["mainChain"].asBool())
     {
         log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Block already exists");
         return false;
@@ -440,8 +440,11 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
 
     blocks->store(newBlock.id, blockToJson(newBlock));
 
+    newBlock.mainChain = false;
+
     if(!onlySave)
     {
+        newBlock.mainChain = true;
         chainTipId = newBlock.id;
         blocks->store("tip", blockToJson(newBlock));
 
@@ -494,6 +497,11 @@ Json::Value CryptoKernel::Blockchain::blockToJson(block Block, bool PoW)
     returning["coinbaseTx"] = transactionToJson(Block.coinbaseTx);
     returning["nonce"] = static_cast<unsigned long long int>(Block.nonce);
 
+    if(!PoW)
+    {
+        returning["mainChain"] = Block.mainChain;
+    }
+
     return returning;
 }
 
@@ -544,7 +552,7 @@ bool CryptoKernel::Blockchain::confirmTransaction(transaction tx, bool coinbaseT
     return true;
 }
 
-bool CryptoKernel::Blockchain::reorgChain(std::string newTipId)
+bool CryptoKernel::Blockchain::reindexChain(std::string newTipId)
 {
     std::stack<block> blockList;
 
@@ -557,7 +565,7 @@ bool CryptoKernel::Blockchain::reorgChain(std::string newTipId)
 
     if(currentBlock.id != genesisBlockId)
     {
-        log->printf(LOG_LEVEL_WARN, "blockchain::reorgChain(): Chain has incorrect genesis block");
+        log->printf(LOG_LEVEL_WARN, "blockchain::reindexChain(): Chain has incorrect genesis block");
         return false;
     }
 
@@ -594,6 +602,45 @@ bool CryptoKernel::Blockchain::reorgChain(std::string newTipId)
     return true;
 }
 
+bool CryptoKernel::Blockchain::reorgChain(std::string newTipId)
+{
+    std::stack<block> blockList;
+
+    //Find common fork block
+    block currentBlock = getBlock(newTipId);
+    while(!currentBlock.mainChain && currentBlock.previousBlockId != "")
+    {
+        blockList.push(currentBlock);
+        currentBlock = getBlock(currentBlock.previousBlockId);
+    }
+
+    if(blocks->get(currentBlock.id)["id"].asString() != currentBlock.id)
+    {
+        return false;
+    }
+
+    //Reverse blocks to that point
+    while(getBlock("tip").id != currentBlock.id)
+    {
+        if(!reverseBlock())
+        {
+            return false;
+        }
+    }
+
+    //Submit new blocks
+    while(blockList.size() > 0)
+    {
+        if(!submitBlock(blockList.top()))
+        {
+            return false;
+        }
+        blockList.pop();
+    }
+
+    return true;
+}
+
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::jsonToBlock(Json::Value Block)
 {
     block returning;
@@ -613,6 +660,7 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::jsonToBlock(Json::Valu
 
     returning.coinbaseTx = jsonToTransaction(Block["coinbaseTx"]);
     returning.nonce = Block["nonce"].asUInt64();
+    returning.mainChain = Block["mainChain"].asBool();
 
     return returning;
 }
@@ -877,10 +925,19 @@ bool CryptoKernel::Blockchain::reverseBlock()
 {
     block tip = getBlock("tip");
 
+    std::vector<output>::iterator it2;
+    for(it2 = tip.coinbaseTx.outputs.begin(); it2 < tip.coinbaseTx.outputs.end(); it2++)
+    {
+        if(!utxos->erase((*it2).id))
+        {
+            reorgChain(tip.id);
+            return false;
+        }
+    }
+
     std::vector<transaction>::iterator it;
     for(it = tip.transactions.begin(); it < tip.transactions.end(); it++)
     {
-        std::vector<output>::iterator it2;
         for(it2 = (*it).outputs.begin(); it2 < (*it).outputs.end(); it2++)
         {
             if(!utxos->erase((*it2).id))
@@ -892,8 +949,9 @@ bool CryptoKernel::Blockchain::reverseBlock()
 
         for(it2 = (*it).inputs.begin(); it2 < (*it).inputs.end(); it2++)
         {
-            (*it2).signature = "";
-            utxos->store((*it2).id, outputToJson(*it2));
+            output toSave = (*it2);
+            toSave.signature = "";
+            utxos->store(toSave.id, outputToJson(toSave));
         }
 
         if(!transactions->erase((*it).id))
@@ -910,7 +968,8 @@ bool CryptoKernel::Blockchain::reverseBlock()
     blocks->store("tip", blockToJson(getBlock(tip.previousBlockId)));
     chainTipId = tip.previousBlockId;
 
-    blocks->erase(tip.id);
+    tip.mainChain = false;
+    blocks->store(tip.id, blockToJson(tip));
 
     return true;
 }
