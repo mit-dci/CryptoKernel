@@ -11,7 +11,7 @@ namespace CryptoKernel
     class Blockchain
     {
         public:
-            Blockchain();
+            Blockchain(CryptoKernel::Log* GlobalLog);
             ~Blockchain();
             struct output
             {

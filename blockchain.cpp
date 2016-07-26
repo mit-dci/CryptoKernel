@@ -8,13 +8,13 @@
 #include "blockchain.h"
 #include "crypto.h"
 
-CryptoKernel::Blockchain::Blockchain()
+CryptoKernel::Blockchain::Blockchain(CryptoKernel::Log* GlobalLog)
 {
     status = false;
     transactions = new CryptoKernel::Storage("./transactiondb");
     blocks = new CryptoKernel::Storage("./blockdb");
     utxos = new CryptoKernel::Storage("./utxodb");
-    log = new CryptoKernel::Log("blockchain.log", true);
+    log = GlobalLog;
 
     chainTipId = blocks->get("tip")["id"].asString();
     if(chainTipId == "")
