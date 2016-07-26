@@ -298,49 +298,53 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         return false;
     }
 
+    bool onlySave = false;
+
     //Check the previous block exists
-    if((blocks->get(newBlock.previousBlockId)["id"].asString() != newBlock.previousBlockId || newBlock.previousBlockId == "") && !genesisBlock)
+    if((blocks->get(newBlock.previousBlockId)["id"].asString() != newBlock.previousBlockId || newBlock.previousBlockId == "" || !getBlock(newBlock.previousBlockId).mainChain) && !genesisBlock)
     {
         log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Previous block does not exist");
-        return false;
+        onlySave = true;
     }
 
-    //Check target
-    if(newBlock.target != calculateTarget(newBlock.previousBlockId))
+    if(!onlySave)
     {
-        log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Block target is incorrect");
-        return false;
-    }
+        //Check target
+        if(newBlock.target != calculateTarget(newBlock.previousBlockId))
+        {
+            log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Block target is incorrect");
+            return false;
+        }
 
-    //Check proof of work
-    if(!hex_greater(newBlock.target, newBlock.PoW) || calculatePoW(newBlock) != newBlock.PoW)
-    {
-        log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Proof of work is incorrect");
-        return false;
-    }
+        //Check proof of work
+        if(!hex_greater(newBlock.target, newBlock.PoW) || calculatePoW(newBlock) != newBlock.PoW)
+        {
+            log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Proof of work is incorrect");
+            return false;
+        }
 
-    //Check total work
-    std::string inverse = subtractHex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", newBlock.PoW);
-    if(newBlock.totalWork != addHex(inverse, jsonToBlock(blocks->get(newBlock.previousBlockId)).totalWork) && !genesisBlock)
-    {
-        log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Total work is incorrect");
-        return false;
-    }
+        //Check total work
+        std::string inverse = subtractHex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", newBlock.PoW);
+        if(newBlock.totalWork != addHex(inverse, jsonToBlock(blocks->get(newBlock.previousBlockId)).totalWork) && !genesisBlock)
+        {
+            log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Total work is incorrect");
+            return false;
+        }
 
-    if(newBlock.height != getBlock(newBlock.previousBlockId).height + 1 && !genesisBlock)
-    {
-        log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Block height is incorrect");
-        return false;
-    }
+        if(newBlock.height != getBlock(newBlock.previousBlockId).height + 1 && !genesisBlock)
+        {
+            log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Block height is incorrect");
+            return false;
+        }
 
-    bool onlySave = false;
+    }
 
     if(newBlock.previousBlockId != chainTipId && !genesisBlock)
     {
         //This block does not directly lead on from last block
         //Check if its PoW is bigger than the longest chain
         //If so, reorg, otherwise ignore it
-        if(hex_greater(newBlock.totalWork, getBlock("tip").totalWork))
+        if(hex_greater(newBlock.totalWork, getBlock("tip").totalWork) && !onlySave)
         {
             log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Forking the chain");
             if(!reorgChain(newBlock.previousBlockId))
