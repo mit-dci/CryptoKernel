@@ -438,8 +438,6 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
 
     }
 
-    blocks->store(newBlock.id, blockToJson(newBlock));
-
     newBlock.mainChain = false;
 
     if(!onlySave)
@@ -447,9 +445,11 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         newBlock.mainChain = true;
         chainTipId = newBlock.id;
         blocks->store("tip", blockToJson(newBlock));
-
-        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): successfully submitted block: " + CryptoKernel::Storage::toString(blockToJson(newBlock)));
     }
+
+    blocks->store(newBlock.id, blockToJson(newBlock));
+
+    log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): successfully submitted block: " + CryptoKernel::Storage::toString(blockToJson(newBlock)));
 
     return true;
 }
