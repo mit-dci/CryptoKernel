@@ -39,6 +39,7 @@ class Network
         void HandleEvents();
         void HandlePacket(ENetEvent *event);
         void HandleConnections();
+        std::string uintToAddress(uint32_t address);
 };
 
 }

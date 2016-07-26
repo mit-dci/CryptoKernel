@@ -96,7 +96,7 @@ void CryptoKernel::Network::HandleEvents()
                 case ENET_EVENT_TYPE_CONNECT:
                 {
                     std::stringstream location;
-                    location << event.peer->address.host << ":" << event.peer->address.port;
+                    location << uintToAddress(event.peer->address.host) << ":" << event.peer->address.port;
                     log->printf(LOG_LEVEL_INFO, "A new client connected from " + location.str());
 
                     log->printf(LOG_LEVEL_INFO, "Asking for peer information from " + location.str());
@@ -114,7 +114,7 @@ void CryptoKernel::Network::HandleEvents()
                 case ENET_EVENT_TYPE_DISCONNECT:
                 {
                     std::stringstream location;
-                    location << event.peer->address.host << ":" << event.peer->address.port;
+                    location << uintToAddress(event.peer->address.host) << ":" << event.peer->address.port;
                     log->printf(LOG_LEVEL_INFO, "Client disconnected from " + location.str());
                     connectionsMutex.lock();
                     connections--;
@@ -147,7 +147,7 @@ void CryptoKernel::Network::HandleEvents()
             case ENET_EVENT_TYPE_DISCONNECT:
             {
                 std::stringstream location;
-                location << event.peer->address.host << ":" << event.peer->address.port;
+                location << uintToAddress(event.peer->address.host) << ":" << event.peer->address.port;
                 log->printf(LOG_LEVEL_INFO, "Client disconnected from " + location.str());
                 connectionsMutex.lock();
                 connections--;
@@ -171,7 +171,7 @@ void CryptoKernel::Network::HandlePacket(ENetEvent *event)
     if(request == "sendinfo")
     {
         std::stringstream location;
-        location << event->peer->address.host << ":" << event->peer->address.port;
+        location << uintToAddress(event->peer->address.host) << ":" << event->peer->address.port;
         log->printf(LOG_LEVEL_INFO, "Sending version information to " + location.str());
         std::stringstream packetstring;
         packetstring << "info=>" << version;
@@ -182,7 +182,7 @@ void CryptoKernel::Network::HandlePacket(ENetEvent *event)
     {
         std::string info = datastring.substr(datastring.find("=>") + 2);
         std::stringstream location;
-        location << event->peer->address.host << ":" << event->peer->address.port;
+        location << uintToAddress(event->peer->address.host) << ":" << event->peer->address.port;
         log->printf(LOG_LEVEL_INFO, "Received version information from " + location.str() + ": " + info);
 
         connectionsMutex.lock();
@@ -198,7 +198,7 @@ void CryptoKernel::Network::HandlePacket(ENetEvent *event)
     else if(request == "message")
     {
         std::stringstream location;
-        location << event->peer->address.host << ":" << event->peer->address.port;
+        location << uintToAddress(event->peer->address.host) << ":" << event->peer->address.port;
         log->printf(LOG_LEVEL_INFO, "Received message from " + location.str() + ". Adding it to the message queue");
         std::string message = datastring.substr(datastring.find("=>") + 2);
         queueMutex.lock();
@@ -343,4 +343,19 @@ int CryptoKernel::Network::getConnections()
     connectionsMutex.unlock();
 
     return temp;
+}
+
+std::string CryptoKernel::Network::uintToAddress(uint32_t address)
+{
+    uint8_t bytes[4];
+    bytes[0] = address & 0xFF;
+    bytes[1] = (address >> 8) & 0xFF;
+    bytes[2] = (address >> 16) & 0xFF;
+    bytes[3] = (address >> 24) & 0xFF;
+
+    std::stringstream buffer;
+
+    buffer << (unsigned int)bytes[0] << "." << (unsigned int)bytes[1] << "." << (unsigned int)bytes[2] << "." << (unsigned int)bytes[3];
+
+    return buffer.str();
 }
