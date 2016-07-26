@@ -300,8 +300,10 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
 
     bool onlySave = false;
 
+    block previousBlock = getBlock(newBlock.previousBlockId);
+
     //Check the previous block exists
-    if((blocks->get(newBlock.previousBlockId)["id"].asString() != newBlock.previousBlockId || newBlock.previousBlockId == "" || !getBlock(newBlock.previousBlockId).mainChain) && !genesisBlock)
+    if((previousBlock.id != newBlock.previousBlockId || newBlock.previousBlockId == "" || !previousBlock.mainChain) && !genesisBlock)
     {
         log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Previous block does not exist");
         onlySave = true;
@@ -344,7 +346,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         //This block does not directly lead on from last block
         //Check if its PoW is bigger than the longest chain
         //If so, reorg, otherwise ignore it
-        if(hex_greater(newBlock.totalWork, getBlock("tip").totalWork) && !onlySave)
+        if(hex_greater(newBlock.totalWork, getBlock("tip").totalWork))
         {
             log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Forking the chain");
             if(!reorgChain(newBlock.previousBlockId))
@@ -439,10 +441,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
                 return false;
             }
         }
-
     }
-
-    blocks->store(newBlock.id, blockToJson(newBlock));
 
     newBlock.mainChain = false;
 
@@ -454,6 +453,8 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
 
         log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): successfully submitted block: " + CryptoKernel::Storage::toString(blockToJson(newBlock)));
     }
+
+    blocks->store(newBlock.id, blockToJson(newBlock));
 
     return true;
 }
