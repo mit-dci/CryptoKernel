@@ -741,7 +741,7 @@ std::string CryptoKernel::Blockchain::calculateTarget(std::string previousBlockI
         {
             for(int64_t i2 = 0; i2 < delta / 2; i2++)
             {
-                if(hex_greater(previousBlock.target, buffer.str() + "1"))
+                if(!hex_greater(previousBlock.target, buffer.str() + "1"))
                 {
                     break;
                 }
