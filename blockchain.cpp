@@ -7,6 +7,7 @@
 
 #include "blockchain.h"
 #include "crypto.h"
+#include "math.h"
 
 CryptoKernel::Blockchain::Blockchain(CryptoKernel::Log* GlobalLog)
 {
@@ -313,15 +314,15 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
     }
 
     //Check proof of work
-    if(!hex_greater(newBlock.target, newBlock.PoW) || calculatePoW(newBlock) != newBlock.PoW)
+    if(!CryptoKernel::Math::hex_greater(newBlock.target, newBlock.PoW) || calculatePoW(newBlock) != newBlock.PoW)
     {
         log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Proof of work is incorrect");
         return false;
     }
 
     //Check total work
-    std::string inverse = subtractHex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", newBlock.PoW);
-    if(newBlock.totalWork != addHex(inverse, jsonToBlock(blocks->get(newBlock.previousBlockId)).totalWork) && !genesisBlock)
+    std::string inverse = CryptoKernel::Math::subtractHex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", newBlock.PoW);
+    if(newBlock.totalWork != CryptoKernel::Math::addHex(inverse, jsonToBlock(blocks->get(newBlock.previousBlockId)).totalWork) && !genesisBlock)
     {
         log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Total work is incorrect");
         return false;
@@ -340,7 +341,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         //This block does not directly lead on from last block
         //Check if its PoW is bigger than the longest chain
         //If so, reorg, otherwise ignore it
-        if(hex_greater(newBlock.totalWork, getBlock("tip").totalWork))
+        if(CryptoKernel::Math::hex_greater(newBlock.totalWork, getBlock("tip").totalWork))
         {
             log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Forking the chain");
             std::string originalTip = getBlock("tip").id;
@@ -745,25 +746,25 @@ std::string CryptoKernel::Blockchain::calculateTarget(std::string previousBlockI
         {
             for(int64_t i2 = 0; i2 < delta / 2; i2++)
             {
-                if(!hex_greater(previousBlock.target, buffer.str() + "1"))
+                if(!CryptoKernel::Math::hex_greater(previousBlock.target, buffer.str() + "1"))
                 {
                     break;
                 }
                 buffer << "1";
             }
-            newTarget = addHex(previousBlock.target, buffer.str());
+            newTarget = CryptoKernel::Math::addHex(previousBlock.target, buffer.str());
         }
         else if(delta < 0)
         {
             for(int64_t i2 = 0; i2 < -delta / 2; i2++)
             {
-                if(!hex_greater(previousBlock.target, buffer.str() + "1"))
+                if(!CryptoKernel::Math::hex_greater(previousBlock.target, buffer.str() + "1"))
                 {
                     break;
                 }
                 buffer << "1";
             }
-            newTarget = subtractHex(previousBlock.target, buffer.str());
+            newTarget = CryptoKernel::Math::subtractHex(previousBlock.target, buffer.str());
         }
         else
         {
@@ -898,7 +899,7 @@ std::string CryptoKernel::Blockchain::calculateOutputSetId(std::vector<output> o
         std::vector<output>::iterator it;
         for(it = outputs.begin(); it < outputs.end(); it++)
         {
-            if(!hex_greater((*it).id, lowestId))
+            if(!CryptoKernel::Math::hex_greater((*it).id, lowestId))
             {
                 lowestId = (*it).id;
             }

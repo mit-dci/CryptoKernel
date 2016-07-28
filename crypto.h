@@ -47,8 +47,5 @@ private:
 }
 
 std::string base16_encode(unsigned char const* bytes_to_encode, unsigned int in_len);
-bool hex_greater(std::string first, std::string second);
-std::string addHex(std::string first, std::string second);
-std::string subtractHex(std::string first, std::string second);
 
 #endif // CRYPTO_H_INCLUDED
