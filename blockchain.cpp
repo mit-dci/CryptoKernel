@@ -343,10 +343,14 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         if(hex_greater(newBlock.totalWork, getBlock("tip").totalWork))
         {
             log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Forking the chain");
+            std::string originalTip = getBlock("tip").id;
             if(!reorgChain(newBlock.previousBlockId))
             {
                 log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Cannot reorg chain");
-                return false;
+                if(!reindexChain(originalTip))
+                {
+                    return false;
+                }
             }
         }
         else
