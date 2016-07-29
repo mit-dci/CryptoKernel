@@ -35,6 +35,21 @@ CryptoKernel::Blockchain::Blockchain(CryptoKernel::Log* GlobalLog)
                 log->printf(LOG_LEVEL_WARN, "blockchain(): Failed to import genesis block");
             }
         }
+
+        /*block Block = generateMiningBlock("-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3QDnSP1EjSAhcZB8RBcC\n5RRR85MdlCxRykhqtxn1R0MfGVWJHLtA9joGunr0wcE1plb6nyO0IgezseEylvoX\nRrl9C//N1yhFngTPRnT1ISjbEuU9fG5qo5Q+ffwGZ3R0qjsKs/Nbqaymk01/SN8w\nWAbsy0lAP4LYQbzZOdckW8ehuy3gsu37QfAOkF1szeYE701FkNInFe4jSqF++toa\nXtZqHbQOUiOldzH7RVaoYqfjM0H7sqrypBmCzO3SUBGw7JroW2k0vBDTsh+bk8qd\nzmcyF63w3knTz9OAWgAViMQkea0ZPOQ3Y6qVNeo+ch9h3PtWW/Zf8ZpfAlaZ6niK\n1wIDAQAB\n-----END PUBLIC KEY-----");
+        Block.nonce = 0;
+
+        do
+        {
+            Block.nonce += 1;
+            Block.PoW = calculatePoW(Block);
+        }
+        while(!CryptoKernel::Math::hex_greater(Block.target, Block.PoW));
+
+        std::string inverse = CryptoKernel::Math::subtractHex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", Block.PoW);
+        Block.totalWork = inverse;
+
+        submitBlock(Block, true);*/
     }
 
     reindexChain(chainTipId);
@@ -709,7 +724,7 @@ std::string CryptoKernel::Blockchain::calculateTarget(std::string previousBlockI
 {
     const uint64_t minBlocks = 144;
     const uint64_t maxBlocks = 4032;
-    const std::string minDifficulty = "ffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+    const std::string minDifficulty = "ffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
     block currentBlock = getBlock(previousBlockId);
     block lastSolved = currentBlock;
