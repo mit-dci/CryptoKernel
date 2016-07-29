@@ -76,7 +76,7 @@ namespace CryptoKernel
             double getBlockReward();
             double getTransactionFee(transaction tx);
             double calculateTransactionFee(transaction tx);
-            const std::string genesisBlockId = "359faba221c6a34c76efc18f81fcba9bce63fe4e99d5edcd0a075d7457e2d39";
+            const std::string genesisBlockId = "b040c6c6b468235c1e3e454da8dca0c2e6ebb57cb636df8a9ab287565b37f1f";
             bool status;
             bool reverseBlock();
             bool reorgChain(std::string newTipId);

@@ -725,7 +725,7 @@ std::string CryptoKernel::Blockchain::calculateTarget(std::string previousBlockI
 {
     const uint64_t minBlocks = 144;
     const uint64_t maxBlocks = 4032;
-    const std::string minDifficulty = "ffffffffffffffffffffffffffffffffffffffffffffffffffff";
+    const std::string minDifficulty = "fffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
     block currentBlock = getBlock(previousBlockId);
     block lastSolved = currentBlock;
@@ -985,7 +985,7 @@ bool CryptoKernel::Blockchain::reverseBlock()
     {
         if(!utxos->erase((*it2).id))
         {
-            reorgChain(tip.id);
+            reindexChain(tip.id);
             return false;
         }
     }
@@ -997,7 +997,7 @@ bool CryptoKernel::Blockchain::reverseBlock()
         {
             if(!utxos->erase((*it2).id))
             {
-                reorgChain(tip.id);
+                reindexChain(tip.id);
                 return false;
             }
         }
@@ -1011,11 +1011,13 @@ bool CryptoKernel::Blockchain::reverseBlock()
 
         if(!transactions->erase((*it).id))
         {
+            reindexChain(tip.id);
             return false;
         }
 
         if(!submitTransaction(*it))
         {
+            reindexChain(tip.id);
             return false;
         }
     }
