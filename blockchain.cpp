@@ -4,6 +4,7 @@
 #include <stack>
 #include <queue>
 #include <fstream>
+#include <math.h>
 
 #include "blockchain.h"
 #include "crypto.h"
@@ -706,69 +707,99 @@ CryptoKernel::Blockchain::output CryptoKernel::Blockchain::jsonToOutput(Json::Va
 
 std::string CryptoKernel::Blockchain::calculateTarget(std::string previousBlockId)
 {
-    if(previousBlockId == "" || previousBlockId == genesisBlockId)
+    const uint64_t minBlocks = 144;
+    const uint64_t maxBlocks = 4032;
+    const std::string minDifficulty = "ffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+
+    block currentBlock = getBlock(previousBlockId);
+    block lastSolved = currentBlock;
+
+    if(currentBlock.height < minBlocks)
     {
-        return "0000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+        return minDifficulty;
     }
     else
     {
-        uint64_t totalTime = 0;
+        uint64_t blocksScanned = 0;
+        std::string difficultyAverage = "0";
+        std::string previousDifficultyAverage = "0";
+        int64_t actualRate = 0;
+        int64_t targetRate = 0;
+        double rateAdjustmentRatio = 1.0;
+        double eventHorizonDeviation = 0.0;
+        double eventHorizonDeviationFast = 0.0;
+        double eventHorizonDeviationSlow = 0.0;
 
-        uint64_t i;
-        block currentBlock = jsonToBlock(blocks->get(previousBlockId));
-
-        for(i = 1; i < 201; i++)
+        for(unsigned int i = 1; currentBlock.previousBlockId != ""; i++)
         {
-            block nextBlock;
-            if(currentBlock.previousBlockId != genesisBlockId)
-            {
-                nextBlock = jsonToBlock(blocks->get(currentBlock.previousBlockId));
-            }
-            else
+            if(i > maxBlocks)
             {
                 break;
             }
-            uint64_t timeDifference = currentBlock.timestamp - nextBlock.timestamp;
-            totalTime += timeDifference;
-            currentBlock = nextBlock;
-        }
 
-        uint64_t blockTime = totalTime / i;
-        int64_t delta = blockTime - 150;
+            blocksScanned++;
 
-        std::stringstream buffer;
-
-        std::string newTarget;
-
-        block previousBlock = jsonToBlock(blocks->get(previousBlockId));
-
-        if(delta > 0)
-        {
-            for(int64_t i2 = 0; i2 < delta / 2; i2++)
+            if(i == 1)
             {
-                if(!CryptoKernel::Math::hex_greater(previousBlock.target, buffer.str() + "1"))
+                difficultyAverage = currentBlock.target;
+            }
+            else
+            {
+                std::stringstream buffer;
+                buffer << std::hex << i;
+                difficultyAverage = CryptoKernel::Math::addHex(CryptoKernel::Math::divideHex(CryptoKernel::Math::subtractHex(currentBlock.target, previousDifficultyAverage), buffer.str()), previousDifficultyAverage);
+            }
+
+            previousDifficultyAverage = difficultyAverage;
+
+            actualRate = lastSolved.timestamp - currentBlock.timestamp;
+            targetRate = 150 * blocksScanned;
+            rateAdjustmentRatio = 1.0;
+
+            if(actualRate < 0)
+            {
+                actualRate = 0;
+            }
+
+            if(actualRate != 0 && targetRate != 0)
+            {
+                rateAdjustmentRatio = double(targetRate) / double(actualRate);
+            }
+
+            eventHorizonDeviation = 1 + (0.7084 * pow((double(blocksScanned)/double(minBlocks)), -1.228));
+            eventHorizonDeviationFast = eventHorizonDeviation;
+            eventHorizonDeviationSlow = 1 / eventHorizonDeviation;
+
+            if(blocksScanned >= minBlocks)
+            {
+                if((rateAdjustmentRatio <= eventHorizonDeviationSlow) || (rateAdjustmentRatio >= eventHorizonDeviationFast))
                 {
                     break;
                 }
-                buffer << "1";
             }
-            newTarget = CryptoKernel::Math::addHex(previousBlock.target, buffer.str());
-        }
-        else if(delta < 0)
-        {
-            for(int64_t i2 = 0; i2 < -delta / 2; i2++)
+
+            if(currentBlock.previousBlockId == "")
             {
-                if(!CryptoKernel::Math::hex_greater(previousBlock.target, buffer.str() + "1"))
-                {
-                    break;
-                }
-                buffer << "1";
+                break;
             }
-            newTarget = CryptoKernel::Math::subtractHex(previousBlock.target, buffer.str());
+            currentBlock = getBlock(currentBlock.previousBlockId);
         }
-        else
+
+        std::string newTarget = difficultyAverage;
+        if(actualRate != 0 && targetRate != 0)
         {
-            newTarget = previousBlock.target;
+            std::stringstream buffer;
+            buffer << std::hex << actualRate;
+            newTarget = CryptoKernel::Math::multiplyHex(newTarget, buffer.str());
+
+            buffer.clear();
+            buffer << std::hex << targetRate;
+            newTarget = CryptoKernel::Math::divideHex(newTarget, buffer.str());
+        }
+
+        if(CryptoKernel::Math::hex_greater(newTarget, minDifficulty))
+        {
+            newTarget = minDifficulty;
         }
 
         return newTarget;
