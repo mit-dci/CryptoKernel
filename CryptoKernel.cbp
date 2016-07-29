@@ -85,6 +85,8 @@
 		<Unit filename="crypto.h" />
 		<Unit filename="log.cpp" />
 		<Unit filename="log.h" />
+		<Unit filename="math.cpp" />
+		<Unit filename="math.h" />
 		<Unit filename="network.cpp" />
 		<Unit filename="network.h" />
 		<Unit filename="storage.cpp" />
