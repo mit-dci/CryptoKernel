@@ -5,6 +5,7 @@
 #include <queue>
 #include <fstream>
 #include <math.h>
+#include <random>
 
 #include "blockchain.h"
 #include "crypto.h"
@@ -901,7 +902,10 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateMiningBlock(st
         toMe.value += calculateTransactionFee((*it));
     }
     toMe.publicKey = publicKey;
-    toMe.nonce = now;
+
+    std::default_random_engine generator(now);
+    std::uniform_int_distribution<unsigned int> distribution(0, UINT_MAX);
+    toMe.nonce = distribution(generator);
 
     toMe.id = calculateOutputId(toMe);
 
