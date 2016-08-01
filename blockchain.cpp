@@ -718,7 +718,7 @@ std::string CryptoKernel::Blockchain::calculateTarget(std::string previousBlockI
 {
     const uint64_t minBlocks = 144;
     const uint64_t maxBlocks = 4032;
-    const std::string minDifficulty = "ffffffffffffffffffffffffffffffffffffffffffffffffffff";
+    const std::string minDifficulty = "ffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
     block currentBlock = getBlock(previousBlockId);
     block lastSolved = currentBlock;
