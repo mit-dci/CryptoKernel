@@ -362,10 +362,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         {
             log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Forking the chain");
             std::string originalTip = getBlock("tip").id;
-            if(!reindexChain(newBlock.previousBlockId))
-            {
-                return false;
-            }
+            reindexChain(newBlock.previousBlockId);
         }
         else
         {
@@ -804,7 +801,7 @@ std::string CryptoKernel::Blockchain::calculateTarget(std::string previousBlockI
             buffer << std::hex << actualRate;
             newTarget = CryptoKernel::Math::multiplyHex(newTarget, buffer.str());
 
-            buffer.clear();
+            buffer.str("");
             buffer << std::hex << targetRate;
             newTarget = CryptoKernel::Math::divideHex(newTarget, buffer.str());
         }
