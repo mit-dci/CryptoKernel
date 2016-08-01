@@ -351,29 +351,6 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         return false;
     }
 
-    if(!genesisBlock)
-    {
-        //Make sure we have all the needed blocks
-        bool missing = false;
-        block nextBlock = getBlock(newBlock.previousBlockId);
-        while(nextBlock.id != genesisBlockId)
-        {
-            if(getBlock(nextBlock.id).id != nextBlock.id || nextBlock.id == "")
-            {
-                missing = true;
-                break;
-            }
-
-            nextBlock = getBlock(nextBlock.previousBlockId);
-        }
-
-        if(missing)
-        {
-            log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Can't trace route back to genesis block");
-            return false;
-        }
-    }
-
     bool onlySave = false;
 
     if(newBlock.previousBlockId != chainTipId && !genesisBlock)
@@ -385,13 +362,9 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         {
             log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Forking the chain");
             std::string originalTip = getBlock("tip").id;
-            if(!reorgChain(newBlock.previousBlockId))
+            if(!reindexChain(newBlock.previousBlockId))
             {
-                log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Cannot reorg chain");
-                if(!reindexChain(originalTip))
-                {
-                    return false;
-                }
+                return false;
             }
         }
         else
@@ -476,7 +449,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         {
             if(!confirmTransaction((*it)))
             {
-                reorgChain(chainTipId);
+                reindexChain(chainTipId);
                 return false;
             }
         }
@@ -748,7 +721,7 @@ std::string CryptoKernel::Blockchain::calculateTarget(std::string previousBlockI
 {
     const uint64_t minBlocks = 144;
     const uint64_t maxBlocks = 4032;
-    const std::string minDifficulty = "fffffffffffffffffffffffffffffffffffffffffffffffffffff";
+    const std::string minDifficulty = "ffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
     block currentBlock = getBlock(previousBlockId);
     block lastSolved = currentBlock;
