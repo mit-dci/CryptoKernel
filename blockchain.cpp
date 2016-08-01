@@ -362,7 +362,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         {
             log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Forking the chain");
             std::string originalTip = getBlock("tip").id;
-            reindexChain(newBlock.previousBlockId);
+            reorgChain(newBlock.previousBlockId);
         }
         else
         {
@@ -626,7 +626,12 @@ bool CryptoKernel::Blockchain::reorgChain(std::string newTipId)
     while(!currentBlock.mainChain && currentBlock.previousBlockId != "")
     {
         blockList.push(currentBlock);
-        currentBlock = getBlock(currentBlock.previousBlockId);
+        std::string id = currentBlock.previousBlockId;
+        currentBlock = getBlock(id);
+        if(currentBlock.id != id)
+        {
+            return false;
+        }
     }
 
     if(blocks->get(currentBlock.id)["id"].asString() != currentBlock.id)
