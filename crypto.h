@@ -1,14 +1,10 @@
 #ifndef CRYPTO_H_INCLUDED
 #define CRYPTO_H_INCLUDED
 
-#include <openssl/evp.h>
-#include <openssl/pem.h>
-#include <openssl/err.h>
-#include <openssl/rand.h>
+#include <openssl/ec.h>
+#include <openssl/ecdsa.h>
+#include <openssl/obj_mac.h>
 #include <string>
-#include <sstream>
-
-#define RSA_KEYLEN 2048
 
 namespace CryptoKernel
 {
@@ -19,8 +15,6 @@ public:
     Crypto(bool fGenerate = false);
     ~Crypto();
     bool getStatus();
-    std::string decrypt(std::string cipherText);
-    std::string encrypt(std::string plainText);
     std::string sign(std::string message);
     bool verify(std::string message, std::string signature);
     std::string getPublicKey();
@@ -28,20 +22,11 @@ public:
     bool setPublicKey(std::string publicKey);
     bool setPrivateKey(std::string privateKey);
     std::string sha256(std::string message);
-    std::string getEk();
-    bool setEk(std::string Ek);
-    unsigned char* sha256uchar(std::string message);
-    static void init();
-    static void destroy();
 
 private:
-    EVP_PKEY *keypair;
-    EVP_CIPHER_CTX *rsaCtx;
     bool status;
-    unsigned char *ek;
-    int ekl;
-    unsigned char *iv;
-    int ivl;
+    EC_KEY *eckey;
+    EC_GROUP *ecgroup;
 };
 
 }

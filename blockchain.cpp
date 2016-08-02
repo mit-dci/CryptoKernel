@@ -37,7 +37,7 @@ CryptoKernel::Blockchain::Blockchain(CryptoKernel::Log* GlobalLog)
             }
         }
 
-        /*block Block = generateMiningBlock("-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3QDnSP1EjSAhcZB8RBcC\n5RRR85MdlCxRykhqtxn1R0MfGVWJHLtA9joGunr0wcE1plb6nyO0IgezseEylvoX\nRrl9C//N1yhFngTPRnT1ISjbEuU9fG5qo5Q+ffwGZ3R0qjsKs/Nbqaymk01/SN8w\nWAbsy0lAP4LYQbzZOdckW8ehuy3gsu37QfAOkF1szeYE701FkNInFe4jSqF++toa\nXtZqHbQOUiOldzH7RVaoYqfjM0H7sqrypBmCzO3SUBGw7JroW2k0vBDTsh+bk8qd\nzmcyF63w3knTz9OAWgAViMQkea0ZPOQ3Y6qVNeo+ch9h3PtWW/Zf8ZpfAlaZ6niK\n1wIDAQAB\n-----END PUBLIC KEY-----");
+      /*block Block = generateMiningBlock("BGn5vwPVFMZxHiZIeOq/8Z2HOSdvhJ3NxwfdDwurYzdD9lMNSyFTwRjiTBo5QE4jdgZQxB+UFu0JcOf7mteyExY=");
         Block.nonce = 0;
 
         do
@@ -147,6 +147,13 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
         {
             log->printf(LOG_LEVEL_ERR, "blockchain::verifyTransaction(): Duplicate output in tx");
             //Duplicate output
+            return false;
+        }
+        CryptoKernel::Crypto crypto;
+        if(!crypto.setPublicKey((*it).publicKey))
+        {
+           log->printf(LOG_LEVEL_ERR, "blockchain::verifyTransaction(): Public key is invalid");
+            //Invalid key
             return false;
         }
         outputTotal += (*it).value;
@@ -421,6 +428,13 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
             std::vector<output>::iterator it2;
             for(it2 = newBlock.coinbaseTx.outputs.begin(); it2 < newBlock.coinbaseTx.outputs.end(); it2++)
             {
+                CryptoKernel::Crypto crypto;
+                if(!crypto.setPublicKey((*it2).publicKey))
+                {
+                    log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Coinbase public key is invalid");
+                    //Invalid key
+                    return false;
+                }
                 outputTotal += (*it2).value;
             }
 
@@ -482,7 +496,7 @@ std::string CryptoKernel::Blockchain::calculateBlockId(block Block)
 
     buffer << calculateTransactionId(Block.coinbaseTx);
 
-    buffer << Block.previousBlockId << Block.timestamp;
+    buffer << Block.previousBlockId << Block.timestamp << Block.target << Block.height;
 
     CryptoKernel::Crypto crypto;
     return crypto.sha256(buffer.str());
@@ -869,10 +883,11 @@ double CryptoKernel::Blockchain::calculateTransactionFee(transaction tx)
 
 std::string CryptoKernel::Blockchain::calculatePoW(block Block)
 {
-    std::string data = CryptoKernel::Storage::toString(blockToJson(Block, true));
+    std::stringstream buffer;
+    buffer << Block.id << Block.nonce;
 
     CryptoKernel::Crypto crypto;
-    return crypto.sha256(data);
+    return crypto.sha256(buffer.str());
 }
 
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateMiningBlock(std::string publicKey)
