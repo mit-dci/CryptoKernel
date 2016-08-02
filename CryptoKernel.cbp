@@ -40,13 +40,14 @@
 				<Option compiler="gcc" />
 				<Option createStaticLib="1" />
 				<Compiler>
-					<Add option="-g" />
 					<Add option="-std=c++14" />
+					<Add option="-g" />
 				</Compiler>
 				<Linker>
 					<Add option="-lws2_32" />
 					<Add option="-lgdi32" />
 					<Add option="-lwinmm" />
+					<Add option="-lcrypt32" />
 				</Linker>
 			</Target>
 			<Target title="Release-Windows">
@@ -63,6 +64,7 @@
 					<Add option="-lws2_32" />
 					<Add option="-lgdi32" />
 					<Add option="-lwinmm" />
+					<Add option="-lcrypt32" />
 				</Linker>
 			</Target>
 		</Build>
