@@ -102,7 +102,7 @@ double CryptoKernel::Blockchain::getBalance(std::string publicKey)
         CryptoKernel::Storage::Iterator *it = utxos->newIterator();
         for(it->SeekToFirst(); it->Valid(); it->Next())
         {
-            if(it->value()["publicKey"] == publicKey)
+            if(it->value()["publicKey"].asString() == publicKey)
             {
                 total += it->value()["value"].asDouble();
             }
