@@ -16,7 +16,7 @@ namespace CryptoKernel
             struct output
             {
                 std::string id;
-                double value;
+                uint64_t value;
                 std::string signature;
                 std::string publicKey;
                 uint64_t nonce;
@@ -45,7 +45,7 @@ namespace CryptoKernel
             };
             bool submitTransaction(transaction tx);
             bool submitBlock(block newBlock, bool genesisBlock = false);
-            double getBalance(std::string publicKey);
+            uint64_t getBalance(std::string publicKey);
             block generateMiningBlock(std::string publicKey);
             Json::Value transactionToJson(transaction tx);
             Json::Value outputToJson(output Output);
@@ -73,10 +73,10 @@ namespace CryptoKernel
             std::string chainTipId;
             bool reindexChain(std::string newTipId);
             std::string calculateTarget(std::string previousBlockId);
-            double getBlockReward();
-            double getTransactionFee(transaction tx);
-            double calculateTransactionFee(transaction tx);
-            const std::string genesisBlockId = "6366a9579b5cdd51b8890f3e655c3869b4f6588b2203aac494db0e966ef5ac6";
+            uint64_t getBlockReward();
+            uint64_t getTransactionFee(transaction tx);
+            uint64_t calculateTransactionFee(transaction tx);
+            const std::string genesisBlockId = "85921dd96666c7bb649793ed582d81fe46f7ce112a7e412dec22c8ad82bbbab";
             bool status;
             bool reverseBlock();
             bool reorgChain(std::string newTipId);

@@ -37,7 +37,7 @@ CryptoKernel::Blockchain::Blockchain(CryptoKernel::Log* GlobalLog)
             }
         }
 
-      /*block Block = generateMiningBlock("BGn5vwPVFMZxHiZIeOq/8Z2HOSdvhJ3NxwfdDwurYzdD9lMNSyFTwRjiTBo5QE4jdgZQxB+UFu0JcOf7mteyExY=");
+        /*block Block = generateMiningBlock("BGn5vwPVFMZxHiZIeOq/8Z2HOSdvhJ3NxwfdDwurYzdD9lMNSyFTwRjiTBo5QE4jdgZQxB+UFu0JcOf7mteyExY=");
         Block.nonce = 0;
 
         do
@@ -88,14 +88,14 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlock(std::string i
     return jsonToBlock(blocks->get(id));
 }
 
-double CryptoKernel::Blockchain::getBlockReward()
+uint64_t CryptoKernel::Blockchain::getBlockReward()
 {
-    return 50;
+    return 5000000000;
 }
 
-double CryptoKernel::Blockchain::getBalance(std::string publicKey)
+uint64_t CryptoKernel::Blockchain::getBalance(std::string publicKey)
 {
-    double total = 0;
+    uint64_t total = 0;
 
     if(status)
     {
@@ -104,7 +104,7 @@ double CryptoKernel::Blockchain::getBalance(std::string publicKey)
         {
             if(it->value()["publicKey"].asString() == publicKey)
             {
-                total += it->value()["value"].asDouble();
+                total += it->value()["value"].asUInt64();
             }
         }
         delete it;
@@ -135,15 +135,15 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
         return false;
     }*/
 
-    double inputTotal = 0;
-    double outputTotal = 0;
+    uint64_t inputTotal = 0;
+    uint64_t outputTotal = 0;
     std::vector<output>::iterator it;
 
     std::string outputHash = calculateOutputSetId(tx.outputs);
 
     for(it = tx.outputs.begin(); it < tx.outputs.end(); it++)
     {
-        if(utxos->get((*it).id)["id"] == (*it).id || (*it).value < 0.00000001)
+        if(utxos->get((*it).id)["id"] == (*it).id || (*it).value < 1)
         {
             log->printf(LOG_LEVEL_ERR, "blockchain::verifyTransaction(): Duplicate output in tx");
             //Duplicate output
@@ -189,7 +189,7 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
             return false;
         }
 
-        double fee = inputTotal - outputTotal;
+        uint64_t fee = inputTotal - outputTotal;
         if(fee < getTransactionFee(tx) * 0.5)
         {
             log->printf(LOG_LEVEL_ERR, "blockchain::verifyTransaction(): tx fee is too low");
@@ -273,7 +273,7 @@ Json::Value CryptoKernel::Blockchain::outputToJson(output Output)
     Json::Value returning;
 
     returning["id"] = Output.id;
-    returning["value"] = Output.value;
+    returning["value"] = static_cast<unsigned long long int>(Output.value);
     returning["signature"] = Output.signature;
     returning["publicKey"] = Output.publicKey;
     returning["nonce"] = static_cast<unsigned long long int>(Output.nonce);
@@ -394,7 +394,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
 
     if(!onlySave)
     {
-        double fees = 0;
+        uint64_t fees = 0;
 
         std::vector<transaction>::iterator it;
         for(it = newBlock.transactions.begin(); it < newBlock.transactions.end(); it++)
@@ -424,7 +424,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         }
         else
         {
-            double outputTotal = 0;
+            uint64_t outputTotal = 0;
             std::vector<output>::iterator it2;
             for(it2 = newBlock.coinbaseTx.outputs.begin(); it2 < newBlock.coinbaseTx.outputs.end(); it2++)
             {
@@ -727,7 +727,7 @@ CryptoKernel::Blockchain::output CryptoKernel::Blockchain::jsonToOutput(Json::Va
     returning.publicKey = Output["publicKey"].asString();
     returning.signature = Output["signature"].asString();
     returning.data = Output["data"];
-    returning.value = Output["value"].asDouble();
+    returning.value = Output["value"].asUInt64();
     returning.nonce = Output["nonce"].asUInt64();
 
     return returning;
@@ -834,38 +834,38 @@ std::string CryptoKernel::Blockchain::calculateTarget(std::string previousBlockI
     }
 }
 
-double CryptoKernel::Blockchain::getTransactionFee(transaction tx)
+uint64_t CryptoKernel::Blockchain::getTransactionFee(transaction tx)
 {
-    double fee = 0;
+    uint64_t fee = 0;
 
     std::vector<output>::iterator it;
     for(it = tx.inputs.begin(); it < tx.inputs.end(); it++)
     {
-        if((*it).value < 0.01)
+        if((*it).value < 100000)
         {
-            fee += 0.001;
+            fee += 10000;
         }
 
-        fee += CryptoKernel::Storage::toString((*it).data).size() * 0.00001;
+        fee += CryptoKernel::Storage::toString((*it).data).size() * 1000;
     }
 
     for(it = tx.outputs.begin(); it < tx.outputs.end(); it++)
     {
-        if((*it).value < 0.01)
+        if((*it).value < 100000)
         {
-            fee += 0.001;
+            fee += 10000;
         }
 
-        fee += CryptoKernel::Storage::toString((*it).data).size() * 0.00001;
+        fee += CryptoKernel::Storage::toString((*it).data).size() * 1000;
     }
 
     return fee;
 }
 
-double CryptoKernel::Blockchain::calculateTransactionFee(transaction tx)
+uint64_t CryptoKernel::Blockchain::calculateTransactionFee(transaction tx)
 {
-    double inputTotal = 0;
-    double outputTotal = 0;
+    uint64_t inputTotal = 0;
+    uint64_t outputTotal = 0;
     std::vector<output>::iterator it;
 
     for(it = tx.inputs.begin(); it < tx.inputs.end(); it++)
