@@ -386,11 +386,11 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
     }
 
     //Check that the timestamp is realistic
-    /*if(newBlock.timestamp < (jsonToBlock(blocks->get(newBlock.previousBlockId)).timestamp - 24 * 60 * 60) && !genesisBlock)
+    if(newBlock.timestamp < jsonToBlock(blocks->get(newBlock.previousBlockId)).timestamp && !genesisBlock)
     {
         log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Timestamp is unrealistic");
         return false;
-    }*/
+    }
 
     if(!onlySave)
     {
