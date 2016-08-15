@@ -3,6 +3,6 @@
 
 #include <string>
 
-const std::string version = "6.0.0";
+const std::string version = "7.0.0";
 
 #endif // VERSION_H_INCLUDED
