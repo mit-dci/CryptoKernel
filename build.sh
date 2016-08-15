@@ -1,7 +1,7 @@
 #!/bin/sh
 
 CXX=g++
-CXXFLAGS=-Wall -std=c++14 -std=c++14 -O2 -fPIC
+CXXFLAGS="-Wall -std=c++14 -std=c++14 -O2 -fPIC"
 
 ${CXX} ${CXXFLAGS} -c blockchain.cpp -o blockchain.o
 ${CXX} ${CXXFLAGS} -c base64.cpp -o base64.o
