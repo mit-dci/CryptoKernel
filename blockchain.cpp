@@ -28,9 +28,10 @@
 #include "crypto.h"
 #include "math.h"
 
-CryptoKernel::Blockchain::Blockchain(CryptoKernel::Log* GlobalLog)
+CryptoKernel::Blockchain::Blockchain(CryptoKernel::Log* GlobalLog, const uint64_t blockTime)
 {
     status = false;
+    blockTarget = blockTime;
     transactions = new CryptoKernel::Storage("./transactiondb");
     blocks = new CryptoKernel::Storage("./blockdb");
     utxos = new CryptoKernel::Storage("./utxodb");
@@ -103,11 +104,6 @@ std::vector<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::get
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlock(std::string id)
 {
     return jsonToBlock(blocks->get(id));
-}
-
-uint64_t CryptoKernel::Blockchain::getBlockReward()
-{
-    return 5000000000;
 }
 
 uint64_t CryptoKernel::Blockchain::getBalance(std::string publicKey)
@@ -455,7 +451,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
                 outputTotal += (*it2).value;
             }
 
-            if(outputTotal != fees + getBlockReward())
+            if(outputTotal != fees + getBlockReward(newBlock.height))
             {
                 log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Coinbase output exceeds limit");
                 return false;
@@ -798,7 +794,7 @@ std::string CryptoKernel::Blockchain::calculateTarget(std::string previousBlockI
             previousDifficultyAverage = difficultyAverage;
 
             actualRate = lastSolved.timestamp - currentBlock.timestamp;
-            targetRate = 150 * blocksScanned;
+            targetRate = blockTarget * blocksScanned;
             rateAdjustmentRatio = 1.0;
 
             if(actualRate < 0)
@@ -903,8 +899,7 @@ std::string CryptoKernel::Blockchain::calculatePoW(block Block)
     std::stringstream buffer;
     buffer << Block.id << Block.nonce;
 
-    CryptoKernel::Crypto crypto;
-    return crypto.sha256(buffer.str());
+    return PoWFunction(buffer.str());
 }
 
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateMiningBlock(std::string publicKey)
@@ -924,7 +919,7 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateMiningBlock(st
     returning.target = calculateTarget(previousBlock.id);
 
     output toMe;
-    toMe.value = getBlockReward();
+    toMe.value = getBlockReward(returning.height);
 
     std::vector<transaction>::iterator it;
     for(it = returning.transactions.begin(); it < returning.transactions.end(); it++)

@@ -28,7 +28,7 @@ namespace CryptoKernel
     class Blockchain
     {
         public:
-            Blockchain(CryptoKernel::Log* GlobalLog);
+            Blockchain(CryptoKernel::Log* GlobalLog, const uint64_t blockTime);
             ~Blockchain();
             struct output
             {
@@ -90,13 +90,15 @@ namespace CryptoKernel
             std::string chainTipId;
             bool reindexChain(std::string newTipId);
             std::string calculateTarget(std::string previousBlockId);
-            uint64_t getBlockReward();
+            virtual uint64_t getBlockReward(const uint64_t height) = 0;
             uint64_t getTransactionFee(transaction tx);
             uint64_t calculateTransactionFee(transaction tx);
             const std::string genesisBlockId = "85921dd96666c7bb649793ed582d81fe46f7ce112a7e412dec22c8ad82bbbab";
             bool status;
             bool reverseBlock();
             bool reorgChain(std::string newTipId);
+            uint64_t blockTarget;
+            virtual std::string PoWFunction(const std::string inputString) = 0;
     };
 }
 
