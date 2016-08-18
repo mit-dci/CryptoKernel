@@ -36,7 +36,10 @@ CryptoKernel::Blockchain::Blockchain(CryptoKernel::Log* GlobalLog, const uint64_
     blocks = new CryptoKernel::Storage("./blockdb");
     utxos = new CryptoKernel::Storage("./utxodb");
     log = GlobalLog;
+}
 
+bool CryptoKernel::Blockchain::loadChain()
+{
     chainTipId = blocks->get("tip")["id"].asString();
     if(chainTipId == "")
     {
@@ -72,6 +75,10 @@ CryptoKernel::Blockchain::Blockchain(CryptoKernel::Log* GlobalLog, const uint64_
     }
 
     reindexChain(chainTipId);
+
+    status = true;
+
+    return true;
 }
 
 CryptoKernel::Blockchain::~Blockchain()
