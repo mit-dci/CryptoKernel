@@ -191,6 +191,12 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
         }
         else
         {
+            //Check input id is correct
+            if((*it).id != calculateOutputId(*it))
+            {
+                return false;
+            }
+
             //Check if input has already been spent
             std::string id = utxos->get((*it).id)["id"].asString();
             if(id != (*it).id)
