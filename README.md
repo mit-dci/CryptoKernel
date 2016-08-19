@@ -30,16 +30,47 @@ sudo cp *.h /usr/local/include/cryptokernel
 Usage
 -----
 ```
+#include <cmath>
+
 #include <cryptokernel/blockchain.h>
 #include <cryptokernel/crypto.h>
 #include <cryptokernel/math.h>
+
+class MyBlockchain : public CryptoKernel::Blockchain
+{
+    public:
+        MyBlockchain(CryptoKernel::Log* GlobalLog, const uint64_t blockTime) : CryptoKernel::Blockchain(GlobalLog, blockTime)
+        {
+
+        }
+
+    private:
+        uint64_t getBlockReward(const uint64_t height)
+        {
+            if(height > 2)
+            {
+                return 5000000000 / std::log(height);
+            }
+            else
+            {
+                return 5000000000;
+            }
+        }
+
+        std::string PoWFunction(const std::string inputString)
+        {
+            CryptoKernel::Crypto crypto;
+            return crypto.sha256(inputString);
+        }
+};
 
 int main()
 {
     //Create a log object for our blockchain to log output. Parameters are [filename], printToConsole
     CryptoKernel::Log myLog("myLog.txt", true);
     
-    CryptoKernel::Blockchain myChain(&myLog);
+    MyBlockchain myChain(&myLog, 150);
+    myChain.loadChain();
     
     //Generate a keypair. True as the parameter generates a keypair
     CryptoKernel::Crypto crypto(true);
@@ -78,9 +109,9 @@ API Reference
 
 ### Blockchain
 ``` 
-Blockchain(CryptoKernel::Log* GlobalLog); 
+Blockchain(CryptoKernel::Log* GlobalLog, const uint64_t blockTime); 
 ```
-Constructs a blockchain object, required a pointer to a log object for saving error output and a valid genesisblock.txt file containing the genesis block.
+Constructs a blockchain object, requires a pointer to a log object for saving error output for the first argument and the block time in seconds as the second. Also requires a valid genesisblock.txt file containing the genesis block.
 
 
 ```
