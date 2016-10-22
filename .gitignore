@@ -7,3 +7,5 @@ utxodb
 transactiondb
 blockdb
 docs
+*.o
+*.a
