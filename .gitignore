@@ -6,3 +6,4 @@ accountsdb
 utxodb
 transactiondb
 blockdb
+docs
