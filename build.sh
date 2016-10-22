@@ -5,11 +5,11 @@ exe() { echo "$@" ; "$@" ; }
 CXX=g++
 CXXFLAGS="-Wall -std=c++14 -O2 -fPIC"
 
-exe ${CXX} ${CXXFLAGS} -c blockchain.cpp -o blockchain.o
-exe ${CXX} ${CXXFLAGS} -c base64.cpp -o base64.o
-exe ${CXX} ${CXXFLAGS} -c crypto.cpp -o crypto.o
-exe ${CXX} ${CXXFLAGS} -c log.cpp -o log.o
-exe ${CXX} ${CXXFLAGS} -c math.cpp -o math.o
-exe ${CXX} ${CXXFLAGS} -c network.cpp -o network.o
-exe ${CXX} ${CXXFLAGS} -c storage.cpp -o storage.o
-exe ar -r -s libCryptoKernel.a base64.o blockchain.o crypto.o log.o math.o network.o storage.o
+exe ${CXX} ${CXXFLAGS} -c src/blockchain.cpp -o src/blockchain.o
+exe ${CXX} ${CXXFLAGS} -c src/base64.cpp -o src/base64.o
+exe ${CXX} ${CXXFLAGS} -c src/crypto.cpp -o src/crypto.o
+exe ${CXX} ${CXXFLAGS} -c src/log.cpp -o src/log.o
+exe ${CXX} ${CXXFLAGS} -c src/math.cpp -o src/math.o
+exe ${CXX} ${CXXFLAGS} -c src/network.cpp -o src/network.o
+exe ${CXX} ${CXXFLAGS} -c src/storage.cpp -o src/storage.o
+exe ar -r -s libCryptoKernel.a src/base64.o src/blockchain.o src/crypto.o src/log.o src/math.o src/network.o src/storage.o

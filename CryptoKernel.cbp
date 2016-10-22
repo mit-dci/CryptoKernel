@@ -79,21 +79,22 @@
 			<Add option="-lleveldb" />
 			<Add option="-ljsoncpp" />
 		</Linker>
-		<Unit filename="base64.cpp" />
-		<Unit filename="base64.h" />
-		<Unit filename="blockchain.cpp" />
-		<Unit filename="blockchain.h" />
-		<Unit filename="crypto.cpp" />
-		<Unit filename="crypto.h" />
-		<Unit filename="log.cpp" />
-		<Unit filename="log.h" />
-		<Unit filename="math.cpp" />
-		<Unit filename="math.h" />
-		<Unit filename="network.cpp" />
-		<Unit filename="network.h" />
-		<Unit filename="storage.cpp" />
-		<Unit filename="storage.h" />
-		<Unit filename="version.h" />
+		<Unit filename="src/base64.cpp" />
+		<Unit filename="src/base64.h" />
+		<Unit filename="src/blockchain.cpp" />
+		<Unit filename="src/blockchain.h" />
+		<Unit filename="src/crypto.cpp" />
+		<Unit filename="src/crypto.h" />
+		<Unit filename="src/log.cpp" />
+		<Unit filename="src/log.h" />
+		<Unit filename="src/math.cpp" />
+		<Unit filename="src/math.h" />
+		<Unit filename="src/network.cpp" />
+		<Unit filename="src/network.h" />
+		<Unit filename="src/storage.cpp" />
+		<Unit filename="src/storage.h" />
+		<Unit filename="src/tests.cpp" />
+		<Unit filename="src/version.h" />
 		<Extensions>
 			<code_completion />
 			<debugger />
