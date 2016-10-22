@@ -93,7 +93,6 @@
 		<Unit filename="src/network.h" />
 		<Unit filename="src/storage.cpp" />
 		<Unit filename="src/storage.h" />
-		<Unit filename="src/tests.cpp" />
 		<Unit filename="src/version.h" />
 		<Extensions>
 			<code_completion />
