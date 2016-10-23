@@ -10,3 +10,4 @@ docs
 *.o
 *.a
 test
+*.xml
