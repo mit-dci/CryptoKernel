@@ -40,10 +40,24 @@ void CryptoTest::testKeygen() {
 void CryptoTest::testSignVerify() {
     const std::string privateKey = crypto->getPrivateKey();
     const std::string publicKey = crypto->getPublicKey();
-    const std::string plainText = "This is a test.";
 
     const std::string signature = crypto->sign(plainText);
 
     CPPUNIT_ASSERT(signature.size() > 0);
     CPPUNIT_ASSERT(crypto->verify(plainText, signature));
+}
+
+/**
+* Tests passing key to class
+*/
+void CryptoTest::testPassingKeys() {
+    CryptoKernel::Crypto *tempCrypto = new CryptoKernel::Crypto(true);
+
+    const std::string signature = tempCrypto->sign(plainText);
+    CPPUNIT_ASSERT(signature.size() > 0);
+
+    CPPUNIT_ASSERT(crypto->setPublicKey(tempCrypto->getPublicKey()));
+    CPPUNIT_ASSERT(crypto->verify(plainText, signature));
+    
+    delete tempCrypto;
 }
