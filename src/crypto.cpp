@@ -17,6 +17,7 @@
 
 #include <sstream>
 #include <algorithm>
+#include <iomanip>
 
 #include <openssl/sha.h>
 
@@ -250,7 +251,7 @@ std::string base16_encode(unsigned char const* bytes_to_encode, unsigned int in_
     std::stringstream ss;
     for(unsigned int i = 0; i < in_len; i++)
     {
-        ss << std::hex << (unsigned int)bytes_to_encode[i];
+        ss << std::setfill('0') << std::setw(2) << std::hex << (unsigned int)bytes_to_encode[i];
     }
     return ss.str();
 }

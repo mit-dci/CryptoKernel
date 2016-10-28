@@ -12,6 +12,7 @@ class CryptoTest : public CPPUNIT_NS::TestFixture {
     CPPUNIT_TEST(testKeygen);
     CPPUNIT_TEST(testSignVerify);
     CPPUNIT_TEST(testPassingKeys);
+    CPPUNIT_TEST(testSHA256Hash);
 
     CPPUNIT_TEST_SUITE_END();
 
@@ -26,6 +27,7 @@ private:
     void testKeygen();
     void testSignVerify();
     void testPassingKeys();
+    void testSHA256Hash();
     CryptoKernel::Crypto *crypto;
     const std::string plainText = "This is a test.";
 
