@@ -20,18 +20,71 @@
 
 #include <string>
 
+
 namespace CryptoKernel
 {
+    /**
+    * Static math module of CryptoKernel. Handles integer operations on
+    * arbitrary length hex integers.
+    */
     class Math
     {
         public:
+            /**
+            * Constructs an instance of the math class
+            */
             Math();
+
+            /**
+            * Class deconstructor
+            */
             ~Math();
-            static std::string addHex(std::string first, std::string second);
-            static std::string subtractHex(std::string first, std::string second);
-            static bool hex_greater(std::string first, std::string second);
-            static std::string divideHex(std::string first, std::string second);
-            static std::string multiplyHex(std::string first, std::string second);
+
+            /**
+            * Adds two hex strings and returns the result as a lower case
+            * hex string.
+            *
+            * @param first the first integer to add
+            * @param second the second integer to add
+            * @return the sum of first and second as a lower case hex string
+            */
+            static std::string addHex(const std::string first, const std::string second);
+            
+            /**
+            * Subtracts two hex integers from each other
+            *
+            * @param first the hex integer string to subtract from
+            * @param second the hex integer string to subtract
+            * @return the lowercase hex integer string from first - second
+            */
+            static std::string subtractHex(const std::string first, const std::string second);
+            
+            /**
+            * Compares two hex strings to determine which is greater
+            *
+            * @param first the first hex integer to compare
+            * @param second the second integer to check if greater than the first
+            * @return true iff first greater than second, otherwise false
+            */
+            static bool hex_greater(const std::string first, const std::string second);
+            
+            /**
+            * Divides two hex integer, one from the other
+            *
+            * @param first the numerator hex integer of the division
+            * @param second the denominator hex integer of the division
+            * @return the lowercase hex integer produced by first//second
+            */
+            static std::string divideHex(const std::string first, const std::string second);
+            
+            /**
+            * Multiplies two hex integers
+            * 
+            * @param first the first integer to multiply
+            * @param second the second integer to multiply
+            * @return the lowercase hex integer produced by first * second
+            */
+            static std::string multiplyHex(const std::string first, const std::string second);
     };
 }
 
