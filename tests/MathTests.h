@@ -9,6 +9,7 @@ class MathTest : public CPPUNIT_NS::TestFixture {
     CPPUNIT_TEST_SUITE(MathTest);
 
     CPPUNIT_TEST(testAdd);
+    CPPUNIT_TEST(testSubtract);
 
     CPPUNIT_TEST_SUITE_END();
 
@@ -20,7 +21,7 @@ public:
 
 private:
     void testAdd();
-
+    void testSubtract();
 };
 
 #endif

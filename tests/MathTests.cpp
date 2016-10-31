@@ -25,3 +25,15 @@ void MathTest::testAdd() {
     
     CPPUNIT_ASSERT_EQUAL(expected, actual);
 }
+
+void MathTest::testSubtract() {
+    const std::string first = "aBc381023c383Def";
+    const std::string second = "bAc391045cEE3Dfe";
+    const std::string expected = "f00100220b6000f";
+    
+    std::string actual = CryptoKernel::Math::subtractHex(second, first);
+    
+    actual.erase(0, std::min(actual.find_first_not_of('0'), actual.size()-1));
+    
+    CPPUNIT_ASSERT_EQUAL(expected, actual);
+}
