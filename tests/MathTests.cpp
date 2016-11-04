@@ -47,3 +47,11 @@ void MathTest::testMultiply() {
 
     CPPUNIT_ASSERT_EQUAL(expected, actual);
 }
+
+void MathTest::testDivide() {
+    const std::string first = "aBc381023c383Def";
+    const std::string second = "bAc391045cEE3Dfe";
+    const std::string expected = "1";
+
+    const std::string actual = CryptoKernel::Math::divideHex(second, first);
+}
