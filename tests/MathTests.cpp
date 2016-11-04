@@ -37,3 +37,13 @@ void MathTest::testSubtract() {
     
     CPPUNIT_ASSERT_EQUAL(expected, actual);
 }
+
+void MathTest::testMultiply() {
+    const std::string first = "aBc381023c383Def";
+    const std::string second = "bAc391045cEE3Dfe";
+    const std::string expected = "7d4f42f38def1fb25e7211d89ec16622";
+
+    const std::string actual = CryptoKernel::Math::multiplyHex(second, first);
+
+    CPPUNIT_ASSERT_EQUAL(expected, actual);
+}
