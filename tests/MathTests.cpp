@@ -59,3 +59,11 @@ void MathTest::testDivide() {
 
     CPPUNIT_ASSERT_EQUAL(expected, actual);
 }
+
+void MathTest::testHexGreater() {
+    const std::string first = "aBc381023c383Def";
+    const std::string second = "bAc391045cEE3Dfe";
+
+    CPPUNIT_ASSERT_EQUAL(true, CryptoKernel::Math::hex_greater(second, first));
+    CPPUNIT_ASSERT_EQUAL(false, CryptoKernel::Math::hex_greater(first, second));
+}
