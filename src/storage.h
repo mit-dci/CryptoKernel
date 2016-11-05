@@ -74,7 +74,7 @@ namespace CryptoKernel
             * @param key the key to erase 
             * @return true if the key was erased successfully, false otherwise
             */
-            bool erase(std::string key);
+            bool erase(const std::string key);
 
             /**
             * Returns the current status of the storage module
