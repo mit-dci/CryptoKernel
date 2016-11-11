@@ -57,3 +57,15 @@ void StorageTest::testErase() {
     CPPUNIT_ASSERT_EQUAL(emptyData, database.get("mydata"));
 }
 
+void StorageTest::testToJson() {
+    Json::Value expected;
+    expected["myval"] = "this";
+    expected["anumber"][0] = 4;
+    expected["anumber"][1] = 5;
+
+    const std::string stringVal = "{\"myval\":\"this\",\"anumber\":[4,5]}"; 
+
+    const Json::Value actual = CryptoKernel::Storage::toJson(stringVal);
+
+    CPPUNIT_ASSERT_EQUAL(expected, actual);
+}

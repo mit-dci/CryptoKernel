@@ -12,6 +12,7 @@ class StorageTest : public CPPUNIT_NS::TestFixture {
     CPPUNIT_TEST(testStoreGet);
     CPPUNIT_TEST(testPersistence);
     CPPUNIT_TEST(testErase);
+    CPPUNIT_TEST(testToJson);
 
     CPPUNIT_TEST_SUITE_END();
 
@@ -26,6 +27,7 @@ private:
     void testStoreGet();
     void testPersistence();
     void testErase();
+    void testToJson();
 };
 
 #endif
