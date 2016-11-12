@@ -69,3 +69,16 @@ void StorageTest::testToJson() {
 
     CPPUNIT_ASSERT_EQUAL(expected, actual);
 }
+
+void StorageTest::testToString() {
+    Json::Value expected;
+    expected["myval"] = "this";
+    expected["anumber"][0] = 4;
+    expected["anumber"][1] = 5;
+
+    const std::string stringVal = CryptoKernel::Storage::toString(expected);
+    
+    const Json::Value actual = CryptoKernel::Storage::toJson(stringVal);
+
+    CPPUNIT_ASSERT_EQUAL(expected, actual);
+}
