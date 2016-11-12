@@ -19,7 +19,7 @@ void StorageTest::tearDown() {
 void StorageTest::testGenerateDB() {
     CryptoKernel::Storage database("./testdb");
         
-    CPPUNIT_ASSERT_EQUAL(true, database.getStatus());
+    CPPUNIT_ASSERT(database.getStatus());
 }
 
 void StorageTest::testStoreGet() {
@@ -30,7 +30,7 @@ void StorageTest::testStoreGet() {
     dataToStore["anumber"][0] = 4;
     dataToStore["anumber"][1] = 5;
 
-    CPPUNIT_ASSERT_EQUAL(true, database.store("mydata", dataToStore));
+    CPPUNIT_ASSERT(database.store("mydata", dataToStore));
 
     CPPUNIT_ASSERT_EQUAL(dataToStore, database.get("mydata"));
 }
@@ -50,7 +50,7 @@ void StorageTest::testPersistence() {
 void StorageTest::testErase() {
     CryptoKernel::Storage database("./testdb");
 
-    CPPUNIT_ASSERT_EQUAL(true, database.erase("mydata"));
+    CPPUNIT_ASSERT(database.erase("mydata"));
 
     Json::Value emptyData;
 
