@@ -11,3 +11,4 @@ docs
 *.a
 test
 *.xml
+*.log
