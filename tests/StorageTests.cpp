@@ -82,3 +82,39 @@ void StorageTest::testToString() {
 
     CPPUNIT_ASSERT_EQUAL(expected, actual);
 }
+
+void StorageTest::testIterator() {
+    CryptoKernel::Storage database("./testdb");
+
+    Json::Value dataToStore;
+    dataToStore["myval"] = "this1";
+
+    database.store("1", dataToStore);
+    
+    Json::Value dataToStore2;
+    dataToStore2["myval"] = "this2";
+
+    database.store("2", dataToStore2);
+
+    CryptoKernel::Storage::Iterator *it = database.newIterator();
+
+    CPPUNIT_ASSERT(it->getStatus());
+
+    it->SeekToFirst();
+
+    CPPUNIT_ASSERT(it->Valid());    
+    CPPUNIT_ASSERT_EQUAL(std::string("1"), it->key());
+    CPPUNIT_ASSERT_EQUAL(dataToStore, it->value());
+
+    it->Next();
+
+    CPPUNIT_ASSERT(it->Valid());
+    CPPUNIT_ASSERT_EQUAL(std::string("2"), it->key());
+    CPPUNIT_ASSERT_EQUAL(dataToStore2, it->value());
+
+    it->Next();
+
+    CPPUNIT_ASSERT(!it->Valid());
+
+    delete it;
+}
