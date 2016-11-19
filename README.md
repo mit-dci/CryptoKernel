@@ -24,7 +24,7 @@ chmod +x build.sh
 ./build.sh
 sudo cp libCryptoKernel.a /usr/local/lib
 sudo mkdir /usr/local/include/cryptokernel
-sudo cp *.h /usr/local/include/cryptokernel
+sudo cp src/*.h /usr/local/include/cryptokernel
 ```
 
 Usage
