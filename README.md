@@ -8,7 +8,7 @@ Building on Ubuntu 16.04
 
 ```
 sudo apt-get update
-sudo apt-get install git build-essential libssl-dev libjsoncpp-dev libenet-dev libleveldb-dev
+sudo apt-get install git build-essential libjsoncpp-dev libenet-dev libleveldb-dev
 
 wget https://www.openssl.org/source/openssl-1.1.0b.tar.gz
 tar -xvzf openssl-1.1.0b.tar.gz
