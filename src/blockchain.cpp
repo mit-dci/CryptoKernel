@@ -58,7 +58,7 @@ bool CryptoKernel::Blockchain::loadChain()
             }
         }
 
-        /*block Block = generateMiningBlock("BGn5vwPVFMZxHiZIeOq/8Z2HOSdvhJ3NxwfdDwurYzdD9lMNSyFTwRjiTBo5QE4jdgZQxB+UFu0JcOf7mteyExY=");
+        /*block Block = generateMiningBlock("BL8ERakVzl7UZm1JmhdWxsdGIgHdJAUQ9LW6HKTrbtnum6HLAwd7nlTWQfpkhKupsKRjXbL1LnaPVd20ld+4UIM=");
         Block.nonce = 0;
 
         do
@@ -763,7 +763,7 @@ std::string CryptoKernel::Blockchain::calculateTarget(std::string previousBlockI
 {
     const uint64_t minBlocks = 144;
     const uint64_t maxBlocks = 4032;
-    const std::string minDifficulty = "ffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+    const std::string minDifficulty = "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
     block currentBlock = getBlock(previousBlockId);
     block lastSolved = currentBlock;
