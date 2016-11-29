@@ -7,6 +7,8 @@ CXXFLAGS="-Wall -std=c++14 -O2 -fPIC"
 SRC_DIR="src/kernel"
 OBJ_DIR="obj"
 
+exe mkdir ${OBJ_DIR}
+
 exe ${CXX} ${CXXFLAGS} -c ${SRC_DIR}/blockchain.cpp -o ${OBJ_DIR}/blockchain.o
 exe ${CXX} ${CXXFLAGS} -c ${SRC_DIR}/base64.cpp -o ${OBJ_DIR}/base64.o
 exe ${CXX} ${CXXFLAGS} -c ${SRC_DIR}/crypto.cpp -o ${OBJ_DIR}/crypto.o
