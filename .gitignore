@@ -12,3 +12,6 @@ docs
 test
 *.xml
 *.log
+CryptoCurrency
+blockbuffer
+addressesdb

@@ -1,0 +1,27 @@
+{
+	"PoW" : "0000029dea12168cf9ca699a687cdd87d63975aa2ec0bc06489d012f5c6d4cd1",
+	"coinbaseTx" : 
+	{
+		"id" : "1ce1d42f661c65faf54b77080500ce899362b80e774d823962d372373c2e916e",
+		"outputs" : 
+		[
+			{
+				"data" : null,
+				"id" : "cce82f3eb6e97d98a58025d42f1b79f5bb62b8a94d9b85afc02f0fbbc7fba4a0",
+				"nonce" : 2227892703,
+				"publicKey" : "BL8ERakVzl7UZm1JmhdWxsdGIgHdJAUQ9LW6HKTrbtnum6HLAwd7nlTWQfpkhKupsKRjXbL1LnaPVd20ld+4UIM=",
+				"signature" : "",
+				"value" : 5000000000
+			}
+		],
+		"timestamp" : 1480448674
+	},
+	"height" : 1,
+	"id" : "d190d6119e1014a15b6cb0bc90a10419c446417fe21f33bc88482c040e07fa2a",
+	"mainChain" : true,
+	"nonce" : 146850,
+	"previousBlockId" : "",
+	"target" : "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+	"timestamp" : 1480448674,
+	"totalWork" : "fffffd6215ede973063596659783227829c68a55d13f43f9b762fed0a392b32e"
+}

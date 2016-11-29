@@ -46,6 +46,10 @@ bool CryptoKernel::Blockchain::loadChain()
         if(blocks->get(genesisBlockId)["id"].asString() != genesisBlockId)
         {
             std::ifstream t("genesisblock.txt");
+            if(!t.is_open())
+            {
+                throw std::runtime_error("Could not open genesis block file");
+            }
             std::string buffer((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
 
             if(submitBlock(jsonToBlock(CryptoKernel::Storage::toJson(buffer)), true))
