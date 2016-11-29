@@ -4,7 +4,7 @@ exe() { echo "$@" ; "$@" ; }
 
 CXX=g++
 CXXFLAGS="-Wall -std=c++14 -O2 -fPIC"
-INCLUDES="-Isrc"
+INCLUDES="-Isrc/kernel"
 LIBS="-lCryptoKernel -lcrypto -lleveldb -ljsoncpp -pthread -ldl -lcppunit"
 
 exe ${CXX} ${CXXFLAGS} ${INCLUDES} -c tests/CryptoKernelTestRunner.cpp -o tests/CryptoKernelTestRunner.o
