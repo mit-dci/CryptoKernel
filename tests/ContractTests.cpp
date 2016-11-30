@@ -6,7 +6,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION(ContractTest);
 
 ContractTest::ContractTest() {
     log = new CryptoKernel::Log("testContract.log");
-    blockchain = new MyBlockchain(log, 1500);
+    blockchain = new MyBlockchain(log, 150);
     blockchain->loadChain();
 }
 
