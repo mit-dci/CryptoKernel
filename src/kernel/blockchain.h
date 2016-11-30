@@ -64,18 +64,18 @@ namespace CryptoKernel
             bool submitBlock(block newBlock, bool genesisBlock = false);
             uint64_t getBalance(std::string publicKey);
             block generateMiningBlock(std::string publicKey);
-            Json::Value transactionToJson(transaction tx);
-            Json::Value outputToJson(output Output);
-            Json::Value blockToJson(block Block, bool PoW = false);
-            block jsonToBlock(Json::Value Block);
-            transaction jsonToTransaction(Json::Value tx);
-            output jsonToOutput(Json::Value Output);
+            static Json::Value transactionToJson(transaction tx);
+            static Json::Value outputToJson(output Output);
+            static Json::Value blockToJson(block Block, bool PoW = false);
+            static block jsonToBlock(Json::Value Block);
+            static transaction jsonToTransaction(Json::Value tx);
+            static output jsonToOutput(Json::Value Output);
             std::string calculatePoW(block Block);
             block getBlock(std::string id);
             std::vector<output> getUnspentOutputs(std::string publicKey);
-            std::string calculateOutputId(output Output);
-            std::string calculateTransactionId(transaction tx);
-            std::string calculateOutputSetId(std::vector<output> outputs);
+            static std::string calculateOutputId(output Output);
+            static std::string calculateTransactionId(transaction tx);
+            static std::string calculateOutputSetId(std::vector<output> outputs);
             std::vector<transaction> getUnconfirmedTransactions();
             bool loadChain();
 

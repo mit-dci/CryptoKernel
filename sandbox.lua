@@ -1,6 +1,10 @@
+Json = (loadfile("./json.lua"))()
+
 sandbox_env = {Crypto = {new = Crypto.new, getPublicKey = Crypto.getPublicKey, getPrivateKey = Crypto.getPrivateKey,
                         setPublicKey = Crypto.setPublicKey, setPrivateKey = Crypto.setPrivateKey,
                         getStatus = Crypto.getStatus, sign = Crypto.sign, verify = Crypto.verify,},
+               Json = {new = Json.new, decode = Json.decode,},
+               txJson = txJson,
               }
 
 local function setfenv(fn, env)
@@ -44,6 +48,7 @@ function verifyTransaction(bytecode)
     f = load(lz4.decompress(bytecode))
     pcall_rc, result_or_err_msg = run_sandbox(sandbox_env, f)
     if type(result_or_err_msg) ~= "boolean" then
+        print(result_or_err_msg)
         return false
     else
         return result_or_err_msg

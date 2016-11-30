@@ -100,6 +100,7 @@ bool CryptoKernel::ContractRunner::evaluateValid(const CryptoKernel::Blockchain:
         {
             try {
                 setupEnvironment();
+                (*state.get())["txJson"] = CryptoKernel::Storage::toString(CryptoKernel::Blockchain::transactionToJson(tx));
                 if(!(*state.get()).Load("./sandbox.lua"))
                 {
                     throw std::runtime_error("Failed to load sandbox.lua");

@@ -82,3 +82,10 @@ void ContractTest::testCrypto()
 
     CPPUNIT_ASSERT(runScript(contract));
 }
+
+void ContractTest::testAccessTx()
+{
+    const std::string contract = "local json = Json.new() local tx = json:decode(txJson) if tx[\"inputs\"][1][\"nonce\"] == 272727 then return true else return false end";
+
+    CPPUNIT_ASSERT(runScript(contract));
+}
