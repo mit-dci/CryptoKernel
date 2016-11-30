@@ -99,16 +99,16 @@ bool CryptoKernel::ContractRunner::evaluateValid(const CryptoKernel::Blockchain:
     {
         if(!(*it).data["contract"].empty())
         {
+            setupEnvironment();
+            (*state.get())["txJson"] = CryptoKernel::Storage::toString(CryptoKernel::Blockchain::transactionToJson(tx));
+            (*state.get())["outputSetId"] = CryptoKernel::Blockchain::calculateOutputSetId(tx.outputs);
+            BlockchainInterface blockchainInterface(blockchain);
+            (*state.get())["Blockchain"].SetObj(blockchainInterface, "getBlock", &BlockchainInterface::getBlock);
+            if(!(*state.get()).Load("./sandbox.lua"))
+            {
+                throw std::runtime_error("Failed to load sandbox.lua");
+            }
             try {
-                setupEnvironment();
-                (*state.get())["txJson"] = CryptoKernel::Storage::toString(CryptoKernel::Blockchain::transactionToJson(tx));
-                (*state.get())["outputSetId"] = CryptoKernel::Blockchain::calculateOutputSetId(tx.outputs);
-                BlockchainInterface blockchainInterface(blockchain);
-                (*state.get())["Blockchain"].SetObj(blockchainInterface, "getBlock", &BlockchainInterface::getBlock);
-                if(!(*state.get()).Load("./sandbox.lua"))
-                {
-                    throw std::runtime_error("Failed to load sandbox.lua");
-                }
                 if(!(*state.get())["verifyTransaction"](base64_decode((*it).data["contract"].asString())))
                 {
                     return false;
