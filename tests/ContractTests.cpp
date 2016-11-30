@@ -4,7 +4,8 @@
 
 CPPUNIT_TEST_SUITE_REGISTRATION(ContractTest);
 
-ContractTest::ContractTest() {
+ContractTest::ContractTest()
+{
     log = new CryptoKernel::Log("testContract.log");
     blockchain = new MyBlockchain(log, 150);
     blockchain->loadChain();
@@ -20,8 +21,8 @@ void ContractTest::setUp() {
 void ContractTest::tearDown() {
 }
 
-void ContractTest::testBasicTrue() {
-    const std::string contract = "return true";
+bool ContractTest::runScript(const std::string contract)
+{
     const std::string compressedBytecode = CryptoKernel::ContractRunner::compile(contract);
 
     CryptoKernel::ContractRunner lvm(blockchain);
@@ -53,5 +54,19 @@ void ContractTest::testBasicTrue() {
     tx.timestamp = 123135278;
     tx.id = blockchain->calculateTransactionId(tx);
 
-    CPPUNIT_ASSERT(lvm.evaluateValid(tx));
+    return lvm.evaluateValid(tx);
+}
+
+void ContractTest::testBasicTrue()
+{
+    const std::string contract = "return true";
+
+    CPPUNIT_ASSERT(runScript(contract));
+}
+
+void ContractTest::testInfiniteLoop()
+{
+    const std::string contract = "while true do end return true";
+
+    CPPUNIT_ASSERT(!runScript(contract));
 }

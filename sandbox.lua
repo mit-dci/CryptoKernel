@@ -24,7 +24,7 @@ pc = 0
 function programCounterHook()
     pc = pc + 50
     if pc > pcLimit then
-        os.exit()
+        error("Instruction limit reached")
     end
 end
 
