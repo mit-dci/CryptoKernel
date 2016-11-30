@@ -1,4 +1,5 @@
 #include "crypto.h"
+#include "base64.h"
 
 #include "contract.h"
 
@@ -70,7 +71,7 @@ std::string CryptoKernel::ContractRunner::compile(const std::string contractScri
 
     const std::string compressedBytecode = compilerState["compile"](contractScript);
 
-    return compressedBytecode;
+    return base64_encode((unsigned char*)compressedBytecode.c_str(), compressedBytecode.size());
 }
 
 void CryptoKernel::ContractRunner::setupEnvironment()
@@ -103,7 +104,7 @@ bool CryptoKernel::ContractRunner::evaluateValid(const CryptoKernel::Blockchain:
                 {
                     throw std::runtime_error("Failed to load sandbox.lua");
                 }
-                if(!(*state.get())["verifyTransaction"]((*it).data["contract"].asString()))
+                if(!(*state.get())["verifyTransaction"](base64_decode((*it).data["contract"].asString())))
                 {
                     return false;
                 }
