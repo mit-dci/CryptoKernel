@@ -1,3 +1,5 @@
+#include "crypto.h"
+
 #include "contract.h"
 
 CryptoKernel::ContractRunner::ContractRunner(const CryptoKernel::Blockchain* blockchain, const uint64_t memoryLimit, const uint64_t instructionLimit)
@@ -75,6 +77,15 @@ void CryptoKernel::ContractRunner::setupEnvironment()
 {
     const int lim = this->pcLimit;
     (*state.get())["pcLimit"] = lim;
+
+    (*state.get())["Crypto"].SetClass<CryptoKernel::Crypto, bool>("getPublicKey", &CryptoKernel::Crypto::getPublicKey,
+                                                         "getPrivateKey", &CryptoKernel::Crypto::getPrivateKey,
+                                                         "setPublicKey", &CryptoKernel::Crypto::setPublicKey,
+                                                         "setPrivateKey", &CryptoKernel::Crypto::setPrivateKey,
+                                                         "sign", &CryptoKernel::Crypto::sign,
+                                                         "verify", &CryptoKernel::Crypto::verify,
+                                                         "getStatus", &CryptoKernel::Crypto::getStatus
+                                                        );
 }
 
 bool CryptoKernel::ContractRunner::evaluateValid(const CryptoKernel::Blockchain::transaction tx)
@@ -87,11 +98,11 @@ bool CryptoKernel::ContractRunner::evaluateValid(const CryptoKernel::Blockchain:
         if(!(*it).data["contract"].empty())
         {
             try {
+                setupEnvironment();
                 if(!(*state.get()).Load("./sandbox.lua"))
                 {
                     throw std::runtime_error("Failed to load sandbox.lua");
                 }
-                setupEnvironment();
                 if(!(*state.get())["verifyTransaction"]((*it).data["contract"].asString()))
                 {
                     return false;

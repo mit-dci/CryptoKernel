@@ -48,6 +48,7 @@ class ContractTest : public CPPUNIT_NS::TestFixture {
 
     CPPUNIT_TEST(testBasicTrue);
     CPPUNIT_TEST(testInfiniteLoop);
+    CPPUNIT_TEST(testCrypto);
 
     CPPUNIT_TEST_SUITE_END();
 
@@ -60,6 +61,7 @@ public:
 private:
     void testBasicTrue();
     void testInfiniteLoop();
+    void testCrypto();
     bool runScript(const std::string contract);
     MyBlockchain* blockchain;
     CryptoKernel::Log* log;

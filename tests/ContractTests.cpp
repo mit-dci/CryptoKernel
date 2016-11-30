@@ -75,3 +75,10 @@ void ContractTest::testInfiniteLoop()
 
     CPPUNIT_ASSERT(!runScript(contract));
 }
+
+void ContractTest::testCrypto()
+{
+    const std::string contract = "local genCrypto = Crypto.new(true) local publicKey = genCrypto:getPublicKey() local signature = genCrypto:sign(\"this is a test signature\") local crypto = Crypto.new() crypto:setPublicKey(publicKey) if crypto:verify(\"this is a test signature\", signature) then return true else return false end";
+
+    CPPUNIT_ASSERT(runScript(contract));
+}

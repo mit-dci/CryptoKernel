@@ -1,4 +1,7 @@
-sandbox_env = {}
+sandbox_env = {Crypto = {new = Crypto.new, getPublicKey = Crypto.getPublicKey, getPrivateKey = Crypto.getPrivateKey,
+                        setPublicKey = Crypto.setPublicKey, setPrivateKey = Crypto.setPrivateKey,
+                        getStatus = Crypto.getStatus, sign = Crypto.sign, verify = Crypto.verify,},
+              }
 
 local function setfenv(fn, env)
   local i = 1
