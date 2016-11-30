@@ -5,6 +5,7 @@ sandbox_env = {Crypto = {new = Crypto.new, getPublicKey = Crypto.getPublicKey, g
                         getStatus = Crypto.getStatus, sign = Crypto.sign, verify = Crypto.verify,},
                Json = {new = Json.new, decode = Json.decode,},
                txJson = txJson,
+               outputSetId = outputSetId,
               }
 
 local function setfenv(fn, env)
