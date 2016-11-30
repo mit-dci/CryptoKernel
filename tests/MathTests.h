@@ -3,7 +3,7 @@
 
 #include <cppunit/extensions/HelperMacros.h>
 
-#include "math.h"
+#include "ckmath.h"
 
 class MathTest : public CPPUNIT_NS::TestFixture {
     CPPUNIT_TEST_SUITE(MathTest);

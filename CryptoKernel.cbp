@@ -76,7 +76,6 @@
 				<Option output="CryptoCurrency" prefix_auto="1" extension_auto="1" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option use_console_runner="0" />
 				<Linker>
 					<Add option="-ljsoncpp" />
 					<Add option="-pthread" />
@@ -102,7 +101,14 @@
 			<Add option="-pthread" />
 			<Add option="-lleveldb" />
 			<Add option="-ljsoncpp" />
+			<Add option="-llua5.3" />
 		</Linker>
+		<Unit filename="compiler.lua">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="sandbox.lua">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
 		<Unit filename="src/client/cryptoclient.h">
 			<Option target="Debug-Client-Unix" />
 		</Unit>
@@ -131,18 +137,52 @@
 		<Unit filename="src/kernel/base64.h" />
 		<Unit filename="src/kernel/blockchain.cpp" />
 		<Unit filename="src/kernel/blockchain.h" />
+		<Unit filename="src/kernel/ckmath.h" />
+		<Unit filename="src/kernel/contract.cpp" />
 		<Unit filename="src/kernel/contract.h" />
 		<Unit filename="src/kernel/crypto.cpp" />
 		<Unit filename="src/kernel/crypto.h" />
 		<Unit filename="src/kernel/log.cpp" />
 		<Unit filename="src/kernel/log.h" />
 		<Unit filename="src/kernel/math.cpp" />
-		<Unit filename="src/kernel/math.h" />
 		<Unit filename="src/kernel/network.cpp" />
 		<Unit filename="src/kernel/network.h" />
 		<Unit filename="src/kernel/storage.cpp" />
 		<Unit filename="src/kernel/storage.h" />
 		<Unit filename="src/kernel/version.h" />
+		<Unit filename="tests/ContractTests.cpp">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="tests/ContractTests.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="tests/CryptoKernelTestRunner.cpp">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="tests/CryptoTests.cpp">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="tests/CryptoTests.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="tests/LogTests.cpp">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="tests/LogTests.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="tests/MathTests.cpp">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="tests/MathTests.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="tests/StorageTests.cpp">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="tests/StorageTests.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
 		<Extensions>
 			<code_completion />
 			<debugger />

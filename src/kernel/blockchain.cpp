@@ -26,7 +26,7 @@
 
 #include "blockchain.h"
 #include "crypto.h"
-#include "math.h"
+#include "ckmath.h"
 
 CryptoKernel::Blockchain::Blockchain(CryptoKernel::Log* GlobalLog, const uint64_t blockTime)
 {

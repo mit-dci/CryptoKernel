@@ -1,6 +1,8 @@
 #ifndef CONTRACT_H_INCLUDED
 #define CONTRACT_H_INCLUDED
 
+#include <selene.h>
+
 #include "blockchain.h"
 
 namespace CryptoKernel
@@ -45,10 +47,15 @@ namespace CryptoKernel
             * @param tx the transaction to be verified
             * @return true iff the transaction is valid according to contract scripts, false otherwise
             */
-            bool evaluateValid(const transaction tx);
+            bool evaluateValid(const CryptoKernel::Blockchain::transaction tx);
 
         private:
-            void load(const std::string bytecode);
+            static void setupEnvironment(sel::State* stateEnv);
+            std::unique_ptr<sel::State> state;
+            std::unique_ptr<int> ud;
+            static void* allocWrapper(void* thisPointer, void* ptr, size_t osize, size_t nsize);
+            void* l_alloc_restricted(void* ud, void* ptr, size_t osize, size_t nsize);
+            uint64_t memoryLimit;
     };
 }
 

@@ -49,7 +49,7 @@ namespace CryptoKernel
             * @return the sum of first and second as a lower case hex string
             */
             static std::string addHex(const std::string first, const std::string second);
-            
+
             /**
             * Subtracts two hex integers from each other
             *
@@ -58,7 +58,7 @@ namespace CryptoKernel
             * @return the lowercase hex integer string from first - second
             */
             static std::string subtractHex(const std::string first, const std::string second);
-            
+
             /**
             * Compares two hex strings to determine which is greater
             *
@@ -67,7 +67,7 @@ namespace CryptoKernel
             * @return true iff first greater than second, otherwise false
             */
             static bool hex_greater(const std::string first, const std::string second);
-            
+
             /**
             * Divides two hex integer, one from the other
             *
@@ -76,10 +76,10 @@ namespace CryptoKernel
             * @return the lowercase hex integer produced by first//second
             */
             static std::string divideHex(const std::string first, const std::string second);
-            
+
             /**
             * Multiplies two hex integers
-            * 
+            *
             * @param first the first integer to multiply
             * @param second the second integer to multiply
             * @return the lowercase hex integer produced by first * second
