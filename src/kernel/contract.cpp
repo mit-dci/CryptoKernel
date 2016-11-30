@@ -3,14 +3,13 @@
 CryptoKernel::ContractRunner::ContractRunner(const CryptoKernel::Blockchain* blockchain, const uint64_t memoryLimit, const uint64_t instructionLimit)
 {
     this->memoryLimit = memoryLimit;
+    this->pcLimit = instructionLimit;
 
     ud.reset(new int);
     *ud.get() = 0;
     lua_State* _l = lua_newstate(&CryptoKernel::ContractRunner::allocWrapper, this);
     luaL_openlibs(_l);
     state.reset(new sel::State(_l));
-
-    setupEnvironment(state.get());
 }
 
 void* CryptoKernel::ContractRunner::allocWrapper(void* thisPointer, void* ptr, size_t osize, size_t nsize)
@@ -48,7 +47,7 @@ void* CryptoKernel::ContractRunner::l_alloc_restricted(void* ud, void* ptr, size
    else
    {
      if (*used + (nsize - osize) > memoryLimit) {/* too much memory in use */
-       return NULL;
+       throw std::runtime_error("Memory limit reached");
      }
      ptr = realloc(ptr, nsize);
      if (ptr) {/* reallocation successful? */
@@ -61,7 +60,6 @@ void* CryptoKernel::ContractRunner::l_alloc_restricted(void* ud, void* ptr, size
 std::string CryptoKernel::ContractRunner::compile(const std::string contractScript)
 {
     sel::State compilerState(true);
-    setupEnvironment(&compilerState);
 
     if(!compilerState.Load("./compiler.lua"))
     {
@@ -73,9 +71,10 @@ std::string CryptoKernel::ContractRunner::compile(const std::string contractScri
     return compressedBytecode;
 }
 
-void CryptoKernel::ContractRunner::setupEnvironment(sel::State* stateEnv)
+void CryptoKernel::ContractRunner::setupEnvironment()
 {
-
+    const int lim = this->pcLimit;
+    (*state.get())["pcLimit"] = lim;
 }
 
 bool CryptoKernel::ContractRunner::evaluateValid(const CryptoKernel::Blockchain::transaction tx)
@@ -87,12 +86,17 @@ bool CryptoKernel::ContractRunner::evaluateValid(const CryptoKernel::Blockchain:
     {
         if(!(*it).data["contract"].empty())
         {
-            if(!(*state.get()).Load("./sandbox.lua"))
-            {
-                throw std::runtime_error("Failed to load sandbox.lua");
-            }
-            if(!(*state.get())["verifyTransaction"]((*it).data["contract"].asString()))
-            {
+            try {
+                if(!(*state.get()).Load("./sandbox.lua"))
+                {
+                    throw std::runtime_error("Failed to load sandbox.lua");
+                }
+                setupEnvironment();
+                if(!(*state.get())["verifyTransaction"]((*it).data["contract"].asString()))
+                {
+                    return false;
+                }
+            } catch(std::exception& e) {
                 return false;
             }
         }

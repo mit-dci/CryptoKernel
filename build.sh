@@ -3,7 +3,7 @@
 exe() { echo "$@" ; "$@" ; }
 
 CXX=g++
-CXXFLAGS="-Wall -std=c++14 -O2 -fPIC -Wl,-E"
+CXXFLAGS="-g -Wall -std=c++14 -O2 -fPIC -Wl,-E"
 SRC_DIR="src/kernel"
 OBJ_DIR="obj"
 

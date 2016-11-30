@@ -19,9 +19,19 @@ local function setfenv(fn, env)
   return fn
 end
 
+pc = 0
+
+function programCounterHook()
+    pc = pc + 50
+    if pc > pcLimit then
+        os.exit()
+    end
+end
+
 function run_sandbox(sb_env, sb_func, ...)
   if (not sb_func) then return nil end
   setfenv(sb_func, sb_env)
+  debug.sethook(programCounterHook, "", 1)
   local sb_ret={_ENV.pcall(sb_func, ...)}
   return _ENV.table.unpack(sb_ret)
 end
