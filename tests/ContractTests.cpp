@@ -6,19 +6,24 @@ CPPUNIT_TEST_SUITE_REGISTRATION(ContractTest);
 
 ContractTest::ContractTest()
 {
+
+}
+
+ContractTest::~ContractTest()
+{
+
+}
+
+void ContractTest::setUp()
+{
     log = new CryptoKernel::Log("testContract.log");
     blockchain = new MyBlockchain(log, 150);
     blockchain->loadChain();
 }
 
-ContractTest::~ContractTest() {
+void ContractTest::tearDown()
+{
     delete blockchain;
-}
-
-void ContractTest::setUp() {
-}
-
-void ContractTest::tearDown() {
 }
 
 bool ContractTest::runScript(const std::string contract)
