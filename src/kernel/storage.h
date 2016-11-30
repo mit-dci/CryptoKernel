@@ -43,7 +43,7 @@ namespace CryptoKernel
             * @param filename the directory of the LevelDB database to use
             */
             Storage(const std::string filename);
-            
+
             /**
             * Default destructor, saves and closes the database
             */
@@ -58,7 +58,7 @@ namespace CryptoKernel
             * @return true if the store operation was successful, false otherwise
             */
             bool store(const std::string key, const Json::Value value);
-            
+
             /**
             * Gets the json value stored at the given key in the database.
             *
@@ -67,11 +67,11 @@ namespace CryptoKernel
             *         has no associated value
             */
             Json::Value get(const std::string key);
-            
+
             /**
             * Erase the given key from the database
             *
-            * @param key the key to erase 
+            * @param key the key to erase
             * @return true if the key was erased successfully, false otherwise
             */
             bool erase(const std::string key);
@@ -97,7 +97,7 @@ namespace CryptoKernel
                     * @param dbMutex the mutex associated with the LevelDB mutex
                     */
                     Iterator(leveldb::DB* db, std::mutex* dbMutex);
-                    
+
                     /**
                     * Default deconstructor. Unlocks the database mutex.
                     */
@@ -114,12 +114,12 @@ namespace CryptoKernel
                     * @return true if there are keys after the current iterator, false otherwise
                     */
                     bool Valid();
-                    
+
                     /**
                     * Shifts the iterator to the next key in the database
                     */
                     void Next();
-                    
+
                     /**
                     * Returns the current key the iterator points to
                     *
@@ -130,7 +130,7 @@ namespace CryptoKernel
                     /**
                     * Returns the current json value the iterator points to
                     *
-                    * @retrn the json value the iterator points to
+                    * @return the json value the iterator points to
                     */
                     Json::Value value();
 
@@ -163,7 +163,7 @@ namespace CryptoKernel
             * @return true if the database was deleted successfully, false otherwise
             */
             static bool destroy(const std::string filename);
-            
+
             /**
             * Converts a string to a Json::Value
             *
