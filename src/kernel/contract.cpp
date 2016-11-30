@@ -3,10 +3,11 @@
 
 #include "contract.h"
 
-CryptoKernel::ContractRunner::ContractRunner(const CryptoKernel::Blockchain* blockchain, const uint64_t memoryLimit, const uint64_t instructionLimit)
+CryptoKernel::ContractRunner::ContractRunner(CryptoKernel::Blockchain* blockchain, const uint64_t memoryLimit, const uint64_t instructionLimit)
 {
     this->memoryLimit = memoryLimit;
     this->pcLimit = instructionLimit;
+    this->blockchain = blockchain;
 
     ud.reset(new int);
     *ud.get() = 0;
@@ -102,6 +103,8 @@ bool CryptoKernel::ContractRunner::evaluateValid(const CryptoKernel::Blockchain:
                 setupEnvironment();
                 (*state.get())["txJson"] = CryptoKernel::Storage::toString(CryptoKernel::Blockchain::transactionToJson(tx));
                 (*state.get())["outputSetId"] = CryptoKernel::Blockchain::calculateOutputSetId(tx.outputs);
+                BlockchainInterface blockchainInterface(blockchain);
+                (*state.get())["Blockchain"].SetObj(blockchainInterface, "getBlock", &BlockchainInterface::getBlock);
                 if(!(*state.get()).Load("./sandbox.lua"))
                 {
                     throw std::runtime_error("Failed to load sandbox.lua");

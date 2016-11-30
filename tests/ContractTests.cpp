@@ -96,3 +96,10 @@ void ContractTest::testVerifySignature()
 
     CPPUNIT_ASSERT(runScript(contract));
 }
+
+void ContractTest::testBlockchainAccess()
+{
+    const std::string contract = "local json = Json.new() local tip = json:decode(Blockchain.getBlock(\"tip\")) local currentId = tip[\"id\"] for currentHeight = tip[\"height\"], 2, -1 do local nextBlock = json:decode(Blockchain.getBlock(currentId)) currentId = nextBlock[\"previousBlockId\"] end if currentId == \"d190d6119e1014a15b6cb0bc90a10419c446417fe21f33bc88482c040e07fa2a\" then return true else return false end";
+
+    CPPUNIT_ASSERT(runScript(contract));
+}

@@ -23,7 +23,7 @@ namespace CryptoKernel
             * @param memoryLimit specify the memory limit in bytes of the virtual machine, defaults to 1MB
             * @param instructionLimit specify the maximum number of instructions a contract can execute, defaults to 35000
             */
-            ContractRunner(const CryptoKernel::Blockchain* blockchain, const uint64_t memoryLimit = 1048576, const uint64_t instructionLimit = 35000);
+            ContractRunner(CryptoKernel::Blockchain* blockchain, const uint64_t memoryLimit = 1048576, const uint64_t instructionLimit = 100000000);
 
             /**
             * Default destructor
@@ -57,6 +57,15 @@ namespace CryptoKernel
             void* l_alloc_restricted(void* ud, void* ptr, size_t osize, size_t nsize);
             uint64_t memoryLimit;
             uint64_t pcLimit;
+            CryptoKernel::Blockchain* blockchain;
+            class BlockchainInterface
+            {
+                public:
+                    BlockchainInterface(CryptoKernel::Blockchain* blockchain) {this->blockchain = blockchain;}
+                    std::string getBlock(const std::string id) {return CryptoKernel::Storage::toString(CryptoKernel::Blockchain::blockToJson(blockchain->getBlock(id)));}
+                private:
+                    CryptoKernel::Blockchain* blockchain;
+            };
     };
 }
 
