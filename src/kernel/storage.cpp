@@ -57,8 +57,11 @@ bool CryptoKernel::Storage::store(std::string key, Json::Value value)
 {
     std::string dataToStore = toString(value);
 
+    leveldb::WriteOptions options;
+    options.sync = true;
+
     dbMutex.lock();
-    leveldb::Status status = db->Put(leveldb::WriteOptions(), key, dataToStore);
+    leveldb::Status status = db->Put(options, key, dataToStore);
     dbMutex.unlock();
 
     if(status.ok())
@@ -75,8 +78,11 @@ Json::Value CryptoKernel::Storage::get(std::string key)
 {
     std::string jsonString;
 
+    leveldb::ReadOptions options;
+    options.verify_checksums = true;
+
     dbMutex.lock();
-    db->Get(leveldb::ReadOptions(), key, &jsonString);
+    db->Get(options, key, &jsonString);
     dbMutex.unlock();
 
     Json::Value returning = toJson(jsonString);
@@ -108,9 +114,12 @@ CryptoKernel::Storage::Iterator* CryptoKernel::Storage::newIterator()
 
 CryptoKernel::Storage::Iterator::Iterator(leveldb::DB* db, std::mutex* mut)
 {
+    leveldb::ReadOptions options;
+    options.verify_checksums = true;
+
     dbMutex = mut;
     dbMutex->lock();
-    it = db->NewIterator(leveldb::ReadOptions());
+    it = db->NewIterator(options);
 }
 
 CryptoKernel::Storage::Iterator::~Iterator()
