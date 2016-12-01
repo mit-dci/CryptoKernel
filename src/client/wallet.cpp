@@ -19,7 +19,7 @@
 #include <algorithm>
 
 #include "crypto.h"
-
+#include "contract.h"
 #include "wallet.h"
 
 CryptoCurrency::Wallet::Wallet(CryptoKernel::Blockchain* Blockchain, CryptoCurrency::Protocol* Protocol)
@@ -181,6 +181,14 @@ bool CryptoCurrency::Wallet::sendToAddress(std::string publicKey, uint64_t amoun
     uint64_t now = static_cast<uint64_t> (t);
     toThem.nonce = now;
     toThem.id = blockchain->calculateOutputId(toThem);
+
+    const std::string contract = "local json = Json.new() local tx = json:decode(txJson) local crypto = Crypto.new() crypto:setPublicKey(tx[\"inputs\"][1][\"publicKey\"]) if crypto:verify(tx[\"inputs\"][1][\"id\"] .. outputSetId, tx[\"inputs\"][1][\"signature\"]) then return true else return false end";
+    const std::string compressedBytecode = CryptoKernel::ContractRunner::compile(contract);
+
+    Json::Value data;
+    data["contract"] = compressedBytecode;
+
+    toThem.data = data;
 
     CryptoKernel::Blockchain::output change;
     change.value = accumulator - amount - fee;
