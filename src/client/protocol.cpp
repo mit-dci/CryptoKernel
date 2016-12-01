@@ -183,7 +183,7 @@ void CryptoCurrency::Protocol::handleEvent()
                     for(unsigned int i = 0; i < 200; i++)
                     {
                         CryptoKernel::Blockchain::block Block = blockchain->getBlock(tipId);
-                        returning["data"].append(blockchain->blockToJson(Block));
+                        returning["data"].append(CryptoKernel::Blockchain::blockToJson(Block));
                         if(Block.previousBlockId == "")
                         {
                             break;

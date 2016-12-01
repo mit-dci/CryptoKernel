@@ -18,7 +18,7 @@
 #include <sstream>
 #include <algorithm>
 
-#include <cryptokernel/crypto.h>
+#include "crypto.h"
 
 #include "wallet.h"
 

@@ -75,7 +75,7 @@ std::string CryptoKernel::ContractRunner::compile(const std::string contractScri
     return base64_encode((unsigned char*)compressedBytecode.c_str(), compressedBytecode.size());
 }
 
-void CryptoKernel::ContractRunner::setupEnvironment()
+void CryptoKernel::ContractRunner::setupEnvironment(const CryptoKernel::Blockchain::transaction tx)
 {
     const int lim = this->pcLimit;
     (*state.get())["pcLimit"] = lim;
@@ -88,6 +88,10 @@ void CryptoKernel::ContractRunner::setupEnvironment()
                                                          "verify", &CryptoKernel::Crypto::verify,
                                                          "getStatus", &CryptoKernel::Crypto::getStatus
                                                         );
+    (*state.get())["txJson"] = CryptoKernel::Storage::toString(CryptoKernel::Blockchain::transactionToJson(tx));
+    (*state.get())["outputSetId"] = CryptoKernel::Blockchain::calculateOutputSetId(tx.outputs);
+    std::unique_ptr<BlockchainInterface> blockchainInterface(new BlockchainInterface(blockchain));
+    (*state.get())["Blockchain"].SetObj((*blockchainInterface.get()), "getBlock", &BlockchainInterface::getBlock);
 }
 
 bool CryptoKernel::ContractRunner::evaluateValid(const CryptoKernel::Blockchain::transaction tx)
@@ -99,11 +103,7 @@ bool CryptoKernel::ContractRunner::evaluateValid(const CryptoKernel::Blockchain:
     {
         if(!(*it).data["contract"].empty())
         {
-            setupEnvironment();
-            (*state.get())["txJson"] = CryptoKernel::Storage::toString(CryptoKernel::Blockchain::transactionToJson(tx));
-            (*state.get())["outputSetId"] = CryptoKernel::Blockchain::calculateOutputSetId(tx.outputs);
-            BlockchainInterface blockchainInterface(blockchain);
-            (*state.get())["Blockchain"].SetObj(blockchainInterface, "getBlock", &BlockchainInterface::getBlock);
+            setupEnvironment(tx);
             if(!(*state.get()).Load("./sandbox.lua"))
             {
                 throw std::runtime_error("Failed to load sandbox.lua");

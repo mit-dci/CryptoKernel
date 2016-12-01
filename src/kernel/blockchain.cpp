@@ -27,6 +27,7 @@
 #include "blockchain.h"
 #include "crypto.h"
 #include "ckmath.h"
+#include "contract.h"
 
 CryptoKernel::Blockchain::Blockchain(CryptoKernel::Log* GlobalLog, const uint64_t blockTime)
 {
@@ -188,7 +189,7 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
         inputTotal += (*it).value;
         CryptoKernel::Crypto crypto;
         crypto.setPublicKey((*it).publicKey);
-        if(!crypto.verify((*it).id + outputHash, (*it).signature) || (*it).value <= 0)
+        if((!crypto.verify((*it).id + outputHash, (*it).signature) && (*it).data["contract"].empty()) || (*it).value <= 0)
         {
             log->printf(LOG_LEVEL_ERR, "blockchain::verifyTransaction(): Could not verify input signature");
             return false;
@@ -225,6 +226,13 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
             log->printf(LOG_LEVEL_ERR, "blockchain::verifyTransaction(): tx fee is too low");
             return false;
         }
+    }
+
+    CryptoKernel::ContractRunner lvm(this);
+    if(!lvm.evaluateValid(tx))
+    {
+        log->printf(LOG_LEVEL_ERR, "blockchain::verifyTransaction(): Script returned false");
+        return false;
     }
 
     return true;

@@ -18,8 +18,8 @@
 #ifndef PROTOCOL_H_INCLUDED
 #define PROTOCOL_H_INCLUDED
 
-#include <cryptokernel/network.h>
-#include <cryptokernel/blockchain.h>
+#include "network.h"
+#include "blockchain.h"
 
 namespace CryptoCurrency
 {

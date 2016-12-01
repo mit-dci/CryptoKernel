@@ -23,8 +23,8 @@
 #include <jsonrpccpp/server/connectors/httpserver.h>
 #include <jsonrpccpp/client/connectors/httpclient.h>
 
-#include <cryptokernel/math.h>
-#include <cryptokernel/crypto.h>
+#include "ckmath.h"
+#include "crypto.h"
 
 #include "wallet.h"
 #include "cryptoserver.h"

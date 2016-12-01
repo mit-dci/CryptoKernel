@@ -76,6 +76,9 @@
 				<Option output="CryptoCurrency" prefix_auto="1" extension_auto="1" />
 				<Option type="1" />
 				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
 				<Linker>
 					<Add option="-ljsoncpp" />
 					<Add option="-pthread" />
@@ -94,6 +97,8 @@
 		<Compiler>
 			<Add option="-Wall" />
 			<Add option="-std=c++14" />
+			<Add directory="src/client" />
+			<Add directory="src/kernel" />
 		</Compiler>
 		<Linker>
 			<Add option="-lcrypto" />
@@ -104,6 +109,9 @@
 			<Add option="-llua5.3" />
 		</Linker>
 		<Unit filename="compiler.lua">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="json.lua">
 			<Option target="&lt;{~None~}&gt;" />
 		</Unit>
 		<Unit filename="sandbox.lua">

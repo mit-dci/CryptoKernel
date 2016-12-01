@@ -18,9 +18,9 @@
 #ifndef WALLET_H_INCLUDED
 #define WALLET_H_INCLUDED
 
-#include <cryptokernel/storage.h>
-#include <cryptokernel/log.h>
-#include <cryptokernel/blockchain.h>
+#include "storage.h"
+#include "log.h"
+#include "blockchain.h"
 
 #include "protocol.h"
 
