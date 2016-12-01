@@ -180,7 +180,6 @@ bool CryptoCurrency::Wallet::sendToAddress(std::string publicKey, uint64_t amoun
     time_t t = std::time(0);
     uint64_t now = static_cast<uint64_t> (t);
     toThem.nonce = now;
-    toThem.id = blockchain->calculateOutputId(toThem);
 
     const std::string contract = "local json = Json.new() local tx = json:decode(txJson) local crypto = Crypto.new() crypto:setPublicKey(tx[\"inputs\"][1][\"publicKey\"]) if crypto:verify(tx[\"inputs\"][1][\"id\"] .. outputSetId, tx[\"inputs\"][1][\"signature\"]) then return true else return false end";
     const std::string compressedBytecode = CryptoKernel::ContractRunner::compile(contract);
@@ -189,6 +188,8 @@ bool CryptoCurrency::Wallet::sendToAddress(std::string publicKey, uint64_t amoun
     data["contract"] = compressedBytecode;
 
     toThem.data = data;
+
+    toThem.id = blockchain->calculateOutputId(toThem);
 
     CryptoKernel::Blockchain::output change;
     change.value = accumulator - amount - fee;

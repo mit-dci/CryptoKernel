@@ -168,6 +168,11 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
 
     for(it = tx.outputs.begin(); it < tx.outputs.end(); it++)
     {
+        if((*it).id != calculateOutputId(*it))
+        {
+            return false;
+        }
+
         if(utxos->get((*it).id)["id"] == (*it).id || (*it).value < 1)
         {
             log->printf(LOG_LEVEL_ERR, "blockchain::verifyTransaction(): Duplicate output in tx");
