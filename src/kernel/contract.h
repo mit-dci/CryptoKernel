@@ -66,6 +66,7 @@ namespace CryptoKernel
                 private:
                     CryptoKernel::Blockchain* blockchain;
             };
+            BlockchainInterface* blockchainInterface;
     };
 }
 

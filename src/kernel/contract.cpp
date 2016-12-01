@@ -14,6 +14,8 @@ CryptoKernel::ContractRunner::ContractRunner(CryptoKernel::Blockchain* blockchai
     lua_State* _l = lua_newstate(&CryptoKernel::ContractRunner::allocWrapper, this);
     luaL_openlibs(_l);
     state.reset(new sel::State(_l));
+
+    blockchainInterface = new BlockchainInterface(blockchain);
 }
 
 void* CryptoKernel::ContractRunner::allocWrapper(void* thisPointer, void* ptr, size_t osize, size_t nsize)
@@ -24,7 +26,7 @@ void* CryptoKernel::ContractRunner::allocWrapper(void* thisPointer, void* ptr, s
 
 CryptoKernel::ContractRunner::~ContractRunner()
 {
-
+    delete blockchainInterface;
 }
 
 void* CryptoKernel::ContractRunner::l_alloc_restricted(void* ud, void* ptr, size_t osize, size_t nsize)
@@ -90,8 +92,7 @@ void CryptoKernel::ContractRunner::setupEnvironment(const CryptoKernel::Blockcha
                                                         );
     (*state.get())["txJson"] = CryptoKernel::Storage::toString(CryptoKernel::Blockchain::transactionToJson(tx));
     (*state.get())["outputSetId"] = CryptoKernel::Blockchain::calculateOutputSetId(tx.outputs);
-    std::unique_ptr<BlockchainInterface> blockchainInterface(new BlockchainInterface(blockchain));
-    (*state.get())["Blockchain"].SetObj((*blockchainInterface.get()), "getBlock", &BlockchainInterface::getBlock);
+    (*state.get())["Blockchain"].SetObj((*blockchainInterface), "getBlock", &BlockchainInterface::getBlock);
 }
 
 bool CryptoKernel::ContractRunner::evaluateValid(const CryptoKernel::Blockchain::transaction tx)
