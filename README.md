@@ -8,23 +8,31 @@ Building on Ubuntu 16.04
 
 ```
 sudo apt-get update
-sudo apt-get install git build-essential libjsoncpp-dev libenet-dev libleveldb-dev
+sudo apt-get install -y git build-essential libjsoncpp-dev libenet-dev libleveldb-dev libreadline-dev libcurl4-gnutls-dev libmicrohttpd-dev libjsonrpccpp-dev liblua5.3-dev
 
-wget https://www.openssl.org/source/openssl-1.1.0b.tar.gz
-tar -xvzf openssl-1.1.0b.tar.gz
-cd openssl-1.1.0b
+wget https://www.openssl.org/source/openssl-1.1.0c.tar.gz
+tar -xvzf openssl-1.1.0c.tar.gz
+cd openssl-1.1.0c
 ./config
 make
 sudo make install
+
+cd ../
+git clone https://github.com/metalicjames/selene.git
+sudo cp -r selene/include/* /usr/local/include
 
 cd ../
 git clone https://github.com/metalicjames/CryptoKernel.git
 cd CryptoKernel
 chmod +x build.sh
 ./build.sh
-sudo cp libCryptoKernel.a /usr/local/lib
-sudo mkdir /usr/local/include/cryptokernel
-sudo cp src/*.h /usr/local/include/cryptokernel
+./buildclient.sh
+
+cd ../
+git clone https://github.com/witchu/lua-lz4.git
+cd lua-lz4
+make
+cp lz4.so ../CryptoKernel
 ```
 
 Usage
