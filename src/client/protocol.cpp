@@ -115,7 +115,7 @@ void CryptoCurrency::Protocol::handleEvent()
                     blockBuffer.store(command["data"][i]["id"].asString(), command["data"][i]);
                 }
 
-                log->printf(LOG_LEVEL_INFO, "protocol::handleEvent(): Received blocks " + command["data"][command["data"].size()]["height"].asString() + " to " + command["data"][0]["height"].asString());
+                log->printf(LOG_LEVEL_INFO, "protocol::handleEvent(): Received blocks " + command["data"][command["data"].size() - 1]["height"].asString() + " to " + command["data"][0]["height"].asString());
 
                 //Find first block that doesn't exist with a previous block that does exist
                 std::string bottomId = "";

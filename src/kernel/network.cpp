@@ -40,7 +40,7 @@ CryptoKernel::Network::Network(Log *GlobalLog)
         address.port = 49000;
 
         log->printf(LOG_LEVEL_INFO, "Creating server");
-        server = enet_host_create(&address, 125, 2, 0, 0);
+        server = enet_host_create(&address, 125, 1, 0, 0);
 
         if(server == NULL)
         {
@@ -52,7 +52,7 @@ CryptoKernel::Network::Network(Log *GlobalLog)
         }
 
         log->printf(LOG_LEVEL_INFO, "Creating client");
-        client = enet_host_create(NULL, 8, 2, 256000, 256000);
+        client = enet_host_create(NULL, 8, 1, 0, 0);
         if(client == NULL)
         {
             log->printf(LOG_LEVEL_ERR, "Error creating client");
@@ -268,7 +268,7 @@ bool CryptoKernel::Network::connectPeer(std::string peeraddress)
     log->printf(LOG_LEVEL_INFO, "Attempting to connect to " + peeraddress);
 
     clientMutex.lock();
-    peer = enet_host_connect(client, &address, 2, 0);
+    peer = enet_host_connect(client, &address, 1, 0);
 
     if(peer == NULL)
     {
