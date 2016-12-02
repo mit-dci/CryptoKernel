@@ -17,6 +17,7 @@
 
 #include <list>
 #include <algorithm>
+#include <string>
 
 #include "protocol.h"
 
@@ -27,13 +28,38 @@ CryptoCurrency::Protocol::Protocol(CryptoKernel::Blockchain* Blockchain, CryptoK
     network = new CryptoKernel::Network(log);
 
     eventThread = new std::thread(&CryptoCurrency::Protocol::handleEvent, this);
+    rebroadcastThread = new std::thread(&CryptoCurrency::Protocol::rebroadcast, this);
 }
 
 CryptoCurrency::Protocol::~Protocol()
 {
+    delete rebroadcastThread;
     delete eventThread;
     delete network;
     delete log;
+}
+
+void CryptoCurrency::Protocol::rebroadcast()
+{
+    while(true)
+    {
+        log->printf(LOG_LEVEL_INFO, "protocol::rebroadcast(): Rebroadcasting blocks and unconfirmed transactions. Asking for block tips.");
+        Json::Value send;
+        send["method"] = "send";
+        send["data"] = "tip";
+
+        network->sendMessage(CryptoKernel::Storage::toString(send));
+
+        submitBlock(blockchain->getBlock("tip"));
+
+        std::vector<CryptoKernel::Blockchain::transaction>::iterator it;
+        for(it = blockchain->getUnconfirmedTransactions().begin(); it < blockchain->getUnconfirmedTransactions().end(); it++)
+        {
+            submitTransaction(*it);
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(60000));
+    }
 }
 
 void CryptoCurrency::Protocol::handleEvent()
@@ -62,6 +88,8 @@ void CryptoCurrency::Protocol::handleEvent()
                     send["method"] = "send";
                     send["data"] = Block.id;
 
+                    log->printf(LOG_LEVEL_INFO, std::string("protocol::handleEvent(): Asking for blocks ") + std::to_string(Block.height) + std::string(" to ") + std::to_string(Block.height - 200));
+
                     network->sendMessage(CryptoKernel::Storage::toString(send));
                 }
                 else if(blockchain->submitBlock(Block) && !blockExists)
@@ -86,6 +114,8 @@ void CryptoCurrency::Protocol::handleEvent()
                 {
                     blockBuffer.store(command["data"][i]["id"].asString(), command["data"][i]);
                 }
+
+                log->printf(LOG_LEVEL_INFO, "protocol::handleEvent(): Received blocks " + command["data"][command["data"].size()]["height"].asString() + " to " + command["data"][0]["height"].asString());
 
                 //Find first block that doesn't exist with a previous block that does exist
                 std::string bottomId = "";
@@ -178,7 +208,7 @@ void CryptoCurrency::Protocol::handleEvent()
                 Json::Value returning;
                 returning["method"] = "blocks";
 
-                if(blockchain->getBlock(tipId).id == tipId && tipId != "")
+                if((blockchain->getBlock(tipId).id == tipId && tipId != "") || tipId == "tip")
                 {
                     for(unsigned int i = 0; i < 200; i++)
                     {

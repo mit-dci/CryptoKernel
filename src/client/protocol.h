@@ -37,7 +37,9 @@ namespace CryptoCurrency
             CryptoKernel::Blockchain* blockchain;
             CryptoKernel::Log* log;
             void handleEvent();
-            std::thread *eventThread;
+            void rebroadcast();
+            std::thread* eventThread;
+            std::thread* rebroadcastThread;
     };
 }
 
