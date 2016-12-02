@@ -20,6 +20,6 @@
 
 #include <string>
 
-const std::string version = "8.0.0";
+const std::string version = "9.0.0";
 
 #endif // VERSION_H_INCLUDED

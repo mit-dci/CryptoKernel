@@ -52,7 +52,7 @@ CryptoKernel::Network::Network(Log *GlobalLog)
         }
 
         log->printf(LOG_LEVEL_INFO, "Creating client");
-        client = enet_host_create(NULL, 8, 1, 0, 0);
+        client = enet_host_create(NULL, 8, 2, 0, 0);
         if(client == NULL)
         {
             log->printf(LOG_LEVEL_ERR, "Error creating client");
@@ -105,7 +105,7 @@ void CryptoKernel::Network::HandleEvents()
         if(server != NULL)
         {
             ENetEvent event;
-            while(enet_host_service(server, &event, 1000) > 0)
+            while(enet_host_service(server, &event, 10000) > 0)
             {
                 switch(event.type)
                 {
@@ -148,12 +148,19 @@ void CryptoKernel::Network::HandleEvents()
 
         clientMutex.lock();
         ENetEvent event;
-        while(enet_host_service(client, &event, 1000) > 0)
+        while(enet_host_service(client, &event, 10000) > 0)
         {
             switch(event.type)
             {
             case ENET_EVENT_TYPE_CONNECT:
-                break;
+                {
+                    log->printf(LOG_LEVEL_INFO, "Connection successful");
+                    log->printf(LOG_LEVEL_INFO, "Asking for peer information from " + uintToAddress(event.peer->address.host));
+                    ENetPacket *packet = enet_packet_create("sendinfo=>", 11, ENET_PACKET_FLAG_RELIABLE);
+
+                    enet_peer_send(event.peer, 0, packet);
+                    break;
+                }
 
             case ENET_EVENT_TYPE_RECEIVE:
                 HandlePacket(&event);
@@ -243,6 +250,7 @@ void CryptoKernel::Network::HandleConnections()
                 while(std::getline(peersfile, line) && connections < 8)
                 {
                     connectPeer(line);
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10000));
                 }
                 peersfile.close();
                 break;
@@ -260,7 +268,6 @@ void CryptoKernel::Network::HandleConnections()
 bool CryptoKernel::Network::connectPeer(std::string peeraddress)
 {
     ENetAddress address;
-    ENetEvent event;
     ENetPeer *peer;
     enet_address_set_host(&address, peeraddress.c_str());
     address.port = 49000;
@@ -278,19 +285,19 @@ bool CryptoKernel::Network::connectPeer(std::string peeraddress)
     }
     else
     {
-        if(enet_host_service(client, &event, 5000) > 0 && event.type == ENET_EVENT_TYPE_CONNECT)
+        ENetEvent event;
+        if (enet_host_service (client, &event, 5000) > 0 && event.type == ENET_EVENT_TYPE_CONNECT)
         {
             log->printf(LOG_LEVEL_INFO, "Connection successful");
-            log->printf(LOG_LEVEL_INFO, "Asking for peer information from " + peeraddress);
+            log->printf(LOG_LEVEL_INFO, "Asking for peer information from " + uintToAddress(event.peer->address.host));
             ENetPacket *packet = enet_packet_create("sendinfo=>", 11, ENET_PACKET_FLAG_RELIABLE);
 
-            enet_peer_send(peer, 0, packet);
+            enet_peer_send(event.peer, 0, packet);
             clientMutex.unlock();
             return true;
         }
         else
         {
-            enet_peer_reset(peer);
             clientMutex.unlock();
             log->printf(LOG_LEVEL_INFO, "Connection timed out");
             return false;
