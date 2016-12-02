@@ -84,6 +84,7 @@ namespace CryptoKernel
             Storage *blocks;
             Storage *utxos;
             Log *log;
+            void checkRep();
             std::vector<transaction> unconfirmedTransactions;
             std::string calculateBlockId(block Block);
             bool verifyTransaction(transaction tx, bool coinbaseTx = false);

@@ -88,7 +88,7 @@ void CryptoCurrency::Protocol::handleEvent()
                     send["method"] = "send";
                     send["data"] = blockchain->getBlock("tip").id;
 
-                    log->printf(LOG_LEVEL_INFO, std::string("protocol::handleEvent(): Asking for blocks ") + std::to_string(Block.height) + std::string(" to ") + std::to_string(Block.height - 200));
+                    log->printf(LOG_LEVEL_INFO, std::string("protocol::handleEvent(): Asking for blocks ") + std::to_string(blockchain->getBlock("tip").height + 1) + std::string(" to ") + std::to_string(blockchain->getBlock("tip").height + 201));
 
                     network->sendMessage(CryptoKernel::Storage::toString(send));
                 }
@@ -119,7 +119,7 @@ void CryptoCurrency::Protocol::handleEvent()
 
                 Json::Value send;
                 send["method"] = "send";
-                send["data"] = CryptoKernel::Blockchain::blockToJson(blockchain->getBlock("tip"));
+                send["data"] = blockchain->getBlock("tip").id;
 
                 log->printf(LOG_LEVEL_INFO, std::string("protocol::handleEvent(): Asking for blocks ") + std::to_string(blockchain->getBlock("tip").height + 1) + std::string(" to ") + std::to_string(blockchain->getBlock("tip").height + 201));
 

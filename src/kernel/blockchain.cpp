@@ -83,7 +83,19 @@ bool CryptoKernel::Blockchain::loadChain()
 
     status = true;
 
+    checkRep();
+
     return true;
+}
+
+void CryptoKernel::Blockchain::checkRep()
+{
+    assert(blocks != nullptr);
+    assert(transactions != nullptr);
+    assert(utxos != nullptr);
+    assert(log != nullptr);
+
+    assert(getBlock("tip").mainChain);
 }
 
 CryptoKernel::Blockchain::~Blockchain()
@@ -109,6 +121,8 @@ std::vector<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::get
             returning.push_back(*it);
         }
     }
+
+    checkRep();
 
     return returning;
 }
@@ -507,7 +521,6 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
                 return false;
             }
         }
-
     }
 
     newBlock.mainChain = false;
@@ -522,6 +535,8 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
     blocks->store(newBlock.id, blockToJson(newBlock));
 
     log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): successfully submitted block: " + CryptoKernel::Storage::toString(blockToJson(newBlock)));
+
+    checkRep();
 
     return true;
 }
