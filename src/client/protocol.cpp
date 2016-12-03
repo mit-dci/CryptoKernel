@@ -25,7 +25,7 @@ CryptoCurrency::Protocol::Protocol(CryptoKernel::Blockchain* Blockchain, CryptoK
 {
     blockchain = Blockchain;;
     log = GlobalLog;
-    network = new CryptoKernel::Network(log);
+    network = new CryptoKernel::Network(log, blockchain);
 
     eventThread = new std::thread(&CryptoCurrency::Protocol::handleEvent, this);
     rebroadcastThread = new std::thread(&CryptoCurrency::Protocol::rebroadcast, this);

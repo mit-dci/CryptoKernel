@@ -173,13 +173,18 @@ Json::Value CryptoKernel::Storage::toJson(std::string json)
     return returning;
 }
 
-std::string CryptoKernel::Storage::toString(Json::Value json)
+std::string CryptoKernel::Storage::toString(Json::Value json, bool pretty)
 {
-    Json::StreamWriterBuilder wbuilder;
-    wbuilder["indentation"] = "\t";
-    std::string returning = Json::writeString(wbuilder, json);
-
-    return returning;
+    if(pretty)
+    {
+        Json::StyledWriter writer;
+        return writer.write(json);
+    }
+    else
+    {
+        Json::FastWriter writer;
+        return writer.write(json);
+    }
 }
 
 bool CryptoKernel::Storage::destroy(std::string filename)

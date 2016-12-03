@@ -31,7 +31,7 @@ namespace CryptoKernel
 
 /**
 * The log class provides basic logging capabilities including printing messages
-* to the screen and write to a log file. Automatically adds timestamps and 
+* to the screen and write to a log file. Automatically adds timestamps and
 * message severity level.
 */
 class Log
@@ -39,8 +39,8 @@ class Log
     public:
         /**
         * Constructs a log instance using the given filename. Optionally prints
-        * log messages to the console. This will either create the log file or 
-        * lock the existing log file for writing and add newlines to the file 
+        * log messages to the console. This will either create the log file or
+        * lock the existing log file for writing and add newlines to the file
         * before starting the log, continuing from the last line already in the
         * log file.
         *
@@ -49,7 +49,7 @@ class Log
                  Defaults to false.
         */
         Log(const std::string filename = "CryptoKernel.log", const bool printToConsole = false);
-        
+
         /**
         * Standard destructor. Should ensure messages are flushed to the log file and
         * release the file for writing by other processes.
@@ -57,7 +57,7 @@ class Log
         ~Log();
 
         /**
-        * Adds a message to the log with a given severity, leaving a new line in the 
+        * Adds a message to the log with a given severity, leaving a new line in the
         * following format:
         *
         * YYYY-MM-DD HH:MM:SS ERROR|WARNING|INFO Log message
@@ -69,6 +69,7 @@ class Log
         *        or LOG_LEVEL_INFO (3)
         * @param message the message string of the log entry
         * @return true iff the message was logged successfully, otherwise false
+        * @throw std::runtime_error if the loglevel is an error
         */
         bool printf(const int loglevel, const std::string message);
 

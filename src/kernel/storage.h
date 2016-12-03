@@ -176,9 +176,11 @@ namespace CryptoKernel
             * Converts a Json::Value to a json string representation
             *
             * @param json a Json::Value to convert to a string
+            * @param pretty when true insert tabs and newlines to format the string,
+                     optional and defaults to true
             * @return a string representation of the given json value
             */
-            static std::string toString(const Json::Value json);
+            static std::string toString(const Json::Value json, bool pretty = true);
 
         private:
             leveldb::DB* db;

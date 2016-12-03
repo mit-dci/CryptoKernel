@@ -78,6 +78,7 @@ namespace CryptoKernel
             static std::string calculateOutputSetId(std::vector<output> outputs);
             std::vector<transaction> getUnconfirmedTransactions();
             bool loadChain();
+            Storage::Iterator* newIterator();
 
         private:
             Storage *transactions;

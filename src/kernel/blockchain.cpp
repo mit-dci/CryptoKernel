@@ -157,13 +157,13 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
 {
     if(calculateTransactionId(tx) != tx.id)
     {
-        log->printf(LOG_LEVEL_ERR, "blockchain::verifyTransaction(): tx id is incorrect");
+        log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): tx id is incorrect");
         return false;
     }
 
     if(transactions->get(tx.id)["id"].asString() == tx.id)
     {
-        log->printf(LOG_LEVEL_ERR, "blockchain::verifyTransaction(): tx already exists");
+        log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): tx already exists");
         return false;
     }
 
@@ -189,14 +189,14 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
 
         if(utxos->get((*it).id)["id"] == (*it).id || (*it).value < 1)
         {
-            log->printf(LOG_LEVEL_ERR, "blockchain::verifyTransaction(): Duplicate output in tx");
+            log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Duplicate output in tx");
             //Duplicate output
             return false;
         }
         CryptoKernel::Crypto crypto;
         if(!crypto.setPublicKey((*it).publicKey))
         {
-           log->printf(LOG_LEVEL_ERR, "blockchain::verifyTransaction(): Public key is invalid");
+           log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Public key is invalid");
             //Invalid key
             return false;
         }
@@ -210,7 +210,7 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
         crypto.setPublicKey((*it).publicKey);
         if((!crypto.verify((*it).id + outputHash, (*it).signature) && (*it).data["contract"].empty()) || (*it).value <= 0)
         {
-            log->printf(LOG_LEVEL_ERR, "blockchain::verifyTransaction(): Could not verify input signature");
+            log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Could not verify input signature");
             return false;
         }
         else
@@ -225,7 +225,7 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
             std::string id = utxos->get((*it).id)["id"].asString();
             if(id != (*it).id)
             {
-                log->printf(LOG_LEVEL_ERR, "blockchain::verifyTransaction(): Output has already been spent");
+                log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Output has already been spent");
                 return false;
             }
         }
@@ -235,14 +235,14 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
     {
         if(outputTotal > inputTotal)
         {
-            log->printf(LOG_LEVEL_ERR, "blockchain::verifyTransaction(): The output total is greater than the input total");
+            log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): The output total is greater than the input total");
             return false;
         }
 
         uint64_t fee = inputTotal - outputTotal;
         if(fee < getTransactionFee(tx) * 0.5)
         {
-            log->printf(LOG_LEVEL_ERR, "blockchain::verifyTransaction(): tx fee is too low");
+            log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): tx fee is too low");
             return false;
         }
     }
@@ -250,7 +250,7 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
     CryptoKernel::ContractRunner lvm(this);
     if(!lvm.evaluateValid(tx))
     {
-        log->printf(LOG_LEVEL_ERR, "blockchain::verifyTransaction(): Script returned false");
+        log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Script returned false");
         return false;
     }
 
@@ -299,7 +299,7 @@ bool CryptoKernel::Blockchain::submitTransaction(transaction tx)
     }
     else
     {
-        log->printf(LOG_LEVEL_ERR, "blockchain::submitTransaction(): Failed to verify transaction");
+        log->printf(LOG_LEVEL_INFO, "blockchain::submitTransaction(): Failed to verify transaction");
         return false;
     }
 }
@@ -376,28 +376,28 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
     //Check block does not already exist
     if(blocks->get(newBlock.id)["id"].asString() == newBlock.id && blocks->get(newBlock.id)["mainChain"].asBool())
     {
-        log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Block already exists");
+        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Block already exists");
         return false;
     }
 
     //Check the previous block exists
     if((blocks->get(newBlock.previousBlockId)["id"].asString() != newBlock.previousBlockId || newBlock.previousBlockId == "") && !genesisBlock)
     {
-        log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Previous block does not exist");
+        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Previous block does not exist");
         return false;
     }
 
     //Check target
     if(newBlock.target != calculateTarget(newBlock.previousBlockId))
     {
-        log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Block target is incorrect");
+        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Block target is incorrect");
         return false;
     }
 
     //Check proof of work
     if(!CryptoKernel::Math::hex_greater(newBlock.target, newBlock.PoW) || calculatePoW(newBlock) != newBlock.PoW)
     {
-        log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Proof of work is incorrect");
+        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Proof of work is incorrect");
         return false;
     }
 
@@ -405,13 +405,13 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
     std::string inverse = CryptoKernel::Math::subtractHex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", newBlock.PoW);
     if(newBlock.totalWork != CryptoKernel::Math::addHex(inverse, jsonToBlock(blocks->get(newBlock.previousBlockId)).totalWork) && !genesisBlock)
     {
-        log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Total work is incorrect");
+        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Total work is incorrect");
         return false;
     }
 
     if(newBlock.height != getBlock(newBlock.previousBlockId).height + 1 && !genesisBlock)
     {
-        log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Block height is incorrect");
+        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Block height is incorrect");
         return false;
     }
 
@@ -438,14 +438,14 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
     //Check the id is correct
     if(calculateBlockId(newBlock) != newBlock.id)
     {
-        log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Block id is incorrect");
+        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Block id is incorrect");
         return false;
     }
 
     //Check that the timestamp is realistic
     if(newBlock.timestamp < jsonToBlock(blocks->get(newBlock.previousBlockId)).timestamp && !genesisBlock)
     {
-        log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Timestamp is unrealistic");
+        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Timestamp is unrealistic");
         return false;
     }
 
@@ -458,7 +458,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         {
             if(!verifyTransaction(*it))
             {
-                log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Transaction could not be verified");
+                log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Transaction could not be verified");
                 return false;
             }
         }
@@ -468,7 +468,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         {
             if(!submitTransaction((*it)))
             {
-                log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Transaction could not be submitted");
+                log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Transaction could not be submitted");
                 return false;
             }
             fees += calculateTransactionFee((*it));
@@ -476,7 +476,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
 
         if(!newBlock.coinbaseTx.inputs.empty())
         {
-            log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Coinbase tx has inputs");
+            log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Coinbase tx has inputs");
             return false;
         }
         else
@@ -488,7 +488,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
                 CryptoKernel::Crypto crypto;
                 if(!crypto.setPublicKey((*it2).publicKey))
                 {
-                    log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Coinbase public key is invalid");
+                    log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Coinbase public key is invalid");
                     //Invalid key
                     return false;
                 }
@@ -497,7 +497,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
 
             if(outputTotal != fees + getBlockReward(newBlock.height))
             {
-                log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Coinbase output exceeds limit");
+                log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Coinbase output exceeds limit");
                 return false;
             }
 
@@ -507,7 +507,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
             }
             else
             {
-                log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): Could not verify coinbase transaction");
+                log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Could not verify coinbase transaction");
                 return false;
             }
         }
@@ -1099,4 +1099,9 @@ bool CryptoKernel::Blockchain::reverseBlock()
     blocks->store(tip.id, blockToJson(tip));
 
     return true;
+}
+
+CryptoKernel::Storage::Iterator* CryptoKernel::Blockchain::newIterator()
+{
+    return blocks->newIterator();
 }

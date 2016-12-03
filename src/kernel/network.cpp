@@ -15,370 +15,366 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <sstream>
-
 #include "network.h"
+
 #include "version.h"
 
-CryptoKernel::Network::Network(Log *GlobalLog)
+CryptoKernel::Network::Network(CryptoKernel::Log* log, CryptoKernel::Blockchain* blockchain)
 {
-    status = true;
-    connections = 0;
-    log = GlobalLog;
-    log->printf(LOG_LEVEL_INFO, "Initialising network");
-    if(enet_initialize() != 0)
+    this->log = log;
+    this->blockchain = blockchain;
+
+    listener.reset(new sf::TcpListener());
+
+    if(listener->listen(49000) != sf::Socket::Done)
     {
-        log->printf(LOG_LEVEL_ERR, "Initialisation failed");
-        status = false;
+        log->printf(LOG_LEVEL_ERR, "Network(): Failed to start server");
     }
-    else
-    {
-        log->printf(LOG_LEVEL_INFO, "Initialisation successful");
 
-        ENetAddress address;
-        address.host = ENET_HOST_ANY;
-        address.port = 49000;
+    running = true;
+    listener->setBlocking(false);
 
-        log->printf(LOG_LEVEL_INFO, "Creating server");
-        server = enet_host_create(&address, 125, 1, 0, 0);
+    connectionsThread.reset(new std::thread(&CryptoKernel::Network::handleConnections, this));
 
-        if(server == NULL)
-        {
-            log->printf(LOG_LEVEL_WARN, "Error creating server");
-        }
-        else
-        {
-            log->printf(LOG_LEVEL_INFO, "Server created successfully");
-        }
-
-        log->printf(LOG_LEVEL_INFO, "Creating client");
-        client = enet_host_create(NULL, 8, 2, 0, 0);
-        if(client == NULL)
-        {
-            log->printf(LOG_LEVEL_ERR, "Error creating client");
-            status = false;
-        }
-        else
-        {
-            log->printf(LOG_LEVEL_INFO, "Client created successfully");
-            eventThread = new std::thread(&CryptoKernel::Network::HandleEvents, this);
-            connectionsThread = new std::thread(&CryptoKernel::Network::HandleConnections, this);
-        }
-    }
+    checkRep();
 }
 
 CryptoKernel::Network::~Network()
 {
-    delete eventThread;
-    delete connectionsThread;
-
-    serverMutex.lock();
-    if(server != NULL)
-    {
-        log->printf(LOG_LEVEL_INFO, "Destroying server");
-        enet_host_destroy(server);
-    }
-    serverMutex.unlock();
-
-    clientMutex.lock();
-    if(client != NULL)
-    {
-        log->printf(LOG_LEVEL_INFO, "Destroying client");
-        enet_host_destroy(client);
-    }
-    clientMutex.unlock();
-
-    log->printf(LOG_LEVEL_INFO, "Deinitialising network");
-    enet_deinitialize();
+    running = false;
 }
 
-bool CryptoKernel::Network::getStatus()
+unsigned int CryptoKernel::Network::getConnections()
 {
-    return status;
+    return peers.size();
 }
 
-void CryptoKernel::Network::HandleEvents()
+void CryptoKernel::Network::sendBlock(const CryptoKernel::Blockchain::block block)
 {
-    while(true)
+    std::vector<Peer*>::iterator it;
+    for(it = peers.begin(); it < peers.end(); it++)
     {
-        serverMutex.lock();
-        if(server != NULL)
-        {
-            ENetEvent event;
-            while(enet_host_service(server, &event, 10000) > 0)
-            {
-                switch(event.type)
-                {
-                case ENET_EVENT_TYPE_CONNECT:
-                {
-                    std::stringstream location;
-                    location << uintToAddress(event.peer->address.host) << ":" << event.peer->address.port;
-                    log->printf(LOG_LEVEL_INFO, "A new client connected from " + location.str());
-
-                    log->printf(LOG_LEVEL_INFO, "Asking for peer information from " + location.str());
-                    ENetPacket *packet = enet_packet_create("sendinfo=>", 11, ENET_PACKET_FLAG_RELIABLE);
-
-                    enet_peer_send(event.peer, 0, packet);
-                    break;
-                }
-
-                case ENET_EVENT_TYPE_RECEIVE:
-                    HandlePacket(&event);
-                    enet_packet_destroy(event.packet);
-                    break;
-
-                case ENET_EVENT_TYPE_DISCONNECT:
-                {
-                    std::stringstream location;
-                    location << uintToAddress(event.peer->address.host) << ":" << event.peer->address.port;
-                    log->printf(LOG_LEVEL_INFO, "Client disconnected from " + location.str());
-                    connectionsMutex.lock();
-                    connections--;
-                    connectionsMutex.unlock();
-                    enet_peer_reset(event.peer);
-                    break;
-                }
-
-                case ENET_EVENT_TYPE_NONE:
-                    break;
-                }
-            }
-        }
-        serverMutex.unlock();
-
-        clientMutex.lock();
-        ENetEvent event;
-        while(enet_host_service(client, &event, 10000) > 0)
-        {
-            switch(event.type)
-            {
-            case ENET_EVENT_TYPE_CONNECT:
-                {
-                    log->printf(LOG_LEVEL_INFO, "Connection successful");
-                    log->printf(LOG_LEVEL_INFO, "Asking for peer information from " + uintToAddress(event.peer->address.host));
-                    ENetPacket *packet = enet_packet_create("sendinfo=>", 11, ENET_PACKET_FLAG_RELIABLE);
-
-                    enet_peer_send(event.peer, 0, packet);
-                    break;
-                }
-
-            case ENET_EVENT_TYPE_RECEIVE:
-                HandlePacket(&event);
-                enet_packet_destroy(event.packet);
-                break;
-
-            case ENET_EVENT_TYPE_DISCONNECT:
-            {
-                std::stringstream location;
-                location << uintToAddress(event.peer->address.host) << ":" << event.peer->address.port;
-                log->printf(LOG_LEVEL_INFO, "Client disconnected from " + location.str());
-                connectionsMutex.lock();
-                connections--;
-                connectionsMutex.unlock();
-                enet_peer_reset(event.peer);
-                break;
-            }
-
-            case ENET_EVENT_TYPE_NONE:
-                break;
-            }
-        }
-        clientMutex.unlock();
+        (*it)->sendBlock(block);
     }
 }
 
-void CryptoKernel::Network::HandlePacket(ENetEvent *event)
+void CryptoKernel::Network::sendTransaction(const CryptoKernel::Blockchain::transaction tx)
 {
-    std::string datastring(reinterpret_cast<char const*>(event->packet->data), event->packet->dataLength);
-    std::string request = datastring.substr(0, datastring.find("=>"));
-    if(request == "sendinfo")
+    std::vector<Peer*>::iterator it;
+    for(it = peers.begin(); it < peers.end(); it++)
     {
-        std::stringstream location;
-        location << uintToAddress(event->peer->address.host) << ":" << event->peer->address.port;
-        log->printf(LOG_LEVEL_INFO, "Sending version information to " + location.str());
-        std::stringstream packetstring;
-        packetstring << "info=>" << version;
-        ENetPacket *packet = enet_packet_create(packetstring.str().c_str(), packetstring.str().length() + 1, ENET_PACKET_FLAG_RELIABLE);
-        enet_peer_send(event->peer, 0, packet);
+        (*it)->sendTransaction(tx);
     }
-    else if(request == "info")
+}
+
+CryptoKernel::Blockchain::block CryptoKernel::Network::getBlock(const std::string id)
+{
+    std::uniform_int_distribution<unsigned int> distribution(0, peers.size() - 1);
+    for(unsigned int i = 0; i < peers.size(); i++)
     {
-        std::string info = datastring.substr(datastring.find("=>") + 2);
-        std::stringstream location;
-        location << uintToAddress(event->peer->address.host) << ":" << event->peer->address.port;
-        log->printf(LOG_LEVEL_INFO, "Received version information from " + location.str() + ": " + info);
-
-        connectionsMutex.lock();
-        connections++;
-        connectionsMutex.unlock();
-
-        if(info.substr(0, info.find(".")) != version.substr(0, version.find(".")))
+        const unsigned int peerId = distribution(generator);
+        if(peers[peerId]->getMainChain() && peers[peerId]->isConnected())
         {
-            log->printf(LOG_LEVEL_INFO, "Peer has a different major version than us, disconnecting it");
-            enet_peer_disconnect(event->peer, 0);
+            return peers[peerId]->getBlock(id);
         }
     }
-    else if(request == "message")
-    {
-        std::stringstream location;
-        location << uintToAddress(event->peer->address.host) << ":" << event->peer->address.port;
-        log->printf(LOG_LEVEL_INFO, "Received message from " + location.str() + ". Adding it to the message queue");
-        std::string message = datastring.substr(datastring.find("=>") + 2);
-        queueMutex.lock();
-        messageQueue.push(message);
-        queueMutex.unlock();
-    }
-    else
-    {
-        log->printf(LOG_LEVEL_INFO, "Peer misbehaving, disconnecting it");
-        enet_peer_disconnect(event->peer, 0);
-    }
+
+    return CryptoKernel::Blockchain::block();
 }
 
-void CryptoKernel::Network::HandleConnections()
+std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::getBlocks(const std::string id)
 {
-    while(true)
+    std::uniform_int_distribution<unsigned int> distribution(0, peers.size() - 1);
+    for(unsigned int i = 0; i < peers.size(); i++)
     {
-        connectionsMutex.lock();
-        if(connections < 8)
+        const unsigned int peerId = distribution(generator);
+        if(peers[peerId]->getMainChain() && peers[peerId]->isConnected())
         {
-            connectionsMutex.unlock();
-            std::ifstream peersfile("peers.txt");
-            if(peersfile.is_open())
+            return peers[peerId]->getBlocks(id);
+        }
+    }
+
+    return std::vector<CryptoKernel::Blockchain::block>();
+}
+
+void CryptoKernel::Network::handleConnections()
+{
+    while(running)
+    {
+        if(getConnections() < 8)
+        {
+            sf::TcpSocket* client = new sf::TcpSocket();
+            if(client.connect("127.0.0.1", 49000, sf::seconds(5)) == sf::Socket::Done)
             {
-                std::string line;
-                while(std::getline(peersfile, line) && connections < 8)
-                {
-                    connectPeer(line);
-                    std::this_thread::sleep_for(std::chrono::milliseconds(10000));
-                }
-                peersfile.close();
-                break;
+                Peer* peer = new Peer(client, blockchain);
+                peers.push_back(peer);
             }
             else
             {
-                log->printf(LOG_LEVEL_ERR, "Could not open peers list");
-                break;
+
             }
         }
-        connectionsMutex.unlock();
+
+        sf::TcpSocket* client = new sf::TcpSocket();
+        sf::Socket::Status status;
+        if((status = listener->accept(*client)) == sf::Socket::Error)
+        {
+            log->printf(LOG_LEVEL_ERR, "Network::handleConnections(): Failed to accept incoming connection");
+        }
+        else if(status == sf::Socket::Done)
+        {
+            Peer* peer = new Peer(client, blockchain);
+            peers.push_back(peer);
+        }
+
+        std::vector<Peer*>::iterator it;
+        for(it = peers.begin(); it < peers.end(); it++)
+        {
+            if(!(*it)->isConnected())
+            {
+                delete (*it);
+                it = peers.erase(it);
+            }
+        }
     }
 }
 
-bool CryptoKernel::Network::connectPeer(std::string peeraddress)
+void CryptoKernel::Network::checkRep()
 {
-    ENetAddress address;
-    ENetPeer *peer;
-    enet_address_set_host(&address, peeraddress.c_str());
-    address.port = 49000;
+    assert(blockchain != nullptr);
+    assert(log != nullptr);
+    assert(listener.get() != nullptr);
+}
 
-    log->printf(LOG_LEVEL_INFO, "Attempting to connect to " + peeraddress);
+CryptoKernel::Network::Peer::Peer(sf::TcpSocket* socket, CryptoKernel::Blockchain* blockchain)
+{
+    connected = true;
+    mainChain = false;
+    this->socket.reset(socket);
+    this->blockchain = blockchain;
 
-    clientMutex.lock();
-    peer = enet_host_connect(client, &address, 1, 0);
-
-    if(peer == NULL)
+    const Json::Value info = getInfo();
+    const std::string peerVersion = info["data"]["version"].asString();
+    if(peerVersion.substr(0, peerVersion.find(".")) != version.substr(0, version.find(".")))
     {
-        clientMutex.unlock();
-        log->printf(LOG_LEVEL_WARN, "There are no available peers for connection");
-        return false;
+        disconnect();
+    }
+
+    eventThread.reset(new std::thread(&CryptoKernel::Network::Peer::handleEvents, this));
+}
+
+CryptoKernel::Network::Peer::~Peer()
+{
+    disconnect();
+}
+
+Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value data)
+{
+    const std::string packetData = CryptoKernel::Storage::toString(data, false);
+    sf::Packet packet;
+    packet.append(packetData.c_str(), sizeof(packetData.c_str()));
+    peerLock.lock();
+    sf::Socket::Status status;
+    if((status = socket->send(packet)) == sf::Socket::Done)
+    {
+        packet.clear();
+        if((status = socket->receive(packet)) == sf::Socket::Done)
+        {
+            const std::string receivedPacket((char*)packet.getData(), packet.getDataSize());
+            const Json::Value infoPacket = CryptoKernel::Storage::toJson(receivedPacket);
+            peerLock.unlock();
+            return infoPacket;
+        }
+    }
+
+    if(status == sf::Socket::Error || status == sf::Socket::Disconnected)
+    {
+        disconnect();
+    }
+
+    peerLock.unlock();
+    return Json::Value();
+}
+
+bool CryptoKernel::Network::Peer::isConnected()
+{
+    return connected;
+}
+
+void CryptoKernel::Network::Peer::handleEvents()
+{
+    while(connected)
+    {
+        peerLock.lock();
+        socket->setBlocking(false);
+        sf::Socket::Status status;
+        sf::Packet packet;
+        if((status = socket->receive(packet)) == sf::Socket::Done)
+        {
+            const std::string receivedPacket((char*)packet.getData(), packet.getDataSize());
+            const Json::Value jsonPacket = CryptoKernel::Storage::toJson(receivedPacket);
+            socket->setBlocking(true);
+            Json::Value request;
+            if(jsonPacket["command"].asString() == "sendinfo")
+            {
+                request["command"] = "info";
+
+                Json::Value data;
+                data["version"] = version;
+                data["tipBlock"] = CryptoKernel::Blockchain::blockToJson(blockchain->getBlock("tip"));
+                request["data"] = data;
+                break;
+            }
+            else if(jsonPacket["command"].asString() == "getblock")
+            {
+                request["command"] = "block";
+                request["data"] = CryptoKernel::Blockchain::blockToJson(blockchain->getBlock(request["id"].asString()));
+                break;
+            }
+            else if(jsonPacket["command"].asString() == "getblocks")
+            {
+                request["command"] = "blocks";
+                CryptoKernel::Blockchain::block Block = blockchain->getBlock(request["id"].asString());
+                bool appended = true;
+                for(unsigned int i = 0; i < 500 && appended; i++)
+                {
+                    appended = false;
+                    CryptoKernel::Storage::Iterator* it = blockchain->newIterator();
+                    for(it->SeekToFirst(); it->Valid(); it->Next())
+                    {
+                        if(it->value()["previousBlockId"].asString() == Block.id && Block.id != "" && it->value()["mainChain"].asBool())
+                        {
+                            appended = true;
+                            Block.id = it->value()["id"].asString();
+                            request["data"].append(it->value());
+                            break;
+                        }
+                    }
+                    delete it;
+                }
+            }
+            else if(jsonPacket["command"].asString() == "block")
+            {
+                const CryptoKernel::Blockchain::block block = CryptoKernel::Blockchain::jsonToBlock(jsonPacket["data"]);
+                blockchain->submitBlock(block);
+            }
+            else if(jsonPacket["command"].asString() == "transaction")
+            {
+                const CryptoKernel::Blockchain::transaction tx = CryptoKernel::Blockchain::jsonToTransaction(jsonPacket["data"]);
+                blockchain->submitTransaction(tx);
+            }
+            else
+            {
+                disconnect();
+            }
+
+            status = socket->send(packet);
+        }
+        else if(status == sf::Socket::Error || status == sf::Socket::Disconnected)
+        {
+            disconnect();
+        }
+        socket->setBlocking(true);
+        peerLock.unlock();
+    }
+}
+
+void CryptoKernel::Network::Peer::disconnect()
+{
+    connected = false;
+    socket->disconnect();
+}
+
+bool CryptoKernel::Network::Peer::getMainChain()
+{
+    return mainChain;
+}
+
+void CryptoKernel::Network::Peer::setMainChain(const bool flag)
+{
+    mainChain = flag;
+}
+
+void CryptoKernel::Network::Peer::send(const Json::Value data)
+{
+    const std::string packetData = CryptoKernel::Storage::toString(data, false);
+    sf::Packet packet;
+    packet.append(packetData.c_str(), sizeof(packetData.c_str()));
+    peerLock.lock();
+    socket->setBlocking(false);
+    socket->send(packet);
+    socket->setBlocking(true);
+    peerLock.unlock();
+}
+
+void CryptoKernel::Network::Peer::sendBlock(const CryptoKernel::Blockchain::block block)
+{
+    Json::Value request;
+    request["command"] = "block";
+    request["data"] = CryptoKernel::Blockchain::blockToJson(block);
+    send(request);
+}
+
+void CryptoKernel::Network::Peer::sendTransaction(const CryptoKernel::Blockchain::transaction tx)
+{
+    Json::Value request;
+    request["command"] = "transaction";
+    request["data"] = CryptoKernel::Blockchain::transactionToJson(tx);
+    send(request);
+}
+
+CryptoKernel::Blockchain::block CryptoKernel::Network::Peer::getBlock(const std::string id)
+{
+    Json::Value request;
+    request["command"] = "getblock";
+    request["id"] = id;
+    const Json::Value response = sendRecv(request);
+
+    if(response["command"].asString() != "block")
+    {
+        disconnect();
+        return CryptoKernel::Blockchain::block();
     }
     else
     {
-        ENetEvent event;
-        if (enet_host_service (client, &event, 5000) > 0 && event.type == ENET_EVENT_TYPE_CONNECT)
-        {
-            log->printf(LOG_LEVEL_INFO, "Connection successful");
-            log->printf(LOG_LEVEL_INFO, "Asking for peer information from " + uintToAddress(event.peer->address.host));
-            ENetPacket *packet = enet_packet_create("sendinfo=>", 11, ENET_PACKET_FLAG_RELIABLE);
-
-            enet_peer_send(event.peer, 0, packet);
-            clientMutex.unlock();
-            return true;
-        }
-        else
-        {
-            clientMutex.unlock();
-            log->printf(LOG_LEVEL_INFO, "Connection timed out");
-            return false;
-        }
+        return CryptoKernel::Blockchain::jsonToBlock(request["data"]);
     }
 }
 
-bool CryptoKernel::Network::sendMessage(std::string message)
+std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Peer::getBlocks(const std::string id)
 {
-    connectionsMutex.lock();
-    if(connections > 0 && status && message.length() > 0)
+    Json::Value request;
+    request["command"] = "getblocks";
+    request["id"] = id;
+    const Json::Value response = sendRecv(request);
+
+    if(response["command"].asString() != "blocks")
     {
-        connectionsMutex.unlock();
-        log->printf(LOG_LEVEL_INFO, "Broadcasting message on network");
-        std::stringstream packetstaging;
-        packetstaging << "message=>" << message;
-
-        if(client != NULL)
-        {
-            ENetPacket *packet = enet_packet_create(packetstaging.str().c_str(), packetstaging.str().length(), ENET_PACKET_FLAG_RELIABLE);
-
-            clientMutex.lock();
-            enet_host_broadcast(client, 0, packet);
-            clientMutex.unlock();
-        }
-
-        if(server != NULL)
-        {
-            ENetPacket *packet2 = enet_packet_create(packetstaging.str().c_str(), packetstaging.str().length(), ENET_PACKET_FLAG_RELIABLE);
-
-            serverMutex.lock();
-            enet_host_broadcast(server, 0, packet2);
-            serverMutex.unlock();
-        }
-
-        return true;
+        disconnect();
+        return std::vector<CryptoKernel::Blockchain::block>();
     }
     else
     {
-        connectionsMutex.unlock();
-        return false;
+        std::vector<CryptoKernel::Blockchain::block> returning;
+        for(unsigned int i = 0; i < response["data"].size(); i++)
+        {
+            returning.push_back(CryptoKernel::Blockchain::jsonToBlock(response["data"][i]));
+        }
+
+        return returning;
     }
 }
 
-std::string CryptoKernel::Network::popMessage()
+Json::Value CryptoKernel::Network::Peer::getInfo()
 {
-    queueMutex.lock();
-    if(status && messageQueue.size() > 0)
+    Json::Value request;
+    request["command"] = "sendinfo";
+
+    const Json::Value infoPacket = sendRecv(request);
+    if(infoPacket["command"].asString() != "info")
     {
-        std::string message = messageQueue.front();
-        messageQueue.pop();
-        queueMutex.unlock();
-        return message;
+        disconnect();
     }
-    else
-    {
-        queueMutex.unlock();
-        return "";
-    }
-}
 
-int CryptoKernel::Network::getConnections()
-{
-    connectionsMutex.lock();
-    int temp = connections;
-    connectionsMutex.unlock();
-
-    return temp;
-}
-
-std::string CryptoKernel::Network::uintToAddress(uint32_t address)
-{
-    uint8_t bytes[4];
-    bytes[0] = address & 0xFF;
-    bytes[1] = (address >> 8) & 0xFF;
-    bytes[2] = (address >> 16) & 0xFF;
-    bytes[3] = (address >> 24) & 0xFF;
-
-    std::stringstream buffer;
-
-    buffer << (unsigned int)bytes[0] << "." << (unsigned int)bytes[1] << "." << (unsigned int)bytes[2] << "." << (unsigned int)bytes[3];
-
-    return buffer.str();
+    return infoPacket;
 }
