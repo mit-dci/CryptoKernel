@@ -22,9 +22,9 @@
 #include "contract.h"
 #include "wallet.h"
 
-CryptoCurrency::Wallet::Wallet(CryptoKernel::Blockchain* Blockchain, CryptoCurrency::Protocol* Protocol)
+CryptoCurrency::Wallet::Wallet(CryptoKernel::Blockchain* Blockchain, CryptoCurrency::Network* network)
 {
-    protocol = Protocol;
+    this->network = network;
     blockchain = Blockchain;
     log = new CryptoKernel::Log();
     addresses = new CryptoKernel::Storage("./addressesdb");

@@ -126,12 +126,6 @@
 		<Unit filename="src/client/main.cpp">
 			<Option target="Debug-Client-Unix" />
 		</Unit>
-		<Unit filename="src/client/protocol.cpp">
-			<Option target="Debug-Client-Unix" />
-		</Unit>
-		<Unit filename="src/client/protocol.h">
-			<Option target="Debug-Client-Unix" />
-		</Unit>
 		<Unit filename="src/client/rpcserver.cpp">
 			<Option target="Debug-Client-Unix" />
 		</Unit>

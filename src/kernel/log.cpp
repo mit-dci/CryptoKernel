@@ -87,7 +87,7 @@ bool CryptoKernel::Log::printf(int loglevel, std::string message)
 
     if(loglevel == LOG_LEVEL_ERR)
     {
-        throw std::runtime_error();
+        throw std::runtime_error("Fatal error");
     }
 
     return true;
