@@ -15,9 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "network.h"
-
 #include "version.h"
+#include "network.h"
 
 CryptoKernel::Network::Network(CryptoKernel::Log* log, CryptoKernel::Blockchain* blockchain)
 {
@@ -33,6 +32,19 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log, CryptoKernel::Blockchain*
 
     running = true;
     listener->setBlocking(false);
+
+    std::ifstream peersfile("peers.txt");
+    if(!peersfile.is_open())
+    {
+        log->printf(LOG_LEVEL_ERR, "Network(): Could not open peers list");
+    }
+
+    std::string line;
+    while(std::getline(peersfile, line))
+    {
+        nodes.push_back(line);
+    }
+    peersfile.close();
 
     connectionsThread.reset(new std::thread(&CryptoKernel::Network::handleConnections, this));
 
@@ -100,19 +112,28 @@ std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::getBlocks(co
 
 void CryptoKernel::Network::handleConnections()
 {
+    unsigned int currentNode = 0;
     while(running)
     {
         if(getConnections() < 8)
         {
             sf::TcpSocket* client = new sf::TcpSocket();
-            if(client->connect("127.0.0.1", 49000, sf::seconds(5)) == sf::Socket::Done)
+            log->printf(LOG_LEVEL_INFO, "Network::handleConnections(): Attempting to connect to " + nodes[currentNode]);
+            if(client->connect(nodes[currentNode], 49000, sf::seconds(5)) == sf::Socket::Done)
             {
                 Peer* peer = new Peer(client, blockchain);
                 peers.push_back(peer);
+                log->printf(LOG_LEVEL_INFO, "Network::handleConnections(): Successfully connected to " + nodes[currentNode]);
             }
             else
             {
+                log->printf(LOG_LEVEL_INFO, "Network::handleConnections(): Failed to connect to " + nodes[currentNode]);
+            }
 
+            currentNode++;
+            if(currentNode >= nodes.size())
+            {
+                currentNode = 0;
             }
         }
 

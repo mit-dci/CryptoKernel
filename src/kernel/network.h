@@ -142,7 +142,7 @@ class Network
         std::unique_ptr<std::thread> connectionsThread;
         bool running;
         std::default_random_engine generator;
-        std::map<std::string, uint64_t> nodes;
+        std::vector<std::string> nodes;
 };
 }
 
