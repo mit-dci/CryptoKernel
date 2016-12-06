@@ -25,10 +25,9 @@ CryptoServer::CryptoServer(jsonrpc::AbstractServerConnector &connector) : Crypto
 
 }
 
-void CryptoServer::setWallet(CryptoCurrency::Wallet* Wallet, CryptoCurrency::Protocol* Protocol, CryptoKernel::Blockchain* Blockchain)
+void CryptoServer::setWallet(CryptoCurrency::Wallet* Wallet, CryptoKernel::Blockchain* Blockchain)
 {
     wallet = Wallet;
-    protocol = Protocol;
     blockchain = Blockchain;
 }
 
@@ -37,7 +36,7 @@ Json::Value CryptoServer::getinfo()
     Json::Value returning;
 
     returning["version"] = "1.0.1";
-    returning["connections"] = protocol->getConnections();
+    //returning["connections"] = protocol->getConnections();
     double balance = wallet->getTotalBalance() / 100000000.0;
     std::stringstream buffer;
     buffer << std::setprecision(8) << balance;

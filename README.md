@@ -8,7 +8,7 @@ Building on Ubuntu 16.04
 
 ```
 sudo apt-get update
-sudo apt-get install -y git build-essential libjsoncpp-dev libenet-dev libleveldb-dev libreadline-dev libcurl4-gnutls-dev libmicrohttpd-dev libjsonrpccpp-dev liblua5.3-dev
+sudo apt-get install -y git build-essential libjsoncpp-dev libsfml-dev libleveldb-dev libreadline-dev libcurl4-gnutls-dev libmicrohttpd-dev libjsonrpccpp-dev liblua5.3-dev
 
 wget https://www.openssl.org/source/openssl-1.1.0c.tar.gz
 tar -xvzf openssl-1.1.0c.tar.gz

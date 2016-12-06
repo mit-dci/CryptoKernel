@@ -1,5 +1,5 @@
 apt-get update
-apt-get install -y git build-essential libjsoncpp-dev libenet-dev libleveldb-dev libreadline-dev libcurl4-gnutls-dev libmicrohttpd-dev libjsonrpccpp-dev liblua5.3-dev
+apt-get install -y git build-essential libjsoncpp-dev libsfml-dev libleveldb-dev libreadline-dev libcurl4-gnutls-dev libmicrohttpd-dev libjsonrpccpp-dev liblua5.3-dev
 
 wget https://www.openssl.org/source/openssl-1.1.0c.tar.gz
 tar -xvzf openssl-1.1.0c.tar.gz

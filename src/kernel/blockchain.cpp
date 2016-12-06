@@ -96,6 +96,8 @@ void CryptoKernel::Blockchain::checkRep()
     assert(log != nullptr);
 
     assert(getBlock("tip").mainChain);
+    assert(getBlock(genesisBlockId).id == genesisBlockId);
+    assert(getBlock(genesisBlockId).mainChain);
 }
 
 CryptoKernel::Blockchain::~Blockchain()
@@ -103,7 +105,6 @@ CryptoKernel::Blockchain::~Blockchain()
     delete transactions;
     delete blocks;
     delete utxos;
-    delete log;
 }
 
 std::vector<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::getUnconfirmedTransactions()

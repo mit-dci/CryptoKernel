@@ -22,9 +22,8 @@
 #include "contract.h"
 #include "wallet.h"
 
-CryptoCurrency::Wallet::Wallet(CryptoKernel::Blockchain* Blockchain, CryptoCurrency::Network* network)
+CryptoCurrency::Wallet::Wallet(CryptoKernel::Blockchain* Blockchain)
 {
-    this->network = network;
     blockchain = Blockchain;
     log = new CryptoKernel::Log();
     addresses = new CryptoKernel::Storage("./addressesdb");
@@ -227,7 +226,7 @@ bool CryptoCurrency::Wallet::sendToAddress(std::string publicKey, uint64_t amoun
         return false;
     }
 
-    protocol->submitTransaction(tx);
+    //protocol->submitTransaction(tx);
 
     return true;
 }

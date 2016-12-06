@@ -42,6 +42,7 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log, CryptoKernel::Blockchain*
 CryptoKernel::Network::~Network()
 {
     running = false;
+    connectionsThread->join();
 }
 
 unsigned int CryptoKernel::Network::getConnections()
@@ -104,7 +105,7 @@ void CryptoKernel::Network::handleConnections()
         if(getConnections() < 8)
         {
             sf::TcpSocket* client = new sf::TcpSocket();
-            if(client.connect("127.0.0.1", 49000, sf::seconds(5)) == sf::Socket::Done)
+            if(client->connect("127.0.0.1", 49000, sf::seconds(5)) == sf::Socket::Done)
             {
                 Peer* peer = new Peer(client, blockchain);
                 peers.push_back(peer);

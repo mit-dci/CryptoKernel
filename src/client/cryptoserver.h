@@ -58,11 +58,10 @@ class CryptoServer : public CryptoRPCServer
         virtual Json::Value getinfo();
         virtual Json::Value account(const std::string& account);
         virtual bool sendtoaddress(const std::string& address, double amount, double fee);
-        void setWallet(CryptoCurrency::Wallet* Wallet, CryptoCurrency::Protocol* Protocol, CryptoKernel::Blockchain* Blockchain);
+        void setWallet(CryptoCurrency::Wallet* Wallet, CryptoKernel::Blockchain* Blockchain);
 
     private:
         CryptoCurrency::Wallet* wallet;
-        CryptoCurrency::Protocol* protocol;
         CryptoKernel::Blockchain* blockchain;
 };
 
