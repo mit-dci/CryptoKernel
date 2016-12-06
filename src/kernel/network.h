@@ -121,6 +121,7 @@ class Network
                 bool getMainChain();
                 void disconnect();
                 Json::Value getInfo();
+                std::string getAddress();
 
             private:
                 bool connected;

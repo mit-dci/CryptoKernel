@@ -16,6 +16,7 @@
 */
 
 #include "version.h"
+#include "ckmath.h"
 #include "network.h"
 
 CryptoKernel::Network::Network(CryptoKernel::Log* log, CryptoKernel::Blockchain* blockchain)
@@ -149,6 +150,10 @@ void CryptoKernel::Network::handleConnections()
             peers.push_back(peer);
         }
 
+        CryptoKernel::Blockchain::block networkTip = blockchain->getBlock(blockchain->genesisBlockId);
+
+        std::map<std::string, std::string> peerTips;
+
         std::vector<Peer*>::iterator it;
         for(it = peers.begin(); it < peers.end(); it++)
         {
@@ -156,6 +161,37 @@ void CryptoKernel::Network::handleConnections()
             {
                 delete (*it);
                 it = peers.erase(it);
+            }
+            else
+            {
+                const Json::Value peerInfo = (*it)->getInfo();
+                const CryptoKernel::Blockchain::block peerTip = CryptoKernel::Blockchain::jsonToBlock(peerInfo["tipBlock"]);
+                if(peerTip.id != networkTip.id && CryptoKernel::Math::hex_greater(peerTip.totalWork, networkTip.totalWork))
+                {
+                    networkTip = peerTip;
+                }
+
+                if(peerTips[(*it)->getAddress()].size() != 0)
+                {
+                    delete (*it);
+                    it = peers.erase(it);
+                }
+                else
+                {
+                    peerTips[(*it)->getAddress()] = peerTip.id;
+                }
+            }
+        }
+
+        for(it = peers.begin(); it < peers.end(); it++)
+        {
+            if(peerTips[(*it)->getAddress()] != networkTip.id)
+            {
+                (*it)->setMainChain(false);
+            }
+            else
+            {
+                (*it)->setMainChain(true);
             }
         }
     }
@@ -399,4 +435,9 @@ Json::Value CryptoKernel::Network::Peer::getInfo()
     }
 
     return infoPacket;
+}
+
+std::string CryptoKernel::Network::Peer::getAddress()
+{
+    return socket->getRemoteAddress().toString();
 }

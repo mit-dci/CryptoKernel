@@ -79,6 +79,7 @@ namespace CryptoKernel
             std::vector<transaction> getUnconfirmedTransactions();
             bool loadChain();
             Storage::Iterator* newIterator();
+            const std::string genesisBlockId = "9344a9cab3084e15b2f1b5572b9a2fcf56920b51afad8f77de814dd194f96e90";
 
         private:
             Storage *transactions;
@@ -96,7 +97,6 @@ namespace CryptoKernel
             virtual uint64_t getBlockReward(const uint64_t height) = 0;
             uint64_t getTransactionFee(transaction tx);
             uint64_t calculateTransactionFee(transaction tx);
-            const std::string genesisBlockId = "9344a9cab3084e15b2f1b5572b9a2fcf56920b51afad8f77de814dd194f96e90";
             bool status;
             bool reverseBlock();
             bool reorgChain(std::string newTipId);
