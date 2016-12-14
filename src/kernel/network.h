@@ -106,6 +106,23 @@ class Network
         */
         CryptoKernel::Blockchain::block getBlock(const std::string id);
 
+         /**
+        * Similar to getBlocks but indexes by block height
+        *
+        * @param height the height of the first block in the set to retrieve
+        * @return a vector containing the blocks in order from first to last. If the function
+        *         times out, return an empty vector
+        */
+        std::vector<CryptoKernel::Blockchain::block> getBlocksByHeight(const uint64_t height);
+
+        /**
+        * Similar to getBlock but indexes by block height
+        *
+        * @param height the height of the block to retrieve
+        * @return the block asked for or an empty block if the function times out
+        */
+        CryptoKernel::Blockchain::block getBlockByHeight(const uint64_t height);
+
     private:
         class Peer
         {
@@ -117,15 +134,14 @@ class Network
                 std::vector<CryptoKernel::Blockchain::block> getBlocks(const std::string id);
                 void sendBlock(const CryptoKernel::Blockchain::block block);
                 void sendTransaction(const CryptoKernel::Blockchain::transaction tx);
-                void setMainChain(const bool flag);
-                bool getMainChain();
+                CryptoKernel::Blockchain::block getBlockByHeight(const uint64_t height);
+                std::vector<CryptoKernel::Blockchain::block> getBlocksByHeight(const uint64_t height);
                 void disconnect();
                 Json::Value getInfo();
                 std::string getAddress();
 
             private:
                 bool connected;
-                bool mainChain;
                 std::unique_ptr<sf::TcpSocket> socket;
                 CryptoKernel::Blockchain* blockchain;
                 std::unique_ptr<std::thread> eventThread;
@@ -143,7 +159,8 @@ class Network
         std::unique_ptr<std::thread> connectionsThread;
         bool running;
         std::default_random_engine generator;
-        std::vector<std::string> nodes;
+        std::map<std::string, uint64_t> nodes;
+        std::vector<std::string> ips;
 };
 }
 

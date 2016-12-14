@@ -43,7 +43,7 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log, CryptoKernel::Blockchain*
     std::string line;
     while(std::getline(peersfile, line))
     {
-        nodes.push_back(line);
+        ips.push_back(line);
     }
     peersfile.close();
 
@@ -87,9 +87,32 @@ CryptoKernel::Blockchain::block CryptoKernel::Network::getBlock(const std::strin
     for(unsigned int i = 0; i < peers.size(); i++)
     {
         const unsigned int peerId = distribution(generator);
-        if(peers[peerId]->getMainChain() && peers[peerId]->isConnected())
+        if(peers[peerId]->isConnected())
         {
-            return peers[peerId]->getBlock(id);
+            const CryptoKernel::Blockchain::block returning = peers[peerId]->getBlock(id);
+            if(returning.id == id)
+            {
+                return returning;
+            }
+        }
+    }
+
+    return CryptoKernel::Blockchain::block();
+}
+
+CryptoKernel::Blockchain::block CryptoKernel::Network::getBlockByHeight(const uint64_t height)
+{
+    std::uniform_int_distribution<unsigned int> distribution(0, peers.size() - 1);
+    for(unsigned int i = 0; i < peers.size(); i++)
+    {
+        const unsigned int peerId = distribution(generator);
+        if(peers[peerId]->isConnected() && nodes[peers[peerId]->getAddress()] >= height)
+        {
+            const CryptoKernel::Blockchain::block returning = peers[peerId]->getBlockByHeight(height);
+            if(returning.height == height)
+            {
+                return returning;
+            }
         }
     }
 
@@ -102,9 +125,24 @@ std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::getBlocks(co
     for(unsigned int i = 0; i < peers.size(); i++)
     {
         const unsigned int peerId = distribution(generator);
-        if(peers[peerId]->getMainChain() && peers[peerId]->isConnected())
+        if(peers[peerId]->isConnected())
         {
             return peers[peerId]->getBlocks(id);
+        }
+    }
+
+    return std::vector<CryptoKernel::Blockchain::block>();
+}
+
+std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::getBlocksByHeight(const uint64_t height)
+{
+    std::uniform_int_distribution<unsigned int> distribution(0, peers.size() - 1);
+    for(unsigned int i = 0; i < peers.size(); i++)
+    {
+        const unsigned int peerId = distribution(generator);
+        if(peers[peerId]->isConnected() && nodes[peers[peerId]->getAddress()] >= height)
+        {
+            return peers[peerId]->getBlocksByHeight(height);
         }
     }
 
@@ -119,16 +157,17 @@ void CryptoKernel::Network::handleConnections()
         if(getConnections() < 8)
         {
             sf::TcpSocket* client = new sf::TcpSocket();
-            log->printf(LOG_LEVEL_INFO, "Network::handleConnections(): Attempting to connect to " + nodes[currentNode]);
-            if(client->connect(nodes[currentNode], 49000, sf::seconds(5)) == sf::Socket::Done)
+            log->printf(LOG_LEVEL_INFO, "Network::handleConnections(): Attempting to connect to " + ips[currentNode]);
+            if(client->connect(ips[currentNode], 49000, sf::seconds(5)) == sf::Socket::Done)
             {
                 Peer* peer = new Peer(client, blockchain);
                 peers.push_back(peer);
-                log->printf(LOG_LEVEL_INFO, "Network::handleConnections(): Successfully connected to " + nodes[currentNode]);
+                log->printf(LOG_LEVEL_INFO, "Network::handleConnections(): Successfully connected to " + ips[currentNode]);
+                nodes.insert(std::pair<std::string, uint64_t>(peer->getAddress(), 0));
             }
             else
             {
-                log->printf(LOG_LEVEL_INFO, "Network::handleConnections(): Failed to connect to " + nodes[currentNode]);
+                log->printf(LOG_LEVEL_INFO, "Network::handleConnections(): Failed to connect to " + ips[currentNode]);
             }
 
             currentNode++;
@@ -148,11 +187,9 @@ void CryptoKernel::Network::handleConnections()
         {
             Peer* peer = new Peer(client, blockchain);
             peers.push_back(peer);
+            nodes.insert(std::pair<std::string, uint64_t>(peer->getAddress(), 0));
+            log->printf(LOG_LEVEL_INFO, "Network::handleConnections(): Successfully connected to " + peer->getAddress());
         }
-
-        CryptoKernel::Blockchain::block networkTip = blockchain->getBlock(blockchain->genesisBlockId);
-
-        std::map<std::string, std::string> peerTips;
 
         std::vector<Peer*>::iterator it;
         for(it = peers.begin(); it < peers.end(); it++)
@@ -166,32 +203,7 @@ void CryptoKernel::Network::handleConnections()
             {
                 const Json::Value peerInfo = (*it)->getInfo();
                 const CryptoKernel::Blockchain::block peerTip = CryptoKernel::Blockchain::jsonToBlock(peerInfo["tipBlock"]);
-                if(peerTip.id != networkTip.id && CryptoKernel::Math::hex_greater(peerTip.totalWork, networkTip.totalWork))
-                {
-                    networkTip = peerTip;
-                }
-
-                if(peerTips[(*it)->getAddress()].size() != 0)
-                {
-                    delete (*it);
-                    it = peers.erase(it);
-                }
-                else
-                {
-                    peerTips[(*it)->getAddress()] = peerTip.id;
-                }
-            }
-        }
-
-        for(it = peers.begin(); it < peers.end(); it++)
-        {
-            if(peerTips[(*it)->getAddress()] != networkTip.id)
-            {
-                (*it)->setMainChain(false);
-            }
-            else
-            {
-                (*it)->setMainChain(true);
+                nodes[(*it)->getAddress()] = peerTip.height;
             }
         }
     }
@@ -207,7 +219,6 @@ void CryptoKernel::Network::checkRep()
 CryptoKernel::Network::Peer::Peer(sf::TcpSocket* socket, CryptoKernel::Blockchain* blockchain)
 {
     connected = true;
-    mainChain = false;
     this->socket.reset(socket);
     this->blockchain = blockchain;
 
@@ -286,29 +297,54 @@ void CryptoKernel::Network::Peer::handleEvents()
             else if(jsonPacket["command"].asString() == "getblock")
             {
                 request["command"] = "block";
-                request["data"] = CryptoKernel::Blockchain::blockToJson(blockchain->getBlock(request["id"].asString()));
+                if(jsonPacket["height"].empty())
+                {
+                    request["data"] = CryptoKernel::Blockchain::blockToJson(blockchain->getBlock(request["id"].asString()));
+                }
+                else
+                {
+                    request["data"] = CryptoKernel::Blockchain::blockToJson(blockchain->getBlockByHeight(request["height"].asUInt64()));
+                }
                 break;
             }
             else if(jsonPacket["command"].asString() == "getblocks")
             {
                 request["command"] = "blocks";
-                CryptoKernel::Blockchain::block Block = blockchain->getBlock(request["id"].asString());
-                bool appended = true;
-                for(unsigned int i = 0; i < 500 && appended; i++)
+                if(jsonPacket["height"].empty())
                 {
-                    appended = false;
-                    CryptoKernel::Storage::Iterator* it = blockchain->newIterator();
-                    for(it->SeekToFirst(); it->Valid(); it->Next())
+                    CryptoKernel::Blockchain::block Block = blockchain->getBlock(request["id"].asString());
+                    bool appended = true;
+                    for(unsigned int i = 0; i < 500 && appended; i++)
                     {
-                        if(it->value()["previousBlockId"].asString() == Block.id && Block.id != "" && it->value()["mainChain"].asBool())
+                        appended = false;
+                        CryptoKernel::Storage::Iterator* it = blockchain->newIterator();
+                        for(it->SeekToFirst(); it->Valid(); it->Next())
                         {
-                            appended = true;
-                            Block.id = it->value()["id"].asString();
-                            request["data"].append(it->value());
+                            if(it->value()["previousBlockId"].asString() == Block.id && Block.id != "" && it->value()["mainChain"].asBool())
+                            {
+                                appended = true;
+                                Block.id = it->value()["id"].asString();
+                                request["data"].append(it->value());
+                                break;
+                            }
+                        }
+                        delete it;
+                    }
+                }
+                else
+                {
+                    for(unsigned int i = 1; i <= 500; i++)
+                    {
+                        const CryptoKernel::Blockchain::block block = blockchain->getBlockByHeight(jsonPacket["height"].asUInt64() + i);
+                        if(block.height == jsonPacket["height"].asUInt64() + i)
+                        {
+                            request["data"].append(CryptoKernel::Blockchain::blockToJson(block));
+                        }
+                        else
+                        {
                             break;
                         }
                     }
-                    delete it;
                 }
             }
             else if(jsonPacket["command"].asString() == "block")
@@ -341,16 +377,6 @@ void CryptoKernel::Network::Peer::disconnect()
 {
     connected = false;
     socket->disconnect();
-}
-
-bool CryptoKernel::Network::Peer::getMainChain()
-{
-    return mainChain;
-}
-
-void CryptoKernel::Network::Peer::setMainChain(const bool flag)
-{
-    mainChain = flag;
 }
 
 void CryptoKernel::Network::Peer::send(const Json::Value data)
@@ -399,11 +425,53 @@ CryptoKernel::Blockchain::block CryptoKernel::Network::Peer::getBlock(const std:
     }
 }
 
+CryptoKernel::Blockchain::block CryptoKernel::Network::Peer::getBlockByHeight(const uint64_t height)
+{
+    Json::Value request;
+    request["command"] = "getblock";
+    request["height"] = static_cast<unsigned long long int>(height);
+    const Json::Value response = sendRecv(request);
+
+    if(response["command"].asString() != "block")
+    {
+        disconnect();
+        return CryptoKernel::Blockchain::block();
+    }
+    else
+    {
+        return CryptoKernel::Blockchain::jsonToBlock(request["data"]);
+    }
+}
+
 std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Peer::getBlocks(const std::string id)
 {
     Json::Value request;
     request["command"] = "getblocks";
     request["id"] = id;
+    const Json::Value response = sendRecv(request);
+
+    if(response["command"].asString() != "blocks")
+    {
+        disconnect();
+        return std::vector<CryptoKernel::Blockchain::block>();
+    }
+    else
+    {
+        std::vector<CryptoKernel::Blockchain::block> returning;
+        for(unsigned int i = 0; i < response["data"].size(); i++)
+        {
+            returning.push_back(CryptoKernel::Blockchain::jsonToBlock(response["data"][i]));
+        }
+
+        return returning;
+    }
+}
+
+std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Peer::getBlocksByHeight(const uint64_t height)
+{
+    Json::Value request;
+    request["command"] = "getblocks";
+    request["height"] = static_cast<unsigned long long int>(height);
     const Json::Value response = sendRecv(request);
 
     if(response["command"].asString() != "blocks")

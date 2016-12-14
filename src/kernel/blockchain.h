@@ -72,6 +72,15 @@ namespace CryptoKernel
             static output jsonToOutput(Json::Value Output);
             std::string calculatePoW(block Block);
             block getBlock(std::string id);
+
+            /**
+            * Retrieves the block from the current main chain with the given height
+            *
+            * @param height the height of the block to retrieve
+            * @return the block with the given height in the main chain, or an empty
+            *         block if it does not exist
+            */
+            block getBlockByHeight(const uint64_t height);
             std::vector<output> getUnspentOutputs(std::string publicKey);
             static std::string calculateOutputId(output Output);
             static std::string calculateTransactionId(transaction tx);

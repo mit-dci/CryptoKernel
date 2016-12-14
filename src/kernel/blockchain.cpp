@@ -133,6 +133,23 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlock(std::string i
     return jsonToBlock(blocks->get(id));
 }
 
+CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlockByHeight(const uint64_t height)
+{
+    if(height == 1)
+    {
+        return getBlock(genesisBlockId);
+    }
+    else
+    {
+        block currentBlock = getBlock("tip");
+        while(currentBlock.height != height && currentBlock.height != 1)
+        {
+            currentBlock = getBlock(currentBlock.previousBlockId);
+        }
+        return currentBlock;
+    }
+}
+
 uint64_t CryptoKernel::Blockchain::getBalance(std::string publicKey)
 {
     uint64_t total = 0;
