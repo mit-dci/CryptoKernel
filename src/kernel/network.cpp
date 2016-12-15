@@ -331,12 +331,13 @@ void CryptoKernel::Network::Peer::handleEvents()
                 }
                 else
                 {
-                    for(unsigned int i = 1; i <= 500; i++)
+                    const CryptoKernel::Blockchain::block block = blockchain->getBlockByHeight(jsonPacket["height"].asUInt64() + 500);
+                    for(unsigned int i = 0; i < 500; i++)
                     {
-                        const CryptoKernel::Blockchain::block block = blockchain->getBlockByHeight(jsonPacket["height"].asUInt64() + i);
-                        if(block.height == jsonPacket["height"].asUInt64() + i)
+                        if(block.height == jsonPacket["height"].asUInt64() + 500 - i && block.id != "")
                         {
                             request["data"].append(CryptoKernel::Blockchain::blockToJson(block));
+                            block = blockchain->getBlock(block.previousBlockId);
                         }
                         else
                         {
