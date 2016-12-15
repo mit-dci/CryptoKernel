@@ -155,7 +155,7 @@ void CryptoKernel::Network::handleConnections()
     unsigned int currentNode = 0;
     while(running)
     {
-        if(getConnections() < 8)
+        if(getConnections() < 8 && ips.size() > 0)
         {
             sf::TcpSocket* client = new sf::TcpSocket();
             log->printf(LOG_LEVEL_INFO, "Network::handleConnections(): Attempting to connect to " + ips[currentNode]);
