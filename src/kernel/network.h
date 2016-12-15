@@ -165,6 +165,8 @@ class Network
                 void disconnect();
                 Json::Value getInfo();
                 std::string getAddress();
+                void setMainChain(const bool flag);
+                bool getMainChain();
 
             private:
                 bool connected;
@@ -175,6 +177,7 @@ class Network
                 void send(const Json::Value data);
                 std::mutex peerLock;
                 void handleEvents();
+                bool mainChain;
         };
         Log* log;
         Blockchain* blockchain;
@@ -187,6 +190,8 @@ class Network
         std::default_random_engine generator;
         std::map<std::string, uint64_t> nodes;
         std::vector<std::string> ips;
+        class ChainSync;
+        std::unique_ptr<ChainSync> chainSync;
 };
 }
 

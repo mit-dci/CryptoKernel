@@ -18,6 +18,7 @@
 #include "version.h"
 #include "ckmath.h"
 #include "network.h"
+#include "chainsync.h"
 
 CryptoKernel::Network::Network(CryptoKernel::Log* log, CryptoKernel::Blockchain* blockchain)
 {
@@ -48,6 +49,8 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log, CryptoKernel::Blockchain*
     peersfile.close();
 
     connectionsThread.reset(new std::thread(&CryptoKernel::Network::handleConnections, this));
+
+    chainSync.reset(new ChainSync(blockchain, this));
 
     checkRep();
 }
@@ -212,6 +215,7 @@ void CryptoKernel::Network::checkRep()
     assert(blockchain != nullptr);
     assert(log != nullptr);
     assert(listener.get() != nullptr);
+    assert(chainSync.get() != nullptr);
 }
 
 CryptoKernel::Network::Peer::Peer(sf::TcpSocket* socket, CryptoKernel::Blockchain* blockchain)
@@ -331,13 +335,13 @@ void CryptoKernel::Network::Peer::handleEvents()
                 }
                 else
                 {
-                    const CryptoKernel::Blockchain::block block = blockchain->getBlockByHeight(jsonPacket["height"].asUInt64() + 500);
+                    CryptoKernel::Blockchain::block block = blockchain->getBlockByHeight(jsonPacket["height"].asUInt64() + 500);
                     std::vector<CryptoKernel::Blockchain::block> blocks;
                     for(unsigned int i = 0; i < 500; i++)
                     {
                         if(block.height == jsonPacket["height"].asUInt64() + 500 - i && block.id != "")
                         {
-                            blocks.insert(blocks.begin(), CryptoKernel::Blockchain::blockToJson(block));
+                            blocks.insert(blocks.begin(), block);
                             block = blockchain->getBlock(block.previousBlockId);
                         }
                         else
@@ -346,7 +350,10 @@ void CryptoKernel::Network::Peer::handleEvents()
                         }
                     }
 
-                    request["data"] = blocks;
+                    for(const CryptoKernel::Blockchain::block thisBlock : blocks)
+                    {
+                        request["data"].append(CryptoKernel::Blockchain::blockToJson(thisBlock));
+                    }
                 }
             }
             else if(jsonPacket["command"].asString() == "block")
