@@ -141,6 +141,8 @@
 		<Unit filename="src/kernel/base64.h" />
 		<Unit filename="src/kernel/blockchain.cpp" />
 		<Unit filename="src/kernel/blockchain.h" />
+		<Unit filename="src/kernel/chainsync.cpp" />
+		<Unit filename="src/kernel/chainsync.h" />
 		<Unit filename="src/kernel/ckmath.h" />
 		<Unit filename="src/kernel/contract.cpp" />
 		<Unit filename="src/kernel/contract.h" />
