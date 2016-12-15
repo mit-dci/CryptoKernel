@@ -332,11 +332,12 @@ void CryptoKernel::Network::Peer::handleEvents()
                 else
                 {
                     const CryptoKernel::Blockchain::block block = blockchain->getBlockByHeight(jsonPacket["height"].asUInt64() + 500);
+                    std::vector<CryptoKernel::Blockchain::block> blocks;
                     for(unsigned int i = 0; i < 500; i++)
                     {
                         if(block.height == jsonPacket["height"].asUInt64() + 500 - i && block.id != "")
                         {
-                            request["data"].append(CryptoKernel::Blockchain::blockToJson(block));
+                            blocks.insert(blocks.begin(), CryptoKernel::Blockchain::blockToJson(block));
                             block = blockchain->getBlock(block.previousBlockId);
                         }
                         else
@@ -344,6 +345,8 @@ void CryptoKernel::Network::Peer::handleEvents()
                             break;
                         }
                     }
+
+                    request["data"] = blocks;
                 }
             }
             else if(jsonPacket["command"].asString() == "block")
