@@ -59,7 +59,7 @@ class Network
         /**
         * Attempts to connect to the given peer
         *
-        * @param peerAddress a string containing the IPv4 address of the peer to connect to
+        * @param  peerAddress a string containing the IPv4 address of the peer to connect to
         * @return true iff the connection was successful, false otherwise
         */
         bool connectPeer(const std::string peerAddress);
@@ -91,9 +91,10 @@ class Network
         * Attempts to retrieve blocks from a random peer which is considered to be on the
         * longest chain. Blocks for up to 30 seconds before returning an empty vector.
         *
-        * @param id the id of the first block in the set to retrieve
-        * @return a vector containing the blocks in order from first to last. If the function
-        *         times out, return an empty vector
+        * @param  id the id of the first block in the set to retrieve
+        * @return a vector containing the blocks in order from first to last
+        * @throw  NotFoundException if the block was not found on any of the peers
+        *         queried
         */
         std::vector<CryptoKernel::Blockchain::block> getBlocks(const std::string id);
 
@@ -101,27 +102,52 @@ class Network
         * Similar to getBlocks as defined above but only retrieves one block at a time. Waits for
         * at most 10 seconds and returns an empty block on failure.
         *
-        * @param id the id of the block to retrieve
-        * @return the block asked for or an empty block if the function times out
+        * @param  id the id of the block to retrieve
+        * @return the block asked for
+        * @throw  NotFoundException if the block was not found on any of the peers
+        *         queried
         */
         CryptoKernel::Blockchain::block getBlock(const std::string id);
 
          /**
         * Similar to getBlocks but indexes by block height
         *
-        * @param height the height of the first block in the set to retrieve
-        * @return a vector containing the blocks in order from first to last. If the function
-        *         times out, return an empty vector
+        * @param  height the height of the first block in the set to retrieve
+        * @return a vector containing the blocks in order from first to last
+        * @throw  NotFoundException if the blocks were not found on any of the peers
+        *         queried
         */
         std::vector<CryptoKernel::Blockchain::block> getBlocksByHeight(const uint64_t height);
 
         /**
         * Similar to getBlock but indexes by block height
         *
-        * @param height the height of the block to retrieve
-        * @return the block asked for or an empty block if the function times out
+        * @param  height the height of the block to retrieve
+        * @return the block asked for
+        * @throw  NotFoundException if the block was not found on any of the peers
+        *         queried
         */
         CryptoKernel::Blockchain::block getBlockByHeight(const uint64_t height);
+
+        /**
+        * This exception is thrown when a resource such as a Block or a set
+        * of Blocks is asked for from a large set of peers, but it was not
+        * found on any of them.
+        */
+        class NotFoundException : public std::exception
+        {
+            /**
+            * Returns a constant pointer to a null-terminated char array with the
+            * error message for this exception.
+            *
+            * @return a null-terminated constant pointer to a char array containing
+            *         the error message to this exception
+            */
+            virtual const char* what() const throw()
+            {
+                return "Record could not be found after asking many peers";
+            }
+        };
 
     private:
         class Peer

@@ -65,19 +65,17 @@ unsigned int CryptoKernel::Network::getConnections()
 
 void CryptoKernel::Network::sendBlock(const CryptoKernel::Blockchain::block block)
 {
-    std::vector<Peer*>::iterator it;
-    for(it = peers.begin(); it < peers.end(); it++)
+    for(Peer* peer : peers)
     {
-        (*it)->sendBlock(block);
+        peer->sendBlock(block);
     }
 }
 
 void CryptoKernel::Network::sendTransaction(const CryptoKernel::Blockchain::transaction tx)
 {
-    std::vector<Peer*>::iterator it;
-    for(it = peers.begin(); it < peers.end(); it++)
+    for(Peer* peer : peers)
     {
-        (*it)->sendTransaction(tx);
+        peer->sendTransaction(tx);
     }
 }
 
@@ -97,7 +95,7 @@ CryptoKernel::Blockchain::block CryptoKernel::Network::getBlock(const std::strin
         }
     }
 
-    return CryptoKernel::Blockchain::block();
+    throw NotFoundException();
 }
 
 CryptoKernel::Blockchain::block CryptoKernel::Network::getBlockByHeight(const uint64_t height)
@@ -116,7 +114,7 @@ CryptoKernel::Blockchain::block CryptoKernel::Network::getBlockByHeight(const ui
         }
     }
 
-    return CryptoKernel::Blockchain::block();
+    throw NotFoundException();
 }
 
 std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::getBlocks(const std::string id)
@@ -131,7 +129,7 @@ std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::getBlocks(co
         }
     }
 
-    return std::vector<CryptoKernel::Blockchain::block>();
+    throw NotFoundException();
 }
 
 std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::getBlocksByHeight(const uint64_t height)
@@ -146,7 +144,7 @@ std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::getBlocksByH
         }
     }
 
-    return std::vector<CryptoKernel::Blockchain::block>();
+    throw NotFoundException();
 }
 
 void CryptoKernel::Network::handleConnections()
