@@ -17,6 +17,7 @@ CryptoKernel::Network::ChainSync::ChainSync(CryptoKernel::Blockchain* blockchain
 CryptoKernel::Network::ChainSync::~ChainSync()
 {
     running = false;
+    syncThread->join();
 }
 
 void CryptoKernel::Network::ChainSync::checkRep()

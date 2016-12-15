@@ -237,6 +237,7 @@ CryptoKernel::Network::Peer::Peer(sf::TcpSocket* socket, CryptoKernel::Blockchai
 CryptoKernel::Network::Peer::~Peer()
 {
     disconnect();
+    eventThread->join();
 }
 
 Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value data)
