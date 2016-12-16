@@ -417,8 +417,11 @@ void CryptoKernel::Network::Peer::handleEvents()
 void CryptoKernel::Network::Peer::disconnect()
 {
     peerLock.lock();
-    connected = false;
-    socket->disconnect();
+    if(connected)
+    {
+        connected = false;
+        socket->disconnect();
+    }
     peerLock.unlock();
 }
 
