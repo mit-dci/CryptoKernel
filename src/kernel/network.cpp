@@ -207,7 +207,7 @@ void CryptoKernel::Network::handleConnections()
         {
             if(!(*it)->isConnected())
             {
-                log->printf(LOG_LEVEL_INFO, "wowe we goofed");
+                log->printf(LOG_LEVEL_INFO, "Network::handleEvents(): " + (*it)->getAddress() + " disconnected");
                 nodes.erase((*it)->getAddress());
                 delete (*it);
                 it = peers.erase(it);
@@ -235,6 +235,8 @@ CryptoKernel::Network::Peer::Peer(sf::TcpSocket* socket, CryptoKernel::Blockchai
     connected = true;
     this->socket.reset(socket);
     this->blockchain = blockchain;
+
+    address = socket->getRemoteAddress().toString();
 
     Json::Value request;
     request["command"] = "info";
@@ -539,5 +541,5 @@ Json::Value CryptoKernel::Network::Peer::getInfo()
 
 std::string CryptoKernel::Network::Peer::getAddress()
 {
-    return socket->getRemoteAddress().toString();
+    return address;
 }

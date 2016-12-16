@@ -178,6 +178,7 @@ class Network
                 std::mutex peerLock;
                 void handleEvents();
                 bool mainChain;
+                std::string address;
         };
         Log* log;
         Blockchain* blockchain;
