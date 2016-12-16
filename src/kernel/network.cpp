@@ -265,7 +265,7 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value data)
 {
     const std::string packetData = CryptoKernel::Storage::toString(data, false);
     sf::Packet packet;
-    packet.append(packetData.c_str(), packetData.size()));
+    packet.append(packetData.c_str(), packetData.size());
     peerLock.lock();
     sf::Socket::Status status;
     socket->setBlocking(true);
@@ -415,7 +415,7 @@ void CryptoKernel::Network::Peer::send(const Json::Value data)
 {
     const std::string packetData = CryptoKernel::Storage::toString(data, false);
     sf::Packet packet;
-    packet.append(packetData.c_str(), packetData.size()));
+    packet.append(packetData.c_str(), packetData.size());
     peerLock.lock();
     socket->setBlocking(false);
     socket->send(packet);
