@@ -42,9 +42,9 @@ void CryptoKernel::Network::ChainSync::syncLoop()
             {
                 tip = network->getBlock("tip");
             }
-            catch(CryptoKernel::Network::NotFoundException e)
+            catch(CryptoKernel::Network::NotFoundException& e)
             {
-                continue;
+
             }
 
             if(tip.id != "" && CryptoKernel::Math::hex_greater(tip.totalWork, bestBlock.totalWork))

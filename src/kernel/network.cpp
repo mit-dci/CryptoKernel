@@ -207,6 +207,7 @@ void CryptoKernel::Network::handleConnections()
         {
             if(!(*it)->isConnected())
             {
+                log->printf(LOG_LEVEL_INFO, "wowe we goofed");
                 nodes.erase((*it)->getAddress());
                 delete (*it);
                 it = peers.erase(it);
@@ -235,14 +236,31 @@ CryptoKernel::Network::Peer::Peer(sf::TcpSocket* socket, CryptoKernel::Blockchai
     this->socket.reset(socket);
     this->blockchain = blockchain;
 
-    const Json::Value info = getInfo();
-    const std::string peerVersion = info["data"]["version"].asString();
-    if(peerVersion.substr(0, peerVersion.find(".")) != version.substr(0, version.find(".")))
+    Json::Value request;
+    request["command"] = "info";
+    Json::Value data;
+    data["version"] = version;
+    data["tipBlock"] = CryptoKernel::Blockchain::blockToJson(blockchain->getBlock("tip"));
+    request["data"] = data;
+    send(request);
+
+    sf::Packet packet;
+    if((sf::Socket::Status status = socket->receive(packet)) == sf::Socket::Done)
+    {
+        const std::string peerVersion = info["data"]["version"].asString();
+        if(peerVersion.substr(0, peerVersion.find(".")) != version.substr(0, version.find(".")))
+        {
+            disconnect();
+        }
+        else
+        {
+            eventThread.reset(new std::thread(&CryptoKernel::Network::Peer::handleEvents, this));
+        }
+    }
+    else
     {
         disconnect();
     }
-
-    eventThread.reset(new std::thread(&CryptoKernel::Network::Peer::handleEvents, this));
 }
 
 CryptoKernel::Network::Peer::~Peer()
@@ -258,6 +276,7 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value data)
     packet.append(packetData.c_str(), sizeof(packetData.c_str()));
     peerLock.lock();
     sf::Socket::Status status;
+    socket->setBlocking(true);
     if((status = socket->send(packet)) == sf::Socket::Done)
     {
         packet.clear();
