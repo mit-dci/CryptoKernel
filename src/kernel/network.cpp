@@ -150,25 +150,35 @@ std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::getBlocksByH
     throw NotFoundException();
 }
 
+bool CryptoKernel::Network::connectPeer(const std::string peerAddress)
+{
+    sf::TcpSocket* client = new sf::TcpSocket();
+    log->printf(LOG_LEVEL_INFO, "Network::handleConnections(): Attempting to connect to " + peerAddress);
+    if(client->connect(peerAddress, 49000, sf::seconds(5)) == sf::Socket::Done)
+    {
+        Peer* peer = new Peer(client, blockchain);
+        peers.push_back(peer);
+        log->printf(LOG_LEVEL_INFO, "Network::handleConnections(): Successfully connected to " + peerAddress);
+        nodes.insert(std::pair<std::string, uint64_t>(peer->getAddress(), 0));
+        return true;
+    }
+    else
+    {
+        log->printf(LOG_LEVEL_INFO, "Network::handleConnections(): Failed to connect to " + peerAddress);
+        return false;
+    }
+}
+
 void CryptoKernel::Network::handleConnections()
 {
     unsigned int currentNode = 0;
     while(running)
     {
-        if(getConnections() < 8 && ips.size() > 0)
+        if(getConnections() < 8 && ips.size() > 0 && nodes.find(ips[currentNode]) == nodes.end())
         {
-            sf::TcpSocket* client = new sf::TcpSocket();
-            log->printf(LOG_LEVEL_INFO, "Network::handleConnections(): Attempting to connect to " + ips[currentNode]);
-            if(client->connect(ips[currentNode], 49000, sf::seconds(5)) == sf::Socket::Done)
+            if(!connectPeer(ips[currentNode]))
             {
-                Peer* peer = new Peer(client, blockchain);
-                peers.push_back(peer);
-                log->printf(LOG_LEVEL_INFO, "Network::handleConnections(): Successfully connected to " + ips[currentNode]);
-                nodes.insert(std::pair<std::string, uint64_t>(peer->getAddress(), 0));
-            }
-            else
-            {
-                log->printf(LOG_LEVEL_INFO, "Network::handleConnections(): Failed to connect to " + ips[currentNode]);
+                ips.erase(ips.begin() + currentNode);
             }
 
             currentNode++;
@@ -184,7 +194,7 @@ void CryptoKernel::Network::handleConnections()
         {
             log->printf(LOG_LEVEL_ERR, "Network::handleConnections(): Failed to accept incoming connection");
         }
-        else if(status == sf::Socket::Done)
+        else if(status == sf::Socket::Done && nodes.find(client->getRemoteAddress().toString()) == nodes.end())
         {
             Peer* peer = new Peer(client, blockchain);
             peers.push_back(peer);
@@ -197,6 +207,7 @@ void CryptoKernel::Network::handleConnections()
         {
             if(!(*it)->isConnected())
             {
+                nodes.erase((*it)->getAddress());
                 delete (*it);
                 it = peers.erase(it);
             }
