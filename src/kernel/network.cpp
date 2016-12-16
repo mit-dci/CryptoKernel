@@ -265,31 +265,38 @@ CryptoKernel::Network::Peer::~Peer()
 
 Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value data)
 {
-    const std::string packetData = CryptoKernel::Storage::toString(data, false);
-    sf::Packet packet;
-    packet.append(packetData.c_str(), packetData.size());
-    peerLock.lock();
-    sf::Socket::Status status;
-    socket->setBlocking(true);
-    if((status = socket->send(packet)) == sf::Socket::Done)
+    if(connected)
     {
-        packet.clear();
-        if((status = socket->receive(packet)) == sf::Socket::Done)
+        const std::string packetData = CryptoKernel::Storage::toString(data, false);
+        sf::Packet packet;
+        packet.append(packetData.c_str(), packetData.size());
+        peerLock.lock();
+        sf::Socket::Status status;
+        socket->setBlocking(true);
+        if((status = socket->send(packet)) == sf::Socket::Done)
         {
-            const std::string receivedPacket((char*)packet.getData(), packet.getDataSize());
-            const Json::Value infoPacket = CryptoKernel::Storage::toJson(receivedPacket);
-            peerLock.unlock();
-            return infoPacket;
+            packet.clear();
+            if((status = socket->receive(packet)) == sf::Socket::Done)
+            {
+                const std::string receivedPacket((char*)packet.getData(), packet.getDataSize());
+                const Json::Value infoPacket = CryptoKernel::Storage::toJson(receivedPacket);
+                peerLock.unlock();
+                return infoPacket;
+            }
         }
-    }
 
-    if(status == sf::Socket::Error || status == sf::Socket::Disconnected)
+        if(status == sf::Socket::Error || status == sf::Socket::Disconnected)
+        {
+            disconnect();
+        }
+
+        peerLock.unlock();
+        return Json::Value();
+    }
+    else
     {
-        disconnect();
+        return Json::Value();
     }
-
-    peerLock.unlock();
-    return Json::Value();
 }
 
 bool CryptoKernel::Network::Peer::isConnected()
@@ -415,14 +422,17 @@ void CryptoKernel::Network::Peer::disconnect()
 
 void CryptoKernel::Network::Peer::send(const Json::Value data)
 {
-    const std::string packetData = CryptoKernel::Storage::toString(data, false);
-    sf::Packet packet;
-    packet.append(packetData.c_str(), packetData.size());
-    peerLock.lock();
-    socket->setBlocking(false);
-    socket->send(packet);
-    socket->setBlocking(true);
-    peerLock.unlock();
+    if(connected)
+    {
+        const std::string packetData = CryptoKernel::Storage::toString(data, false);
+        sf::Packet packet;
+        packet.append(packetData.c_str(), packetData.size());
+        peerLock.lock();
+        socket->setBlocking(false);
+        socket->send(packet);
+        socket->setBlocking(true);
+        peerLock.unlock();
+    }
 }
 
 void CryptoKernel::Network::Peer::sendBlock(const CryptoKernel::Blockchain::block block)
