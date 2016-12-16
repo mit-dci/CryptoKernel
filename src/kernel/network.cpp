@@ -416,8 +416,10 @@ void CryptoKernel::Network::Peer::handleEvents()
 
 void CryptoKernel::Network::Peer::disconnect()
 {
+    peerLock.lock();
     connected = false;
     socket->disconnect();
+    peerLock.unlock();
 }
 
 void CryptoKernel::Network::Peer::send(const Json::Value data)
