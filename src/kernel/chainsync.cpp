@@ -29,6 +29,7 @@ void CryptoKernel::Network::ChainSync::checkRep()
 
 void CryptoKernel::Network::ChainSync::syncLoop()
 {
+    bool wait = true;
     while(running)
     {
         // Determine best network chain
@@ -83,6 +84,10 @@ void CryptoKernel::Network::ChainSync::syncLoop()
                         {
                             break;
                         }
+                        else
+                        {
+                            wait = false;
+                        }
                     }
                     else
                     {
@@ -101,6 +106,10 @@ void CryptoKernel::Network::ChainSync::syncLoop()
             {
                 network->sendTransaction(tx);
             }
+        }
+        if(wait)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10 * 1000));
         }
     }
 }
