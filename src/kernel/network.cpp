@@ -268,7 +268,7 @@ CryptoKernel::Network::Peer::~Peer()
 
 Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value data)
 {
-    if(connected)
+    if(connected && socket.get() != nullptr)
     {
         const std::string packetData = CryptoKernel::Storage::toString(data, false);
         sf::Packet packet;
