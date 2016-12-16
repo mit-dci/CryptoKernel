@@ -175,7 +175,7 @@ class Network
                 std::unique_ptr<std::thread> eventThread;
                 Json::Value sendRecv(const Json::Value data);
                 void send(const Json::Value data);
-                std::mutex peerLock;
+                std::recursive_mutex peerLock;
                 void handleEvents();
                 bool mainChain;
                 std::string address;
