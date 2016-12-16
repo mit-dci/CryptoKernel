@@ -242,24 +242,16 @@ CryptoKernel::Network::Peer::Peer(sf::TcpSocket* socket, CryptoKernel::Blockchai
     data["version"] = version;
     data["tipBlock"] = CryptoKernel::Blockchain::blockToJson(blockchain->getBlock("tip"));
     request["data"] = data;
-    send(request);
+    const Json::Value info = sendRecv(request);
 
-    sf::Packet packet;
-    if((sf::Socket::Status status = socket->receive(packet)) == sf::Socket::Done)
+    const std::string peerVersion = info["data"]["version"].asString();
+    if(peerVersion.substr(0, peerVersion.find(".")) != version.substr(0, version.find(".")))
     {
-        const std::string peerVersion = info["data"]["version"].asString();
-        if(peerVersion.substr(0, peerVersion.find(".")) != version.substr(0, version.find(".")))
-        {
-            disconnect();
-        }
-        else
-        {
-            eventThread.reset(new std::thread(&CryptoKernel::Network::Peer::handleEvents, this));
-        }
+        disconnect();
     }
     else
     {
-        disconnect();
+        eventThread.reset(new std::thread(&CryptoKernel::Network::Peer::handleEvents, this));
     }
 }
 
