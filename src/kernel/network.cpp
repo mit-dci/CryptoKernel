@@ -15,6 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <iostream>
+
 #include "version.h"
 #include "ckmath.h"
 #include "network.h"
@@ -253,8 +255,6 @@ CryptoKernel::Network::Peer::Peer(sf::TcpSocket* socket, CryptoKernel::Blockchai
 
     eventThread.reset(new std::thread(&CryptoKernel::Network::Peer::handleEvents, this));
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
     const Json::Value info = getInfo();
 
     const std::string peerVersion = info["data"]["version"].asString();
@@ -279,13 +279,12 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value data)
     {
         const std::string packetData = CryptoKernel::Storage::toString(data, false);
         sf::Packet packet;
-        packet.append(packetData.c_str(), packetData.size());
+        packet.append(packetData.c_str(), packetData.size()+1);
 
         peerLock.lock();
         responseWait.lock();
 
         sf::Socket::Status status;
-        socket->setBlocking(true);
 
         if((status = socket->send(packet)) != sf::Socket::Done)
         {
@@ -424,7 +423,7 @@ void CryptoKernel::Network::Peer::handleEvents()
             }
 
             const std::string packetData = CryptoKernel::Storage::toString(request, false);
-            packet.append(packetData.c_str(), packetData.size());
+            packet.append(packetData.c_str(), packetData.size()+1);
 
             status = socket->send(packet);
             if(status == sf::Socket::Error || status == sf::Socket::Disconnected)
@@ -438,7 +437,7 @@ void CryptoKernel::Network::Peer::handleEvents()
         }
         socket->setBlocking(true);
         peerLock.unlock();
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
 
@@ -459,11 +458,9 @@ void CryptoKernel::Network::Peer::send(const Json::Value data)
     {
         const std::string packetData = CryptoKernel::Storage::toString(data, false);
         sf::Packet packet;
-        packet.append(packetData.c_str(), packetData.size());
+        packet.append(packetData.c_str(), packetData.size()+1);
         peerLock.lock();
-        socket->setBlocking(false);
         socket->send(packet);
-        socket->setBlocking(true);
         peerLock.unlock();
     }
 }
