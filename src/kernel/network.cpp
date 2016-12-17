@@ -253,7 +253,7 @@ CryptoKernel::Network::Peer::Peer(sf::TcpSocket* socket, CryptoKernel::Blockchai
 
     eventThread.reset(new std::thread(&CryptoKernel::Network::Peer::handleEvents, this));
 
-    std::this_thread::sleep_for(std::chrono::millisecond(1000));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
     const Json::Value info = getInfo();
 
