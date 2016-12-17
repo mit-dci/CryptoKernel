@@ -275,15 +275,6 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value data)
             disconnect();
             peerLock.unlock();
             return Json::Value();
-            /*packet.clear();
-            if((status = socket->receive(packet)) == sf::Socket::Done)
-            {
-                const std::string receivedPacket((char*)packet.getData(), packet.getDataSize());
-                const Json::Value infoPacket = CryptoKernel::Storage::toJson(receivedPacket);
-                peerLock.unlock();
-                return infoPacket;
-            }*/
-
         }
         peerLock.unlock();
         unsigned int timeout = 0;
@@ -409,6 +400,9 @@ void CryptoKernel::Network::Peer::handleEvents()
             {
                 disconnect();
             }
+
+            const std::string packetData = CryptoKernel::Storage::toString(request, false);
+            packet.append(packetData.c_str(), packetData.size());
 
             status = socket->send(packet);
         }
