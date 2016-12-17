@@ -157,16 +157,21 @@ bool CryptoKernel::Network::connectPeer(const std::string peerAddress)
     if(client->connect(peerAddress, 49000, sf::seconds(5)) == sf::Socket::Done)
     {
         Peer* peer = new Peer(client, blockchain);
-        peers.push_back(peer);
-        log->printf(LOG_LEVEL_INFO, "Network::handleConnections(): Successfully connected to " + peerAddress);
-        nodes.insert(std::pair<std::string, uint64_t>(peer->getAddress(), 0));
-        return true;
+        if(peer->isConnected())
+        {
+            peers.push_back(peer);
+            log->printf(LOG_LEVEL_INFO, "Network::handleConnections(): Successfully connected to " + peerAddress);
+            nodes.insert(std::pair<std::string, uint64_t>(peer->getAddress(), 0));
+            return true;
+        }
+        else
+        {
+            delete peer;
+        }
     }
-    else
-    {
-        log->printf(LOG_LEVEL_INFO, "Network::handleConnections(): Failed to connect to " + peerAddress);
-        return false;
-    }
+
+    log->printf(LOG_LEVEL_INFO, "Network::handleConnections(): Failed to connect to " + peerAddress);
+    return false;
 }
 
 void CryptoKernel::Network::handleConnections()
@@ -197,9 +202,16 @@ void CryptoKernel::Network::handleConnections()
         else if(status == sf::Socket::Done && nodes.find(client->getRemoteAddress().toString()) == nodes.end())
         {
             Peer* peer = new Peer(client, blockchain);
-            peers.push_back(peer);
-            nodes.insert(std::pair<std::string, uint64_t>(peer->getAddress(), 0));
-            log->printf(LOG_LEVEL_INFO, "Network::handleConnections(): Successfully connected to " + peer->getAddress());
+            if(peer->isConnected())
+            {
+                peers.push_back(peer);
+                nodes.insert(std::pair<std::string, uint64_t>(peer->getAddress(), 0));
+                log->printf(LOG_LEVEL_INFO, "Network::handleConnections(): Successfully connected to " + peer->getAddress());
+            }
+            else
+            {
+                delete peer;
+            }
         }
 
         std::vector<Peer*>::iterator it;
@@ -405,6 +417,10 @@ void CryptoKernel::Network::Peer::handleEvents()
             packet.append(packetData.c_str(), packetData.size());
 
             status = socket->send(packet);
+            if(status == sf::Socket::Error || status == sf::Socket::Disconnected)
+            {
+                disconnect();
+            }
         }
         else if(status == sf::Socket::Error || status == sf::Socket::Disconnected)
         {
