@@ -165,8 +165,6 @@ class Network
                 void disconnect();
                 Json::Value getInfo();
                 std::string getAddress();
-                void setMainChain(const bool flag);
-                bool getMainChain();
 
             private:
                 bool connected;
@@ -177,8 +175,9 @@ class Network
                 void send(const Json::Value data);
                 std::recursive_mutex peerLock;
                 void handleEvents();
-                bool mainChain;
                 std::string address;
+                Json::Value requestResponse;
+                std::mutex responseWait;
         };
         Log* log;
         Blockchain* blockchain;

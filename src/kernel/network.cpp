@@ -275,27 +275,30 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value data)
         sf::Packet packet;
         packet.append(packetData.c_str(), packetData.size());
         peerLock.lock();
+        responseWait.lock();
         sf::Socket::Status status;
         socket->setBlocking(true);
-        if((status = socket->send(packet)) == sf::Socket::Done)
+        if((status = socket->send(packet)) != sf::Socket::Done)
         {
-            packet.clear();
+            disconnect();
+            peerLock.unlock();
+            return Json::Value();
+            /*packet.clear();
             if((status = socket->receive(packet)) == sf::Socket::Done)
             {
                 const std::string receivedPacket((char*)packet.getData(), packet.getDataSize());
                 const Json::Value infoPacket = CryptoKernel::Storage::toJson(receivedPacket);
                 peerLock.unlock();
                 return infoPacket;
-            }
-        }
+            }*/
 
-        if(status == sf::Socket::Error || status == sf::Socket::Disconnected)
-        {
-            disconnect();
         }
-
         peerLock.unlock();
-        return Json::Value();
+        responseWait.lock();
+        Json::Value returning = requestResponse;
+        requestResponse = Json::Value();
+        responseWait.unlock();
+        return returning;
     }
     else
     {
@@ -333,7 +336,7 @@ void CryptoKernel::Network::Peer::handleEvents()
             }
             else if(jsonPacket["command"].asString() == "getblock")
             {
-                request["command"] = "block";
+                request["command"] = "rblock";
                 if(jsonPacket["height"].empty())
                 {
                     request["data"] = CryptoKernel::Blockchain::blockToJson(blockchain->getBlock(request["id"].asString()));
@@ -399,6 +402,11 @@ void CryptoKernel::Network::Peer::handleEvents()
             {
                 const CryptoKernel::Blockchain::transaction tx = CryptoKernel::Blockchain::jsonToTransaction(jsonPacket["data"]);
                 blockchain->submitTransaction(tx);
+            }
+            else if(jsonPacket["command"].asString() == "blocks" || jsonPacket["command"].asString() == "rblock" || jsonPacket["command"].asString() == "info")
+            {
+                requestResponse = jsonPacket;
+                responseWait.unlock();
             }
             else
             {
