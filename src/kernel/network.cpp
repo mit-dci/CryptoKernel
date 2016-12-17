@@ -253,6 +253,8 @@ CryptoKernel::Network::Peer::Peer(sf::TcpSocket* socket, CryptoKernel::Blockchai
 
     eventThread.reset(new std::thread(&CryptoKernel::Network::Peer::handleEvents, this));
 
+    std::this_thread::sleep_for(std::chrono::millisecond(1000));
+
     const Json::Value info = getInfo();
 
     const std::string peerVersion = info["data"]["version"].asString();
@@ -278,26 +280,34 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value data)
         const std::string packetData = CryptoKernel::Storage::toString(data, false);
         sf::Packet packet;
         packet.append(packetData.c_str(), packetData.size());
+
         peerLock.lock();
         responseWait.lock();
+
         sf::Socket::Status status;
         socket->setBlocking(true);
+
         if((status = socket->send(packet)) != sf::Socket::Done)
         {
             disconnect();
             peerLock.unlock();
             return Json::Value();
         }
+
         peerLock.unlock();
+
         unsigned int timeout = 0;
         while(!responseWait.try_lock() && timeout < 5)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             timeout++;
         }
+
         Json::Value returning = requestResponse;
         requestResponse = Json::Value();
+
         responseWait.unlock();
+
         return returning;
     }
     else
