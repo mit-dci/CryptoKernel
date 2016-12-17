@@ -332,6 +332,7 @@ void CryptoKernel::Network::Peer::handleEvents()
         {
             const std::string receivedPacket((char*)packet.getData(), packet.getDataSize());
             const Json::Value jsonPacket = CryptoKernel::Storage::toJson(receivedPacket);
+            packet.clear();
             socket->setBlocking(true);
             Json::Value request;
             if(jsonPacket["command"].asString() == "sendinfo")
