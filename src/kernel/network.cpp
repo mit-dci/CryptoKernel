@@ -423,13 +423,16 @@ void CryptoKernel::Network::Peer::handleEvents()
                 disconnect();
             }
 
-            const std::string packetData = CryptoKernel::Storage::toString(request, false);
-            packet.append(packetData.c_str(), packetData.size()+1);
-
-            status = socket->send(packet);
-            if(status == sf::Socket::Error || status == sf::Socket::Disconnected)
+            if(!request.empty())
             {
-                disconnect();
+                const std::string packetData = CryptoKernel::Storage::toString(request, false);
+                packet.append(packetData.c_str(), packetData.size()+1);
+
+                status = socket->send(packet);
+                if(status == sf::Socket::Error || status == sf::Socket::Disconnected)
+                {
+                    disconnect();
+                }
             }
         }
         else if(status == sf::Socket::Error || status == sf::Socket::Disconnected)
