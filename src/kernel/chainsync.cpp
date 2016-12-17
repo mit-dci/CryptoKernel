@@ -3,10 +3,11 @@
 #include "chainsync.h"
 #include "ckmath.h"
 
-CryptoKernel::Network::ChainSync::ChainSync(CryptoKernel::Blockchain* blockchain, CryptoKernel::Network* network)
+CryptoKernel::Network::ChainSync::ChainSync(CryptoKernel::Blockchain* blockchain, CryptoKernel::Network* network, CryptoKernel::Log* log)
 {
     this->blockchain = blockchain;
     this->network = network;
+    this->log = log;
     running = true;
 
     syncThread.reset(new std::thread(&CryptoKernel::Network::ChainSync::syncLoop, this));
@@ -24,6 +25,7 @@ void CryptoKernel::Network::ChainSync::checkRep()
 {
     assert(blockchain != nullptr);
     assert(network != nullptr);
+    assert(log != nullptr);
     assert(syncThread.get() != nullptr);
 }
 
@@ -58,12 +60,14 @@ void CryptoKernel::Network::ChainSync::syncLoop()
         const CryptoKernel::Blockchain::block tip = blockchain->getBlock("tip");
         if(CryptoKernel::Math::hex_greater(bestBlock.totalWork, tip.totalWork))
         {
+            const uint64_t startBlock = std::max(tip.height - 250, static_cast<unsigned int>(1));
+            log->printf(LOG_LEVEL_INFO, "Network::ChainSync::syncLoop(): We are behind the network tip, asking for blocks " + std::to_string(startBlock) + " to " + std::to_string(startBlock + 500));
             //If we are, download the missing blocks
             // Ask for our current block tip minus 250 blocks or genesis block
             std::vector<CryptoKernel::Blockchain::block> blocks;
             try
             {
-                blocks = network->getBlocksByHeight(std::max(tip.height - 250, static_cast<unsigned int>(1)));
+                blocks = network->getBlocksByHeight(startBlock);
             }
             catch(CryptoKernel::Network::NotFoundException e)
             {
@@ -100,6 +104,7 @@ void CryptoKernel::Network::ChainSync::syncLoop()
         else
         {
             //Else, rebroadcast our unconfirmedTransactions and block tip
+            log->printf(LOG_LEVEL_INFO, "Network::ChainSync::syncLoop(): Rebroadcasting unconfirmed transactions and block tip");
             network->sendBlock(tip);
             const std::vector<CryptoKernel::Blockchain::transaction> unconfirmedTransactions = blockchain->getUnconfirmedTransactions();
             for(const CryptoKernel::Blockchain::transaction tx : unconfirmedTransactions)

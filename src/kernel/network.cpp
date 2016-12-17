@@ -50,7 +50,7 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log, CryptoKernel::Blockchain*
 
     connectionsThread.reset(new std::thread(&CryptoKernel::Network::handleConnections, this));
 
-    chainSync.reset(new ChainSync(blockchain, this));
+    chainSync.reset(new ChainSync(blockchain, this, log));
 
     checkRep();
 }
@@ -330,7 +330,6 @@ void CryptoKernel::Network::Peer::handleEvents()
                 data["version"] = version;
                 data["tipBlock"] = CryptoKernel::Blockchain::blockToJson(blockchain->getBlock("tip"));
                 request["data"] = data;
-                break;
             }
             else if(jsonPacket["command"].asString() == "getblock")
             {
@@ -343,7 +342,6 @@ void CryptoKernel::Network::Peer::handleEvents()
                 {
                     request["data"] = CryptoKernel::Blockchain::blockToJson(blockchain->getBlockByHeight(request["height"].asUInt64()));
                 }
-                break;
             }
             else if(jsonPacket["command"].asString() == "getblocks")
             {
