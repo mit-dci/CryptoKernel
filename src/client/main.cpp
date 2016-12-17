@@ -31,7 +31,7 @@
 #include "cryptoserver.h"
 #include "cryptoclient.h"
 
-/*void miner(CryptoKernel::Blockchain* blockchain, CryptoCurrency::Wallet* wallet, CryptoKernel::Log* log)
+void miner(CryptoKernel::Blockchain* blockchain, CryptoCurrency::Wallet* wallet, CryptoKernel::Log* log)
 {
     CryptoKernel::Blockchain::block Block;
     wallet->newAddress("mining");
@@ -78,9 +78,8 @@
         Block.totalWork = CryptoKernel::Math::addHex(inverse, previousBlock.totalWork);
 
         blockchain->submitBlock(Block);
-        protocol->submitBlock(Block);
     }
-}*/
+}
 
 class MyBlockchain : public CryptoKernel::Blockchain
 {
@@ -115,30 +114,16 @@ int main(int argc, char* argv[])
     if(argc < 2)
     {
         CryptoKernel::Log log("CryptoKernel.log", true);
-        //CryptoKernel::Blockchain blockchain(&log, 150);
         MyBlockchain blockchain(&log, 150);
         blockchain.loadChain();
         CryptoKernel::Network network(&log, &blockchain);
         CryptoCurrency::Wallet wallet(&blockchain);
-        //std::thread minerThread(miner, &blockchain, &wallet, &protocol, &log);
+        std::thread minerThread(miner, &blockchain, &wallet, &log);
 
         jsonrpc::HttpServer httpserver(8383);
         CryptoServer server(httpserver);
         server.setWallet(&wallet, &blockchain);
         server.StartListening();
-
-        /*while(true)
-        {
-            protocol.submitBlock(blockchain.getBlock("tip"));
-            std::vector<CryptoKernel::Blockchain::transaction> unconfirmedTransactions = blockchain.getUnconfirmedTransactions();
-            std::vector<CryptoKernel::Blockchain::transaction>::iterator it;
-            for(it = unconfirmedTransactions.begin(); it < unconfirmedTransactions.end(); it++)
-            {
-                protocol.submitTransaction(*it);
-            }
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(120000));
-        }*/
 
         while(true)
         {

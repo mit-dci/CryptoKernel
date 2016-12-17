@@ -413,7 +413,7 @@ void CryptoKernel::Network::Peer::handleEvents()
         }
         socket->setBlocking(true);
         peerLock.unlock();
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
 }
 
@@ -549,6 +549,7 @@ Json::Value CryptoKernel::Network::Peer::getInfo()
     request["command"] = "sendinfo";
 
     const Json::Value infoPacket = sendRecv(request);
+    const std::string packetString = CryptoKernel::Storage::toString(infoPacket);
     if(infoPacket["command"].asString() != "info")
     {
         disconnect();
