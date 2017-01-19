@@ -36,7 +36,6 @@ Json::Value CryptoServer::getinfo()
     Json::Value returning;
 
     returning["version"] = "1.0.1";
-    //returning["connections"] = protocol->getConnections();
     double balance = wallet->getTotalBalance() / 100000000.0;
     std::stringstream buffer;
     buffer << std::setprecision(8) << balance;

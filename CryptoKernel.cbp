@@ -141,8 +141,6 @@
 		<Unit filename="src/kernel/base64.h" />
 		<Unit filename="src/kernel/blockchain.cpp" />
 		<Unit filename="src/kernel/blockchain.h" />
-		<Unit filename="src/kernel/chainsync.cpp" />
-		<Unit filename="src/kernel/chainsync.h" />
 		<Unit filename="src/kernel/ckmath.h" />
 		<Unit filename="src/kernel/contract.cpp" />
 		<Unit filename="src/kernel/contract.h" />
@@ -151,8 +149,10 @@
 		<Unit filename="src/kernel/log.cpp" />
 		<Unit filename="src/kernel/log.h" />
 		<Unit filename="src/kernel/math.cpp" />
-		<Unit filename="src/kernel/network.cpp" />
 		<Unit filename="src/kernel/network.h" />
+		<Unit filename="src/kernel/networkclient.h" />
+		<Unit filename="src/kernel/networkserver.cpp" />
+		<Unit filename="src/kernel/networkserver.h" />
 		<Unit filename="src/kernel/storage.cpp" />
 		<Unit filename="src/kernel/storage.h" />
 		<Unit filename="src/kernel/version.h" />

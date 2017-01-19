@@ -116,7 +116,7 @@ int main(int argc, char* argv[])
         CryptoKernel::Log log("CryptoKernel.log", true);
         MyBlockchain blockchain(&log, 150);
         blockchain.loadChain();
-        CryptoKernel::Network network(&log, &blockchain);
+        //CryptoKernel::Network network(&log, &blockchain);
         CryptoCurrency::Wallet wallet(&blockchain);
         std::thread minerThread(miner, &blockchain, &wallet, &log);
 
