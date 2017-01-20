@@ -18,4 +18,4 @@ exe ${CXX} ${CXXFLAGS} -c ${SRC_DIR}/networkserver.cpp -o ${OBJ_DIR}/networkserv
 exe ${CXX} ${CXXFLAGS} -c ${SRC_DIR}/networkclient.cpp -o ${OBJ_DIR}/networkclient.o
 exe ${CXX} ${CXXFLAGS} -c ${SRC_DIR}/storage.cpp -o ${OBJ_DIR}/storage.o
 exe ${CXX} ${CXXFLAGS} -c ${SRC_DIR}/contract.cpp -o ${OBJ_DIR}/contract.o
-exe ar -r -s libCryptoKernel.a ${OBJ_DIR}/base64.o ${OBJ_DIR}/blockchain.o ${OBJ_DIR}/crypto.o ${OBJ_DIR}/log.o ${OBJ_DIR}/math.o ${OBJ_DIR}/network.o ${OBJ_DIR}/storage.o ${OBJ_DIR}/contract.o ${OBJ_DIR}/networkserver.o ${OBJ_DIR}/networkclient.o
+exe ar -r -s libCryptoKernel.a ${OBJ_DIR}/base64.o ${OBJ_DIR}/blockchain.o ${OBJ_DIR}/crypto.o ${OBJ_DIR}/log.o ${OBJ_DIR}/math.o ${OBJ_DIR}/storage.o ${OBJ_DIR}/contract.o ${OBJ_DIR}/networkserver.o ${OBJ_DIR}/networkclient.o
