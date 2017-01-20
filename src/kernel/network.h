@@ -11,6 +11,7 @@ namespace CryptoKernel
 
         private:
             class Server;
+            class Client;
     };
 }
 

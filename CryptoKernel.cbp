@@ -150,6 +150,7 @@
 		<Unit filename="src/kernel/log.h" />
 		<Unit filename="src/kernel/math.cpp" />
 		<Unit filename="src/kernel/network.h" />
+		<Unit filename="src/kernel/networkclient.cpp" />
 		<Unit filename="src/kernel/networkclient.h" />
 		<Unit filename="src/kernel/networkserver.cpp" />
 		<Unit filename="src/kernel/networkserver.h" />

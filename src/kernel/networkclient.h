@@ -1,7 +1,13 @@
 #ifndef JSONRPC_CPP_STUB_NETWORKCLIENT_H_
 #define JSONRPC_CPP_STUB_NETWORKCLIENT_H_
 
+#include <memory>
+
 #include <jsonrpccpp/client.h>
+#include <jsonrpccpp/client/connectors/httpclient.h>
+
+#include "network.h"
+#include "blockchain.h"
 
 class NetworkClient : public jsonrpc::Client
 {
@@ -62,6 +68,24 @@ class NetworkClient : public jsonrpc::Client
             else
                 throw jsonrpc::JsonRpcException(jsonrpc::Errors::ERROR_CLIENT_INVALID_RESPONSE, result.toStyledString());
         }
+};
+
+class CryptoKernel::Network::Client
+{
+    public:
+        Client(const std::string url);
+        ~Client();
+
+        Json::Value getInfo();
+        void sendTransactions(const std::vector<CryptoKernel::Blockchain::transaction> transactions);
+        void sendBlock(const CryptoKernel::Blockchain::block block);
+        std::vector<CryptoKernel::Blockchain::transaction> getUnconfirmedTransactions();
+        CryptoKernel::Blockchain::block getBlock(const uint64_t height, const std::string id);
+        std::vector<CryptoKernel::Blockchain::block> getBlocks(const int start, const int end);
+
+    private:
+        std::unique_ptr<jsonrpc::HttpClient> httpClient;
+        std::unique_ptr<NetworkClient> client;
 };
 
 #endif //JSONRPC_CPP_STUB_NETWORKCLIENT_H_
