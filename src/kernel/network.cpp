@@ -45,7 +45,15 @@ CryptoKernel::Network::Network(CryptoKernel::Blockchain* blockchain)
         // Attempt to connect to peer
         Client client(seeds[i]["url"].asString());
         // Get height
-        Json::Value info = client.getInfo();
+        Json::Value info;
+        try
+        {
+            info = client.getInfo();
+        }
+        catch(jsonrpc::JsonRpcException& e)
+        {
+            continue;
+        }
 
         // Update info
         seeds[i]["height"] = info["tipHeight"];
