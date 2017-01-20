@@ -21,6 +21,8 @@ namespace CryptoKernel
 
             std::unique_ptr<jsonrpc::HttpServer> httpServer;
             std::unique_ptr<Server> server;
+
+            CryptoKernel::Storage* peers;
     };
 }
 
