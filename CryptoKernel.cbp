@@ -107,8 +107,6 @@
 			<Add option="-lleveldb" />
 			<Add option="-ljsoncpp" />
 			<Add option="-llua5.3" />
-			<Add option="-lsfml-network" />
-			<Add option="-lsfml-system" />
 		</Linker>
 		<Unit filename="compiler.lua">
 			<Option target="&lt;{~None~}&gt;" />
@@ -149,6 +147,7 @@
 		<Unit filename="src/kernel/log.cpp" />
 		<Unit filename="src/kernel/log.h" />
 		<Unit filename="src/kernel/math.cpp" />
+		<Unit filename="src/kernel/network.cpp" />
 		<Unit filename="src/kernel/network.h" />
 		<Unit filename="src/kernel/networkclient.cpp" />
 		<Unit filename="src/kernel/networkclient.h" />
