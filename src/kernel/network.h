@@ -15,6 +15,7 @@ namespace CryptoKernel
         public:
             Network(CryptoKernel::Log* log, CryptoKernel::Blockchain* blockchain);
             ~Network();
+            unsigned int getConnections();
 
         private:
             class Server;

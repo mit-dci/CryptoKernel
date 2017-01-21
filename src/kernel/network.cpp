@@ -99,6 +99,11 @@ void CryptoKernel::Network::networkFunc()
 
         peers->store("seeds", seeds);
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10000));
     }
+}
+
+unsigned int CryptoKernel::Network::getConnections()
+{
+    return connected.size();
 }

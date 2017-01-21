@@ -31,7 +31,7 @@
 #include "cryptoserver.h"
 #include "cryptoclient.h"
 
-void miner(CryptoKernel::Blockchain* blockchain, CryptoCurrency::Wallet* wallet, CryptoKernel::Log* log)
+void miner(CryptoKernel::Blockchain* blockchain, CryptoCurrency::Wallet* wallet, CryptoKernel::Log* log, CryptoKernel::Network* network)
 {
     CryptoKernel::Blockchain::block Block;
     wallet->newAddress("mining");
@@ -41,43 +41,50 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoCurrency::Wallet* wallet,
 
     while(true)
     {
-        Block = blockchain->generateMiningBlock(wallet->getAddressByName("mining").publicKey);
-        Block.nonce = 0;
-
-        t = std::time(0);
-        now = static_cast<uint64_t> (t);
-
-        uint64_t time2 = now;
-        uint64_t count = 0;
-
-        do
+        if(network->getConnections() > 0)
         {
+            Block = blockchain->generateMiningBlock(wallet->getAddressByName("mining").publicKey);
+            Block.nonce = 0;
+
             t = std::time(0);
-            time2 = static_cast<uint64_t> (t);
-            if((time2 - now) % 120 == 0 && (time2 - now) > 0)
+            now = static_cast<uint64_t> (t);
+
+            uint64_t time2 = now;
+            uint64_t count = 0;
+
+            do
             {
-                std::stringstream message;
-                message << "miner(): Hashrate: " << ((count / (time2 - now)) / 1000.0f) << " kH/s";
-                log->printf(LOG_LEVEL_INFO, message.str());
-                uint64_t nonce = Block.nonce;
-                Block = blockchain->generateMiningBlock(wallet->getAddressByName("mining").publicKey);
-                Block.nonce = nonce;
-                now = time2;
-                count = 0;
+                t = std::time(0);
+                time2 = static_cast<uint64_t> (t);
+                if((time2 - now) % 120 == 0 && (time2 - now) > 0)
+                {
+                    std::stringstream message;
+                    message << "miner(): Hashrate: " << ((count / (time2 - now)) / 1000.0f) << " kH/s";
+                    log->printf(LOG_LEVEL_INFO, message.str());
+                    uint64_t nonce = Block.nonce;
+                    Block = blockchain->generateMiningBlock(wallet->getAddressByName("mining").publicKey);
+                    Block.nonce = nonce;
+                    now = time2;
+                    count = 0;
+                }
+
+                count += 1;
+                Block.nonce += 1;
+                Block.PoW = blockchain->calculatePoW(Block);
             }
+            while(!CryptoKernel::Math::hex_greater(Block.target, Block.PoW));
 
-            count += 1;
-            Block.nonce += 1;
-            Block.PoW = blockchain->calculatePoW(Block);
+            CryptoKernel::Blockchain::block previousBlock;
+            previousBlock = blockchain->getBlock(Block.previousBlockId);
+            std::string inverse = CryptoKernel::Math::subtractHex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", Block.PoW);
+            Block.totalWork = CryptoKernel::Math::addHex(inverse, previousBlock.totalWork);
+
+            blockchain->submitBlock(Block);
         }
-        while(!CryptoKernel::Math::hex_greater(Block.target, Block.PoW));
-
-        CryptoKernel::Blockchain::block previousBlock;
-        previousBlock = blockchain->getBlock(Block.previousBlockId);
-        std::string inverse = CryptoKernel::Math::subtractHex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", Block.PoW);
-        Block.totalWork = CryptoKernel::Math::addHex(inverse, previousBlock.totalWork);
-
-        blockchain->submitBlock(Block);
+        else
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        }
     }
 }
 
@@ -118,7 +125,7 @@ int main(int argc, char* argv[])
         blockchain.loadChain();
         CryptoKernel::Network network(&log, &blockchain);
         CryptoCurrency::Wallet wallet(&blockchain);
-        std::thread minerThread(miner, &blockchain, &wallet, &log);
+        std::thread minerThread(miner, &blockchain, &wallet, &log, &network);
 
         jsonrpc::HttpServer httpserver(8383);
         CryptoServer server(httpserver);
