@@ -10,11 +10,32 @@
 
 namespace CryptoKernel
 {
+    /**
+    * This class provides a peer-to-peer network between multiple blockchains
+    */
     class Network
     {
         public:
+            /**
+            * Constructs a network object with the given log and blockchain. Attempts
+            * to connect to saved seeds or those specified in peers.txt. Causes the
+            * program to listen for incoming connections on port 49000.
+            *
+            * @param log a pointer to the CK log to use
+            * @param blockchain a pointer to the blockchain to sync
+            */
             Network(CryptoKernel::Log* log, CryptoKernel::Blockchain* blockchain);
+
+            /**
+            * Default destructor
+            */
             ~Network();
+
+            /**
+            * Returns the number of currently connected peers
+            *
+            * @return an unsigned integer with the number of connections
+            */
             unsigned int getConnections();
 
         private:
