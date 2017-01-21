@@ -2,8 +2,10 @@
 #include "networkserver.h"
 #include "networkclient.h"
 
-CryptoKernel::Network::Network(CryptoKernel::Blockchain* blockchain)
+CryptoKernel::Network::Network(CryptoKernel::Log* log, CryptoKernel::Blockchain* blockchain)
 {
+    this->log = log;
+
     httpServer.reset(new jsonrpc::HttpServer(49000));
     server.reset(new Server(*httpServer.get()));
     server->setBlockchain(blockchain);
@@ -40,33 +42,63 @@ CryptoKernel::Network::Network(CryptoKernel::Blockchain* blockchain)
         throw std::runtime_error("There are no known peers to connect to");
     }
 
-    for(unsigned int i = 0; i < seeds.size(); i++)
-    {
-        // Attempt to connect to peer
-        Client client(seeds[i]["url"].asString());
-        // Get height
-        Json::Value info;
-        try
-        {
-            info = client.getInfo();
-        }
-        catch(jsonrpc::JsonRpcException& e)
-        {
-            continue;
-        }
+    running = true;
 
-        // Update info
-        seeds[i]["height"] = info["tipHeight"];
-
-        std::time_t result = std::time(nullptr);
-        seeds[i]["lastseen"] = std::asctime(std::localtime(&result));;
-    }
-
-    peers->store("seeds", seeds);
+    // Start management thread
+    networkThread.reset(new std::thread(&CryptoKernel::Network::networkFunc, this));
 }
 
 CryptoKernel::Network::~Network()
 {
+    running = false;
+    networkThread->join();
     server->StopListening();
     delete peers;
+}
+
+void CryptoKernel::Network::networkFunc()
+{
+    while(running)
+    {
+        Json::Value seeds = peers->get("seeds");
+
+        if(connected.size() < 8)
+        {
+            for(unsigned int i = 0; i < seeds.size(); i++)
+            {
+                if(connected.size() >= 8)
+                {
+                    break;
+                }
+                // Attempt to connect to peer
+                Client client(seeds[i]["url"].asString());
+                // Get height
+                Json::Value info;
+                try
+                {
+                    log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + seeds[i]["url"].asString());
+                    info = client.getInfo();
+                }
+                catch(jsonrpc::JsonRpcException& e)
+                {
+                    log->printf(LOG_LEVEL_WARN, "Network(): Failed to connect to " + seeds[i]["url"].asString());
+                    continue;
+                }
+
+                log->printf(LOG_LEVEL_INFO, "Network(): Successfully connected to " + seeds[i]["url"].asString());
+
+                // Update info
+                seeds[i]["height"] = info["tipHeight"];
+
+                std::time_t result = std::time(nullptr);
+                seeds[i]["lastseen"] = std::asctime(std::localtime(&result));
+
+                connected[seeds[i]["url"].asString()] = seeds[i];
+            }
+        }
+
+        peers->store("seeds", seeds);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
 }

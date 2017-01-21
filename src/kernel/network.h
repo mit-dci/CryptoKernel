@@ -2,6 +2,7 @@
 #define NETWORK_H_INCLUDED
 
 #include <memory>
+#include <thread>
 
 #include <jsonrpccpp/server/connectors/httpserver.h>
 
@@ -12,7 +13,7 @@ namespace CryptoKernel
     class Network
     {
         public:
-            Network(CryptoKernel::Blockchain* blockchain);
+            Network(CryptoKernel::Log* log, CryptoKernel::Blockchain* blockchain);
             ~Network();
 
         private:
@@ -23,6 +24,15 @@ namespace CryptoKernel
             std::unique_ptr<Server> server;
 
             CryptoKernel::Storage* peers;
+
+            std::unique_ptr<std::thread> networkThread;
+
+            void networkFunc();
+            bool running;
+
+            std::map<std::string, Json::Value> connected;
+
+            CryptoKernel::Log* log;
     };
 }
 
