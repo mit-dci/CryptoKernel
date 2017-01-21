@@ -5,6 +5,7 @@
 CryptoKernel::Network::Network(CryptoKernel::Log* log, CryptoKernel::Blockchain* blockchain)
 {
     this->log = log;
+    this->blockchain = blockchain;
 
     httpServer.reset(new jsonrpc::HttpServer(49000));
     server.reset(new Server(*httpServer.get()));
@@ -70,14 +71,15 @@ void CryptoKernel::Network::networkFunc()
                 {
                     break;
                 }
+                Peer* peer = new Peer;
                 // Attempt to connect to peer
-                Client client(seeds[i]["url"].asString());
+                peer->client.reset(new Client(seeds[i]["url"].asString()));
                 // Get height
                 Json::Value info;
                 try
                 {
                     log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + seeds[i]["url"].asString());
-                    info = client.getInfo();
+                    info = peer->client->getInfo();
                 }
                 catch(jsonrpc::JsonRpcException& e)
                 {
@@ -93,11 +95,46 @@ void CryptoKernel::Network::networkFunc()
                 std::time_t result = std::time(nullptr);
                 seeds[i]["lastseen"] = std::asctime(std::localtime(&result));
 
-                connected[seeds[i]["url"].asString()] = seeds[i];
+                peer->info = seeds[i];
+
+                connected[seeds[i]["url"].asString()] = peer;
             }
         }
 
         peers->store("seeds", seeds);
+
+        //Determine best chain
+        uint64_t currentHeight = blockchain->getBlock("tip").height;
+        uint64_t bestHeight = currentHeight;
+        for(std::map<std::string, Peer*>::iterator it = connected.begin(); it != connected.end(); it++)
+        {
+            if(it->second->info["height"].asUInt64() > bestHeight)
+            {
+                bestHeight = it->second->info["height"].asUInt64();
+            }
+        }
+
+        log->printf(LOG_LEVEL_INFO, "Network(): Current height: " + std::to_string(currentHeight) + ", best height: " + std::to_string(bestHeight));
+
+        //Detect if we are behind
+        if(bestHeight < currentHeight)
+        {
+            for(std::map<std::string, Peer*>::iterator it = connected.begin(); it != connected.end(); it++)
+            {
+                if(it->second->info["height"].asUInt64() > currentHeight)
+                {
+                    log->printf(LOG_LEVEL_INFO, "Network(): Downloading blocks " + std::to_string(currentHeight + 1) + " to " + std::to_string(currentHeight + 201));
+                    std::vector<CryptoKernel::Blockchain::block> blocks = it->second->client->getBlocks(currentHeight + 1, currentHeight + 201);
+                    for(CryptoKernel::Blockchain::block block : blocks)
+                    {
+                        blockchain->submitBlock(block);
+                    }
+                    break;
+                }
+            }
+        }
+
+        //Rebroadcast unconfirmed transactions
 
         std::this_thread::sleep_for(std::chrono::milliseconds(10000));
     }

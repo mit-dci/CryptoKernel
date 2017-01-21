@@ -52,9 +52,16 @@ namespace CryptoKernel
             void networkFunc();
             bool running;
 
-            std::map<std::string, Json::Value> connected;
+            struct Peer
+            {
+                Json::Value info;
+                std::unique_ptr<Client> client;
+            };
+
+            std::map<std::string, Peer*> connected;
 
             CryptoKernel::Log* log;
+            CryptoKernel::Blockchain* blockchain;
     };
 }
 

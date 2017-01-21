@@ -37,7 +37,7 @@ Json::Value CryptoKernel::Network::Server::getblocks(const int end, const int st
     if(end > start && end > 0 && start > 0 && (end - start) <= 500)
     {
         CryptoKernel::Blockchain::block currentBlock = blockchain->getBlock("tip");
-        while(currentBlock.height > 0 && currentBlock.height != (unsigned int)end)
+        while(currentBlock.height > 0 && currentBlock.height > (unsigned int)end)
         {
             currentBlock = blockchain->getBlock(currentBlock.previousBlockId);
         }
