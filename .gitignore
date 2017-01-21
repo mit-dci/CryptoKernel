@@ -16,3 +16,4 @@ CryptoCurrency
 blockbuffer
 addressesdb
 *.so
+peers
