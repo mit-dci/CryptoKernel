@@ -55,6 +55,11 @@ CryptoKernel::Network::~Network()
     networkThread->join();
     server->StopListening();
     delete peers;
+
+    for(std::map<std::string, Peer*>::iterator it = connected.begin(); it != connected.end(); it++)
+    {
+        delete it->second;
+    }
 }
 
 void CryptoKernel::Network::networkFunc()
@@ -105,6 +110,22 @@ void CryptoKernel::Network::networkFunc()
                 peer->info = seeds[i];
 
                 connected[seeds[i]["url"].asString()] = peer;
+            }
+        }
+
+        for(std::map<std::string, Peer*>::iterator it = connected.begin(); it != connected.end(); it++)
+        {
+            try
+            {
+                const Json::Value info = it->second->client->getInfo();
+                it->second->info["height"] = info["tipHeight"];
+                std::time_t result = std::time(nullptr);
+                it->second->info["lastseen"] = std::asctime(std::localtime(&result));
+            }
+            catch(jsonrpc::JsonRpcException& e)
+            {
+                delete it->second;
+                it = connected.erase(it);
             }
         }
 
