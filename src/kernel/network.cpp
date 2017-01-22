@@ -117,7 +117,7 @@ void CryptoKernel::Network::networkFunc()
         log->printf(LOG_LEVEL_INFO, "Network(): Current height: " + std::to_string(currentHeight) + ", best height: " + std::to_string(bestHeight));
 
         //Detect if we are behind
-        if(bestHeight < currentHeight)
+        if(bestHeight > currentHeight)
         {
             for(std::map<std::string, Peer*>::iterator it = connected.begin(); it != connected.end(); it++)
             {
