@@ -163,3 +163,11 @@ void CryptoKernel::Network::broadcastTransactions(const std::vector<CryptoKernel
         it->second->client->sendTransactions(transactions);
     }
 }
+
+void CryptoKernel::Network::broadcastBlock(const CryptoKernel::Blockchain::block block)
+{
+    for(std::map<std::string, Peer*>::iterator it = connected.begin(); it != connected.end(); it++)
+    {
+        it->second->client->sendBlock(block);
+    }
+}

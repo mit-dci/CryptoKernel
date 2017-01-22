@@ -79,7 +79,10 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoCurrency::Wallet* wallet,
             std::string inverse = CryptoKernel::Math::subtractHex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", Block.PoW);
             Block.totalWork = CryptoKernel::Math::addHex(inverse, previousBlock.totalWork);
 
-            blockchain->submitBlock(Block);
+            if(blockchain->submitBlock(Block))
+            {
+                network->broadcastBlock(Block);
+            }
         }
         else
         {

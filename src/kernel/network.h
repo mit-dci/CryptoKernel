@@ -45,6 +45,13 @@ namespace CryptoKernel
             */
             void broadcastTransactions(const std::vector<CryptoKernel::Blockchain::transaction> transactions);
 
+            /**
+            * Broadcast a block to connected peers
+            *
+            * @param block the block to broadcast
+            */
+            void broadcastBlock(const CryptoKernel::Blockchain::block block);
+
         private:
             class Server;
             class Client;
