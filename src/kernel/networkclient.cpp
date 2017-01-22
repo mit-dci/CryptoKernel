@@ -61,7 +61,7 @@ CryptoKernel::Blockchain::block CryptoKernel::Network::Client::getBlock(const ui
 std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Client::getBlocks(const int start, const int end)
 {
     std::vector<CryptoKernel::Blockchain::block> returning;
-    Json::Value blocks = client->getblocks(start, end);
+    Json::Value blocks = client->getblocks(end, start);
     for(unsigned int i = 0; i < blocks.size(); i++)
     {
         returning.push_back(CryptoKernel::Blockchain::jsonToBlock(blocks[i]));
