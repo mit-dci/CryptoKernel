@@ -135,6 +135,7 @@ void CryptoKernel::Network::networkFunc()
         }
 
         //Rebroadcast unconfirmed transactions
+        broadcastTransactions(blockchain->getUnconfirmedTransactions());
 
         std::this_thread::sleep_for(std::chrono::milliseconds(10000));
     }
@@ -143,4 +144,12 @@ void CryptoKernel::Network::networkFunc()
 unsigned int CryptoKernel::Network::getConnections()
 {
     return connected.size();
+}
+
+void CryptoKernel::Network::broadcastTransactions(const std::vector<CryptoKernel::Blockchain::transaction> transactions)
+{
+    for(std::map<std::string, Peer*>::iterator it = connected.begin(); it != connected.end(); it++)
+    {
+        it->second->client->sendTransactions(transactions);
+    }
 }

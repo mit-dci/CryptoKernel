@@ -38,6 +38,13 @@ namespace CryptoKernel
             */
             unsigned int getConnections();
 
+            /**
+            * Broadcast a set of transactions to connected peers
+            *
+            * @param transactions the transactions to broadcast
+            */
+            void broadcastTransactions(const std::vector<CryptoKernel::Blockchain::transaction> transactions);
+
         private:
             class Server;
             class Client;
