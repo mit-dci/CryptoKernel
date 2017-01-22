@@ -1,7 +1,7 @@
+#include <algorithm>
+
 #include "version.h"
-
 #include "networkserver.h"
-
 
 CryptoKernel::Network::Server::Server(jsonrpc::AbstractServerConnector &connector) : NetworkServer(connector)
 {
@@ -47,6 +47,8 @@ Json::Value CryptoKernel::Network::Server::getblocks(const int end, const int st
             blocks.push_back(currentBlock);
             currentBlock = blockchain->getBlock(currentBlock.previousBlockId);
         }
+
+        std::reverse(blocks.begin(), blocks.end());
 
         Json::Value returning;
         for(CryptoKernel::Blockchain::block block : blocks)
