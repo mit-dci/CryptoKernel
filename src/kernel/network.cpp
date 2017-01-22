@@ -134,7 +134,10 @@ void CryptoKernel::Network::networkFunc()
                     std::vector<CryptoKernel::Blockchain::block> blocks = it->second->client->getBlocks(currentHeight + 1, currentHeight + 201);
                     for(CryptoKernel::Blockchain::block block : blocks)
                     {
-                        blockchain->submitBlock(block);
+                        if(!blockchain->submitBlock(block))
+                        {
+                            break;
+                        }
                     }
                     break;
                 }
