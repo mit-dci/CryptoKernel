@@ -168,7 +168,10 @@ void CryptoKernel::Network::networkFunc()
         //Rebroadcast unconfirmed transactions
         broadcastTransactions(blockchain->getUnconfirmedTransactions());
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+        if(bestHeight == currentHeight)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(30000));
+        }
     }
 }
 
