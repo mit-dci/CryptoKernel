@@ -51,7 +51,7 @@ Json::Value CryptoKernel::Network::Server::getblocks(const int end, const int st
         Json::Value returning;
         for(CryptoKernel::Blockchain::block block : blocks)
         {
-            returning.append(CryptoKernel::Blockchain::blockToJson(block));
+            returning["blocks"].append(CryptoKernel::Blockchain::blockToJson(block));
         }
 
         return returning;
