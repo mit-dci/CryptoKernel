@@ -71,6 +71,13 @@ void CryptoKernel::Network::networkFunc()
                 {
                     break;
                 }
+
+                std::map<std::string, Peer*>::iterator it = connected.find(seeds[i]["url"].asString());
+                if(it != connected.end())
+                {
+                    continue;
+                }
+
                 Peer* peer = new Peer;
                 // Attempt to connect to peer
                 peer->client.reset(new Client(seeds[i]["url"].asString()));
