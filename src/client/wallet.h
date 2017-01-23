@@ -21,13 +21,14 @@
 #include "storage.h"
 #include "log.h"
 #include "blockchain.h"
+#include "network.h"
 
 namespace CryptoCurrency
 {
     class Wallet
     {
         public:
-            Wallet(CryptoKernel::Blockchain* Blockchain);
+            Wallet(CryptoKernel::Blockchain* Blockchain, CryptoKernel::Network* network);
             ~Wallet();
             struct address
             {
@@ -49,6 +50,7 @@ namespace CryptoCurrency
             CryptoKernel::Log* log;
             Json::Value addressToJson(address Address);
             CryptoKernel::Blockchain* blockchain;
+            CryptoKernel::Network* network;
             address jsonToAddress(Json::Value Address);
     };
 }

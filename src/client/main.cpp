@@ -127,7 +127,7 @@ int main(int argc, char* argv[])
         MyBlockchain blockchain(&log, 150);
         blockchain.loadChain();
         CryptoKernel::Network network(&log, &blockchain);
-        CryptoCurrency::Wallet wallet(&blockchain);
+        CryptoCurrency::Wallet wallet(&blockchain, &network);
         std::thread minerThread(miner, &blockchain, &wallet, &log, &network);
 
         jsonrpc::HttpServer httpserver(8383);
