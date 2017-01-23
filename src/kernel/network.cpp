@@ -195,3 +195,18 @@ void CryptoKernel::Network::broadcastBlock(const CryptoKernel::Blockchain::block
         it->second->client->sendBlock(block);
     }
 }
+
+double CryptoKernel::Network::syncProgress()
+{
+    uint64_t currentHeight = blockchain->getBlock("tip").height;
+    uint64_t bestHeight = currentHeight;
+    for(std::map<std::string, Peer*>::iterator it = connected.begin(); it != connected.end(); it++)
+    {
+        if(it->second->info["height"].asUInt64() > bestHeight)
+        {
+            bestHeight = it->second->info["height"].asUInt64();
+        }
+    }
+
+    return (double)(currentHeight)/(double)(bestHeight);
+}

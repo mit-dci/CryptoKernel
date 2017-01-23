@@ -41,7 +41,7 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoCurrency::Wallet* wallet,
 
     while(true)
     {
-        if(network->getConnections() > 0)
+        if(network->getConnections() > 0 && network->syncProgress() >= 1)
         {
             Block = blockchain->generateMiningBlock(wallet->getAddressByName("mining").publicKey);
             Block.nonce = 0;

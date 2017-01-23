@@ -52,6 +52,13 @@ namespace CryptoKernel
             */
             void broadcastBlock(const CryptoKernel::Blockchain::block block);
 
+            /**
+            * Returns an estimate of synchronisation progress
+            *
+            * @return a double representing the progress of synchronisation out of 1.0
+            */
+            double syncProgress();
+
         private:
             class Server;
             class Client;
