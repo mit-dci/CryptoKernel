@@ -161,7 +161,7 @@ void CryptoKernel::Network::networkFunc()
                         {
                             log->printf(LOG_LEVEL_INFO, "Network(): Downloading blocks " + std::to_string(currentHeight + 1) + " to " + std::to_string(currentHeight + 201));
                             blocks = it->second->client->getBlocks(currentHeight + 1, currentHeight + 201);
-                            currentHeight = std::max((uint64_t)1, currentHeight - 200);
+                            currentHeight = std::max(1, (int)currentHeight - 200);
                         } while(!blockchain->submitBlock(blocks[0]));
 
 
