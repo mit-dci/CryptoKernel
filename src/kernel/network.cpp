@@ -152,15 +152,23 @@ void CryptoKernel::Network::networkFunc()
                 if(it->second->info["height"].asUInt64() > currentHeight)
                 {
                     log->printf(LOG_LEVEL_INFO, "Network(): Downloading blocks " + std::to_string(currentHeight + 1) + " to " + std::to_string(currentHeight + 201));
-                    std::vector<CryptoKernel::Blockchain::block> blocks = it->second->client->getBlocks(currentHeight + 1, currentHeight + 201);
-                    for(CryptoKernel::Blockchain::block block : blocks)
+                    try
                     {
-                        if(!blockchain->submitBlock(block))
+                        std::vector<CryptoKernel::Blockchain::block> blocks = it->second->client->getBlocks(currentHeight + 1, currentHeight + 201);
+                        for(CryptoKernel::Blockchain::block block : blocks)
                         {
-                            break;
+                            if(!blockchain->submitBlock(block))
+                            {
+                                break;
+                            }
                         }
+                        break;
                     }
-                    break;
+                    catch(jsonrpc::JsonRpcException& e)
+                    {
+                        log->printf(LOG_LEVEL_WARN, "Network(): Failed to contact " + it->first + " " + e.what());
+                        continue;
+                    }
                 }
             }
         }
