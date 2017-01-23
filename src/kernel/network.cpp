@@ -10,6 +10,7 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log, CryptoKernel::Blockchain*
     httpServer.reset(new jsonrpc::HttpServer(49000));
     server.reset(new Server(*httpServer.get()));
     server->setBlockchain(blockchain);
+    server->setNetwork(this);
     server->StartListening();
 
     peers = new CryptoKernel::Storage("./peers");

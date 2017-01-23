@@ -13,6 +13,11 @@ void CryptoKernel::Network::Server::setBlockchain(CryptoKernel::Blockchain* bloc
     this->blockchain = blockchain;
 }
 
+void CryptoKernel::Network::Server::setNetwork(CryptoKernel::Network* network)
+{
+    this->network = network;
+}
+
 Json::Value CryptoKernel::Network::Server::getblock(const int height, const std::string& id)
 {
     if(id != "")
@@ -78,15 +83,26 @@ Json::Value CryptoKernel::Network::Server::getunconfirmed()
 
 void CryptoKernel::Network::Server::block(const Json::Value& data)
 {
-    blockchain->submitBlock(CryptoKernel::Blockchain::jsonToBlock(data));
+    const CryptoKernel::Blockchain::block block = CryptoKernel::Blockchain::jsonToBlock(data);
+    if(blockchain->submitBlock(block))
+    {
+        network->broadcastBlock(block);
+    }
 }
 
 void CryptoKernel::Network::Server::transactions(const Json::Value& data)
 {
+    std::vector<CryptoKernel::Blockchain::transaction> txs;
     for(unsigned int i = 0; i < data.size(); i++)
     {
-        blockchain->submitTransaction(CryptoKernel::Blockchain::jsonToTransaction(data[i]));
+        const CryptoKernel::Blockchain::transaction tx = CryptoKernel::Blockchain::jsonToTransaction(data[i]);
+        if(blockchain->submitTransaction(tx))
+        {
+            txs.push_back(tx);
+        }
     }
+
+    network->broadcastTransactions(txs);
 }
 
 Json::Value CryptoKernel::Network::Server::info()

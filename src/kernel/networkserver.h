@@ -66,9 +66,11 @@ class CryptoKernel::Network::Server : public NetworkServer
         virtual Json::Value info();
 
         void setBlockchain(CryptoKernel::Blockchain* blockchain);
+        void setNetwork(CryptoKernel::Network* network);
 
     private:
         CryptoKernel::Blockchain* blockchain;
+        CryptoKernel::Network* network;
 };
 
 #endif //JSONRPC_CPP_STUB_NETWORKSERVER_H_
