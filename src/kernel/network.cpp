@@ -151,13 +151,23 @@ void CryptoKernel::Network::networkFunc()
             {
                 if(it->second->info["height"].asUInt64() > currentHeight)
                 {
-                    log->printf(LOG_LEVEL_INFO, "Network(): Downloading blocks " + std::to_string(currentHeight + 1) + " to " + std::to_string(currentHeight + 201));
                     try
                     {
-                        std::vector<CryptoKernel::Blockchain::block> blocks = it->second->client->getBlocks(currentHeight + 1, currentHeight + 201);
-                        for(CryptoKernel::Blockchain::block block : blocks)
+                        std::vector<CryptoKernel::Blockchain::block> blocks;
+                        //Try to submit the first block
+                        //If it fails get the 200 block previous until we can submit a block
+
+                        do
                         {
-                            if(!blockchain->submitBlock(block))
+                            log->printf(LOG_LEVEL_INFO, "Network(): Downloading blocks " + std::to_string(currentHeight + 1) + " to " + std::to_string(currentHeight + 201));
+                            blocks = it->second->client->getBlocks(currentHeight + 1, currentHeight + 201);
+                            currentHeight = std::max((uint64_t)1, currentHeight - 200);
+                        } while(!blockchain->submitBlock(blocks[0]));
+
+
+                        for(unsigned int i = 1; i < blocks.size(); i++)
+                        {
+                            if(!blockchain->submitBlock(blocks[i]))
                             {
                                 break;
                             }

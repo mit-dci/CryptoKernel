@@ -395,7 +395,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
     if(blocks->get(newBlock.id)["id"].asString() == newBlock.id && blocks->get(newBlock.id)["mainChain"].asBool())
     {
         log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Block already exists");
-        return false;
+        return true;
     }
 
     //Check the previous block exists
