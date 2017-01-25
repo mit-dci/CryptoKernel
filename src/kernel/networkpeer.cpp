@@ -147,7 +147,7 @@ void CryptoKernel::Network::Peer::requestFunc()
                     Json::Value returning;
                     for(CryptoKernel::Blockchain::block block : blocks)
                     {
-                        returning.append(CryptoKernel::Blockchain::blockToJson(block));
+                        returning["data"].append(CryptoKernel::Blockchain::blockToJson(block));
                     }
 
                     send(returning);
@@ -253,7 +253,7 @@ std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Peer::getBlo
     request["command"] = "getblocks";
     request["data"]["start"] = static_cast<unsigned long long int>(start);
     request["data"]["end"] = static_cast<unsigned long long int>(end);
-    Json::Value blocks = sendRecv(request);
+    Json::Value blocks = sendRecv(request)["data"];
 
     std::vector<CryptoKernel::Blockchain::block> returning;
     for(unsigned int i = 0; i < blocks.size(); i++)
