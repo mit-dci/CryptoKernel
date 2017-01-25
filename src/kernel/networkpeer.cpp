@@ -15,6 +15,7 @@ CryptoKernel::Network::Peer::~Peer()
 {
     running = false;
     requestThread->join();
+    client->disconnect();
     delete client;
 }
 
