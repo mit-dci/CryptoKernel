@@ -32,11 +32,6 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log, CryptoKernel::Blockchain*
         peers->store("seeds", seeds);
     }
 
-    if(seeds.size() <= 0)
-    {
-        log->printf(LOG_LEVEL_ERR, "Network(): There are no known peers to connect to");
-    }
-
     if(listener.listen(49000) != sf::Socket::Done)
     {
         log->printf(LOG_LEVEL_ERR, "Network(): Could not bind to port 49000");
