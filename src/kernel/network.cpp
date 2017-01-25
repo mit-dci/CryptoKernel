@@ -206,7 +206,7 @@ void CryptoKernel::Network::connectionFunc()
     while(running)
     {
         sf::TcpSocket* client = new sf::TcpSocket();
-        if(listener.accept(*client) != sf::Socket::Done)
+        if(listener.accept(*client) == sf::Socket::Done)
         {
             log->printf(LOG_LEVEL_INFO, "Network(): Peer connected from " + client->getRemoteAddress().toString() + ":" + std::to_string(client->getRemotePort()));
             PeerInfo* peerInfo = new PeerInfo();
@@ -231,6 +231,11 @@ void CryptoKernel::Network::connectionFunc()
             peerInfo->info["lastseen"] = std::asctime(std::localtime(&result));
 
             connected[client->getRemoteAddress().toString()] = peerInfo;
+        }
+        else
+        {
+            log->printf(LOG_LEVEL_WARN, "Network(): Failed to accept incoming connection");
+            delete client;
         }
     }
 }
