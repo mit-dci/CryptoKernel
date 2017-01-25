@@ -101,10 +101,15 @@ void CryptoKernel::Network::Peer::requestFunc()
             {
                 const CryptoKernel::Blockchain::block block = CryptoKernel::Blockchain::jsonToBlock(request["data"]);
 
-                if(blockchain->submitBlock(block))
+                bool blockExists = (blockchain->getBlock(block.id).id == block.id);
+
+                if(!blockExists)
                 {
-                    clientMutex.unlock();
-                    network->broadcastBlock(block);
+                    if(blockchain->submitBlock(block))
+                    {
+                        clientMutex.unlock();
+                        network->broadcastBlock(block);
+                    }
                 }
             }
             else if(request["command"] == "getunconfirmed")
