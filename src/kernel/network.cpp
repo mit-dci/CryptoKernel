@@ -1,17 +1,10 @@
 #include "network.h"
-#include "networkserver.h"
-#include "networkclient.h"
+#include "networkpeer.h"
 
 CryptoKernel::Network::Network(CryptoKernel::Log* log, CryptoKernel::Blockchain* blockchain)
 {
     this->log = log;
     this->blockchain = blockchain;
-
-    httpServer.reset(new jsonrpc::HttpServer(49000));
-    server.reset(new Server(*httpServer.get()));
-    server->setBlockchain(blockchain);
-    server->setNetwork(this);
-    server->StartListening();
 
     peers = new CryptoKernel::Storage("./peers");
 
@@ -21,7 +14,7 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log, CryptoKernel::Blockchain*
         std::ifstream infile("peers.txt");
         if(!infile.is_open())
         {
-            throw std::runtime_error("Could not open peers file");
+            log->printf(LOG_LEVEL_ERR, "Network(): Could not open peers file");
         }
 
         std::string line;
@@ -41,10 +34,18 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log, CryptoKernel::Blockchain*
 
     if(seeds.size() <= 0)
     {
-        throw std::runtime_error("There are no known peers to connect to");
+        log->printf(LOG_LEVEL_ERR, "Network(): There are no known peers to connect to");
+    }
+
+    if(listener.listen(49000) != sf::Socket::Done)
+    {
+        log->printf(LOG_LEVEL_ERR, "Network(): Could not bind to port 49000");
     }
 
     running = true;
+
+    // Start connection thread
+    connectionThread.reset(new std::thread(&CryptoKernel::Network::connectionFunc, this));
 
     // Start management thread
     networkThread.reset(new std::thread(&CryptoKernel::Network::networkFunc, this));
@@ -53,11 +54,11 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log, CryptoKernel::Blockchain*
 CryptoKernel::Network::~Network()
 {
     running = false;
+    connectionThread->join();
     networkThread->join();
-    server->StopListening();
     delete peers;
 
-    for(std::map<std::string, Peer*>::iterator it = connected.begin(); it != connected.end(); it++)
+    for(std::map<std::string, PeerInfo*>::iterator it = connected.begin(); it != connected.end(); it++)
     {
         delete it->second;
     }
@@ -78,25 +79,36 @@ void CryptoKernel::Network::networkFunc()
                     break;
                 }
 
-                std::map<std::string, Peer*>::iterator it = connected.find(seeds[i]["url"].asString());
+                std::map<std::string, PeerInfo*>::iterator it = connected.find(seeds[i]["url"].asString());
                 if(it != connected.end())
                 {
                     continue;
                 }
 
-                Peer* peer = new Peer;
+                log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + seeds[i]["url"].asString());
+
                 // Attempt to connect to peer
-                peer->client.reset(new Client(seeds[i]["url"].asString()));
+                sf::TcpSocket* socket = new sf::TcpSocket();
+                if(socket->connect(seeds[i]["url"].asString(), 49000, sf::seconds(3)) != sf::Socket::Done)
+                {
+                    log->printf(LOG_LEVEL_WARN, "Network(): Failed to connect to " + seeds[i]["url"].asString());
+                    delete socket;
+                    continue;
+                }
+
+                PeerInfo* peerInfo = new PeerInfo;
+                peerInfo->peer.reset(new Peer(socket, blockchain, this));
+
                 // Get height
                 Json::Value info;
                 try
                 {
-                    log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + seeds[i]["url"].asString());
-                    info = peer->client->getInfo();
+                    info = peerInfo->peer->getInfo();
                 }
-                catch(jsonrpc::JsonRpcException& e)
+                catch(Peer::NetworkError& e)
                 {
-                    log->printf(LOG_LEVEL_WARN, "Network(): Failed to connect to " + seeds[i]["url"].asString());
+                    log->printf(LOG_LEVEL_WARN, "Network(): Error getting info from " + seeds[i]["url"].asString());
+                    delete peerInfo;
                     continue;
                 }
 
@@ -108,22 +120,22 @@ void CryptoKernel::Network::networkFunc()
                 std::time_t result = std::time(nullptr);
                 seeds[i]["lastseen"] = std::asctime(std::localtime(&result));
 
-                peer->info = seeds[i];
+                peerInfo->info = seeds[i];
 
-                connected[seeds[i]["url"].asString()] = peer;
+                connected[seeds[i]["url"].asString()] = peerInfo;
             }
         }
 
-        for(std::map<std::string, Peer*>::iterator it = connected.begin(); it != connected.end(); it++)
+        for(std::map<std::string, PeerInfo*>::iterator it = connected.begin(); it != connected.end(); it++)
         {
             try
             {
-                const Json::Value info = it->second->client->getInfo();
+                const Json::Value info = it->second->peer->getInfo();
                 it->second->info["height"] = info["tipHeight"];
                 std::time_t result = std::time(nullptr);
                 it->second->info["lastseen"] = std::asctime(std::localtime(&result));
             }
-            catch(jsonrpc::JsonRpcException& e)
+            catch(Peer::NetworkError& e)
             {
                 delete it->second;
                 it = connected.erase(it);
@@ -135,7 +147,7 @@ void CryptoKernel::Network::networkFunc()
         //Determine best chain
         uint64_t currentHeight = blockchain->getBlock("tip").height;
         uint64_t bestHeight = currentHeight;
-        for(std::map<std::string, Peer*>::iterator it = connected.begin(); it != connected.end(); it++)
+        for(std::map<std::string, PeerInfo*>::iterator it = connected.begin(); it != connected.end(); it++)
         {
             if(it->second->info["height"].asUInt64() > bestHeight)
             {
@@ -148,7 +160,7 @@ void CryptoKernel::Network::networkFunc()
         //Detect if we are behind
         if(bestHeight > currentHeight)
         {
-            for(std::map<std::string, Peer*>::iterator it = connected.begin(); it != connected.end(); it++)
+            for(std::map<std::string, PeerInfo*>::iterator it = connected.begin(); it != connected.end(); it++)
             {
                 if(it->second->info["height"].asUInt64() > currentHeight)
                 {
@@ -161,7 +173,7 @@ void CryptoKernel::Network::networkFunc()
                         do
                         {
                             log->printf(LOG_LEVEL_INFO, "Network(): Downloading blocks " + std::to_string(currentHeight + 1) + " to " + std::to_string(currentHeight + 201));
-                            blocks = it->second->client->getBlocks(currentHeight + 1, currentHeight + 201);
+                            blocks = it->second->peer->getBlocks(currentHeight + 1, currentHeight + 201);
                             currentHeight = std::max(1, (int)currentHeight - 200);
                         } while(!blockchain->submitBlock(blocks[0]));
 
@@ -175,7 +187,7 @@ void CryptoKernel::Network::networkFunc()
                         }
                         break;
                     }
-                    catch(jsonrpc::JsonRpcException& e)
+                    catch(Peer::NetworkError& e)
                     {
                         log->printf(LOG_LEVEL_WARN, "Network(): Failed to contact " + it->first + " " + e.what());
                         continue;
@@ -194,6 +206,40 @@ void CryptoKernel::Network::networkFunc()
     }
 }
 
+void CryptoKernel::Network::connectionFunc()
+{
+    while(running)
+    {
+        sf::TcpSocket* client = new sf::TcpSocket();
+        if(listener.accept(*client) != sf::Socket::Done)
+        {
+            log->printf(LOG_LEVEL_INFO, "Network(): Peer connected from " + client->getRemoteAddress().toString() + ":" + std::to_string(client->getRemotePort()));
+            PeerInfo* peerInfo = new PeerInfo();
+            peerInfo->peer.reset(new Peer(client, blockchain, this));
+
+            Json::Value info;
+
+            try
+            {
+                info = peerInfo->peer->getInfo();
+            }
+            catch(Peer::NetworkError& e)
+            {
+                log->printf(LOG_LEVEL_WARN, "Network(): Failed to get information from connecting peer");
+                delete peerInfo;
+                continue;
+            }
+
+            peerInfo->info["height"] = info["tipHeight"];
+
+            std::time_t result = std::time(nullptr);
+            peerInfo->info["lastseen"] = std::asctime(std::localtime(&result));
+
+            connected[client->getRemoteAddress().toString()] = peerInfo;
+        }
+    }
+}
+
 unsigned int CryptoKernel::Network::getConnections()
 {
     return connected.size();
@@ -201,17 +247,17 @@ unsigned int CryptoKernel::Network::getConnections()
 
 void CryptoKernel::Network::broadcastTransactions(const std::vector<CryptoKernel::Blockchain::transaction> transactions)
 {
-    for(std::map<std::string, Peer*>::iterator it = connected.begin(); it != connected.end(); it++)
+    for(std::map<std::string, PeerInfo*>::iterator it = connected.begin(); it != connected.end(); it++)
     {
-        it->second->client->sendTransactions(transactions);
+        it->second->peer->sendTransactions(transactions);
     }
 }
 
 void CryptoKernel::Network::broadcastBlock(const CryptoKernel::Blockchain::block block)
 {
-    for(std::map<std::string, Peer*>::iterator it = connected.begin(); it != connected.end(); it++)
+    for(std::map<std::string, PeerInfo*>::iterator it = connected.begin(); it != connected.end(); it++)
     {
-        it->second->client->sendBlock(block);
+        it->second->peer->sendBlock(block);
     }
 }
 
@@ -219,7 +265,7 @@ double CryptoKernel::Network::syncProgress()
 {
     uint64_t currentHeight = blockchain->getBlock("tip").height;
     uint64_t bestHeight = currentHeight;
-    for(std::map<std::string, Peer*>::iterator it = connected.begin(); it != connected.end(); it++)
+    for(std::map<std::string, PeerInfo*>::iterator it = connected.begin(); it != connected.end(); it++)
     {
         if(it->second->info["height"].asUInt64() > bestHeight)
         {

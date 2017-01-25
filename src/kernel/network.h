@@ -4,7 +4,7 @@
 #include <memory>
 #include <thread>
 
-#include <jsonrpccpp/server/connectors/httpserver.h>
+#include <SFML/Network.hpp>
 
 #include "blockchain.h"
 
@@ -60,29 +60,29 @@ namespace CryptoKernel
             double syncProgress();
 
         private:
-            class Server;
-            class Client;
+            class Peer;
 
-            std::unique_ptr<jsonrpc::HttpServer> httpServer;
-            std::unique_ptr<Server> server;
-
-            CryptoKernel::Storage* peers;
-
-            std::unique_ptr<std::thread> networkThread;
-
-            void networkFunc();
-            bool running;
-
-            struct Peer
+            struct PeerInfo
             {
+                std::unique_ptr<Peer> peer;
                 Json::Value info;
-                std::unique_ptr<Client> client;
             };
-
-            std::map<std::string, Peer*> connected;
+            std::map<std::string, PeerInfo*> connected;
 
             CryptoKernel::Log* log;
             CryptoKernel::Blockchain* blockchain;
+
+            CryptoKernel::Storage* peers;
+
+            bool running;
+
+            void networkFunc();
+            std::unique_ptr<std::thread> networkThread;
+
+            void connectionFunc();
+            std::unique_ptr<std::thread> connectionThread;
+
+            sf::TcpListener listener;
     };
 }
 

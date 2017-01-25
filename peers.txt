@@ -1,1 +1,1 @@
-http://ec2-52-55-99-192.compute-1.amazonaws.com:49000/
+ec2-52-55-99-192.compute-1.amazonaws.com
