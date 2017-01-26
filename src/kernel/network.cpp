@@ -51,6 +51,7 @@ CryptoKernel::Network::~Network()
     running = false;
     connectionThread->join();
     networkThread->join();
+    listener.close();
     delete peers;
 
     for(std::map<std::string, PeerInfo*>::iterator it = connected.begin(); it != connected.end(); it++)
