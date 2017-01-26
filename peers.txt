@@ -1,1 +1,1 @@
-ec2-52-55-99-192.compute-1.amazonaws.com
+52.55.99.192

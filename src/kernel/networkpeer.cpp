@@ -21,8 +21,14 @@ CryptoKernel::Network::Peer::~Peer()
 
 Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value request)
 {
+    std::uniform_int_distribution<uint64_t> distribution(0, std::numeric_limits<uint64_t>::max());
+    const uint64_t nonce = distribution(generator);
+
+    Json::Value modifiedRequest = request;
+    modifiedRequest["nonce"] = static_cast<unsigned long long int>(nonce);
+
     sf::Packet packet;
-    packet << request.toStyledString();
+    packet << modifiedRequest.toStyledString();
 
     clientMutex.lock();
 
@@ -33,21 +39,25 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value request)
         throw NetworkError();
     }
 
-    packet.clear();
-
-    if(client->receive(packet) != sf::Socket::Done)
-    {
-        throw NetworkError();
-    }
-
     clientMutex.unlock();
 
-    std::string responseString;
-    packet >> responseString;
+    for(unsigned int t = 0; t < 250; t++)
+    {
+        clientMutex.lock();
+        std::map<uint64_t, Json::Value>::iterator it = responses.find(nonce);
+        if(it != responses.end())
+        {
+            const Json::Value returning = it->second;
+            it = responses.erase(it);
+            clientMutex.unlock();
+            return returning;
+        }
+        clientMutex.unlock();
 
-    const Json::Value returning = CryptoKernel::Storage::toJson(responseString);
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
 
-    return returning;
+    throw NetworkError();
 }
 
 void CryptoKernel::Network::Peer::send(const Json::Value response)
@@ -74,106 +84,123 @@ void CryptoKernel::Network::Peer::requestFunc()
 
             const Json::Value request = CryptoKernel::Storage::toJson(requestString);
 
-            if(request["command"] == "info")
+            if(!request["command"].empty())
             {
-                Json::Value response;
-                response["version"] = version;
-                response["tipHeight"] = blockchain->getBlock("tip").height;
-                send(response);
-            }
-            else if(request["command"] == "transactions")
-            {
-                std::vector<CryptoKernel::Blockchain::transaction> txs;
-                for(unsigned int i = 0; i < request["data"].size(); i++)
+                if(request["command"] == "info")
                 {
-                    const CryptoKernel::Blockchain::transaction tx = CryptoKernel::Blockchain::jsonToTransaction(request["data"][i]);
-                    if(blockchain->submitTransaction(tx))
-                    {
-                        txs.push_back(tx);
-                    }
+                    Json::Value response;
+                    response["data"]["version"] = version;
+                    response["data"]["tipHeight"] = blockchain->getBlock("tip").height;
+                    send(response);
                 }
-
-                clientMutex.unlock();
-
-                network->broadcastTransactions(txs);
-            }
-            else if(request["command"] == "block")
-            {
-                const CryptoKernel::Blockchain::block block = CryptoKernel::Blockchain::jsonToBlock(request["data"]);
-
-                bool blockExists = (blockchain->getBlock(block.id).id == block.id);
-
-                if(!blockExists)
+                else if(request["command"] == "transactions")
                 {
-                    if(blockchain->submitBlock(block))
+                    std::vector<CryptoKernel::Blockchain::transaction> txs;
+                    for(unsigned int i = 0; i < request["data"].size(); i++)
                     {
-                        clientMutex.unlock();
-                        network->broadcastBlock(block);
-                    }
-                }
-            }
-            else if(request["command"] == "getunconfirmed")
-            {
-                const std::vector<CryptoKernel::Blockchain::transaction> unconfirmedTransactions = blockchain->getUnconfirmedTransactions();
-                Json::Value response;
-                for(CryptoKernel::Blockchain::transaction tx : unconfirmedTransactions)
-                {
-                    response.append(CryptoKernel::Blockchain::transactionToJson(tx));
-                }
-
-                send(response);
-            }
-            else if(request["command"] == "getblocks")
-            {
-                const uint64_t start = request["data"]["start"].asUInt64();
-                const uint64_t end = request["data"]["end"].asUInt64();
-                std::vector<CryptoKernel::Blockchain::block> blocks;
-                if(end > start && (end - start) <= 500)
-                {
-                    CryptoKernel::Blockchain::block currentBlock = blockchain->getBlock("tip");
-                    while(currentBlock.height > 0 && currentBlock.height > end)
-                    {
-                        currentBlock = blockchain->getBlock(currentBlock.previousBlockId);
+                        const CryptoKernel::Blockchain::transaction tx = CryptoKernel::Blockchain::jsonToTransaction(request["data"][i]);
+                        if(blockchain->submitTransaction(tx))
+                        {
+                            txs.push_back(tx);
+                        }
                     }
 
-                    while(currentBlock.height >= start && currentBlock.height > 0)
-                    {
-                        blocks.push_back(currentBlock);
-                        currentBlock = blockchain->getBlock(currentBlock.previousBlockId);
-                    }
+                    clientMutex.unlock();
 
-                    std::reverse(blocks.begin(), blocks.end());
-
-                    Json::Value returning;
-                    for(CryptoKernel::Blockchain::block block : blocks)
-                    {
-                        returning["data"].append(CryptoKernel::Blockchain::blockToJson(block));
-                    }
-
-                    send(returning);
+                    network->broadcastTransactions(txs);
                 }
-                else
+                else if(request["command"] == "block")
                 {
-                    send(Json::Value());
+                    const CryptoKernel::Blockchain::block block = CryptoKernel::Blockchain::jsonToBlock(request["data"]);
+
+                    bool blockExists = (blockchain->getBlock(block.id).id == block.id);
+
+                    if(!blockExists)
+                    {
+                        if(blockchain->submitBlock(block))
+                        {
+                            clientMutex.unlock();
+                            network->broadcastBlock(block);
+                        }
+                    }
+                }
+                else if(request["command"] == "getunconfirmed")
+                {
+                    const std::vector<CryptoKernel::Blockchain::transaction> unconfirmedTransactions = blockchain->getUnconfirmedTransactions();
+                    Json::Value response;
+                    for(CryptoKernel::Blockchain::transaction tx : unconfirmedTransactions)
+                    {
+                        response["data"].append(CryptoKernel::Blockchain::transactionToJson(tx));
+                    }
+
+                    send(response);
+                }
+                else if(request["command"] == "getblocks")
+                {
+                    const uint64_t start = request["data"]["start"].asUInt64();
+                    const uint64_t end = request["data"]["end"].asUInt64();
+                    std::vector<CryptoKernel::Blockchain::block> blocks;
+                    if(end > start && (end - start) <= 500)
+                    {
+                        CryptoKernel::Blockchain::block currentBlock = blockchain->getBlock("tip");
+                        while(currentBlock.height > 0 && currentBlock.height > end)
+                        {
+                            currentBlock = blockchain->getBlock(currentBlock.previousBlockId);
+                        }
+
+                        while(currentBlock.height >= start && currentBlock.height > 0)
+                        {
+                            blocks.push_back(currentBlock);
+                            currentBlock = blockchain->getBlock(currentBlock.previousBlockId);
+                        }
+
+                        std::reverse(blocks.begin(), blocks.end());
+
+                        Json::Value returning;
+                        for(CryptoKernel::Blockchain::block block : blocks)
+                        {
+                            returning["data"].append(CryptoKernel::Blockchain::blockToJson(block));
+                        }
+
+                        send(returning);
+                    }
+                    else
+                    {
+                        send(Json::Value());
+                    }
+                }
+                else if(request["command"] == "getblock")
+                {
+                    if(request["data"]["id"].empty())
+                    {
+                        CryptoKernel::Blockchain::block currentBlock = blockchain->getBlock("tip");
+                        while(currentBlock.height > 0 && currentBlock.height != request["data"]["height"].asUInt64())
+                        {
+                            currentBlock = blockchain->getBlock(currentBlock.previousBlockId);
+                        }
+
+                        Json::Value response;
+                        response["data"] = CryptoKernel::Blockchain::blockToJson(currentBlock);
+
+                        send(response);
+                    }
+                    else
+                    {
+                        Json::Value response;
+                        response["data"] = CryptoKernel::Blockchain::blockToJson(blockchain->getBlock(request["data"]["id"].asString()));
+                        send(response);
+                    }
                 }
             }
-            else if(request["command"] == "getblock")
+            else if(!request["nonce"].empty())
             {
-                if(request["data"]["id"].empty())
-                {
-                    CryptoKernel::Blockchain::block currentBlock = blockchain->getBlock("tip");
-                    while(currentBlock.height > 0 && currentBlock.height != request["data"]["height"].asUInt64())
-                    {
-                        currentBlock = blockchain->getBlock(currentBlock.previousBlockId);
-                    }
-
-                    send(CryptoKernel::Blockchain::blockToJson(currentBlock));
-                }
-                else
-                {
-                    send(CryptoKernel::Blockchain::blockToJson(blockchain->getBlock(request["data"]["id"].asString())));
-                }
+                responses[request["nonce"].asUInt64()] = request["data"];
             }
+        }
+        else
+        {
+            clientMutex.unlock();
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
 
         clientMutex.unlock();
@@ -185,7 +212,7 @@ Json::Value CryptoKernel::Network::Peer::getInfo()
     Json::Value request;
     request["command"] = "info";
 
-    return sendRecv(request);
+    return sendRecv(request)["data"];
 }
 
 void CryptoKernel::Network::Peer::sendTransactions(const std::vector<CryptoKernel::Blockchain::transaction> transactions)
@@ -217,7 +244,7 @@ std::vector<CryptoKernel::Blockchain::transaction> CryptoKernel::Network::Peer::
 {
     Json::Value request;
     request["command"] = "getunconfirmed";
-    Json::Value unconfirmed = sendRecv(request);
+    Json::Value unconfirmed = sendRecv(request)["data"];
 
     std::vector<CryptoKernel::Blockchain::transaction> returning;
     for(unsigned int i = 0; i < unconfirmed.size(); i++)
@@ -236,12 +263,12 @@ CryptoKernel::Blockchain::block CryptoKernel::Network::Peer::getBlock(const uint
     if(id != "")
     {
         request["data"]["id"] = id;
-        block = sendRecv(request);
+        block = sendRecv(request)["data"];
     }
     else
     {
         request["data"]["height"] = static_cast<unsigned long long int>(height);
-        block = sendRecv(request);
+        block = sendRecv(request)["data"];
     }
 
     return CryptoKernel::Blockchain::jsonToBlock(block);

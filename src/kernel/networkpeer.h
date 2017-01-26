@@ -1,9 +1,11 @@
 #ifndef NETWORKPEER_H_INCLUDED
 #define NETWORKPEER_H_INCLUDED
 
-#include "network.h"
+#include <random>
 
 #include <SFML/Network.hpp>
+
+#include "network.h"
 
 class CryptoKernel::Network::Peer
 {
@@ -37,6 +39,10 @@ class CryptoKernel::Network::Peer
         void requestFunc();
         bool running;
         std::unique_ptr<std::thread> requestThread;
+
+        std::map<uint64_t, Json::Value> responses;
+
+        std::default_random_engine generator;
 };
 
 #endif // NETWORKPEER_H_INCLUDED
