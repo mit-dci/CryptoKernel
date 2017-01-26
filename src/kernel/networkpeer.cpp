@@ -18,6 +18,7 @@ CryptoKernel::Network::Peer::Peer(sf::TcpSocket* client, CryptoKernel::Blockchai
 
 CryptoKernel::Network::Peer::~Peer()
 {
+    clientMutex.lock();
     running = false;
     requestThread->join();
     client->disconnect();
@@ -41,6 +42,8 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value request)
 
     if(client->send(packet) != sf::Socket::Done)
     {
+        clientMutex.unlock();
+        running = false;
         throw NetworkError();
     }
 
@@ -63,6 +66,8 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value request)
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
 
+    running = false;
+    clientMutex.unlock();
     throw NetworkError();
 }
 
@@ -71,20 +76,24 @@ void CryptoKernel::Network::Peer::send(const Json::Value response)
     sf::Packet packet;
     packet << response.toStyledString();
 
+    clientMutex.lock();
     client->setBlocking(true);
     client->send(packet);
+    clientMutex.unlock();
 }
 
 void CryptoKernel::Network::Peer::requestFunc()
 {
     while(running)
     {
-        clientMutex.lock();
         sf::Packet packet;
+
+        clientMutex.lock();
         client->setBlocking(false);
 
         if(client->receive(packet) == sf::Socket::Done)
         {
+            clientMutex.unlock();
             std::string requestString;
             packet >> requestString;
 
@@ -112,8 +121,6 @@ void CryptoKernel::Network::Peer::requestFunc()
                         }
                     }
 
-                    clientMutex.unlock();
-
                     network->broadcastTransactions(txs);
                 }
                 else if(request["command"] == "block")
@@ -126,7 +133,6 @@ void CryptoKernel::Network::Peer::requestFunc()
                     {
                         if(blockchain->submitBlock(block))
                         {
-                            clientMutex.unlock();
                             network->broadcastBlock(block);
                         }
                     }
@@ -210,7 +216,9 @@ void CryptoKernel::Network::Peer::requestFunc()
             }
             else if(!request["nonce"].empty())
             {
+                clientMutex.lock();
                 responses[request["nonce"].asUInt64()] = request["data"];
+                clientMutex.unlock();
             }
         }
         else
@@ -218,8 +226,6 @@ void CryptoKernel::Network::Peer::requestFunc()
             clientMutex.unlock();
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
-
-        clientMutex.unlock();
     }
 }
 
@@ -240,9 +246,7 @@ void CryptoKernel::Network::Peer::sendTransactions(const std::vector<CryptoKerne
         request["data"].append(CryptoKernel::Blockchain::transactionToJson(tx));
     }
 
-    clientMutex.lock();
     send(request);
-    clientMutex.unlock();
 }
 
 void CryptoKernel::Network::Peer::sendBlock(const CryptoKernel::Blockchain::block block)
@@ -251,9 +255,7 @@ void CryptoKernel::Network::Peer::sendBlock(const CryptoKernel::Blockchain::bloc
     request["command"] = "block";
     request["data"] = CryptoKernel::Blockchain::blockToJson(block);
 
-    clientMutex.lock();
     send(request);
-    clientMutex.unlock();
 }
 
 std::vector<CryptoKernel::Blockchain::transaction> CryptoKernel::Network::Peer::getUnconfirmedTransactions()
