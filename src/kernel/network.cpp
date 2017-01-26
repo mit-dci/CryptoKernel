@@ -109,6 +109,8 @@ void CryptoKernel::Network::networkFunc()
 
                 log->printf(LOG_LEVEL_INFO, "Network(): Successfully connected to " + seeds[i]["url"].asString());
 
+                log->printf(LOG_LEVEL_INFO, info.toStyledString());
+
                 // Update info
                 seeds[i]["height"] = info["tipHeight"];
 

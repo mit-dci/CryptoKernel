@@ -1,3 +1,5 @@
+#include <chrono>
+
 #include "version.h"
 #include "networkpeer.h"
 
@@ -7,6 +9,9 @@ CryptoKernel::Network::Peer::Peer(sf::TcpSocket* client, CryptoKernel::Blockchai
     this->blockchain = blockchain;
     this->network = network;
     running = true;
+
+    time_t t = std::time(0);
+    generator.seed(static_cast<uint64_t> (t));
 
     requestThread.reset(new std::thread(&CryptoKernel::Network::Peer::requestFunc, this));
 }
@@ -48,6 +53,7 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value request)
         if(it != responses.end())
         {
             const Json::Value returning = it->second;
+            std::string test = returning.toStyledString();
             it = responses.erase(it);
             clientMutex.unlock();
             return returning;
@@ -222,7 +228,7 @@ Json::Value CryptoKernel::Network::Peer::getInfo()
     Json::Value request;
     request["command"] = "info";
 
-    return sendRecv(request)["data"];
+    return sendRecv(request);
 }
 
 void CryptoKernel::Network::Peer::sendTransactions(const std::vector<CryptoKernel::Blockchain::transaction> transactions)
@@ -254,7 +260,7 @@ std::vector<CryptoKernel::Blockchain::transaction> CryptoKernel::Network::Peer::
 {
     Json::Value request;
     request["command"] = "getunconfirmed";
-    Json::Value unconfirmed = sendRecv(request)["data"];
+    Json::Value unconfirmed = sendRecv(request);
 
     std::vector<CryptoKernel::Blockchain::transaction> returning;
     for(unsigned int i = 0; i < unconfirmed.size(); i++)
@@ -273,12 +279,12 @@ CryptoKernel::Blockchain::block CryptoKernel::Network::Peer::getBlock(const uint
     if(id != "")
     {
         request["data"]["id"] = id;
-        block = sendRecv(request)["data"];
+        block = sendRecv(request);
     }
     else
     {
         request["data"]["height"] = static_cast<unsigned long long int>(height);
-        block = sendRecv(request)["data"];
+        block = sendRecv(request);
     }
 
     return CryptoKernel::Blockchain::jsonToBlock(block);
@@ -290,7 +296,7 @@ std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Peer::getBlo
     request["command"] = "getblocks";
     request["data"]["start"] = static_cast<unsigned long long int>(start);
     request["data"]["end"] = static_cast<unsigned long long int>(end);
-    Json::Value blocks = sendRecv(request)["data"];
+    Json::Value blocks = sendRecv(request);
 
     std::vector<CryptoKernel::Blockchain::block> returning;
     for(unsigned int i = 0; i < blocks.size(); i++)
