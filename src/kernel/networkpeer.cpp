@@ -77,7 +77,7 @@ void CryptoKernel::Network::Peer::requestFunc()
         sf::Packet packet;
         client->setBlocking(false);
 
-        if(client->receive(packet) != sf::Socket::NotReady)
+        if(client->receive(packet) == sf::Socket::Done)
         {
             std::string requestString;
             packet >> requestString;
@@ -91,6 +91,7 @@ void CryptoKernel::Network::Peer::requestFunc()
                     Json::Value response;
                     response["data"]["version"] = version;
                     response["data"]["tipHeight"] = blockchain->getBlock("tip").height;
+                    response["nonce"] = request["nonce"];
                     send(response);
                 }
                 else if(request["command"] == "transactions")
@@ -133,6 +134,8 @@ void CryptoKernel::Network::Peer::requestFunc()
                         response["data"].append(CryptoKernel::Blockchain::transactionToJson(tx));
                     }
 
+                    response["nonce"] = request["nonce"];
+
                     send(response);
                 }
                 else if(request["command"] == "getblocks")
@@ -162,11 +165,15 @@ void CryptoKernel::Network::Peer::requestFunc()
                             returning["data"].append(CryptoKernel::Blockchain::blockToJson(block));
                         }
 
+                        returning["nonce"] = request["nonce"];
+
                         send(returning);
                     }
                     else
                     {
-                        send(Json::Value());
+                        Json::Value response;
+                        response["nonce"] = request["nonce"];
+                        send(response);
                     }
                 }
                 else if(request["command"] == "getblock")
@@ -182,12 +189,15 @@ void CryptoKernel::Network::Peer::requestFunc()
                         Json::Value response;
                         response["data"] = CryptoKernel::Blockchain::blockToJson(currentBlock);
 
+                        response["nonce"] = request["nonce"];
+
                         send(response);
                     }
                     else
                     {
                         Json::Value response;
                         response["data"] = CryptoKernel::Blockchain::blockToJson(blockchain->getBlock(request["data"]["id"].asString()));
+                        response["nonce"] = request["nonce"];
                         send(response);
                     }
                 }
