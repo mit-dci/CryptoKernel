@@ -133,6 +133,7 @@ void CryptoKernel::Network::networkFunc()
             }
             catch(Peer::NetworkError& e)
             {
+                log->printf(LOG_LEVEL_WARN, "Network(): Failed to contact " + it->first + ", disconnecting it");
                 delete it->second;
                 it = connected.erase(it);
             }
