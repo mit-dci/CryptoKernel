@@ -49,14 +49,13 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value request)
 
     clientMutex.unlock();
 
-    for(unsigned int t = 0; t < 250; t++)
+    for(unsigned int t = 0; t < 150; t++)
     {
         clientMutex.lock();
         std::map<uint64_t, Json::Value>::iterator it = responses.find(nonce);
         if(it != responses.end())
         {
             const Json::Value returning = it->second;
-            std::string test = returning.toStyledString();
             it = responses.erase(it);
             clientMutex.unlock();
             return returning;
