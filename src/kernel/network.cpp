@@ -53,11 +53,6 @@ CryptoKernel::Network::~Network()
     networkThread->join();
     listener.close();
     delete peers;
-
-    for(std::map<std::string, PeerInfo*>::iterator it = connected.begin(); it != connected.end(); it++)
-    {
-        delete it->second;
-    }
 }
 
 void CryptoKernel::Network::networkFunc()
@@ -75,7 +70,7 @@ void CryptoKernel::Network::networkFunc()
                     break;
                 }
 
-                std::map<std::string, PeerInfo*>::iterator it = connected.find(seeds[i]["url"].asString());
+                std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.find(seeds[i]["url"].asString());
                 if(it != connected.end())
                 {
                     continue;
@@ -118,11 +113,11 @@ void CryptoKernel::Network::networkFunc()
 
                 peerInfo->info = seeds[i];
 
-                connected[seeds[i]["url"].asString()] = peerInfo;
+                connected[seeds[i]["url"].asString()].reset(peerInfo);
             }
         }
 
-        for(std::map<std::string, PeerInfo*>::iterator it = connected.begin(); it != connected.end(); it++)
+        for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin(); it != connected.end(); it++)
         {
             try
             {
@@ -134,8 +129,11 @@ void CryptoKernel::Network::networkFunc()
             catch(Peer::NetworkError& e)
             {
                 log->printf(LOG_LEVEL_WARN, "Network(): Failed to contact " + it->first + ", disconnecting it");
-                delete it->second;
                 it = connected.erase(it);
+                if(connected.size() < 1)
+                {
+                    break;
+                }
             }
         }
 
@@ -144,7 +142,7 @@ void CryptoKernel::Network::networkFunc()
         //Determine best chain
         uint64_t currentHeight = blockchain->getBlock("tip").height;
         uint64_t bestHeight = currentHeight;
-        for(std::map<std::string, PeerInfo*>::iterator it = connected.begin(); it != connected.end(); it++)
+        for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin(); it != connected.end(); it++)
         {
             if(it->second->info["height"].asUInt64() > bestHeight)
             {
@@ -157,7 +155,7 @@ void CryptoKernel::Network::networkFunc()
         //Detect if we are behind
         if(bestHeight > currentHeight)
         {
-            for(std::map<std::string, PeerInfo*>::iterator it = connected.begin(); it != connected.end(); it++)
+            for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin(); it != connected.end(); it++)
             {
                 if(it->second->info["height"].asUInt64() > currentHeight)
                 {
@@ -198,7 +196,7 @@ void CryptoKernel::Network::networkFunc()
 
         if(bestHeight == currentHeight)
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(30000));
+            std::this_thread::sleep_for(std::chrono::milliseconds(5000));
         }
     }
 }
@@ -232,7 +230,7 @@ void CryptoKernel::Network::connectionFunc()
             std::time_t result = std::time(nullptr);
             peerInfo->info["lastseen"] = std::asctime(std::localtime(&result));
 
-            connected[client->getRemoteAddress().toString()] = peerInfo;
+            connected[client->getRemoteAddress().toString()].reset(peerInfo);
         }
         else
         {
@@ -249,7 +247,7 @@ unsigned int CryptoKernel::Network::getConnections()
 
 void CryptoKernel::Network::broadcastTransactions(const std::vector<CryptoKernel::Blockchain::transaction> transactions)
 {
-    for(std::map<std::string, PeerInfo*>::iterator it = connected.begin(); it != connected.end(); it++)
+    for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin(); it != connected.end(); it++)
     {
         it->second->peer->sendTransactions(transactions);
     }
@@ -257,7 +255,7 @@ void CryptoKernel::Network::broadcastTransactions(const std::vector<CryptoKernel
 
 void CryptoKernel::Network::broadcastBlock(const CryptoKernel::Blockchain::block block)
 {
-    for(std::map<std::string, PeerInfo*>::iterator it = connected.begin(); it != connected.end(); it++)
+    for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin(); it != connected.end(); it++)
     {
         it->second->peer->sendBlock(block);
     }
@@ -267,7 +265,7 @@ double CryptoKernel::Network::syncProgress()
 {
     uint64_t currentHeight = blockchain->getBlock("tip").height;
     uint64_t bestHeight = currentHeight;
-    for(std::map<std::string, PeerInfo*>::iterator it = connected.begin(); it != connected.end(); it++)
+    for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin(); it != connected.end(); it++)
     {
         if(it->second->info["height"].asUInt64() > bestHeight)
         {

@@ -67,7 +67,7 @@ namespace CryptoKernel
                 std::unique_ptr<Peer> peer;
                 Json::Value info;
             };
-            std::map<std::string, PeerInfo*> connected;
+            std::map<std::string, std::unique_ptr<PeerInfo>> connected;
 
             CryptoKernel::Log* log;
             CryptoKernel::Blockchain* blockchain;
