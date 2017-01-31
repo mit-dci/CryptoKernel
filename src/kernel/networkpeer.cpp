@@ -120,7 +120,10 @@ void CryptoKernel::Network::Peer::requestFunc()
                         }
                     }
 
-                    network->broadcastTransactions(txs);
+                    if(txs.size() > 0)
+                    {
+                        network->broadcastTransactions(txs);
+                    }
                 }
                 else if(request["command"] == "block")
                 {

@@ -192,7 +192,7 @@ void CryptoKernel::Network::networkFunc()
         }
 
         //Rebroadcast unconfirmed transactions
-        broadcastTransactions(blockchain->getUnconfirmedTransactions());
+        //broadcastTransactions(blockchain->getUnconfirmedTransactions());
 
         if(bestHeight == currentHeight)
         {
