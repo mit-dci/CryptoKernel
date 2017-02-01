@@ -82,7 +82,6 @@
 				<Linker>
 					<Add option="-ljsoncpp" />
 					<Add option="-pthread" />
-					<Add option="-lenet" />
 					<Add option="-lcrypto" />
 					<Add option="-lleveldb" />
 					<Add option="-lmicrohttpd" />
@@ -99,10 +98,10 @@
 			<Add option="-std=c++14" />
 			<Add directory="src/client" />
 			<Add directory="src/kernel" />
+			<Add directory="/usr/include/lua5.3" />
 		</Compiler>
 		<Linker>
 			<Add option="-lcrypto" />
-			<Add option="-lenet" />
 			<Add option="-pthread" />
 			<Add option="-lleveldb" />
 			<Add option="-ljsoncpp" />
