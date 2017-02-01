@@ -70,7 +70,7 @@ namespace CryptoKernel
             static block jsonToBlock(Json::Value Block);
             static transaction jsonToTransaction(Json::Value tx);
             static output jsonToOutput(Json::Value Output);
-            std::string calculatePoW(block Block);
+            std::string calculatePoW(const block& Block);
             block getBlock(std::string id);
 
             /**

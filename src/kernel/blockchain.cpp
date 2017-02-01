@@ -957,7 +957,7 @@ uint64_t CryptoKernel::Blockchain::calculateTransactionFee(transaction tx)
     return inputTotal - outputTotal;
 }
 
-std::string CryptoKernel::Blockchain::calculatePoW(block Block)
+std::string CryptoKernel::Blockchain::calculatePoW(const block& Block)
 {
     std::stringstream buffer;
     buffer << Block.id << Block.nonce;
