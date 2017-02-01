@@ -20,6 +20,7 @@
 
 #include "cryptoserver.h"
 #include "version.h"
+#include "contract.h"
 
 CryptoServer::CryptoServer(jsonrpc::AbstractServerConnector &connector) : CryptoRPCServer(connector)
 {
@@ -124,4 +125,9 @@ Json::Value CryptoServer::listunspentoutputs(const std::string& account)
     }
 
     return returning;
+}
+
+std::string CryptoServer::compilecontract(const std::string& code)
+{
+    return CryptoKernel::ContractRunner::compile(code);
 }

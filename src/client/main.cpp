@@ -193,7 +193,19 @@ int main(int argc, char* argv[])
                 }
                 else
                 {
-                    std::cout << "Usage: listunspentinputs [accountname]" << std::endl;
+                    std::cout << "Usage: listunspentoutputs [accountname]" << std::endl;
+                }
+            }
+            else if(command == "compilecontract")
+            {
+                if(argc == 3)
+                {
+                    std::string code(argv[2]);
+                    std::cout << client.compilecontract(code) << std::endl;
+                }
+                else
+                {
+                    std::cout << "Usage: compilecontract [code]" << std::endl;
                 }
             }
         }

@@ -87,6 +87,16 @@ class CryptoClient : public jsonrpc::Client
             else
                 throw jsonrpc::JsonRpcException(jsonrpc::Errors::ERROR_CLIENT_INVALID_RESPONSE, result.toStyledString());
         }
+        std::string compilecontract(const std::string& code) throw (jsonrpc::JsonRpcException)
+        {
+            Json::Value p;
+            p["code"] = code;
+            Json::Value result = this->CallMethod("compilecontract",p);
+            if (result.isString())
+                return result.asString();
+            else
+                throw jsonrpc::JsonRpcException(jsonrpc::Errors::ERROR_CLIENT_INVALID_RESPONSE, result.toStyledString());
+        }
 };
 
 #endif //JSONRPC_CPP_STUB_CRYPTOCLIENT_H_
