@@ -132,7 +132,7 @@ int main(int argc, char* argv[])
 
         jsonrpc::HttpServer httpserver(8383);
         CryptoServer server(httpserver);
-        server.setWallet(&wallet, &blockchain);
+        server.setWallet(&wallet, &blockchain, &network);
         server.StartListening();
 
         while(true)

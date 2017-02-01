@@ -19,28 +19,32 @@
 #include <iomanip>
 
 #include "cryptoserver.h"
+#include "version.h"
 
 CryptoServer::CryptoServer(jsonrpc::AbstractServerConnector &connector) : CryptoRPCServer(connector)
 {
 
 }
 
-void CryptoServer::setWallet(CryptoCurrency::Wallet* Wallet, CryptoKernel::Blockchain* Blockchain)
+void CryptoServer::setWallet(CryptoCurrency::Wallet* Wallet, CryptoKernel::Blockchain* Blockchain, CryptoKernel::Network* Network)
 {
     wallet = Wallet;
     blockchain = Blockchain;
+    network = Network;
 }
 
 Json::Value CryptoServer::getinfo()
 {
     Json::Value returning;
 
-    returning["version"] = "1.0.1";
+    returning["RPC Version"] = "1.1.0";
+    returning["CK Version"] = version;
     double balance = wallet->getTotalBalance() / 100000000.0;
     std::stringstream buffer;
     buffer << std::setprecision(8) << balance;
     returning["balance"] = buffer.str();
     returning["height"] = blockchain->getBlock("tip").height;
+    returning["connections"] = network->getConnections();
 
     return returning;
 }
