@@ -28,41 +28,44 @@ CryptoKernel::Network::Peer::~Peer()
 Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value request)
 {
     std::uniform_int_distribution<uint64_t> distribution(0, std::numeric_limits<uint64_t>::max());
-    const uint64_t nonce = distribution(generator);
-
-    Json::Value modifiedRequest = request;
-    modifiedRequest["nonce"] = static_cast<unsigned long long int>(nonce);
-
-    sf::Packet packet;
-    packet << modifiedRequest.toStyledString();
-
-    clientMutex.lock();
-
-    client->setBlocking(true);
-
-    if(client->send(packet) != sf::Socket::Done)
+    for(unsigned int tries = 0; tries < 3; tries++)
     {
-        clientMutex.unlock();
-        running = false;
-        throw NetworkError();
-    }
+        const uint64_t nonce = distribution(generator);
 
-    clientMutex.unlock();
+        Json::Value modifiedRequest = request;
+        modifiedRequest["nonce"] = static_cast<unsigned long long int>(nonce);
 
-    for(unsigned int t = 0; t < 120; t++)
-    {
+        sf::Packet packet;
+        packet << modifiedRequest.toStyledString();
+
         clientMutex.lock();
-        std::map<uint64_t, Json::Value>::iterator it = responses.find(nonce);
-        if(it != responses.end())
+
+        client->setBlocking(true);
+
+        if(client->send(packet) != sf::Socket::Done)
         {
-            const Json::Value returning = it->second;
-            it = responses.erase(it);
             clientMutex.unlock();
-            return returning;
+            running = false;
+            throw NetworkError();
         }
+
         clientMutex.unlock();
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(25));
+        for(unsigned int t = 0; t < 120; t++)
+        {
+            clientMutex.lock();
+            std::map<uint64_t, Json::Value>::iterator it = responses.find(nonce);
+            if(it != responses.end())
+            {
+                const Json::Value returning = it->second;
+                it = responses.erase(it);
+                clientMutex.unlock();
+                return returning;
+            }
+            clientMutex.unlock();
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(25));
+        }
     }
 
     running = false;
@@ -77,7 +80,11 @@ void CryptoKernel::Network::Peer::send(const Json::Value response)
 
     clientMutex.lock();
     client->setBlocking(true);
-    client->send(packet);
+    if(client->send(packet) != sf::Socket::Done)
+    {
+        clientMutex.unlock();
+        throw NetworkError();
+    }
     clientMutex.unlock();
 }
 
