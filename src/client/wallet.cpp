@@ -268,3 +268,20 @@ void CryptoCurrency::Wallet::rescan()
         updateAddressBalance((*it2).name, blockchain->getBalance((*it2).publicKey));
     }
 }
+
+std::vector<CryptoCurrency::Wallet::address> CryptoCurrency::Wallet::listAddresses()
+{
+    rescan();
+
+    std::vector<address> tempAddresses;
+    CryptoKernel::Storage::Iterator* it = addresses->newIterator();
+    for(it->SeekToFirst(); it->Valid(); it->Next())
+    {
+        address Address;
+        Address = jsonToAddress(it->value());
+        tempAddresses.push_back(Address);
+    }
+    delete it;
+
+    return tempAddresses;
+}

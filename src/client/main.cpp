@@ -180,6 +180,22 @@ int main(int argc, char* argv[])
                     std::cout << "Usage: sendtoaddress [address] [amount] [fee]" << std::endl;
                 }
             }
+            else if(command == "listaccounts")
+            {
+                std::cout << CryptoKernel::Storage::toString(client.listaccounts()) << std::endl;
+            }
+            else if(command == "listunspentoutputs")
+            {
+                if(argc == 3)
+                {
+                    std::string name(argv[2]);
+                    std::cout << CryptoKernel::Storage::toString(client.listunspentoutputs(name)) << std::endl;
+                }
+                else
+                {
+                    std::cout << "Usage: listunspentinputs [accountname]" << std::endl;
+                }
+            }
         }
         catch(jsonrpc::JsonRpcException e)
         {

@@ -45,13 +45,16 @@ namespace CryptoCurrency
             double getTotalBalance();
             void rescan();
 
+            std::vector<address> listAddresses();
+            Json::Value addressToJson(address Address);
+            address jsonToAddress(Json::Value Address);
+
         private:
             CryptoKernel::Storage* addresses;
             CryptoKernel::Log* log;
-            Json::Value addressToJson(address Address);
+
             CryptoKernel::Blockchain* blockchain;
             CryptoKernel::Network* network;
-            address jsonToAddress(Json::Value Address);
     };
 }
 

@@ -45,6 +45,16 @@ class CryptoClient : public jsonrpc::Client
             else
                 throw jsonrpc::JsonRpcException(jsonrpc::Errors::ERROR_CLIENT_INVALID_RESPONSE, result.toStyledString());
         }
+        Json::Value listunspentoutputs(const std::string& account) throw (jsonrpc::JsonRpcException)
+        {
+            Json::Value p;
+            p["account"] = account;
+            Json::Value result = this->CallMethod("listunspentoutputs",p);
+            if (result.isObject())
+                return result;
+            else
+                throw jsonrpc::JsonRpcException(jsonrpc::Errors::ERROR_CLIENT_INVALID_RESPONSE, result.toStyledString());
+        }
         bool sendtoaddress(const std::string& address, double amount, double fee) throw (jsonrpc::JsonRpcException)
         {
             Json::Value p;
@@ -54,6 +64,26 @@ class CryptoClient : public jsonrpc::Client
             Json::Value result = this->CallMethod("sendtoaddress",p);
             if (result.isBool())
                 return result.asBool();
+            else
+                throw jsonrpc::JsonRpcException(jsonrpc::Errors::ERROR_CLIENT_INVALID_RESPONSE, result.toStyledString());
+        }
+        bool sendrawtransaction(const Json::Value tx) throw (jsonrpc::JsonRpcException)
+        {
+            Json::Value p;
+            p["transaction"] = tx;
+            Json::Value result = this->CallMethod("sendrawtransaction",p);
+            if (result.isBool())
+                return result.asBool();
+            else
+                throw jsonrpc::JsonRpcException(jsonrpc::Errors::ERROR_CLIENT_INVALID_RESPONSE, result.toStyledString());
+        }
+        Json::Value listaccounts() throw (jsonrpc::JsonRpcException)
+        {
+            Json::Value p;
+            p = Json::nullValue;
+            Json::Value result = this->CallMethod("listaccounts",p);
+            if (result.isObject())
+                return result;
             else
                 throw jsonrpc::JsonRpcException(jsonrpc::Errors::ERROR_CLIENT_INVALID_RESPONSE, result.toStyledString());
         }

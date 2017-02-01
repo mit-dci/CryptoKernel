@@ -73,3 +73,55 @@ bool CryptoServer::sendtoaddress(const std::string& address, double amount, doub
     uint64_t Fee = fee * 100000000;
     return wallet->sendToAddress(address, Amount, Fee);
 }
+
+bool CryptoServer::sendrawtransaction(const Json::Value tx)
+{
+    const CryptoKernel::Blockchain::transaction transaction = CryptoKernel::Blockchain::jsonToTransaction(tx);
+    if(blockchain->submitTransaction(transaction))
+    {
+        std::vector<CryptoKernel::Blockchain::transaction> txs;
+        txs.push_back(transaction);
+        network->broadcastTransactions(txs);
+        return true;
+    }
+
+    return false;
+}
+
+Json::Value CryptoServer::listaccounts()
+{
+    Json::Value returning;
+
+    const std::vector<CryptoCurrency::Wallet::address> accounts = wallet->listAddresses();
+
+    for(CryptoCurrency::Wallet::address addr : accounts)
+    {
+        Json::Value account;
+        account["name"] = addr.name;
+        double balance = addr.balance / 100000000.0;
+        std::stringstream buffer;
+        buffer << std::setprecision(8) << balance;
+        account["balance"] = buffer.str();
+        account["address"] = addr.publicKey;
+
+        returning["accounts"].append(account);
+    }
+
+    return returning;
+}
+
+Json::Value CryptoServer::listunspentoutputs(const std::string& account)
+{
+    CryptoCurrency::Wallet::address addr = wallet->getAddressByName(account);
+
+    const std::vector<CryptoKernel::Blockchain::output> utxos = blockchain->getUnspentOutputs(addr.publicKey);
+
+    Json::Value returning;
+
+    for(CryptoKernel::Blockchain::output output : utxos)
+    {
+        returning["outputs"].append(CryptoKernel::Blockchain::outputToJson(output));
+    }
+
+    return returning;
+}
