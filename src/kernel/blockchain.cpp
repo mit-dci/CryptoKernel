@@ -79,7 +79,7 @@ bool CryptoKernel::Blockchain::loadChain()
         submitBlock(Block, true);*/
     }
 
-    reindexChain(chainTipId);
+    //reindexChain(chainTipId);
 
     status = true;
 
