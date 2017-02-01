@@ -121,7 +121,17 @@ void CryptoKernel::Network::Peer::requestFunc()
                     for(unsigned int i = 0; i < request["data"].size(); i++)
                     {
                         const CryptoKernel::Blockchain::transaction tx = CryptoKernel::Blockchain::jsonToTransaction(request["data"][i]);
-                        if(blockchain->submitTransaction(tx))
+                        const std::vector<CryptoKernel::Blockchain::transaction> unconfirmedTransactions = blockchain->getUnconfirmedTransactions();
+                        bool found = false;
+                        for(CryptoKernel::Blockchain::transaction utx : unconfirmedTransactions)
+                        {
+                            if(utx.id == tx.id)
+                            {
+                                found = true;
+                                break;
+                            }
+                        }
+                        if(blockchain->submitTransaction(tx) && !found)
                         {
                             txs.push_back(tx);
                         }
