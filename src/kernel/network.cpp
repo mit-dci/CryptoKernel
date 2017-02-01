@@ -1,5 +1,6 @@
 #include "network.h"
 #include "networkpeer.h"
+#include "version.h"
 
 CryptoKernel::Network::Network(CryptoKernel::Log* log, CryptoKernel::Blockchain* blockchain)
 {
@@ -122,6 +123,12 @@ void CryptoKernel::Network::networkFunc()
             try
             {
                 const Json::Value info = it->second->peer->getInfo();
+                const std::string peerVersion = info["version"].asString();
+                if(peerVersion.substr(0, peerVersion.find(".")) != version.substr(0, version.find(".")))
+                {
+                    log->printf(LOG_LEVEL_WARN, "Network(): " + it->first + " has a different major version than us");
+                    throw Peer::NetworkError();
+                }
                 it->second->info["height"] = info["tipHeight"];
                 std::time_t result = std::time(nullptr);
                 it->second->info["lastseen"] = std::asctime(std::localtime(&result));
