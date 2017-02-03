@@ -97,6 +97,16 @@ class CryptoClient : public jsonrpc::Client
             else
                 throw jsonrpc::JsonRpcException(jsonrpc::Errors::ERROR_CLIENT_INVALID_RESPONSE, result.toStyledString());
         }
+        std::string calculateoutputid(const Json::Value output) throw (jsonrpc::JsonRpcException)
+        {
+            Json::Value p;
+            p["output"] = output;
+            Json::Value result = this->CallMethod("calculateoutputid",p);
+            if (result.isString())
+                return result.asString();
+            else
+                throw jsonrpc::JsonRpcException(jsonrpc::Errors::ERROR_CLIENT_INVALID_RESPONSE, result.toStyledString());
+        }
 };
 
 #endif //JSONRPC_CPP_STUB_CRYPTOCLIENT_H_

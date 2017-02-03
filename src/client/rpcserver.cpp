@@ -38,7 +38,7 @@ Json::Value CryptoServer::getinfo()
 {
     Json::Value returning;
 
-    returning["RPC Version"] = "1.1.0";
+    returning["RPC Version"] = "1.2.0-dev";
     returning["CK Version"] = version;
     double balance = wallet->getTotalBalance() / 100000000.0;
     std::stringstream buffer;
@@ -130,4 +130,10 @@ Json::Value CryptoServer::listunspentoutputs(const std::string& account)
 std::string CryptoServer::compilecontract(const std::string& code)
 {
     return CryptoKernel::ContractRunner::compile(code);
+}
+
+std::string CryptoServer::calculateoutputid(const Json::Value output)
+{
+    const CryptoKernel::Blockchain::output out = CryptoKernel::Blockchain::jsonToOutput(output);
+    return CryptoKernel::Blockchain::calculateOutputId(out);
 }

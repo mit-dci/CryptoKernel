@@ -34,6 +34,7 @@ class CryptoRPCServer : public jsonrpc::AbstractServer<CryptoRPCServer>
             this->bindAndAddMethod(jsonrpc::Procedure("listaccounts", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_OBJECT, NULL), &CryptoRPCServer::listaccountsI);
             this->bindAndAddMethod(jsonrpc::Procedure("listunspentoutputs", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_OBJECT, "account",jsonrpc::JSON_STRING, NULL), &CryptoRPCServer::listunspentoutputsI);
             this->bindAndAddMethod(jsonrpc::Procedure("compilecontract", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_STRING, "code",jsonrpc::JSON_STRING, NULL), &CryptoRPCServer::compilecontractI);
+            this->bindAndAddMethod(jsonrpc::Procedure("calculateoutputid", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_STRING, "output",jsonrpc::JSON_OBJECT, NULL), &CryptoRPCServer::calculateoutputidI);
         }
 
         inline virtual void getinfoI(const Json::Value &request, Json::Value &response)
@@ -64,6 +65,10 @@ class CryptoRPCServer : public jsonrpc::AbstractServer<CryptoRPCServer>
         {
             response = this->compilecontract(request["code"].asString());
         }
+        inline virtual void calculateoutputidI(const Json::Value &request, Json::Value &response)
+        {
+            response = this->calculateoutputid(request["output"]);
+        }
         virtual Json::Value getinfo() = 0;
         virtual Json::Value account(const std::string& account) = 0;
         virtual bool sendtoaddress(const std::string& address, double amount, double fee) = 0;
@@ -71,6 +76,7 @@ class CryptoRPCServer : public jsonrpc::AbstractServer<CryptoRPCServer>
         virtual Json::Value listaccounts() = 0;
         virtual Json::Value listunspentoutputs(const std::string& account) = 0;
         virtual std::string compilecontract(const std::string& code) = 0;
+        virtual std::string calculateoutputid(const Json::Value output) = 0;
 };
 
 class CryptoServer : public CryptoRPCServer
@@ -86,6 +92,7 @@ class CryptoServer : public CryptoRPCServer
         virtual Json::Value listaccounts();
         virtual Json::Value listunspentoutputs(const std::string& account);
         virtual std::string compilecontract(const std::string& code);
+        virtual std::string calculateoutputid(const Json::Value output);
 
     private:
         CryptoCurrency::Wallet* wallet;
