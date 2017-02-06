@@ -1,9 +1,14 @@
 Json = (loadfile("./json.lua"))()
+local json = Json.new()
+thisTransaction = json:decode(txJson)
+thisInput = json:decode(thisInputJson)
 
 sandbox_env = {Crypto = {new = Crypto.new, getPublicKey = Crypto.getPublicKey, getPrivateKey = Crypto.getPrivateKey,
                         setPublicKey = Crypto.setPublicKey, setPrivateKey = Crypto.setPrivateKey,
                         getStatus = Crypto.getStatus, sign = Crypto.sign, verify = Crypto.verify,},
                Json = {new = Json.new, decode = Json.decode,},
+               thisTransaction = thisTransaction,
+               thisInput = thisInput,
                txJson = txJson,
                outputSetId = outputSetId,
                Blockchain = {getBlock = Blockchain.getBlock,},

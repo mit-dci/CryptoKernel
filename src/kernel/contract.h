@@ -50,7 +50,7 @@ namespace CryptoKernel
             bool evaluateValid(const CryptoKernel::Blockchain::transaction tx);
 
         private:
-            void setupEnvironment(const CryptoKernel::Blockchain::transaction tx);
+            void setupEnvironment(const CryptoKernel::Blockchain::transaction tx, const CryptoKernel::Blockchain::output input);
             std::unique_ptr<sel::State> state;
             std::unique_ptr<int> ud;
             static void* allocWrapper(void* thisPointer, void* ptr, size_t osize, size_t nsize);

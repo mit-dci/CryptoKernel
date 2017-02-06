@@ -77,7 +77,7 @@ std::string CryptoKernel::ContractRunner::compile(const std::string contractScri
     return base64_encode((unsigned char*)compressedBytecode.c_str(), compressedBytecode.size());
 }
 
-void CryptoKernel::ContractRunner::setupEnvironment(const CryptoKernel::Blockchain::transaction tx)
+void CryptoKernel::ContractRunner::setupEnvironment(const CryptoKernel::Blockchain::transaction tx, const CryptoKernel::Blockchain::output input)
 {
     const int lim = this->pcLimit;
     (*state.get())["pcLimit"] = lim;
@@ -91,6 +91,7 @@ void CryptoKernel::ContractRunner::setupEnvironment(const CryptoKernel::Blockcha
                                                          "getStatus", &CryptoKernel::Crypto::getStatus
                                                         );
     (*state.get())["txJson"] = CryptoKernel::Storage::toString(CryptoKernel::Blockchain::transactionToJson(tx));
+    (*state.get())["thisInputJson"] = CryptoKernel::Storage::toString(CryptoKernel::Blockchain::outputToJson(input));
     (*state.get())["outputSetId"] = CryptoKernel::Blockchain::calculateOutputSetId(tx.outputs);
     (*state.get())["Blockchain"].SetObj((*blockchainInterface), "getBlock", &BlockchainInterface::getBlock);
 }
@@ -104,7 +105,7 @@ bool CryptoKernel::ContractRunner::evaluateValid(const CryptoKernel::Blockchain:
     {
         if(!(*it).data["contract"].empty())
         {
-            setupEnvironment(tx);
+            setupEnvironment(tx, (*it));
             if(!(*state.get()).Load("./sandbox.lua"))
             {
                 throw std::runtime_error("Failed to load sandbox.lua");
