@@ -30,6 +30,9 @@ CryptoCurrency::Wallet::Wallet(CryptoKernel::Blockchain* Blockchain, CryptoKerne
     addresses = new CryptoKernel::Storage("./addressesdb");
 
     rescan();
+
+    const time_t t = std::time(0);
+    generator.seed(static_cast<uint64_t> (t));
 }
 
 CryptoCurrency::Wallet::~Wallet()
@@ -177,9 +180,8 @@ bool CryptoCurrency::Wallet::sendToAddress(std::string publicKey, uint64_t amoun
     }
     toThem.publicKey = publicKey;
 
-    time_t t = std::time(0);
-    uint64_t now = static_cast<uint64_t> (t);
-    toThem.nonce = now;
+    std::uniform_int_distribution<uint64_t> distribution(0, std::numeric_limits<uint64_t>::max());
+    toThem.nonce = distribution(generator);
 
     //const std::string contract = "local json = Json.new() local tx = json:decode(txJson) local crypto = Crypto.new() crypto:setPublicKey(tx[\"inputs\"][1][\"publicKey\"]) if crypto:verify(tx[\"inputs\"][1][\"id\"] .. outputSetId, tx[\"inputs\"][1][\"signature\"]) then return true else return false end";
     //const std::string compressedBytecode = CryptoKernel::ContractRunner::compile(contract);
@@ -195,11 +197,11 @@ bool CryptoCurrency::Wallet::sendToAddress(std::string publicKey, uint64_t amoun
     change.value = accumulator - amount - fee;
 
     std::stringstream buffer;
-    buffer << now << "_change";
+    buffer << distribution(generator) << "_change";
     address Address = newAddress(buffer.str());
 
     change.publicKey = Address.publicKey;
-    change.nonce = now;
+    change.nonce = distribution(generator);
     change.id = blockchain->calculateOutputId(change);
 
     std::vector<CryptoKernel::Blockchain::output> outputs;
@@ -219,6 +221,10 @@ bool CryptoCurrency::Wallet::sendToAddress(std::string publicKey, uint64_t amoun
     tx.inputs = toSpend;
     tx.outputs.push_back(toThem);
     tx.outputs.push_back(change);
+
+    const time_t t = std::time(0);
+    const uint64_t now = static_cast<uint64_t> (t);
+
     tx.timestamp = now;
     tx.id = blockchain->calculateTransactionId(tx);
 
@@ -284,4 +290,13 @@ std::vector<CryptoCurrency::Wallet::address> CryptoCurrency::Wallet::listAddress
     delete it;
 
     return tempAddresses;
+}
+
+CryptoKernel::Blockchain::transaction CryptoCurrency::Wallet::signTransaction(const CryptoKernel::Blockchain::transaction tx)
+{
+    CryptoKernel::Blockchain::transaction returning = tx;
+    for(CryptoKernel::Blockchain::output output : returning.outputs)
+    {
+
+    }
 }

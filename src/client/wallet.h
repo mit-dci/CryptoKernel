@@ -49,12 +49,16 @@ namespace CryptoCurrency
             Json::Value addressToJson(address Address);
             address jsonToAddress(Json::Value Address);
 
+            CryptoKernel::Blockchain::transaction signTransaction(const CryptoKernel::Blockchain::transaction tx);
+
         private:
             CryptoKernel::Storage* addresses;
             CryptoKernel::Log* log;
 
             CryptoKernel::Blockchain* blockchain;
             CryptoKernel::Network* network;
+
+            std::default_random_engine generator;
     };
 }
 
