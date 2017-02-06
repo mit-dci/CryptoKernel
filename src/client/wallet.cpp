@@ -295,8 +295,23 @@ std::vector<CryptoCurrency::Wallet::address> CryptoCurrency::Wallet::listAddress
 CryptoKernel::Blockchain::transaction CryptoCurrency::Wallet::signTransaction(const CryptoKernel::Blockchain::transaction tx)
 {
     CryptoKernel::Blockchain::transaction returning = tx;
-    for(CryptoKernel::Blockchain::output output : returning.outputs)
-    {
+    const std::string outputHash = blockchain->calculateOutputSetId(returning.outputs);
 
+    CryptoKernel::Crypto crypto;
+
+    for(CryptoKernel::Blockchain::output& input : returning.inputs)
+    {
+        const address Address = getAddressByKey(input.publicKey);
+        crypto.setPrivateKey(Address.privateKey);
+        const std::string signature = crypto.sign(input.id + outputHash);
+        input.signature = signature;
     }
+
+    const time_t t = std::time(0);
+    const uint64_t now = static_cast<uint64_t> (t);
+
+    returning.timestamp = now;
+    returning.id = blockchain->calculateTransactionId(returning);
+
+    return returning;
 }

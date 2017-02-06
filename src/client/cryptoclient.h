@@ -107,6 +107,16 @@ class CryptoClient : public jsonrpc::Client
             else
                 throw jsonrpc::JsonRpcException(jsonrpc::Errors::ERROR_CLIENT_INVALID_RESPONSE, result.toStyledString());
         }
+        Json::Value signtransaction(const Json::Value tx) throw (jsonrpc::JsonRpcException)
+        {
+            Json::Value p;
+            p["transaction"] = tx;
+            Json::Value result = this->CallMethod("signtransaction",p);
+            if (result.isObject())
+                return result;
+            else
+                throw jsonrpc::JsonRpcException(jsonrpc::Errors::ERROR_CLIENT_INVALID_RESPONSE, result.toStyledString());
+        }
 };
 
 #endif //JSONRPC_CPP_STUB_CRYPTOCLIENT_H_

@@ -137,3 +137,10 @@ std::string CryptoServer::calculateoutputid(const Json::Value output)
     const CryptoKernel::Blockchain::output out = CryptoKernel::Blockchain::jsonToOutput(output);
     return CryptoKernel::Blockchain::calculateOutputId(out);
 }
+
+Json::Value CryptoServer::signtransaction(const Json::Value tx)
+{
+    const CryptoKernel::Blockchain::transaction transaction = CryptoKernel::Blockchain::jsonToTransaction(tx);
+
+    return CryptoKernel::Blockchain::transactionToJson(wallet->signTransaction(transaction));
+}
