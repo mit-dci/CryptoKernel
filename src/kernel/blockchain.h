@@ -85,7 +85,7 @@ namespace CryptoKernel
             std::vector<output> getUnspentOutputs(std::string publicKey);
             static std::string calculateOutputId(output Output);
             static std::string calculateTransactionId(transaction tx);
-            static std::string calculateOutputSetId(std::vector<output> outputs);
+            static std::string calculateOutputSetId(const std::vector<output> outputs);
             std::vector<transaction> getUnconfirmedTransactions();
             bool loadChain();
             Storage::Iterator* newIterator();

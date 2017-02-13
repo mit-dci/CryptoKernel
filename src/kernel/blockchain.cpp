@@ -1029,38 +1029,19 @@ std::vector<CryptoKernel::Blockchain::output> CryptoKernel::Blockchain::getUnspe
 
     return returning;
 }
-std::string CryptoKernel::Blockchain::calculateOutputSetId(std::vector<output> outputs)
+std::string CryptoKernel::Blockchain::calculateOutputSetId(const std::vector<output> outputs)
 {
-    std::queue<output> orderedOutputs;
+    std::vector<output> orderedOutputs = outputs;
 
-    while(!outputs.empty())
-    {
-        std::string lowestId = outputs[0].id;
-        std::vector<output>::iterator it;
-        for(it = outputs.begin(); it < outputs.end(); it++)
-        {
-            if(!CryptoKernel::Math::hex_greater((*it).id, lowestId))
-            {
-                lowestId = (*it).id;
-            }
-        }
-
-        for(it = outputs.begin(); it < outputs.end(); it++)
-        {
-            if((*it).id == lowestId)
-            {
-                orderedOutputs.push(*it);
-                it = outputs.erase(it);
-            }
-        }
-    }
+    std::sort(orderedOutputs.begin(), orderedOutputs.end(), [](CryptoKernel::Blockchain::output first, CryptoKernel::Blockchain::output second){
+        return CryptoKernel::Math::hex_greater(second.id, first.id);
+    });
 
     std::string returning = "";
     CryptoKernel::Crypto crypto;
-    while(!orderedOutputs.empty())
+    for(CryptoKernel::Blockchain::output output : orderedOutputs)
     {
-        returning = crypto.sha256(returning + orderedOutputs.front().id);
-        orderedOutputs.pop();
+        returning = crypto.sha256(returning + output.id);
     }
 
     return returning;
