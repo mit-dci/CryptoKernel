@@ -38,6 +38,7 @@ namespace CryptoKernel
                 std::string publicKey;
                 uint64_t nonce;
                 Json::Value data;
+                Json::Value spendData;
             };
             struct transaction
             {

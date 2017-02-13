@@ -79,7 +79,7 @@ bool CryptoKernel::Blockchain::loadChain()
         submitBlock(Block, true);*/
     }
 
-    //reindexChain(chainTipId);
+    reindexChain(chainTipId);
 
     status = true;
 
@@ -353,6 +353,7 @@ Json::Value CryptoKernel::Blockchain::outputToJson(output Output)
     returning["publicKey"] = Output.publicKey;
     returning["nonce"] = static_cast<unsigned long long int>(Output.nonce);
     returning["data"] = Output.data;
+    returning["spendData"] = Output.spendData;
 
     return returning;
 }
@@ -803,6 +804,7 @@ CryptoKernel::Blockchain::output CryptoKernel::Blockchain::jsonToOutput(Json::Va
     returning.publicKey = Output["publicKey"].asString();
     returning.signature = Output["signature"].asString();
     returning.data = Output["data"];
+    returning.spendData = Output["spendData"];
     returning.value = Output["value"].asUInt64();
     returning.nonce = Output["nonce"].asUInt64();
 
