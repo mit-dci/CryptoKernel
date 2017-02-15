@@ -185,6 +185,18 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
         return false;
     }
 
+    if(tx.inputs.size() < 1 && !coinbaseTx)
+    {
+        log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): tx has no inputs");
+        return false;
+    }
+
+    if(tx.outputs.size() < 1)
+    {
+        log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): tx has no outputs");
+        return false;
+    }
+
     /*time_t t = std::time(0);
     uint64_t now = static_cast<uint64_t> (t);
     if(tx.timestamp < (now - 5 * 60 * 60))
