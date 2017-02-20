@@ -62,7 +62,7 @@ function verifyTransaction(bytecode)
             return result_or_err_msg
         end
     else
-        print(status)
+        print("Failed to load lz4")
         return false
     end
 end
