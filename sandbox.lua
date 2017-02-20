@@ -51,14 +51,19 @@ function run_sandbox(sb_env, sb_func, ...)
 end
 
 function verifyTransaction(bytecode)
-    local lz4 = require("lz4")
-    f = load(lz4.decompress(bytecode))
-    pcall_rc, result_or_err_msg = run_sandbox(sandbox_env, f)
-    if type(result_or_err_msg) ~= "boolean" then
-        print(result_or_err_msg)
-        return false
+    local status, lz4 = pcall(require, "lz4")
+    if(status) then
+        f = load(lz4.decompress(bytecode))
+        pcall_rc, result_or_err_msg = run_sandbox(sandbox_env, f)
+        if type(result_or_err_msg) ~= "boolean" then
+            print(result_or_err_msg)
+            return false
+        else
+            return result_or_err_msg
+        end
     else
-        return result_or_err_msg
+        print(status)
+        return false
     end
 end
 
