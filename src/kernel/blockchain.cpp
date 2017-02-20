@@ -214,6 +214,7 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
     {
         if((*it).id != calculateOutputId(*it))
         {
+            log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Output has incorrect id");
             return false;
         }
 
@@ -248,6 +249,7 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
             //Check input id is correct
             if((*it).id != calculateOutputId(*it))
             {
+                log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Input incorrect id");
                 return false;
             }
 
