@@ -39,6 +39,7 @@ namespace CryptoKernel
                 uint64_t nonce;
                 Json::Value data;
                 Json::Value spendData;
+                std::string creationTx;
             };
             struct transaction
             {
@@ -46,6 +47,7 @@ namespace CryptoKernel
                 std::vector<output> inputs;
                 std::vector<output> outputs;
                 uint64_t timestamp;
+                std::string confirmingBlock;
             };
             struct block
             {
