@@ -3,10 +3,10 @@
 exe() { echo "$@" ; "$@" ; }
 
 CXX=g++
-CXXFLAGS="-g -Wall -std=c++14 -O2 -fPIC -Wl,-E -Isrc/kernel -I/usr/include/lua5.3"
+CXXFLAGS="-g -Wall -std=c++14 -O2 -Wl,-E -Isrc/kernel -I/usr/include/lua5.3"
 SRC_DIR="src/client"
 OBJ_DIR="obj"
-LIBS="-lCryptoKernel -llua -ljsoncpp -lcrypto -pthread -lleveldb -ljsonrpccpp-server -ljsonrpccpp-client -ljsonrpccpp-common -lmicrohttpd -lcurl -lsfml-system -lsfml-network -lws2_32"
+LIBS="-lCryptoKernel -llua -llz4 -ljsoncpp -lcrypto -pthread -lleveldb -ljsonrpccpp-server -ljsonrpccpp-client -ljsonrpccpp-common -lmicrohttpd -lcurl -lsfml-system -lsfml-network -lws2_32"
 
 exe mkdir ${OBJ_DIR}
 
