@@ -85,14 +85,14 @@ void ContractTest::testCrypto()
 
 void ContractTest::testAccessTx()
 {
-    const std::string contract = "local json = Json.new() local tx = json:decode(txJson) if tx[\"inputs\"][1][\"nonce\"] == 272727 then return true else return false end";
+    const std::string contract = "if thisTransaction[\"inputs\"][1][\"nonce\"] == 272727 then return true else return false end";
 
     CPPUNIT_ASSERT(runScript(contract));
 }
 
 void ContractTest::testVerifySignature()
 {
-    const std::string contract = "local json = Json.new() local tx = json:decode(txJson) local crypto = Crypto.new() crypto:setPublicKey(tx[\"inputs\"][1][\"publicKey\"]) if crypto:verify(tx[\"inputs\"][1][\"id\"] .. outputSetId, tx[\"inputs\"][1][\"signature\"]) then return true else return false end";
+    const std::string contract = "local crypto = Crypto.new() crypto:setPublicKey(thisTransaction[\"inputs\"][1][\"publicKey\"]) if crypto:verify(thisTransaction[\"inputs\"][1][\"id\"] .. outputSetId, thisTransaction[\"inputs\"][1][\"signature\"]) then return true else return false end";
 
     CPPUNIT_ASSERT(runScript(contract));
 }
