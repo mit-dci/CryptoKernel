@@ -55,12 +55,14 @@ function verifyTransaction(bytecode)
         f = load(lz4.decompress(bytecode))
         pcall_rc, result_or_err_msg = run_sandbox(sandbox_env, f)
         if type(result_or_err_msg) ~= "boolean" then
-            error(result_or_err_msg)
+            print(result_or_err_msg)
+            return false
         else
             return result_or_err_msg
         end
     else
-        error("Failed to load lz4")
+        print("Failed to load lz4")
+        return false
     end
 end
 

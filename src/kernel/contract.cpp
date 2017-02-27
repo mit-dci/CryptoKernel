@@ -93,7 +93,7 @@ void CryptoKernel::ContractRunner::setupEnvironment(const CryptoKernel::Blockcha
     (*state.get())["txJson"] = CryptoKernel::Storage::toString(CryptoKernel::Blockchain::transactionToJson(tx));
     (*state.get())["thisInputJson"] = CryptoKernel::Storage::toString(CryptoKernel::Blockchain::outputToJson(input));
     (*state.get())["outputSetId"] = CryptoKernel::Blockchain::calculateOutputSetId(tx.outputs);
-    (*state.get())["Blockchain"].SetObj((*blockchainInterface), "getBlock", &BlockchainInterface::getBlock);
+    (*state.get())["Blockchain"].SetObj((*blockchainInterface), "getBlock", &BlockchainInterface::getBlock, "getTransaction", &BlockchainInterface::getTransaction);
 }
 
 bool CryptoKernel::ContractRunner::evaluateValid(const CryptoKernel::Blockchain::transaction tx)
