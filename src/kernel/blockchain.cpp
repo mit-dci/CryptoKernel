@@ -1120,3 +1120,8 @@ CryptoKernel::Storage::Iterator* CryptoKernel::Blockchain::newIterator()
 {
     return blocks->newIterator();
 }
+
+CryptoKernel::Blockchain::transaction CryptoKernel::Blockchain::getTransaction(const std::string id)
+{
+    return CryptoKernel::Blockchain::jsonToTransaction(transactions->get(id));
+}

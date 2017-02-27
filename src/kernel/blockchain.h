@@ -84,6 +84,17 @@ namespace CryptoKernel
             *         block if it does not exist
             */
             block getBlockByHeight(const uint64_t height);
+
+            /**
+            * Retrieves the transaction with the given id
+            *
+            * @param id the id of the transaction to get
+            * @return the confirmed transaction with the given id or an empty transaction
+            *         if it doesn't exist
+            */
+            transaction getTransaction(const std::string id);
+
+
             std::vector<output> getUnspentOutputs(std::string publicKey);
             static std::string calculateOutputId(output Output);
             static std::string calculateTransactionId(transaction tx);

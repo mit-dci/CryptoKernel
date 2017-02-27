@@ -63,6 +63,7 @@ namespace CryptoKernel
                 public:
                     BlockchainInterface(CryptoKernel::Blockchain* blockchain) {this->blockchain = blockchain;}
                     std::string getBlock(const std::string id) {return CryptoKernel::Storage::toString(CryptoKernel::Blockchain::blockToJson(blockchain->getBlock(id)));}
+                    std::string getTransaction(const std::string id) {return CryptoKernel::Storage::toString(CryptoKernel::Blockchain::transactionToJson(blockchain->getTransaction(id)));}
                 private:
                     CryptoKernel::Blockchain* blockchain;
             };
