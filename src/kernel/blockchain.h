@@ -112,6 +112,7 @@ namespace CryptoKernel
             bool reorgChain(std::string newTipId);
             uint64_t blockTarget;
             virtual std::string PoWFunction(const std::string inputString) = 0;
+            std::recursive_mutex chainLock;
     };
 }
 
