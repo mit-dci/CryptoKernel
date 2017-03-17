@@ -369,6 +369,7 @@ Json::Value CryptoKernel::Blockchain::transactionToJson(transaction tx)
 
     returning["timestamp"] = static_cast<unsigned long long int>(tx.timestamp);
     returning["id"] = tx.id;
+    returning["confirmingBlock"] = tx.confirmingBlock;
 
     return returning;
 }
@@ -384,6 +385,7 @@ Json::Value CryptoKernel::Blockchain::outputToJson(output Output)
     returning["nonce"] = static_cast<unsigned long long int>(Output.nonce);
     returning["data"] = Output.data;
     returning["spendData"] = Output.spendData;
+    returning["creationTx"] = Output.creationTx;
 
     return returning;
 }
@@ -500,7 +502,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
     }
 
     //Check that the timestamp is realistic
-    if(newBlock.timestamp < jsonToBlock(blocks->get(newBlock.previousBlockId)).timestamp && !genesisBlock)
+    if(newBlock.timestamp < getBlock(newBlock.previousBlockId).timestamp && !genesisBlock)
     {
         log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Timestamp is unrealistic");
         chainLock.unlock();
@@ -510,7 +512,6 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
     if(!onlySave)
     {
         uint64_t fees = 0;
-
         std::vector<transaction>::iterator it;
         for(it = newBlock.transactions.begin(); it < newBlock.transactions.end(); it++)
         {
@@ -523,8 +524,10 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         }
 
         //Verify Transactions
+        std::vector<CryptoKernel::Blockchain::transaction>::iterator it;
         for(it = newBlock.transactions.begin(); it < newBlock.transactions.end(); it++)
         {
+            (*it).confirmingBlock = newBlock.id;
             if(!submitTransaction((*it)))
             {
                 log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Transaction could not be submitted");
@@ -546,6 +549,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
             std::vector<output>::iterator it2;
             for(it2 = newBlock.coinbaseTx.outputs.begin(); it2 < newBlock.coinbaseTx.outputs.end(); it2++)
             {
+                (*it2).creationTx = newBlock.coinbaseTx.id;
                 CryptoKernel::Crypto crypto;
                 if(!crypto.setPublicKey((*it2).publicKey))
                 {
@@ -564,6 +568,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
                 return false;
             }
 
+            newBlock.coinbaseTx.confirmingBlock = newBlock.id;
             if(verifyTransaction(newBlock.coinbaseTx, true))
             {
                 confirmTransaction(newBlock.coinbaseTx, true);
@@ -599,7 +604,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
 
     blocks->store(newBlock.id, blockToJson(newBlock));
 
-    log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): successfully submitted block: " + CryptoKernel::Storage::toString(blockToJson(newBlock)));
+    log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): successfully submitted block: " + CryptoKernel::Storage::toString(blocks->get(newBlock.id)));
 
     checkRep();
 
@@ -683,6 +688,7 @@ bool CryptoKernel::Blockchain::confirmTransaction(transaction tx, bool coinbaseT
     //Add new outputs to UTXOs
     for(it = tx.outputs.begin(); it < tx.outputs.end(); it++)
     {
+        (*it).creationTx = tx.id;
         utxos->store((*it).id, outputToJson((*it)));
     }
 
@@ -831,6 +837,8 @@ CryptoKernel::Blockchain::transaction CryptoKernel::Blockchain::jsonToTransactio
     returning.id = tx["id"].asString();
     returning.timestamp = tx["timestamp"].asUInt64();
 
+    returning.confirmingBlock = tx["confirmingBlock"].asString();
+
     for(unsigned int i = 0; i < tx["inputs"].size(); i++)
     {
         returning.inputs.push_back(jsonToOutput(tx["inputs"][i]));
@@ -855,6 +863,7 @@ CryptoKernel::Blockchain::output CryptoKernel::Blockchain::jsonToOutput(Json::Va
     returning.spendData = Output["spendData"];
     returning.value = Output["value"].asUInt64();
     returning.nonce = Output["nonce"].asUInt64();
+    returning.creationTx = Output["creationTx"].asString();
 
     return returning;
 }
@@ -1159,4 +1168,9 @@ bool CryptoKernel::Blockchain::reverseBlock()
 CryptoKernel::Storage::Iterator* CryptoKernel::Blockchain::newIterator()
 {
     return blocks->newIterator();
+}
+
+CryptoKernel::Blockchain::transaction CryptoKernel::Blockchain::getTransaction(const std::string id)
+{
+    return CryptoKernel::Blockchain::jsonToTransaction(transactions->get(id));
 }

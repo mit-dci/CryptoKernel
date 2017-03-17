@@ -85,14 +85,14 @@ void ContractTest::testCrypto()
 
 void ContractTest::testAccessTx()
 {
-    const std::string contract = "local json = Json.new() local tx = json:decode(txJson) if tx[\"inputs\"][1][\"nonce\"] == 272727 then return true else return false end";
+    const std::string contract = "if thisTransaction[\"inputs\"][1][\"nonce\"] == 272727 then return true else return false end";
 
     CPPUNIT_ASSERT(runScript(contract));
 }
 
 void ContractTest::testVerifySignature()
 {
-    const std::string contract = "local json = Json.new() local tx = json:decode(txJson) local crypto = Crypto.new() crypto:setPublicKey(tx[\"inputs\"][1][\"publicKey\"]) if crypto:verify(tx[\"inputs\"][1][\"id\"] .. outputSetId, tx[\"inputs\"][1][\"signature\"]) then return true else return false end";
+    const std::string contract = "local crypto = Crypto.new() crypto:setPublicKey(thisTransaction[\"inputs\"][1][\"publicKey\"]) if crypto:verify(thisTransaction[\"inputs\"][1][\"id\"] .. outputSetId, thisTransaction[\"inputs\"][1][\"signature\"]) then return true else return false end";
 
     CPPUNIT_ASSERT(runScript(contract));
 }
@@ -103,3 +103,11 @@ void ContractTest::testBlockchainAccess()
 
     CPPUNIT_ASSERT(runScript(contract));
 }
+
+void ContractTest::testTransactionAccess()
+{
+    const std::string contract = "function checkSig() local crypto = Crypto.new() crypto:setPublicKey(thisInput[\"publicKey\"]) return crypto:verify(thisInput[\"id\"] .. outputSetId, thisInput[\"signature\"]) end local json = Json.new() if json:decode(Blockchain.getTransaction(\"c708f4f072bcf20be513fedc96e8aedbb126d2ae039e98955b1b606793630485\"))[\"confirmingBlock\"] == \"9344a9cab3084e15b2f1b5572b9a2fcf56920b51afad8f77de814dd194f96e90\" then return checkSig() else return false end";
+
+    CPPUNIT_ASSERT(runScript(contract));
+}
+
