@@ -1167,3 +1167,38 @@ CryptoKernel::Blockchain::transaction CryptoKernel::Blockchain::getTransaction(c
 {
     return CryptoKernel::Blockchain::jsonToTransaction(transactions->get(id));
 }
+
+std::set<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::getTransactionsByPubKeys(const std::set<std::string> pubKeys) {
+    chainLock.lock();
+
+    std::set<transaction> returning;
+
+    block currentBlock;
+    currentBlock.previousBlockId = getBlock("tip").id;
+    do {
+        currentBlock = getBlock(currentBlock.previousBlockId);
+        for(const transaction tx : currentBlock.transactions) {
+            bool found = false;
+            for(const output output : tx.outputs) {
+                if(pubKeys.find(output.publicKey) != pubKeys.end()) {
+                    returning.insert(tx);
+                    found = true;
+                    break;
+                }
+            }
+
+            if(!found) {
+                for(const output input : tx.inputs) {
+                    if(pubKeys.find(input.publicKey) != pubKeys.end()) {
+                        returning.insert(tx);
+                        break;
+                    }
+                }
+            }
+        }
+    } while(currentBlock.id != genesisBlockId);
+
+    chainLock.unlock();
+
+    return returning;
+}

@@ -19,9 +19,11 @@
 #define BLOCKCHAIN_H_INCLUDED
 
 #include <vector>
+#include <set>
 
 #include "storage.h"
 #include "log.h"
+#include "ckmath.h"
 
 namespace CryptoKernel
 {
@@ -48,6 +50,9 @@ namespace CryptoKernel
                 std::vector<output> outputs;
                 uint64_t timestamp;
                 std::string confirmingBlock;
+                friend bool operator<(const transaction& lhs, const transaction& rhs) {
+                    return CryptoKernel::Math::hex_greater(rhs.id, lhs.id);
+                };
             };
             struct block
             {
@@ -94,6 +99,16 @@ namespace CryptoKernel
             */
             transaction getTransaction(const std::string id);
 
+            /**
+            * Retrieves all of the transactions associated with
+            * a given set of public keys by checking the publicKey
+            * field in every transactions' inputs and outputs.
+            *
+            * @param pubKeys a set containing the public keys to search for
+            * @return a set containing the transactions associated with the key
+            *         set
+            */
+            std::set<transaction> getTransactionsByPubKeys(const std::set<std::string> pubKeys);
 
             std::vector<output> getUnspentOutputs(std::string publicKey);
             static std::string calculateOutputId(output Output);
