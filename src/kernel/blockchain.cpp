@@ -105,9 +105,11 @@ void CryptoKernel::Blockchain::checkRep()
 
 CryptoKernel::Blockchain::~Blockchain()
 {
+    chainLock.lock();
     delete transactions;
     delete blocks;
     delete utxos;
+    chainLock.unlock();
 }
 
 std::vector<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::getUnconfirmedTransactions()
@@ -512,17 +514,6 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
     if(!onlySave)
     {
         uint64_t fees = 0;
-        std::vector<transaction>::iterator it;
-        for(it = newBlock.transactions.begin(); it < newBlock.transactions.end(); it++)
-        {
-            if(!verifyTransaction(*it))
-            {
-                log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Transaction could not be verified");
-                chainLock.unlock();
-                return false;
-            }
-        }
-
         //Verify Transactions
         std::vector<CryptoKernel::Blockchain::transaction>::iterator it;
         for(it = newBlock.transactions.begin(); it < newBlock.transactions.end(); it++)
