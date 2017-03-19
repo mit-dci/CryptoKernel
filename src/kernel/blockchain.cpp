@@ -62,6 +62,8 @@ bool CryptoKernel::Blockchain::loadChain()
             {
                 log->printf(LOG_LEVEL_WARN, "blockchain(): Failed to import genesis block");
             }
+
+            t.close();
         }
 
         /*block Block = generateMiningBlock("BL8ERakVzl7UZm1JmhdWxsdGIgHdJAUQ9LW6HKTrbtnum6HLAwd7nlTWQfpkhKupsKRjXbL1LnaPVd20ld+4UIM=");
