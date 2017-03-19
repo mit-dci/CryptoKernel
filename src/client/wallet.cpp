@@ -315,3 +315,13 @@ CryptoKernel::Blockchain::transaction CryptoCurrency::Wallet::signTransaction(co
 
     return returning;
 }
+
+std::set<CryptoKernel::Blockchain::transaction> CryptoCurrency::Wallet::listTransactions() {
+    const std::vector<address> addrs = listAddresses();
+    std::set<std::string> pubKeys;
+    for(const address addr : addrs) {
+        pubKeys.insert(addr.publicKey);
+    }
+
+    return blockchain->getTransactionsByPubKeys(pubKeys);
+}

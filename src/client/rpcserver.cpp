@@ -144,3 +144,14 @@ Json::Value CryptoServer::signtransaction(const Json::Value tx)
 
     return CryptoKernel::Blockchain::transactionToJson(wallet->signTransaction(transaction));
 }
+
+Json::Value CryptoServer::listtransactions() {
+    Json::Value returning;
+
+    const std::set<CryptoKernel::Blockchain::transaction> transactions = wallet->listTransactions();
+    for(const CryptoKernel::Blockchain::transaction tx : transactions) {
+        returning.append(CryptoKernel::Blockchain::transactionToJson(tx));
+    }
+
+    return returning;
+}

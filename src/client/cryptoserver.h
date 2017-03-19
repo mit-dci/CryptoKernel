@@ -36,6 +36,7 @@ class CryptoRPCServer : public jsonrpc::AbstractServer<CryptoRPCServer>
             this->bindAndAddMethod(jsonrpc::Procedure("compilecontract", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_STRING, "code",jsonrpc::JSON_STRING, NULL), &CryptoRPCServer::compilecontractI);
             this->bindAndAddMethod(jsonrpc::Procedure("calculateoutputid", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_STRING, "output",jsonrpc::JSON_OBJECT, NULL), &CryptoRPCServer::calculateoutputidI);
             this->bindAndAddMethod(jsonrpc::Procedure("signtransaction", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_OBJECT, "transaction",jsonrpc::JSON_OBJECT, NULL), &CryptoRPCServer::signtransactionI);
+            this->bindAndAddMethod(jsonrpc::Procedure("listtransactions", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_OBJECT, NULL), &CryptoRPCServer::listtransactionsI);
         }
 
         inline virtual void getinfoI(const Json::Value &request, Json::Value &response)
@@ -74,6 +75,10 @@ class CryptoRPCServer : public jsonrpc::AbstractServer<CryptoRPCServer>
         {
             response = this->signtransaction(request["transaction"]);
         }
+        inline virtual void listtransactionsI(const Json::Value &request, Json::Value &response)
+        {
+            response = this->listtransactions();
+        }
         virtual Json::Value getinfo() = 0;
         virtual Json::Value account(const std::string& account) = 0;
         virtual bool sendtoaddress(const std::string& address, double amount, double fee) = 0;
@@ -83,6 +88,7 @@ class CryptoRPCServer : public jsonrpc::AbstractServer<CryptoRPCServer>
         virtual std::string compilecontract(const std::string& code) = 0;
         virtual std::string calculateoutputid(const Json::Value output) = 0;
         virtual Json::Value signtransaction(const Json::Value tx) = 0;
+        virtual Json::Value listtransactions() = 0;
 };
 
 class CryptoServer : public CryptoRPCServer
@@ -100,6 +106,7 @@ class CryptoServer : public CryptoRPCServer
         virtual std::string compilecontract(const std::string& code);
         virtual std::string calculateoutputid(const Json::Value output);
         virtual Json::Value signtransaction(const Json::Value tx);
+        virtual Json::Value listtransactions();
 
     private:
         CryptoCurrency::Wallet* wallet;

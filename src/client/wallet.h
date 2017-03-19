@@ -48,6 +48,7 @@ namespace CryptoCurrency
             std::vector<address> listAddresses();
             Json::Value addressToJson(address Address);
             address jsonToAddress(Json::Value Address);
+            std::set<CryptoKernel::Blockchain::transaction> listTransactions();
 
             CryptoKernel::Blockchain::transaction signTransaction(const CryptoKernel::Blockchain::transaction tx);
 

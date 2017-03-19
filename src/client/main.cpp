@@ -208,6 +208,10 @@ int main(int argc, char* argv[])
                     std::cout << "Usage: compilecontract [code]" << std::endl;
                 }
             }
+            else if(command == "listtransactions")
+            {
+                std::cout << CryptoKernel::Storage::toString(client.listtransactions()) << std::endl;
+            }
             else
             {
                 std::cout << "CryptoKernel - Blockchain Development Toolkit - v" << version << "\n\n";
@@ -215,6 +219,7 @@ int main(int argc, char* argv[])
                      << "compilecontract [code]\n"
                      << "getinfo\n"
                      << "listaccounts\n"
+                     << "listtransactions\n"
                      << "listunspentoutputs [accountname]\n";
             }
         }
