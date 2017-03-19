@@ -82,7 +82,7 @@ bool CryptoKernel::Blockchain::loadChain()
         submitBlock(Block, true);*/
     }
 
-    reindexChain(chainTipId);
+    //reindexChain(chainTipId);
 
     status = true;
 
@@ -152,13 +152,10 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlockByHeight(const
     else
     {
         chainLock.lock();
-        block currentBlock = getBlock("tip");
-        while(currentBlock.height != height && currentBlock.height != 1)
-        {
-            currentBlock = getBlock(currentBlock.previousBlockId);
-        }
+        const std::string id = blocks->get("height_" + std::to_string(height)).asString();
+        const block returning = getBlock(id);
         chainLock.unlock();
-        return currentBlock;
+        return returning;
     }
 }
 
@@ -593,6 +590,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         newBlock.mainChain = true;
         chainTipId = newBlock.id;
         blocks->store("tip", blockToJson(newBlock));
+        blocks->store("height_" + std::to_string(newBlock.height), Json::Value(newBlock.id));
     }
 
     blocks->store(newBlock.id, blockToJson(newBlock));
@@ -1149,6 +1147,7 @@ bool CryptoKernel::Blockchain::reverseBlock()
         }
     }
 
+    blocks->erase("height_" + std::to_string(tip.height));
     blocks->store("tip", blockToJson(getBlock(tip.previousBlockId)));
     chainTipId = tip.previousBlockId;
 
