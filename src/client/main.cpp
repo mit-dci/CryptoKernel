@@ -25,11 +25,11 @@
 
 #include "ckmath.h"
 #include "crypto.h"
-
 #include "wallet.h"
 #include "network.h"
 #include "cryptoserver.h"
 #include "cryptoclient.h"
+#include "version.h"
 
 void miner(CryptoKernel::Blockchain* blockchain, CryptoCurrency::Wallet* wallet, CryptoKernel::Log* log, CryptoKernel::Network* network)
 {
@@ -41,7 +41,7 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoCurrency::Wallet* wallet,
 
     while(true)
     {
-        if(network->getConnections() > 0 && network->syncProgress() >= 1)
+        if(network->getConnections() > 0)
         {
             Block = blockchain->generateMiningBlock(wallet->getAddressByName("mining").publicKey);
             Block.nonce = 0;
@@ -207,6 +207,15 @@ int main(int argc, char* argv[])
                 {
                     std::cout << "Usage: compilecontract [code]" << std::endl;
                 }
+            }
+            else
+            {
+                std::cout << "CryptoKernel - Blockchain Development Toolkit - v" << version << "\n\n";
+                std::cout << "account [accountname]\n"
+                     << "compilecontract [code]\n"
+                     << "getinfo\n"
+                     << "listaccounts\n"
+                     << "listunspentoutputs [accountname]\n";
             }
         }
         catch(jsonrpc::JsonRpcException e)
