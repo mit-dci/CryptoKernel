@@ -115,7 +115,8 @@ namespace CryptoKernel
             std::vector<transaction> getUnconfirmedTransactions();
             bool loadChain();
             Storage::Iterator* newIterator();
-            const std::string genesisBlockId = "3c6fe9a32b8059abfd798f95a9f330c794c6d736222bf743afbc20018628da12";
+            const std::string genesisBlockId = "acc69da369fbac099bbb9ae38a637eec4f27358e9874828964d02ee8bb91cd38";
+            std::string getVerifier(const block& thisBlock);
 
         private:
             Storage *transactions;
@@ -137,8 +138,7 @@ namespace CryptoKernel
             uint64_t blockTarget;
             std::recursive_mutex chainLock;
             std::set<std::string> verifiers;
-            std::string getVerifier(const block& thisBlock);
-            std::string cbKey;
+            const std::string cbKey = "BLNz4IiBnUDanMovX5LQ9KCev1bUVO/70r0WqXv2Gc96SnsPuayoXXYlIivrQ9C8vhOm7scoXm3QXMgid2vsvEs=";
     };
 }
 

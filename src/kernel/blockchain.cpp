@@ -43,7 +43,6 @@ bool CryptoKernel::Blockchain::loadChain()
 {
     chainLock.lock();
     chainTipId = blocks->get("tip")["id"].asString();
-    verifiers.insert("BNQtiRRDJrSTzimujraQuc/wEDc/L/+Omg6jBsi6/Bjvto8ndfZJcPWtmBoLNn5r3Rrv9X48B4B0148goVqrIaQ=");
     if(chainTipId == "")
     {
         if(blocks->get(genesisBlockId)["id"].asString() != genesisBlockId)
@@ -68,15 +67,17 @@ bool CryptoKernel::Blockchain::loadChain()
         }
 
         /*CryptoKernel::Crypto crypto;
-        crypto.setPublicKey("BNQtiRRDJrSTzimujraQuc/wEDc/L/+Omg6jBsi6/Bjvto8ndfZJcPWtmBoLNn5r3Rrv9X48B4B0148goVqrIaQ=");
-        crypto.setPrivateKey("biZnOnO6O/C8dVBca8qf8IpynqslOR2L3JmzUb2oEP0=");
+        crypto.setPublicKey("BLNz4IiBnUDanMovX5LQ9KCev1bUVO/70r0WqXv2Gc96SnsPuayoXXYlIivrQ9C8vhOm7scoXm3QXMgid2vsvEs=");
+        crypto.setPrivateKey("");
         cbKey = crypto.getPublicKey();
         block Block = generateMiningBlock(crypto.getPublicKey());
         Block.signature = crypto.sign(Block.id);
-        verifiers.insert(crypto.getPublicKey());
 
         submitBlock(Block, true);*/
     }
+
+    // jlovejoy@mit.edu
+    verifiers.insert("BGlIWaa5zawgmGqOofUcHeuKrarBuwTkjyqUJR3MJWpey/gdYIr2uJeQD6o4PiUeSyhVRuRs6qN74rwO9gvItks=");
 
     reindexChain(chainTipId);
 
@@ -126,8 +127,6 @@ std::vector<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::get
             returning.push_back(*it);
         }
     }
-
-    checkRep();
 
     chainLock.unlock();
 
@@ -477,11 +476,13 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         return false;
     }
 
-    if(getVerifier(newBlock) != newBlock.publicKey && !genesisBlock)
+    if(!genesisBlock)
     {
-        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Not from a valid verifier");
-        chainLock.unlock();
-        return false;
+        if(getVerifier(newBlock) != newBlock.publicKey) {
+            log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Not from a valid verifier");
+            chainLock.unlock();
+            return false;
+        }
     }
 
     CryptoKernel::Crypto crypto;
@@ -910,7 +911,7 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateMiningBlock(st
     chainLock.lock();
     block returning;
 
-    returning.transactions = unconfirmedTransactions;
+    returning.transactions = getUnconfirmedTransactions();
     time_t t = std::time(0);
     uint64_t now = static_cast<uint64_t> (t);
     returning.timestamp = now;
