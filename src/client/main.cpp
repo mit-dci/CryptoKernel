@@ -41,7 +41,7 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoCurrency::Wallet* wallet,
 
     while(true)
     {
-        if(network->getConnections() > 0)
+        /*if(network->getConnections() > 0)
         {
             Block = blockchain->generateMiningBlock(wallet->getAddressByName("mining").publicKey);
             Block.nonce = 0;
@@ -85,9 +85,9 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoCurrency::Wallet* wallet,
             }
         }
         else
-        {
+        {*/
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        }
+        //}
     }
 }
 

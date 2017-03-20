@@ -150,7 +150,7 @@ void CryptoKernel::Network::Peer::requestFunc()
 
                     if(!blockExists)
                     {
-                        if(blockchain->submitBlock(block))
+                        if(blockchain->submitBlock(block, false))
                         {
                             network->broadcastBlock(block);
                         }

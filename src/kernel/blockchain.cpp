@@ -43,6 +43,7 @@ bool CryptoKernel::Blockchain::loadChain()
 {
     chainLock.lock();
     chainTipId = blocks->get("tip")["id"].asString();
+    verifiers.insert("BNQtiRRDJrSTzimujraQuc/wEDc/L/+Omg6jBsi6/Bjvto8ndfZJcPWtmBoLNn5r3Rrv9X48B4B0148goVqrIaQ=");
     if(chainTipId == "")
     {
         if(blocks->get(genesisBlockId)["id"].asString() != genesisBlockId)
@@ -66,23 +67,18 @@ bool CryptoKernel::Blockchain::loadChain()
             t.close();
         }
 
-        /*block Block = generateMiningBlock("BL8ERakVzl7UZm1JmhdWxsdGIgHdJAUQ9LW6HKTrbtnum6HLAwd7nlTWQfpkhKupsKRjXbL1LnaPVd20ld+4UIM=");
-        Block.nonce = 0;
-
-        do
-        {
-            Block.nonce += 1;
-            Block.PoW = calculatePoW(Block);
-        }
-        while(!CryptoKernel::Math::hex_greater(Block.target, Block.PoW));
-
-        std::string inverse = CryptoKernel::Math::subtractHex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", Block.PoW);
-        Block.totalWork = inverse;
+        /*CryptoKernel::Crypto crypto;
+        crypto.setPublicKey("BNQtiRRDJrSTzimujraQuc/wEDc/L/+Omg6jBsi6/Bjvto8ndfZJcPWtmBoLNn5r3Rrv9X48B4B0148goVqrIaQ=");
+        crypto.setPrivateKey("biZnOnO6O/C8dVBca8qf8IpynqslOR2L3JmzUb2oEP0=");
+        cbKey = crypto.getPublicKey();
+        block Block = generateMiningBlock(crypto.getPublicKey());
+        Block.signature = crypto.sign(Block.id);
+        verifiers.insert(crypto.getPublicKey());
 
         submitBlock(Block, true);*/
     }
 
-    //reindexChain(chainTipId);
+    reindexChain(chainTipId);
 
     status = true;
 
@@ -434,64 +430,27 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         return true;
     }
 
+    const block previousBlock = getBlock(newBlock.previousBlockId);
     //Check the previous block exists
-    if((blocks->get(newBlock.previousBlockId)["id"].asString() != newBlock.previousBlockId || newBlock.previousBlockId == "") && !genesisBlock)
+    if((previousBlock.id != newBlock.previousBlockId || newBlock.previousBlockId == "") && !genesisBlock)
     {
         log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Previous block does not exist");
         chainLock.unlock();
         return false;
     }
 
-    //Check target
-    if(newBlock.target != calculateTarget(newBlock.previousBlockId))
-    {
-        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Block target is incorrect");
-        chainLock.unlock();
-        return false;
-    }
-
-    //Check proof of work
-    if(!CryptoKernel::Math::hex_greater(newBlock.target, newBlock.PoW) || calculatePoW(newBlock) != newBlock.PoW)
-    {
-        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Proof of work is incorrect");
-        chainLock.unlock();
-        return false;
-    }
-
-    //Check total work
-    std::string inverse = CryptoKernel::Math::subtractHex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", newBlock.PoW);
-    if(newBlock.totalWork != CryptoKernel::Math::addHex(inverse, jsonToBlock(blocks->get(newBlock.previousBlockId)).totalWork) && !genesisBlock)
-    {
-        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Total work is incorrect");
-        chainLock.unlock();
-        return false;
-    }
-
-    if(newBlock.height != getBlock(newBlock.previousBlockId).height + 1 && !genesisBlock)
+    if(newBlock.height != previousBlock.height + 1 && !genesisBlock)
     {
         log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Block height is incorrect");
         chainLock.unlock();
         return false;
     }
 
-    bool onlySave = false;
-
-    if(newBlock.previousBlockId != chainTipId && !genesisBlock)
+    if((newBlock.sequenceNumber <= previousBlock.sequenceNumber || (newBlock.timestamp / blockTarget) != newBlock.sequenceNumber) && !genesisBlock)
     {
-        //This block does not directly lead on from last block
-        //Check if its PoW is bigger than the longest chain
-        //If so, reorg, otherwise ignore it
-        if(CryptoKernel::Math::hex_greater(newBlock.totalWork, getBlock("tip").totalWork))
-        {
-            log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Forking the chain");
-            std::string originalTip = getBlock("tip").id;
-            reorgChain(newBlock.previousBlockId);
-        }
-        else
-        {
-            log->printf(LOG_LEVEL_WARN, "blockchain::submitBlock(): Chain has a lower PoW than current chain");
-            onlySave = true;
-        }
+        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Sequence number is incorrect");
+        chainLock.unlock();
+        return false;
     }
 
     //Check the id is correct
@@ -503,11 +462,55 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
     }
 
     //Check that the timestamp is realistic
-    if(newBlock.timestamp < getBlock(newBlock.previousBlockId).timestamp && !genesisBlock)
+    if(newBlock.timestamp < previousBlock.timestamp && !genesisBlock)
     {
         log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Timestamp is unrealistic");
         chainLock.unlock();
         return false;
+    }
+
+    const time_t t = std::time(0);
+    const uint64_t now = static_cast<uint64_t> (t);
+    if(now < newBlock.timestamp) {
+        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Timestamp is too early");
+        chainLock.unlock();
+        return false;
+    }
+
+    if(getVerifier(newBlock) != newBlock.publicKey && !genesisBlock)
+    {
+        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Not from a valid verifier");
+        chainLock.unlock();
+        return false;
+    }
+
+    CryptoKernel::Crypto crypto;
+    crypto.setPublicKey(newBlock.publicKey);
+    if(!crypto.verify(newBlock.id, newBlock.signature)) {
+        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Invalid block signature");
+        chainLock.unlock();
+        return false;
+    }
+
+    bool onlySave = false;
+
+    if(newBlock.previousBlockId != chainTipId && !genesisBlock)
+    {
+        //This block does not directly lead on from last block
+        //Check if the verifier should've come before the current tip
+        //If so, reorg, otherwise ignore it
+        const block tip = getBlock("tip");
+        if(newBlock.sequenceNumber < tip.sequenceNumber && newBlock.height >= tip.height)
+        {
+            log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Forking the chain");
+            std::string originalTip = tip.id;
+            reorgChain(newBlock.previousBlockId);
+        }
+        else
+        {
+            log->printf(LOG_LEVEL_WARN, "blockchain::submitBlock(): Chain has a lower PoW than current chain");
+            onlySave = true;
+        }
     }
 
     if(!onlySave)
@@ -533,15 +536,14 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
             chainLock.unlock();
             return false;
         }
-        else
+        else if(newBlock.coinbaseTx.id != "")
         {
             uint64_t outputTotal = 0;
             std::vector<output>::iterator it2;
             for(it2 = newBlock.coinbaseTx.outputs.begin(); it2 < newBlock.coinbaseTx.outputs.end(); it2++)
             {
                 (*it2).creationTx = newBlock.coinbaseTx.id;
-                CryptoKernel::Crypto crypto;
-                if(!crypto.setPublicKey((*it2).publicKey))
+                if((*it2).publicKey != cbKey)
                 {
                     //Invalid key
                     log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Coinbase public key is invalid");
@@ -551,9 +553,9 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
                 outputTotal += (*it2).value;
             }
 
-            if(outputTotal != fees + getBlockReward(newBlock.height))
+            if(outputTotal != fees)
             {
-                log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Coinbase output exceeds limit");
+                log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Coinbase output exceeds fees");
                 chainLock.unlock();
                 return false;
             }
@@ -617,7 +619,7 @@ std::string CryptoKernel::Blockchain::calculateBlockId(block Block)
 
     buffer << calculateTransactionId(Block.coinbaseTx);
 
-    buffer << Block.previousBlockId << Block.timestamp << Block.target << Block.height;
+    buffer << Block.previousBlockId << Block.timestamp << Block.height << Block.publicKey << Block.sequenceNumber;
 
     CryptoKernel::Crypto crypto;
     return crypto.sha256(buffer.str());
@@ -637,20 +639,18 @@ Json::Value CryptoKernel::Blockchain::blockToJson(block Block, bool PoW)
         returning["transactions"].append(transactionToJson((*it)));
     }
 
-    if(!PoW)
-    {
-        returning["PoW"] = Block.PoW;
-        returning["totalWork"] = Block.totalWork;
+    if(Block.coinbaseTx.id != "") {
+        returning["coinbaseTx"] = transactionToJson(Block.coinbaseTx);
     }
-
-    returning["target"] = Block.target;
-    returning["coinbaseTx"] = transactionToJson(Block.coinbaseTx);
-    returning["nonce"] = static_cast<unsigned long long int>(Block.nonce);
 
     if(!PoW)
     {
         returning["mainChain"] = Block.mainChain;
     }
+
+    returning["signature"] = Block.signature;
+    returning["publicKey"] = Block.publicKey;
+    returning["sequenceNumber"] = static_cast<unsigned long long int>(Block.sequenceNumber);
 
     return returning;
 }
@@ -805,9 +805,6 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::jsonToBlock(Json::Valu
     returning.previousBlockId = Block["previousBlockId"].asString();
     returning.timestamp = Block["timestamp"].asUInt64();
     returning.height = Block["height"].asUInt();
-    returning.PoW = Block["PoW"].asString();
-    returning.target = Block["target"].asString();
-    returning.totalWork = Block["totalWork"].asString();
 
     for(unsigned int i = 0; i < Block["transactions"].size(); i++)
     {
@@ -815,8 +812,10 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::jsonToBlock(Json::Valu
     }
 
     returning.coinbaseTx = jsonToTransaction(Block["coinbaseTx"]);
-    returning.nonce = Block["nonce"].asUInt64();
     returning.mainChain = Block["mainChain"].asBool();
+    returning.publicKey = Block["publicKey"].asString();
+    returning.signature = Block["signature"].asString();
+    returning.sequenceNumber = Block["sequenceNumber"].asUInt64();
 
     return returning;
 }
@@ -857,107 +856,6 @@ CryptoKernel::Blockchain::output CryptoKernel::Blockchain::jsonToOutput(Json::Va
     returning.creationTx = Output["creationTx"].asString();
 
     return returning;
-}
-
-std::string CryptoKernel::Blockchain::calculateTarget(std::string previousBlockId)
-{
-    const uint64_t minBlocks = 144;
-    const uint64_t maxBlocks = 4032;
-    const std::string minDifficulty = "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-
-    block currentBlock = getBlock(previousBlockId);
-    block lastSolved = currentBlock;
-
-    if(currentBlock.height < minBlocks)
-    {
-        return minDifficulty;
-    }
-    else
-    {
-        uint64_t blocksScanned = 0;
-        std::string difficultyAverage = "0";
-        std::string previousDifficultyAverage = "0";
-        int64_t actualRate = 0;
-        int64_t targetRate = 0;
-        double rateAdjustmentRatio = 1.0;
-        double eventHorizonDeviation = 0.0;
-        double eventHorizonDeviationFast = 0.0;
-        double eventHorizonDeviationSlow = 0.0;
-
-        for(unsigned int i = 1; currentBlock.previousBlockId != ""; i++)
-        {
-            if(i > maxBlocks)
-            {
-                break;
-            }
-
-            blocksScanned++;
-
-            if(i == 1)
-            {
-                difficultyAverage = currentBlock.target;
-            }
-            else
-            {
-                std::stringstream buffer;
-                buffer << std::hex << i;
-                difficultyAverage = CryptoKernel::Math::addHex(CryptoKernel::Math::divideHex(CryptoKernel::Math::subtractHex(currentBlock.target, previousDifficultyAverage), buffer.str()), previousDifficultyAverage);
-            }
-
-            previousDifficultyAverage = difficultyAverage;
-
-            actualRate = lastSolved.timestamp - currentBlock.timestamp;
-            targetRate = blockTarget * blocksScanned;
-            rateAdjustmentRatio = 1.0;
-
-            if(actualRate < 0)
-            {
-                actualRate = 0;
-            }
-
-            if(actualRate != 0 && targetRate != 0)
-            {
-                rateAdjustmentRatio = double(targetRate) / double(actualRate);
-            }
-
-            eventHorizonDeviation = 1 + (0.7084 * pow((double(blocksScanned)/double(minBlocks)), -1.228));
-            eventHorizonDeviationFast = eventHorizonDeviation;
-            eventHorizonDeviationSlow = 1 / eventHorizonDeviation;
-
-            if(blocksScanned >= minBlocks)
-            {
-                if((rateAdjustmentRatio <= eventHorizonDeviationSlow) || (rateAdjustmentRatio >= eventHorizonDeviationFast))
-                {
-                    break;
-                }
-            }
-
-            if(currentBlock.previousBlockId == "")
-            {
-                break;
-            }
-            currentBlock = getBlock(currentBlock.previousBlockId);
-        }
-
-        std::string newTarget = difficultyAverage;
-        if(actualRate != 0 && targetRate != 0)
-        {
-            std::stringstream buffer;
-            buffer << std::hex << actualRate;
-            newTarget = CryptoKernel::Math::multiplyHex(newTarget, buffer.str());
-
-            buffer.str("");
-            buffer << std::hex << targetRate;
-            newTarget = CryptoKernel::Math::divideHex(newTarget, buffer.str());
-        }
-
-        if(CryptoKernel::Math::hex_greater(newTarget, minDifficulty))
-        {
-            newTarget = minDifficulty;
-        }
-
-        return newTarget;
-    }
 }
 
 uint64_t CryptoKernel::Blockchain::getTransactionFee(transaction tx)
@@ -1007,14 +905,6 @@ uint64_t CryptoKernel::Blockchain::calculateTransactionFee(transaction tx)
     return inputTotal - outputTotal;
 }
 
-std::string CryptoKernel::Blockchain::calculatePoW(const block& Block)
-{
-    std::stringstream buffer;
-    buffer << Block.id << Block.nonce;
-
-    return PoWFunction(buffer.str());
-}
-
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateMiningBlock(std::string publicKey)
 {
     chainLock.lock();
@@ -1024,23 +914,24 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateMiningBlock(st
     time_t t = std::time(0);
     uint64_t now = static_cast<uint64_t> (t);
     returning.timestamp = now;
+    returning.sequenceNumber = now / blockTarget;
+    returning.publicKey = publicKey;
 
     block previousBlock;
-    previousBlock = jsonToBlock(blocks->get("tip"));
+    previousBlock = getBlock("tip");
 
     returning.height = previousBlock.height + 1;
     returning.previousBlockId = previousBlock.id;
-    returning.target = calculateTarget(previousBlock.id);
 
     output toMe;
-    toMe.value = getBlockReward(returning.height);
+    toMe.value = 0;
 
     std::vector<transaction>::iterator it;
     for(it = returning.transactions.begin(); it < returning.transactions.end(); it++)
     {
         toMe.value += calculateTransactionFee((*it));
     }
-    toMe.publicKey = publicKey;
+    toMe.publicKey = cbKey;
 
     std::default_random_engine generator(now);
     std::uniform_int_distribution<unsigned int> distribution(0, UINT_MAX);
@@ -1052,7 +943,10 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateMiningBlock(st
     coinbaseTx.outputs.push_back(toMe);
     coinbaseTx.timestamp = now;
     coinbaseTx.id = calculateTransactionId(coinbaseTx);
-    returning.coinbaseTx = coinbaseTx;
+
+    if(coinbaseTx.outputs[0].value > 0) {
+        returning.coinbaseTx = coinbaseTx;
+    }
 
     returning.id = calculateBlockId(returning);
 
@@ -1200,4 +1094,10 @@ std::set<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::getTra
     chainLock.unlock();
 
     return returning;
+}
+
+std::string CryptoKernel::Blockchain::getVerifier(const block& thisBlock) {
+    const uint64_t verifierId = thisBlock.sequenceNumber % verifiers.size();
+
+    return *std::next(verifiers.begin(), verifierId);
 }

@@ -1,25 +1,9 @@
 {
-   "PoW" : "0000002953f49093e9431bc122bdef6844e3507cc74c23cd2b437143257af1f4",
-   "coinbaseTx" : {
-      "id" : "c708f4f072bcf20be513fedc96e8aedbb126d2ae039e98955b1b606793630485",
-      "outputs" : [
-         {
-            "data" : null,
-            "id" : "4ad52bb4c5bf20ce7850b9b9f23eec08f380e3cc93ebbc7391f37b71bc954009",
-            "nonce" : 3116877996,
-            "publicKey" : "BL8ERakVzl7UZm1JmhdWxsdGIgHdJAUQ9LW6HKTrbtnum6HLAwd7nlTWQfpkhKupsKRjXbL1LnaPVd20ld+4UIM=",
-            "signature" : "",
-            "value" : 5000000000
-         }
-      ],
-      "timestamp" : 1480990760
-   },
    "height" : 1,
-   "id" : "9344a9cab3084e15b2f1b5572b9a2fcf56920b51afad8f77de814dd194f96e90",
-   "mainChain" : true,
-   "nonce" : 2475026,
+   "id" : "3c6fe9a32b8059abfd798f95a9f330c794c6d736222bf743afbc20018628da12",
    "previousBlockId" : "",
-   "target" : "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-   "timestamp" : 1480990760,
-   "totalWork" : "ffffffd6ac0b6f6c16bce43edd421097bb1caf8338b3dc32d4bc8ebcda850e0b"
+   "publicKey" : "BNQtiRRDJrSTzimujraQuc/wEDc/L/+Omg6jBsi6/Bjvto8ndfZJcPWtmBoLNn5r3Rrv9X48B4B0148goVqrIaQ=",
+   "sequenceNumber" : 9933270,
+   "signature" : "MEUCIQCms19K04UuGNNwdsDCvc5t4B5tWV1GdxmQaMYoXWA0KAIgCpd6YqmKEZ3r2n+tigZN9UYaqdlrIEjPnxetbf9savE=",
+   "timestamp" : 1489990547
 }

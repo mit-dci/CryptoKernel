@@ -61,12 +61,11 @@ namespace CryptoKernel
                 std::vector<transaction> transactions;
                 transaction coinbaseTx;
                 std::string previousBlockId;
+                std::string publicKey;
+                std::string signature;
                 uint64_t timestamp;
-                std::string target;
-                std::string PoW;
-                std::string totalWork;
-                uint64_t nonce;
                 bool mainChain;
+                uint64_t sequenceNumber;
             };
             bool submitTransaction(transaction tx);
             bool submitBlock(block newBlock, bool genesisBlock = false);
@@ -78,7 +77,6 @@ namespace CryptoKernel
             static block jsonToBlock(Json::Value Block);
             static transaction jsonToTransaction(Json::Value tx);
             static output jsonToOutput(Json::Value Output);
-            std::string calculatePoW(const block& Block);
             block getBlock(std::string id);
 
             /**
@@ -117,7 +115,7 @@ namespace CryptoKernel
             std::vector<transaction> getUnconfirmedTransactions();
             bool loadChain();
             Storage::Iterator* newIterator();
-            const std::string genesisBlockId = "9344a9cab3084e15b2f1b5572b9a2fcf56920b51afad8f77de814dd194f96e90";
+            const std::string genesisBlockId = "3c6fe9a32b8059abfd798f95a9f330c794c6d736222bf743afbc20018628da12";
 
         private:
             Storage *transactions;
@@ -131,16 +129,16 @@ namespace CryptoKernel
             bool confirmTransaction(transaction tx, bool coinbaseTx = false);
             std::string chainTipId;
             bool reindexChain(std::string newTipId);
-            std::string calculateTarget(std::string previousBlockId);
-            virtual uint64_t getBlockReward(const uint64_t height) = 0;
             uint64_t getTransactionFee(transaction tx);
             uint64_t calculateTransactionFee(transaction tx);
             bool status;
             bool reverseBlock();
             bool reorgChain(std::string newTipId);
             uint64_t blockTarget;
-            virtual std::string PoWFunction(const std::string inputString) = 0;
             std::recursive_mutex chainLock;
+            std::set<std::string> verifiers;
+            std::string getVerifier(const block& thisBlock);
+            std::string cbKey;
     };
 }
 

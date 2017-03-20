@@ -64,6 +64,7 @@ Json::Value CryptoServer::account(const std::string& account)
     buffer << std::setprecision(8) << balance;
     returning["balance"] = buffer.str();
     returning["address"] = newAccount.publicKey;
+    returning["privateKey"] = newAccount.privateKey;
 
     return returning;
 }
