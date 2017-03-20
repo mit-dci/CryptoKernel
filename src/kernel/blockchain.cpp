@@ -540,7 +540,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
             chainLock.unlock();
             return false;
         }
-        else if(newBlock.coinbaseTx.id != "")
+        else if(!genesisBlock)
         {
             uint64_t outputTotal = 0;
             std::vector<output>::iterator it2;
@@ -557,9 +557,9 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
                 outputTotal += (*it2).value;
             }
 
-            if(outputTotal != fees)
+            if(outputTotal != fees + getBlockReward(newBlock.height))
             {
-                log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Coinbase output exceeds fees");
+                log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Coinbase output is not the correct value");
                 chainLock.unlock();
                 return false;
             }
@@ -928,7 +928,7 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateMiningBlock(st
     returning.previousBlockId = previousBlock.id;
 
     output toMe;
-    toMe.value = 0;
+    toMe.value = getBlockReward(returning.height);
 
     std::vector<transaction>::iterator it;
     for(it = returning.transactions.begin(); it < returning.transactions.end(); it++)

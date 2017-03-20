@@ -70,11 +70,11 @@ class MyBlockchain : public CryptoKernel::Blockchain
         {
             if(height > 2)
             {
-                return 5000000000 / std::log(height);
+                return 100000000 / std::log(height);
             }
             else
             {
-                return 5000000000;
+                return 100000000;
             }
         }
 

@@ -139,6 +139,7 @@ namespace CryptoKernel
             std::recursive_mutex chainLock;
             std::set<std::string> verifiers;
             const std::string cbKey = "BLNz4IiBnUDanMovX5LQ9KCev1bUVO/70r0WqXv2Gc96SnsPuayoXXYlIivrQ9C8vhOm7scoXm3QXMgid2vsvEs=";
+            virtual uint64_t getBlockReward(const uint64_t height) = 0;
     };
 }
 
