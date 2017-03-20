@@ -80,7 +80,7 @@ bool CryptoKernel::Blockchain::loadChain()
     verifiers.insert("BGlIWaa5zawgmGqOofUcHeuKrarBuwTkjyqUJR3MJWpey/gdYIr2uJeQD6o4PiUeSyhVRuRs6qN74rwO9gvItks=");
 
     // jameslovejoy1@gmail.com
-    verifier.insert("BGn41E5/xuVglG7HZOp4ny6eBs63bJtA1K32qOa0GzwEU9cgFBig9uapU3gAGhIlvhoqbJ2GsCvkJI2929QlNb0=");
+    verifiers.insert("BGn41E5/xuVglG7HZOp4ny6eBs63bJtA1K32qOa0GzwEU9cgFBig9uapU3gAGhIlvhoqbJ2GsCvkJI2929QlNb0=");
 
     reindexChain(chainTipId);
 
