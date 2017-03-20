@@ -38,7 +38,7 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoCurrency::Wallet* wallet,
     while(true)
     {
         CryptoKernel::Blockchain::block Block = blockchain->generateMiningBlock(verifierAddr.publicKey);
-        if(/*network->getConnections() > 0 &&*/ blockchain->getVerifier(Block) == verifierAddr.publicKey && Block.sequenceNumber > currentSequenceNumber)
+        if(network->getConnections() > 0 && blockchain->getVerifier(Block) == verifierAddr.publicKey && Block.sequenceNumber > currentSequenceNumber)
         {
             CryptoKernel::Crypto crypto;
             crypto.setPrivateKey(verifierAddr.privateKey);
