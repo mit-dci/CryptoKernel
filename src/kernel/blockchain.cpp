@@ -512,7 +512,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         }
         else
         {
-            log->printf(LOG_LEVEL_WARN, "blockchain::submitBlock(): Chain has a lower PoW than current chain");
+            log->printf(LOG_LEVEL_WARN, "blockchain::submitBlock(): Chain has less verifier backing than current chain");
             onlySave = true;
         }
     }
