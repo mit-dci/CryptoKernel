@@ -141,6 +141,8 @@
 		<Unit filename="src/kernel/blockchain.cpp" />
 		<Unit filename="src/kernel/blockchain.h" />
 		<Unit filename="src/kernel/ckmath.h" />
+		<Unit filename="src/kernel/consensus/AVRR.cpp" />
+		<Unit filename="src/kernel/consensus/AVRR.h" />
 		<Unit filename="src/kernel/contract.cpp" />
 		<Unit filename="src/kernel/contract.h" />
 		<Unit filename="src/kernel/crypto.cpp" />

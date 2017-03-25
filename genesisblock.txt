@@ -2,9 +2,11 @@
    "height" : 1,
    "id" : "acc69da369fbac099bbb9ae38a637eec4f27358e9874828964d02ee8bb91cd38",
    "previousBlockId" : "",
-   "publicKey" : "BLNz4IiBnUDanMovX5LQ9KCev1bUVO/70r0WqXv2Gc96SnsPuayoXXYlIivrQ9C8vhOm7scoXm3QXMgid2vsvEs=",
-   "sequenceNumber" : 9933580,
-   "signature" : "MEQCICO58QbGH4UYhOPBM8hhlUT2YLwbnpZlJu5+OdFE3b7mAiBJIK5fmDysvItdssBmJfokOzEpQuEEN2Rpg2VlEAOJKQ==",
+   "consensusData" : {
+       "publicKey" : "BLNz4IiBnUDanMovX5LQ9KCev1bUVO/70r0WqXv2Gc96SnsPuayoXXYlIivrQ9C8vhOm7scoXm3QXMgid2vsvEs=",
+       "signature" : "MEQCICO58QbGH4UYhOPBM8hhlUT2YLwbnpZlJu5+OdFE3b7mAiBJIK5fmDysvItdssBmJfokOzEpQuEEN2Rpg2VlEAOJKQ==",
+       "sequenceNumber" : 9933580
+   },
    "timestamp" : 1490037128
 }
 

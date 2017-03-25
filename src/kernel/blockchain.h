@@ -27,10 +27,11 @@
 
 namespace CryptoKernel
 {
+    class Consensus;
     class Blockchain
     {
         public:
-            Blockchain(CryptoKernel::Log* GlobalLog, const uint64_t blockTime);
+            Blockchain(CryptoKernel::Log* GlobalLog, CryptoKernel::Consensus* consensus);
             ~Blockchain();
             struct output
             {
@@ -61,16 +62,14 @@ namespace CryptoKernel
                 std::vector<transaction> transactions;
                 transaction coinbaseTx;
                 std::string previousBlockId;
-                std::string publicKey;
-                std::string signature;
                 uint64_t timestamp;
                 bool mainChain;
-                uint64_t sequenceNumber;
+                Json::Value consensusData;
             };
             bool submitTransaction(transaction tx);
             bool submitBlock(block newBlock, bool genesisBlock = false);
             uint64_t getBalance(std::string publicKey);
-            block generateMiningBlock(std::string publicKey);
+            block generateVerifyingBlock(std::string publicKey);
             static Json::Value transactionToJson(transaction tx);
             static Json::Value outputToJson(output Output);
             static Json::Value blockToJson(block Block, bool PoW = false);
@@ -116,7 +115,6 @@ namespace CryptoKernel
             bool loadChain();
             Storage::Iterator* newIterator();
             const std::string genesisBlockId = "acc69da369fbac099bbb9ae38a637eec4f27358e9874828964d02ee8bb91cd38";
-            std::string getVerifier(const block& thisBlock);
 
         private:
             Storage *transactions;
@@ -135,11 +133,68 @@ namespace CryptoKernel
             bool status;
             bool reverseBlock();
             bool reorgChain(std::string newTipId);
-            uint64_t blockTarget;
+            //uint64_t blockTarget;
             std::recursive_mutex chainLock;
-            std::set<std::string> verifiers;
-            const std::string cbKey = "BLNz4IiBnUDanMovX5LQ9KCev1bUVO/70r0WqXv2Gc96SnsPuayoXXYlIivrQ9C8vhOm7scoXm3QXMgid2vsvEs=";
+            //const std::string cbKey = "BLNz4IiBnUDanMovX5LQ9KCev1bUVO/70r0WqXv2Gc96SnsPuayoXXYlIivrQ9C8vhOm7scoXm3QXMgid2vsvEs=";
             virtual uint64_t getBlockReward(const uint64_t height) = 0;
+            virtual std::string getCoinbaseOwner(const std::string publicKey) = 0;
+            Consensus* consensus;
+    };
+
+    /**
+    * Custom consensus protocol interface.
+    *
+    * Extend this class to provide a custom consensus mechanism
+    * to the blockchain for use in a distributed system.
+    */
+    class Consensus {
+        public:
+            /**
+            * Pure virtual method that returns true if the given block forms a
+            * longer chain than the current chain tip. Internally it is used to
+            * determine what is the longest chain. For Proof of Work
+            * this method would check if the "total work" of one block is greater
+            * than the chain tip, and if so, return true.
+            *
+            * @param block the block to compare to the current chain tip
+            * @param tip the current chain tip block
+            * @return true iff block takes precedence over the current chain tip,
+            *         otherwise false
+            */
+            virtual bool isBlockBetter(const CryptoKernel::Blockchain::block block, const CryptoKernel::Blockchain::block tip) = 0;
+
+            /**
+            * Pure virtual method that returns true iff the given block conforms to
+            * the consensus rules of the blockchain. For Proof of Work this function
+            * would check that the difficulty of the block is correct, the PoW is
+            * correct, below the block target and that the total work is correct.
+            * This data is stored in the consensusData field of Blockchain::block.
+            *
+            * @param block the block to check the consensus rules of
+            * @return true iff the rules are valid, otherwise false
+            */
+            virtual bool checkConsensusRules(const CryptoKernel::Blockchain::block block, const CryptoKernel::Blockchain::block previousBlock) = 0;
+
+            /**
+            * Pure virtual function that generates the consensus data
+            * for a block owned by the given public key. In a Proof of
+            * Work system this would calculate the block target.
+            *
+            * @param block the block to generate consensusData for
+            * @param publicKey the public key to that will own this block
+            * @return the consensusData for the block
+            */
+            virtual Json::Value generateConsensusData(const CryptoKernel::Blockchain::block block, const std::string publicKey) = 0;
+
+            /**
+            * Pure virtual function that serializes the consensus data field of a block
+            * into a string to be used when calculating a block's ID.
+            *
+            * @param block the block to serialize the consensus data of
+            * @return a string that represents the serialization of the given block's
+            *         consensus data
+            */
+            virtual std::string serializeConsensusData(const CryptoKernel::Blockchain::block block) = 0;
     };
 }
 

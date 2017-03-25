@@ -29,14 +29,14 @@
 #include "ckmath.h"
 #include "contract.h"
 
-CryptoKernel::Blockchain::Blockchain(CryptoKernel::Log* GlobalLog, const uint64_t blockTime)
+CryptoKernel::Blockchain::Blockchain(CryptoKernel::Log* GlobalLog, CryptoKernel::Consensus* consensus)
 {
     status = false;
-    blockTarget = blockTime;
     transactions = new CryptoKernel::Storage("./transactiondb");
     blocks = new CryptoKernel::Storage("./blockdb");
     utxos = new CryptoKernel::Storage("./utxodb");
     log = GlobalLog;
+    this->consensus = consensus;
 }
 
 bool CryptoKernel::Blockchain::loadChain()
@@ -75,12 +75,6 @@ bool CryptoKernel::Blockchain::loadChain()
 
         submitBlock(Block, true);*/
     }
-
-    // jlovejoy@mit.edu
-    verifiers.insert("BGlIWaa5zawgmGqOofUcHeuKrarBuwTkjyqUJR3MJWpey/gdYIr2uJeQD6o4PiUeSyhVRuRs6qN74rwO9gvItks=");
-
-    // jameslovejoy1@gmail.com
-    verifiers.insert("BGn41E5/xuVglG7HZOp4ny6eBs63bJtA1K32qOa0GzwEU9cgFBig9uapU3gAGhIlvhoqbJ2GsCvkJI2929QlNb0=");
 
     reindexChain(chainTipId);
 
@@ -206,13 +200,6 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
         log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): tx has no outputs");
         return false;
     }
-
-    /*time_t t = std::time(0);
-    uint64_t now = static_cast<uint64_t> (t);
-    if(tx.timestamp < (now - 5 * 60 * 60))
-    {
-        return false;
-    }*/
 
     uint64_t inputTotal = 0;
     uint64_t outputTotal = 0;
@@ -448,13 +435,6 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         return false;
     }
 
-    if((newBlock.sequenceNumber <= previousBlock.sequenceNumber || (newBlock.timestamp / blockTarget) != newBlock.sequenceNumber) && !genesisBlock)
-    {
-        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Sequence number is incorrect");
-        chainLock.unlock();
-        return false;
-    }
-
     //Check the id is correct
     if(calculateBlockId(newBlock) != newBlock.id)
     {
@@ -471,29 +451,12 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         return false;
     }
 
-    const time_t t = std::time(0);
-    const uint64_t now = static_cast<uint64_t> (t);
-    if(now < newBlock.timestamp) {
-        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Timestamp is too early");
-        chainLock.unlock();
-        return false;
-    }
-
-    if(!genesisBlock)
-    {
-        if(getVerifier(newBlock) != newBlock.publicKey) {
-            log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Not from a valid verifier");
+    if(!genesisBlock) {
+        if(!consensus->checkConsensusRules(newBlock, previousBlock)) {
+            log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Consensus rules cannot verify this block");
             chainLock.unlock();
             return false;
         }
-    }
-
-    CryptoKernel::Crypto crypto;
-    crypto.setPublicKey(newBlock.publicKey);
-    if(!crypto.verify(newBlock.id, newBlock.signature)) {
-        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Invalid block signature");
-        chainLock.unlock();
-        return false;
     }
 
     bool onlySave = false;
@@ -504,10 +467,9 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         //Check if the verifier should've come before the current tip
         //If so, reorg, otherwise ignore it
         const block tip = getBlock("tip");
-        if(newBlock.sequenceNumber < tip.sequenceNumber && newBlock.height >= tip.height)
+        if(consensus->isBlockBetter(newBlock, tip))
         {
             log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Forking the chain");
-            std::string originalTip = tip.id;
             reorgChain(newBlock.previousBlockId);
         }
         else
@@ -547,7 +509,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
             for(it2 = newBlock.coinbaseTx.outputs.begin(); it2 < newBlock.coinbaseTx.outputs.end(); it2++)
             {
                 (*it2).creationTx = newBlock.coinbaseTx.id;
-                if((*it2).publicKey != cbKey)
+                if((*it2).publicKey != getCoinbaseOwner((*it2).publicKey))
                 {
                     //Invalid key
                     log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Coinbase public key is invalid");
@@ -623,7 +585,7 @@ std::string CryptoKernel::Blockchain::calculateBlockId(block Block)
 
     buffer << calculateTransactionId(Block.coinbaseTx);
 
-    buffer << Block.previousBlockId << Block.timestamp << Block.height << Block.publicKey << Block.sequenceNumber;
+    buffer << Block.previousBlockId << Block.timestamp << Block.height << consensus->serializeConsensusData(Block);
 
     CryptoKernel::Crypto crypto;
     return crypto.sha256(buffer.str());
@@ -652,9 +614,7 @@ Json::Value CryptoKernel::Blockchain::blockToJson(block Block, bool PoW)
         returning["mainChain"] = Block.mainChain;
     }
 
-    returning["signature"] = Block.signature;
-    returning["publicKey"] = Block.publicKey;
-    returning["sequenceNumber"] = static_cast<unsigned long long int>(Block.sequenceNumber);
+    returning["consensusData"] = Block.consensusData;
 
     return returning;
 }
@@ -817,9 +777,7 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::jsonToBlock(Json::Valu
 
     returning.coinbaseTx = jsonToTransaction(Block["coinbaseTx"]);
     returning.mainChain = Block["mainChain"].asBool();
-    returning.publicKey = Block["publicKey"].asString();
-    returning.signature = Block["signature"].asString();
-    returning.sequenceNumber = Block["sequenceNumber"].asUInt64();
+    returning.consensusData = Block["consensusData"];
 
     return returning;
 }
@@ -909,7 +867,7 @@ uint64_t CryptoKernel::Blockchain::calculateTransactionFee(transaction tx)
     return inputTotal - outputTotal;
 }
 
-CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateMiningBlock(std::string publicKey)
+CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateVerifyingBlock(std::string publicKey)
 {
     chainLock.lock();
     block returning;
@@ -918,8 +876,8 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateMiningBlock(st
     time_t t = std::time(0);
     uint64_t now = static_cast<uint64_t> (t);
     returning.timestamp = now;
-    returning.sequenceNumber = now / blockTarget;
-    returning.publicKey = publicKey;
+
+    returning.consensusData = consensus->generateConsensusData(returning, publicKey);
 
     block previousBlock;
     previousBlock = getBlock("tip");
@@ -935,7 +893,7 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateMiningBlock(st
     {
         toMe.value += calculateTransactionFee((*it));
     }
-    toMe.publicKey = cbKey;
+    toMe.publicKey = getCoinbaseOwner(publicKey);
 
     std::default_random_engine generator(now);
     std::uniform_int_distribution<unsigned int> distribution(0, UINT_MAX);
@@ -1098,10 +1056,4 @@ std::set<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::getTra
     chainLock.unlock();
 
     return returning;
-}
-
-std::string CryptoKernel::Blockchain::getVerifier(const block& thisBlock) {
-    const uint64_t verifierId = thisBlock.sequenceNumber % verifiers.size();
-
-    return *std::next(verifiers.begin(), verifierId);
 }
