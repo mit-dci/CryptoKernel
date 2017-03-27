@@ -31,7 +31,7 @@ namespace CryptoKernel
     class Blockchain
     {
         public:
-            Blockchain(CryptoKernel::Log* GlobalLog, CryptoKernel::Consensus* consensus);
+            Blockchain(CryptoKernel::Log* GlobalLog);
             ~Blockchain();
             struct output
             {
@@ -112,7 +112,14 @@ namespace CryptoKernel
             static std::string calculateTransactionId(transaction tx);
             static std::string calculateOutputSetId(const std::vector<output> outputs);
             std::vector<transaction> getUnconfirmedTransactions();
-            bool loadChain();
+
+            /**
+            * Loads the chain from disk using the given consensus class
+            *
+            * @param consensus the consensus method to use with this blockchain
+            * @return true iff the chain loaded successfully
+            */
+            bool loadChain(Consensus* consensus);
             Storage::Iterator* newIterator();
             const std::string genesisBlockId = "acc69da369fbac099bbb9ae38a637eec4f27358e9874828964d02ee8bb91cd38";
 

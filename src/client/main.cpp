@@ -61,7 +61,7 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::AVRR* consensus, 
 class MyBlockchain : public CryptoKernel::Blockchain
 {
     public:
-        MyBlockchain(CryptoKernel::Log* GlobalLog, CryptoKernel::Consensus* consensus) : CryptoKernel::Blockchain(GlobalLog, consensus)
+        MyBlockchain(CryptoKernel::Log* GlobalLog) : CryptoKernel::Blockchain(GlobalLog)
         {
 
         }
@@ -98,8 +98,8 @@ int main(int argc, char* argv[])
 
         CryptoKernel::AVRR consensus(verifiers, 150);
 
-        MyBlockchain blockchain(&log, &consensus);
-        blockchain.loadChain();
+        MyBlockchain blockchain(&log);
+        blockchain.loadChain(&consensus);
         CryptoKernel::Network network(&log, &blockchain);
         CryptoCurrency::Wallet wallet(&blockchain, &network);
         std::thread minerThread(miner, &blockchain, &consensus, &wallet, &log, &network);

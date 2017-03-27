@@ -24,6 +24,7 @@ void ContractTest::setUp()
 void ContractTest::tearDown()
 {
     delete blockchain;
+    delete log;
 }
 
 bool ContractTest::runScript(const std::string contract)

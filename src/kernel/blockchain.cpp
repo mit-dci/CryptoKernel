@@ -29,19 +29,19 @@
 #include "ckmath.h"
 #include "contract.h"
 
-CryptoKernel::Blockchain::Blockchain(CryptoKernel::Log* GlobalLog, CryptoKernel::Consensus* consensus)
+CryptoKernel::Blockchain::Blockchain(CryptoKernel::Log* GlobalLog)
 {
     status = false;
     transactions = new CryptoKernel::Storage("./transactiondb");
     blocks = new CryptoKernel::Storage("./blockdb");
     utxos = new CryptoKernel::Storage("./utxodb");
-    log = GlobalLog;
-    this->consensus = consensus;
+    log = GlobalLog;;
 }
 
-bool CryptoKernel::Blockchain::loadChain()
+bool CryptoKernel::Blockchain::loadChain(CryptoKernel::Consensus* consensus)
 {
     chainLock.lock();
+    this->consensus = consensus;
     chainTipId = blocks->get("tip")["id"].asString();
     if(chainTipId == "")
     {
