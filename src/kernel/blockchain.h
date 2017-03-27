@@ -140,9 +140,7 @@ namespace CryptoKernel
             bool status;
             bool reverseBlock();
             bool reorgChain(std::string newTipId);
-            //uint64_t blockTarget;
             std::recursive_mutex chainLock;
-            //const std::string cbKey = "BLNz4IiBnUDanMovX5LQ9KCev1bUVO/70r0WqXv2Gc96SnsPuayoXXYlIivrQ9C8vhOm7scoXm3QXMgid2vsvEs=";
             virtual uint64_t getBlockReward(const uint64_t height) = 0;
             virtual std::string getCoinbaseOwner(const std::string publicKey) = 0;
             Consensus* consensus;
@@ -202,6 +200,9 @@ namespace CryptoKernel
             *         consensus data
             */
             virtual std::string serializeConsensusData(const CryptoKernel::Blockchain::block block) = 0;
+
+            class PoW;
+            class AVRR;
     };
 }
 

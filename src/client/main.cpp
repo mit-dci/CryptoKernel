@@ -32,7 +32,7 @@
 #include "version.h"
 #include "consensus/AVRR.h"
 
-void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::AVRR* consensus, CryptoCurrency::Wallet* wallet, CryptoKernel::Log* log, CryptoKernel::Network* network)
+void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::AVRR* consensus, CryptoCurrency::Wallet* wallet, CryptoKernel::Log* log, CryptoKernel::Network* network)
 {
     const CryptoCurrency::Wallet::address verifierAddr = wallet->getAddressByName("jlovejoy@mit.edu");
     uint64_t currentSequenceNumber = blockchain->getBlock("tip").consensusData["sequenceNumber"].asUInt64();
@@ -96,7 +96,7 @@ int main(int argc, char* argv[])
         // jameslovejoy1@gmail.com
         verifiers.insert("BGn41E5/xuVglG7HZOp4ny6eBs63bJtA1K32qOa0GzwEU9cgFBig9uapU3gAGhIlvhoqbJ2GsCvkJI2929QlNb0=");
 
-        CryptoKernel::AVRR consensus(verifiers, 150);
+        CryptoKernel::Consensus::AVRR consensus(verifiers, 150);
 
         MyBlockchain blockchain(&log);
         blockchain.loadChain(&consensus);

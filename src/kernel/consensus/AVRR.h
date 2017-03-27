@@ -11,7 +11,7 @@ namespace CryptoKernel {
     * in a round-robin. If a verifier goes offline and misses their slot, they can be
     * skipped by the next verifier in the round.
     */
-    class AVRR : public Consensus {
+    class Consensus::AVRR : public Consensus {
         public:
             /**
             * Constructs a AVRR consensus object with the given set

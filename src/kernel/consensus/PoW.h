@@ -4,7 +4,11 @@
 #include "blockchain.h"
 
 namespace CryptoKernel {
-    class PoW : public Consensus {
+    /**
+    * Implements a Proof of Work consensus algorithm that is very similar to Bitcoin
+    * in semantics.
+    */
+    class Consensus::PoW : public Consensus {
         public:
             /**
             * Constructs a Proof of Work consensus object. Provides Bitcoin-style
@@ -54,6 +58,12 @@ namespace CryptoKernel {
             */
             virtual std::string calculateTarget(const std::string previousBlockId) = 0;
 
+            /**
+            * This class uses Kimoto Gravity Well for difficulty adjustment
+            * and SHA256 as its Proof of Work function.
+            */
+            class KGW_SHA256;
+
         protected:
             CryptoKernel::Blockchain* blockchain;
             uint64_t blockTarget;
@@ -66,6 +76,13 @@ namespace CryptoKernel {
             consensusData getConsensusData(const CryptoKernel::Blockchain::block block);
             Json::Value consensusDataToJson(const consensusData data);
             std::string calculatePoW(const CryptoKernel::Blockchain::block block);
+    };
+
+    class Consensus::PoW::KGW_SHA256 : public PoW {
+        public:
+            KGW_SHA256(const uint64_t blockTarget, CryptoKernel::Blockchain* blockchain);
+            std::string powFunction(const std::string inputString);
+            std::string calculateTarget(const std::string previousBlockId);
     };
 }
 
