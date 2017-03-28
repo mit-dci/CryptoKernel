@@ -256,7 +256,11 @@ void CryptoKernel::Network::broadcastTransactions(const std::vector<CryptoKernel
 {
     for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin(); it != connected.end(); it++)
     {
-        it->second->peer->sendTransactions(transactions);
+        try {
+            it->second->peer->sendTransactions(transactions);
+        } catch(CryptoKernel::Network::Peer::NetworkError& err) {
+            log->printf(LOG_LEVEL_WARN, "Network::broadcastTransactions(): Failed to contact peer");
+        }
     }
 }
 
@@ -264,7 +268,11 @@ void CryptoKernel::Network::broadcastBlock(const CryptoKernel::Blockchain::block
 {
     for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin(); it != connected.end(); it++)
     {
-        it->second->peer->sendBlock(block);
+        try {
+            it->second->peer->sendBlock(block);
+        } catch(CryptoKernel::Network::Peer::NetworkError& err) {
+            log->printf(LOG_LEVEL_WARN, "Network::broadcastBlock(): Failed to contact peer");
+        }
     }
 }
 
