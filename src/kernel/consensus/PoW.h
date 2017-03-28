@@ -64,6 +64,14 @@ namespace CryptoKernel {
             */
             class KGW_SHA256;
 
+            /**
+            * Calculate the PoW for a given block
+            *
+            * @param block the block to calculate the Proof of Work of
+            * @return a hex string representing the PoW hash of the given block
+            */
+            std::string calculatePoW(const CryptoKernel::Blockchain::block block);
+
         protected:
             CryptoKernel::Blockchain* blockchain;
             uint64_t blockTarget;
@@ -75,7 +83,6 @@ namespace CryptoKernel {
             };
             consensusData getConsensusData(const CryptoKernel::Blockchain::block block);
             Json::Value consensusDataToJson(const consensusData data);
-            std::string calculatePoW(const CryptoKernel::Blockchain::block block);
     };
 
     class Consensus::PoW::KGW_SHA256 : public PoW {

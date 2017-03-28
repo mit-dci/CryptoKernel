@@ -1,12 +1,12 @@
 {
-   "height" : 1,
-   "id" : "acc69da369fbac099bbb9ae38a637eec4f27358e9874828964d02ee8bb91cd38",
-   "previousBlockId" : "",
    "consensusData" : {
-       "publicKey" : "BLNz4IiBnUDanMovX5LQ9KCev1bUVO/70r0WqXv2Gc96SnsPuayoXXYlIivrQ9C8vhOm7scoXm3QXMgid2vsvEs=",
-       "signature" : "MEQCICO58QbGH4UYhOPBM8hhlUT2YLwbnpZlJu5+OdFE3b7mAiBJIK5fmDysvItdssBmJfokOzEpQuEEN2Rpg2VlEAOJKQ==",
-       "sequenceNumber" : 9933580
+      "PoW" : "",
+      "nonce" : 0,
+      "target" : "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "totalWork" : ""
    },
-   "timestamp" : 1490037128
+   "height" : 1,
+   "id" : "d6b98635603f1ad0865c7a24d5738ca2dcd47036ec4c43ec46f2ae78e5126c08",
+   "previousBlockId" : "",
+   "timestamp" : 1490668949
 }
-

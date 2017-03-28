@@ -45,13 +45,13 @@ bool CryptoKernel::Blockchain::loadChain(CryptoKernel::Consensus* consensus)
     chainTipId = blocks->get("tip")["id"].asString();
     if(chainTipId == "")
     {
-        if(blocks->get(genesisBlockId)["id"].asString() != genesisBlockId)
+        bool newGenesisBlock = false;
+        std::ifstream t("genesisblock.txt");
+        if(!t.is_open())
         {
-            std::ifstream t("genesisblock.txt");
-            if(!t.is_open())
-            {
-                throw std::runtime_error("Could not open genesis block file");
-            }
+            log->printf(LOG_LEVEL_WARN, "blockchain(): Failed to open genesis block file");
+            newGenesisBlock = true;
+        } else {
             std::string buffer((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
 
             if(submitBlock(jsonToBlock(CryptoKernel::Storage::toJson(buffer)), true))
@@ -61,20 +61,30 @@ bool CryptoKernel::Blockchain::loadChain(CryptoKernel::Consensus* consensus)
             else
             {
                 log->printf(LOG_LEVEL_WARN, "blockchain(): Failed to import genesis block");
+                newGenesisBlock = true;
             }
 
             t.close();
         }
 
-        /*CryptoKernel::Crypto crypto;
-        crypto.setPublicKey("BLNz4IiBnUDanMovX5LQ9KCev1bUVO/70r0WqXv2Gc96SnsPuayoXXYlIivrQ9C8vhOm7scoXm3QXMgid2vsvEs=");
-        crypto.setPrivateKey("");
-        cbKey = crypto.getPublicKey();
-        block Block = generateMiningBlock(crypto.getPublicKey());
-        Block.signature = crypto.sign(Block.id);
+        if(newGenesisBlock) {
+            log->printf(LOG_LEVEL_INFO, "blockchain(): Generating new genesis block");
+            CryptoKernel::Crypto crypto(true);
+            block Block = generateVerifyingBlock(crypto.getPublicKey());
+            Block.coinbaseTx = transaction();
+            Block.id = calculateBlockId(Block);
 
-        submitBlock(Block, true);*/
+            submitBlock(Block, true);
+
+            std::ofstream f;
+            f.open("genesisblock.txt");
+            f << CryptoKernel::Storage::toString(CryptoKernel::Blockchain::blockToJson(Block, true));
+            f.close();
+        }
     }
+
+    const block genesisBlock = getBlockByHeight(1);
+    genesisBlockId = genesisBlock.id;
 
     reindexChain(chainTipId);
 
@@ -137,18 +147,11 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlock(std::string i
 
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlockByHeight(const uint64_t height)
 {
-    if(height == 1)
-    {
-        return getBlock(genesisBlockId);
-    }
-    else
-    {
-        chainLock.lock();
-        const std::string id = blocks->get("height_" + std::to_string(height)).asString();
-        const block returning = getBlock(id);
-        chainLock.unlock();
-        return returning;
-    }
+    chainLock.lock();
+    const std::string id = blocks->get("height_" + std::to_string(height)).asString();
+    const block returning = getBlock(id);
+    chainLock.unlock();
+    return returning;
 }
 
 uint64_t CryptoKernel::Blockchain::getBalance(std::string publicKey)

@@ -121,7 +121,7 @@ namespace CryptoKernel
             */
             bool loadChain(Consensus* consensus);
             Storage::Iterator* newIterator();
-            const std::string genesisBlockId = "acc69da369fbac099bbb9ae38a637eec4f27358e9874828964d02ee8bb91cd38";
+            std::string genesisBlockId;
 
         private:
             Storage *transactions;

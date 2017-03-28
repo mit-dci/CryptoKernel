@@ -30,24 +30,57 @@
 #include "cryptoserver.h"
 #include "cryptoclient.h"
 #include "version.h"
-#include "consensus/AVRR.h"
+#include "consensus/PoW.h"
 
-void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::AVRR* consensus, CryptoCurrency::Wallet* wallet, CryptoKernel::Log* log, CryptoKernel::Network* network)
+void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* consensus, CryptoCurrency::Wallet* wallet, CryptoKernel::Log* log, CryptoKernel::Network* network)
 {
-    const CryptoCurrency::Wallet::address verifierAddr = wallet->getAddressByName("jlovejoy@mit.edu");
-    uint64_t currentSequenceNumber = blockchain->getBlock("tip").consensusData["sequenceNumber"].asUInt64();
+    CryptoKernel::Blockchain::block Block;
+    wallet->newAddress("mining");
+
+    time_t t = std::time(0);
+    uint64_t now = static_cast<uint64_t> (t);
+
     while(true)
     {
-        CryptoKernel::Blockchain::block Block = blockchain->generateVerifyingBlock(verifierAddr.publicKey);
-        if(network->getConnections() > 0 && consensus->getVerifier(Block) == verifierAddr.publicKey && Block.consensusData["sequenceNumber"].asUInt64() > currentSequenceNumber)
+        if(network->getConnections() > 0 && network->syncProgress() >= 1)
         {
-            CryptoKernel::Crypto crypto;
-            crypto.setPrivateKey(verifierAddr.privateKey);
-            Block.consensusData["signature"] = crypto.sign(Block.id);
+            Block = blockchain->generateVerifyingBlock(wallet->getAddressByName("mining").publicKey);
+            uint64_t nonce = 0;
+
+            t = std::time(0);
+            now = static_cast<uint64_t> (t);
+
+            uint64_t time2 = now;
+            uint64_t count = 0;
+
+            do
+            {
+                t = std::time(0);
+                time2 = static_cast<uint64_t> (t);
+                if((time2 - now) % 120 == 0 && (time2 - now) > 0)
+                {
+                    std::stringstream message;
+                    message << "miner(): Hashrate: " << ((count / (time2 - now)) / 1000.0f) << " kH/s";
+                    log->printf(LOG_LEVEL_INFO, message.str());
+                    Block = blockchain->generateVerifyingBlock(wallet->getAddressByName("mining").publicKey);
+                    now = time2;
+                    count = 0;
+                }
+
+                count += 1;
+                nonce += 1;
+                Block.consensusData["nonce"] = static_cast<unsigned long long int>(nonce);
+                Block.consensusData["PoW"] = consensus->calculatePoW(Block);
+            }
+            while(!CryptoKernel::Math::hex_greater(Block.consensusData["target"].asString(), Block.consensusData["PoW"].asString()));
+
+            CryptoKernel::Blockchain::block previousBlock;
+            previousBlock = blockchain->getBlock(Block.previousBlockId);
+            const std::string inverse = CryptoKernel::Math::subtractHex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", Block.consensusData["PoW"].asString());
+            Block.consensusData["totalWork"] = CryptoKernel::Math::addHex(inverse, previousBlock.consensusData["totalWork"].asString());
 
             if(blockchain->submitBlock(Block))
             {
-                currentSequenceNumber = Block.consensusData["sequenceNumber"].asUInt64();
                 network->broadcastBlock(Block);
             }
         }
@@ -80,7 +113,7 @@ class MyBlockchain : public CryptoKernel::Blockchain
         }
 
         std::string getCoinbaseOwner(const std::string publicKey) {
-            return "BLNz4IiBnUDanMovX5LQ9KCev1bUVO/70r0WqXv2Gc96SnsPuayoXXYlIivrQ9C8vhOm7scoXm3QXMgid2vsvEs=";
+            return publicKey;
         }
 };
 
@@ -90,15 +123,8 @@ int main(int argc, char* argv[])
     {
         CryptoKernel::Log log("CryptoKernel.log", true);
 
-        std::set<std::string> verifiers;
-        // jlovejoy@mit.edu
-        verifiers.insert("BGlIWaa5zawgmGqOofUcHeuKrarBuwTkjyqUJR3MJWpey/gdYIr2uJeQD6o4PiUeSyhVRuRs6qN74rwO9gvItks=");
-        // jameslovejoy1@gmail.com
-        verifiers.insert("BGn41E5/xuVglG7HZOp4ny6eBs63bJtA1K32qOa0GzwEU9cgFBig9uapU3gAGhIlvhoqbJ2GsCvkJI2929QlNb0=");
-
-        CryptoKernel::Consensus::AVRR consensus(verifiers, 150);
-
         MyBlockchain blockchain(&log);
+        CryptoKernel::Consensus::PoW::KGW_SHA256 consensus(150, &blockchain);
         blockchain.loadChain(&consensus);
         CryptoKernel::Network network(&log, &blockchain);
         CryptoCurrency::Wallet wallet(&blockchain, &network);
