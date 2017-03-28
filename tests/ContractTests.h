@@ -8,11 +8,12 @@
 
 #include "contract.h"
 #include "crypto.h"
+#include "consensus/PoW.h"
 
 class MyBlockchain : public CryptoKernel::Blockchain
 {
     public:
-        MyBlockchain(CryptoKernel::Log* GlobalLog, const uint64_t blockTime) : CryptoKernel::Blockchain(GlobalLog, blockTime)
+        MyBlockchain(CryptoKernel::Log* GlobalLog) : CryptoKernel::Blockchain(GlobalLog)
         {
 
         }
@@ -27,18 +28,16 @@ class MyBlockchain : public CryptoKernel::Blockchain
         {
             if(height > 2)
             {
-                return 5000000000 / std::log(height);
+                return 100000000 / std::log(height);
             }
             else
             {
-                return 5000000000;
+                return 100000000;
             }
         }
 
-        std::string PoWFunction(const std::string inputString)
-        {
-            CryptoKernel::Crypto crypto;
-            return crypto.sha256(inputString);
+        std::string getCoinbaseOwner(const std::string publicKey) {
+            return publicKey;
         }
 };
 
@@ -52,7 +51,6 @@ class ContractTest : public CPPUNIT_NS::TestFixture {
     CPPUNIT_TEST(testAccessTx);
     CPPUNIT_TEST(testVerifySignature);
     CPPUNIT_TEST(testBlockchainAccess);
-    CPPUNIT_TEST(testTransactionAccess);
 
     CPPUNIT_TEST_SUITE_END();
 
@@ -69,9 +67,9 @@ private:
     void testAccessTx();
     void testVerifySignature();
     void testBlockchainAccess();
-    void testTransactionAccess();
     bool runScript(const std::string contract);
     MyBlockchain* blockchain;
+    CryptoKernel::Consensus::PoW* consensus;
     CryptoKernel::Log* log;
 };
 
