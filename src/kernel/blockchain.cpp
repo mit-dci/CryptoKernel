@@ -884,8 +884,6 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateVerifyingBlock
     uint64_t now = static_cast<uint64_t> (t);
     returning.timestamp = now;
 
-    returning.consensusData = consensus->generateConsensusData(returning, publicKey);
-
     block previousBlock;
     previousBlock = getBlock("tip");
 
@@ -916,6 +914,8 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateVerifyingBlock
     if(coinbaseTx.outputs[0].value > 0) {
         returning.coinbaseTx = coinbaseTx;
     }
+
+    returning.consensusData = consensus->generateConsensusData(returning, publicKey);
 
     returning.id = calculateBlockId(returning);
 
