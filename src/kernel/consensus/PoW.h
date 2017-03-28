@@ -1,7 +1,7 @@
 #ifndef POW_H_INCLUDED
 #define POW_H_INCLUDED
 
-#include "blockchain.h"
+#include "../blockchain.h"
 
 namespace CryptoKernel {
     /**
