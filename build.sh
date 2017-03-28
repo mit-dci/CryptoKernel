@@ -19,4 +19,6 @@ exe ${CXX} ${CXXFLAGS} -c ${SRC_DIR}/network.cpp -o ${OBJ_DIR}/network.o
 exe ${CXX} ${CXXFLAGS} -c ${SRC_DIR}/storage.cpp -o ${OBJ_DIR}/storage.o
 exe ${CXX} ${CXXFLAGS} -c ${SRC_DIR}/contract.cpp -o ${OBJ_DIR}/contract.o
 exe ${CXX} ${CXXFLAGS} -c ${SRC_DIR}/consensus/AVRR.cpp -o ${OBJ_DIR}/AVRR.o
-exe ar -r -s libCryptoKernel.a ${OBJ_DIR}/base64.o ${OBJ_DIR}/blockchain.o ${OBJ_DIR}/crypto.o ${OBJ_DIR}/log.o ${OBJ_DIR}/math.o ${OBJ_DIR}/storage.o ${OBJ_DIR}/contract.o ${OBJ_DIR}/networkpeer.o ${OBJ_DIR}/network.o ${OBJ_DIR}/AVRR.o
+exe ${CXX} ${CXXFLAGS} -c ${SRC_DIR}/consensus/PoW.cpp -o ${OBJ_DIR}/PoW.o
+exe ar -r -s libCryptoKernel.a ${OBJ_DIR}/base64.o ${OBJ_DIR}/blockchain.o ${OBJ_DIR}/crypto.o ${OBJ_DIR}/log.o ${OBJ_DIR}/math.o ${OBJ_DIR}/storage.o ${OBJ_DIR}/contract.o ${OBJ_DIR}/networkpeer.o ${OBJ_DIR}/network.o ${OBJ_DIR}/AVRR.o ${OBJ_DIR}/PoW.o
+
