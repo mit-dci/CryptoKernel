@@ -46,7 +46,7 @@ bool CryptoKernel::Blockchain::loadChain(CryptoKernel::Consensus* consensus)
     if(chainTipId == "")
     {
         bool newGenesisBlock = false;
-        std::ifstream t("genesisblock.txt");
+        std::ifstream t("genesisblock.json");
         if(!t.is_open())
         {
             log->printf(LOG_LEVEL_WARN, "blockchain(): Failed to open genesis block file");
@@ -77,7 +77,7 @@ bool CryptoKernel::Blockchain::loadChain(CryptoKernel::Consensus* consensus)
             submitBlock(Block, true);
 
             std::ofstream f;
-            f.open("genesisblock.txt");
+            f.open("genesisblock.json");
             f << CryptoKernel::Storage::toString(CryptoKernel::Blockchain::blockToJson(Block, true));
             f.close();
         }
