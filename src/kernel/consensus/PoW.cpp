@@ -52,7 +52,7 @@ bool CryptoKernel::Consensus::PoW::checkConsensusRules(const CryptoKernel::Block
     //Check total work
     const std::string inverse = CryptoKernel::Math::subtractHex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", blockData.PoW);
     const consensusData tipData = getConsensusData(previousBlock);
-    if(blockData.totalWork != CryptoKernel::Math::addHex(inverse, tipData.PoW)) {
+    if(blockData.totalWork != CryptoKernel::Math::addHex(inverse, tipData.totalWork)) {
         return false;
     }
 
