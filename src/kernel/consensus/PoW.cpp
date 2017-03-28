@@ -2,7 +2,7 @@
 #include <math.h>
 
 #include "PoW.h"
-#include "crypto.h"
+#include "../crypto.h"
 
 CryptoKernel::Consensus::PoW::PoW(const uint64_t blockTarget, CryptoKernel::Blockchain* blockchain) {
     this->blockTarget = blockTarget;
