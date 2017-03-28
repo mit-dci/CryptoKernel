@@ -566,6 +566,10 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
 
     blocks->store(newBlock.id, blockToJson(newBlock));
 
+    if(genesisBlock) {
+        genesisBlockId = newBlock.id;
+    }
+
     log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): successfully submitted block: " + CryptoKernel::Storage::toString(blocks->get(newBlock.id)));
 
     checkRep();
