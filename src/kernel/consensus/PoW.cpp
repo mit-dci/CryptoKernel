@@ -185,3 +185,10 @@ std::string CryptoKernel::Consensus::PoW::KGW_SHA256::calculateTarget(const std:
     }
 }
 
+bool CryptoKernel::Consensus::PoW::KGW_SHA256::verifyTransaction(const CryptoKernel::Blockchain::transaction tx) {
+    return true;
+}
+
+bool CryptoKernel::Consensus::PoW::KGW_SHA256::confirmTransaction(const CryptoKernel::Blockchain::transaction tx) {
+    return true;
+}

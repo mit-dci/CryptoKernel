@@ -88,8 +88,26 @@ namespace CryptoKernel {
     class Consensus::PoW::KGW_SHA256 : public PoW {
         public:
             KGW_SHA256(const uint64_t blockTarget, CryptoKernel::Blockchain* blockchain);
+
+            /**
+            * Uses SHA256 to calculate the hash
+            */
             std::string powFunction(const std::string inputString);
+
+            /**
+            * Uses Kimoto Gravity Well to retarget the difficulty
+            */
             std::string calculateTarget(const std::string previousBlockId);
+
+            /**
+            * Has no effect, always returns true
+            */
+            bool verifyTransaction(const CryptoKernel::Blockchain::transaction tx);
+
+            /**
+            * Has no effect, always returns true
+            */
+            bool confirmTransaction(const CryptoKernel::Blockchain::transaction tx);
     };
 }
 

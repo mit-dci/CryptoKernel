@@ -286,6 +286,11 @@ bool CryptoKernel::Blockchain::verifyTransaction(transaction tx, bool coinbaseTx
         return false;
     }
 
+    if(!consensus->verifyTransaction(tx)) {
+        log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Could not verify custom rules");
+        return false;
+    }
+
     return true;
 }
 
@@ -530,12 +535,7 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
             }
 
             newBlock.coinbaseTx.confirmingBlock = newBlock.id;
-            if(verifyTransaction(newBlock.coinbaseTx, true))
-            {
-                confirmTransaction(newBlock.coinbaseTx, true);
-            }
-            else
-            {
+            if(!confirmTransaction(newBlock.coinbaseTx, true)) {
                 log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Could not verify coinbase transaction");
                 chainLock.unlock();
                 return false;
@@ -637,6 +637,11 @@ bool CryptoKernel::Blockchain::confirmTransaction(transaction tx, bool coinbaseT
     //Prevent against double spends by checking again before confirmation
     if(!verifyTransaction(tx, coinbaseTx))
     {
+        return false;
+    }
+
+    //Execute custom transaction rules callback
+    if(!consensus->confirmTransaction(tx)) {
         return false;
     }
 

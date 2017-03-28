@@ -201,6 +201,26 @@ namespace CryptoKernel
             */
             virtual std::string serializeConsensusData(const CryptoKernel::Blockchain::block block) = 0;
 
+            /**
+            * Callback for custom transaction behavior when when the blockchain needs to check
+            * a transaction's validity. Should return true iff the given transaction is valid given
+            * the current state of the blockchain according to any custom rules.
+            *
+            * @param tx the transaction to check the validity of
+            * @return true iff the transaction is valid given the current blockchain state
+            */
+            virtual bool verifyTransaction(const CryptoKernel::Blockchain::transaction tx) = 0;
+
+            /**
+            * Callback for custom transaction behavior when the blockchain if confirming a transaction
+            * after it has been included in a block, thus updating the blockchain state. Should return
+            * true iff the transaction was successfully confirmed according to any custom rules.
+            *
+            * @param tx the transaction to be confirmed
+            * @return true iff the transaction was successfully confirmed given the current blockchain state
+            */
+            virtual bool confirmTransaction(const CryptoKernel::Blockchain::transaction tx) = 0;
+
             class PoW;
             class AVRR;
     };
