@@ -108,6 +108,11 @@ namespace CryptoKernel {
             * Has no effect, always returns true
             */
             bool confirmTransaction(const CryptoKernel::Blockchain::transaction tx);
+
+            /**
+            * Has no effect, always returns true
+            */
+            bool submitTransaction(const CryptoKernel::Blockchain::transaction tx);
     };
 }
 

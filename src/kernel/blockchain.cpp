@@ -299,43 +299,50 @@ bool CryptoKernel::Blockchain::submitTransaction(transaction tx)
     chainLock.lock();
     if(verifyTransaction(tx))
     {
-        if(transactions->get(tx.id)["id"].asString() == tx.id)
-        {
-            //Transaction has already been submitted and verified
-            log->printf(LOG_LEVEL_INFO, "blockchain::submitTransaction(): Received transaction that has already been verified");
-            chainLock.unlock();
-            return false;
-        }
-        else
-        {
-            //Transaction has not already been verified
-            bool found = false;
-
-            //Check if transaction is already in the unconfirmed vector
-            std::vector<transaction>::iterator it;
-            for(it = unconfirmedTransactions.begin(); it < unconfirmedTransactions.end(); it++)
+        if(consensus->submitTransaction(tx)) {
+            if(transactions->get(tx.id)["id"].asString() == tx.id)
             {
-                found = ((*it).id == tx.id);
-                if(found)
-                {
-                    break;
-                }
-            }
-
-            if(!found)
-            {
-                unconfirmedTransactions.push_back(tx);
-                log->printf(LOG_LEVEL_INFO, "blockchain::submitTransaction(): Received transaction we didn't already know about");
+                //Transaction has already been submitted and verified
+                log->printf(LOG_LEVEL_INFO, "blockchain::submitTransaction(): Received transaction that has already been verified");
                 chainLock.unlock();
-                return true;
+                return false;
             }
             else
             {
-                //Transaction is already in the unconfirmed vector
-                log->printf(LOG_LEVEL_INFO, "blockchain::submitTransaction(): Received transaction we already know about");
-                chainLock.unlock();
-                return true;
+                //Transaction has not already been verified
+                bool found = false;
+
+                //Check if transaction is already in the unconfirmed vector
+                std::vector<transaction>::iterator it;
+                for(it = unconfirmedTransactions.begin(); it < unconfirmedTransactions.end(); it++)
+                {
+                    found = ((*it).id == tx.id);
+                    if(found)
+                    {
+                        break;
+                    }
+                }
+
+                if(!found)
+                {
+                    unconfirmedTransactions.push_back(tx);
+                    log->printf(LOG_LEVEL_INFO, "blockchain::submitTransaction(): Received transaction we didn't already know about");
+                    chainLock.unlock();
+                    return true;
+                }
+                else
+                {
+                    //Transaction is already in the unconfirmed vector
+                    log->printf(LOG_LEVEL_INFO, "blockchain::submitTransaction(): Received transaction we already know about");
+                    chainLock.unlock();
+                    return true;
+                }
             }
+        }
+        else {
+            log->printf(LOG_LEVEL_INFO, "blockchain::submitTransaction(): Failed to submit transaction to consensus method");
+            chainLock.unlock();
+            return false;
         }
     }
     else

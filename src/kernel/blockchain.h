@@ -221,8 +221,18 @@ namespace CryptoKernel
             */
             virtual bool confirmTransaction(const CryptoKernel::Blockchain::transaction tx) = 0;
 
+            /**
+            * Callback for custom transaction behavior when the blockchain is submitting a transaction
+            * according to the custom rules.
+            *
+            * @param tx the transaction being submitted
+            * @return true iff the transaction was successfully submitted given the current blockchain state
+            */
+            virtual bool submitTransaction(const CryptoKernel::Blockchain::transaction tx) = 0;
+
             class PoW;
             class AVRR;
+            class Raft;
     };
 }
 

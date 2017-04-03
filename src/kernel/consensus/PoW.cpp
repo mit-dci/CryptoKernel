@@ -192,3 +192,7 @@ bool CryptoKernel::Consensus::PoW::KGW_SHA256::verifyTransaction(const CryptoKer
 bool CryptoKernel::Consensus::PoW::KGW_SHA256::confirmTransaction(const CryptoKernel::Blockchain::transaction tx) {
     return true;
 }
+
+bool CryptoKernel::Consensus::PoW::KGW_SHA256::submitTransaction(const CryptoKernel::Blockchain::transaction tx) {
+    return true;
+}
