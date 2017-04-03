@@ -1,0 +1,38 @@
+[
+    {
+        "name": "getblock",
+        "params": {
+            "id": "wqodqiwjdoi",
+            "height": 282328
+        },
+        "returns": {}
+    },
+    {
+        "name": "getblocks",
+        "params": {
+            "start": 282000,
+            "end": 282328
+        },
+        "returns": {}
+    },
+    {
+        "name": "getunconfirmed",
+        "returns": {}
+    },
+    {
+        "name": "block",
+        "params": { 
+		"data": {}
+	}
+    },
+    {
+        "name": "transactions",
+        "params": { 
+		"data": {}
+	}
+    },
+    {
+        "name": "info",
+	"returns": {}
+    }
+]

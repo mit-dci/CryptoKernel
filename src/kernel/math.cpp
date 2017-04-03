@@ -20,7 +20,7 @@
 
 #include <openssl/bn.h>
 
-#include "math.h"
+#include "ckmath.h"
 
 std::string CryptoKernel::Math::addHex(std::string first, std::string second)
 {

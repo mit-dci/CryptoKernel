@@ -85,6 +85,11 @@ bool CryptoKernel::Log::printf(int loglevel, std::string message)
     logfile.flush();
     logfilemutex.unlock();
 
+    if(loglevel == LOG_LEVEL_ERR)
+    {
+        throw std::runtime_error("Fatal error");
+    }
+
     return true;
 }
 

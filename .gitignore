@@ -6,3 +6,14 @@ accountsdb
 utxodb
 transactiondb
 blockdb
+docs
+*.o
+*.a
+test
+*.xml
+*.log
+CryptoCurrency
+blockbuffer
+addressesdb
+*.so
+peers

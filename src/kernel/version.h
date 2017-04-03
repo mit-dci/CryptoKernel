@@ -15,39 +15,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef CRYPTO_H_INCLUDED
-#define CRYPTO_H_INCLUDED
+#ifndef VERSION_H_INCLUDED
+#define VERSION_H_INCLUDED
 
-#include <openssl/ec.h>
-#include <openssl/ecdsa.h>
-#include <openssl/obj_mac.h>
 #include <string>
 
-namespace CryptoKernel
-{
+const std::string version = "11.0.0-dev";
 
-class Crypto
-{
-public:
-    Crypto(bool fGenerate = false);
-    ~Crypto();
-    bool getStatus();
-    std::string sign(std::string message);
-    bool verify(std::string message, std::string signature);
-    std::string getPublicKey();
-    std::string getPrivateKey();
-    bool setPublicKey(std::string publicKey);
-    bool setPrivateKey(std::string privateKey);
-    std::string sha256(std::string message);
-
-private:
-    bool status;
-    EC_KEY *eckey;
-    EC_GROUP *ecgroup;
-};
-
-}
-
-std::string base16_encode(unsigned char const* bytes_to_encode, unsigned int in_len);
-
-#endif // CRYPTO_H_INCLUDED
+#endif // VERSION_H_INCLUDED

@@ -3,13 +3,22 @@
 exe() { echo "$@" ; "$@" ; }
 
 CXX=g++
-CXXFLAGS="-Wall -std=c++14 -O2 -fPIC"
+CXXFLAGS="-g -Wall -std=c++14 -O2 -fPIC -Wl,-E -I/usr/include/lua5.3"
+SRC_DIR="src/kernel"
+OBJ_DIR="obj"
 
-exe ${CXX} ${CXXFLAGS} -c blockchain.cpp -o blockchain.o
-exe ${CXX} ${CXXFLAGS} -c base64.cpp -o base64.o
-exe ${CXX} ${CXXFLAGS} -c crypto.cpp -o crypto.o
-exe ${CXX} ${CXXFLAGS} -c log.cpp -o log.o
-exe ${CXX} ${CXXFLAGS} -c math.cpp -o math.o
-exe ${CXX} ${CXXFLAGS} -c network.cpp -o network.o
-exe ${CXX} ${CXXFLAGS} -c storage.cpp -o storage.o
-exe ar -r -s libCryptoKernel.a base64.o blockchain.o crypto.o log.o math.o network.o storage.o
+exe mkdir ${OBJ_DIR}
+
+exe ${CXX} ${CXXFLAGS} -c ${SRC_DIR}/blockchain.cpp -o ${OBJ_DIR}/blockchain.o
+exe ${CXX} ${CXXFLAGS} -c ${SRC_DIR}/base64.cpp -o ${OBJ_DIR}/base64.o
+exe ${CXX} ${CXXFLAGS} -c ${SRC_DIR}/crypto.cpp -o ${OBJ_DIR}/crypto.o
+exe ${CXX} ${CXXFLAGS} -c ${SRC_DIR}/log.cpp -o ${OBJ_DIR}/log.o
+exe ${CXX} ${CXXFLAGS} -c ${SRC_DIR}/math.cpp -o ${OBJ_DIR}/math.o
+exe ${CXX} ${CXXFLAGS} -c ${SRC_DIR}/networkpeer.cpp -o ${OBJ_DIR}/networkpeer.o
+exe ${CXX} ${CXXFLAGS} -c ${SRC_DIR}/network.cpp -o ${OBJ_DIR}/network.o
+exe ${CXX} ${CXXFLAGS} -c ${SRC_DIR}/storage.cpp -o ${OBJ_DIR}/storage.o
+exe ${CXX} ${CXXFLAGS} -c ${SRC_DIR}/contract.cpp -o ${OBJ_DIR}/contract.o
+exe ${CXX} ${CXXFLAGS} -c ${SRC_DIR}/consensus/AVRR.cpp -o ${OBJ_DIR}/AVRR.o
+exe ${CXX} ${CXXFLAGS} -c ${SRC_DIR}/consensus/PoW.cpp -o ${OBJ_DIR}/PoW.o
+exe ar -r -s libCryptoKernel.a ${OBJ_DIR}/base64.o ${OBJ_DIR}/blockchain.o ${OBJ_DIR}/crypto.o ${OBJ_DIR}/log.o ${OBJ_DIR}/math.o ${OBJ_DIR}/storage.o ${OBJ_DIR}/contract.o ${OBJ_DIR}/networkpeer.o ${OBJ_DIR}/network.o ${OBJ_DIR}/AVRR.o ${OBJ_DIR}/PoW.o
+
