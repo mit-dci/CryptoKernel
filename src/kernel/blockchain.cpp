@@ -86,7 +86,7 @@ bool CryptoKernel::Blockchain::loadChain(CryptoKernel::Consensus* consensus)
     const block genesisBlock = getBlockByHeight(1);
     genesisBlockId = genesisBlock.id;
 
-    reindexChain(chainTipId);
+    //reindexChain(chainTipId);
 
     status = true;
 

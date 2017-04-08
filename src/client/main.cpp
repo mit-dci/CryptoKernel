@@ -146,7 +146,9 @@ int main(int argc, char* argv[])
     {
         std::string command(argv[1]);
         jsonrpc::HttpClient httpclient("http://localhost:8383");
+        httpclient.SetTimeout(30000);
         CryptoClient client(httpclient);
+
 
         try
         {

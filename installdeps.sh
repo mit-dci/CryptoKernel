@@ -15,11 +15,9 @@ cp -r selene/include/* /usr/local/include
 cd ../CryptoKernel
 chmod +x build.sh
 chmod +x buildclient.sh
-./build.sh
-./buildclient.sh
 
 cd ../
-git clone https://github.com/witchu/lua-lz4.git
+git clone https://github.com/metalicjames/lua-lz4.git
 cd lua-lz4
 make
 cp lz4.so ../CryptoKernel
