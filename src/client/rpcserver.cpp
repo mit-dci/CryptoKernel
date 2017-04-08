@@ -150,8 +150,56 @@ Json::Value CryptoServer::listtransactions() {
     Json::Value returning;
 
     const std::set<CryptoKernel::Blockchain::transaction> transactions = wallet->listTransactions();
+    std::set<std::string> pubKeys;
+    for(const auto address : wallet->listAddresses()) {
+        pubKeys.insert(address.publicKey);
+    }
     for(const CryptoKernel::Blockchain::transaction tx : transactions) {
-        returning.append(CryptoKernel::Blockchain::transactionToJson(tx));
+        Json::Value transaction;
+        transaction["id"] = tx.id;
+        transaction["confirmingBlock"] = tx.confirmingBlock;
+        transaction["timestamp"] = static_cast<unsigned long long int>(tx.timestamp);
+
+        std::string toThem = "";
+        std::string toMe = "";
+
+        bool allToMe = true;
+
+        int64_t delta = 0;
+        for(unsigned int i = 0; i < tx.outputs.size(); i++) {
+            const CryptoCurrency::Wallet::address address = wallet->getAddressByKey(tx.outputs[i].publicKey);
+            if(pubKeys.find(tx.outputs[i].publicKey) != pubKeys.end()) {
+                delta += tx.outputs[i].value;
+                toMe = tx.outputs[i].publicKey;
+            } else {
+                toThem = tx.outputs[i].publicKey;
+                allToMe = false;
+            }
+        }
+
+        for(unsigned int i = 0; i < tx.inputs.size(); i++) {
+            const CryptoCurrency::Wallet::address address = wallet->getAddressByKey(tx.inputs[i].publicKey);
+            if(pubKeys.find(tx.inputs[i].publicKey) != pubKeys.end()) {
+                delta -= tx.inputs[i].value;
+            }
+        }
+
+        const double asFloat = delta / 10000000.0;
+        std::stringstream buffer;
+        buffer << std::setprecision(8) << asFloat;
+        transaction["amount"] = buffer.str();
+        if(allToMe) {
+            transaction["type"] = "Payment to self";
+            transaction["address"] = "N/A";
+        } else if(delta < 0) {
+            transaction["type"] = "Sent to";
+            transaction["address"] = toThem;
+        } else if(delta >= 0) {
+            transaction["type"] = "Receive";
+            transaction["address"] = wallet->getAddressByKey(toMe).name + " (" + toMe + ")";
+        }
+
+        returning["transactions"].append(transaction);
     }
 
     return returning;
