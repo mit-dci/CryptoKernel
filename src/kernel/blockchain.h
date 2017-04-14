@@ -144,6 +144,7 @@ namespace CryptoKernel
             virtual uint64_t getBlockReward(const uint64_t height) = 0;
             virtual std::string getCoinbaseOwner(const std::string publicKey) = 0;
             Consensus* consensus;
+            void emptyDB();
     };
 
     /**
@@ -229,6 +230,16 @@ namespace CryptoKernel
             * @return true iff the transaction was successfully submitted given the current blockchain state
             */
             virtual bool submitTransaction(const CryptoKernel::Blockchain::transaction tx) = 0;
+
+            /**
+            * Callback for custom block submission behavior when the blockchain is submitting a block.
+            * This function is called just before the block is to be committed and the transactions
+            * confirmed.
+            *
+            * @param block the block being submitted
+            * @return true iff the block was successfully submitted given the current blockchain state
+            */
+            virtual bool submitBlock(const CryptoKernel::Blockchain::block block) = 0;
 
             class PoW;
             class AVRR;

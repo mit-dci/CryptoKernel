@@ -52,6 +52,25 @@ namespace CryptoKernel {
             */
             std::string getVerifier(const CryptoKernel::Blockchain::block block);
 
+            /**
+            * Has no effect, always returns true
+            */
+            bool verifyTransaction(const CryptoKernel::Blockchain::transaction tx);
+
+            /**
+            * Has no effect, always returns true
+            */
+            bool confirmTransaction(const CryptoKernel::Blockchain::transaction tx);
+
+            /**
+            * Has no effect, always returns true
+            */
+            bool submitTransaction(const CryptoKernel::Blockchain::transaction tx);
+
+            /**
+            * Has no effect, always returns true
+            */
+            bool submitBlock(const CryptoKernel::Blockchain::block block);
         private:
             std::set<std::string> verifiers;
             uint64_t blockTarget;

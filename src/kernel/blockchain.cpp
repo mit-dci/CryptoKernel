@@ -35,7 +35,7 @@ CryptoKernel::Blockchain::Blockchain(CryptoKernel::Log* GlobalLog)
     transactions = new CryptoKernel::Storage("./transactiondb");
     blocks = new CryptoKernel::Storage("./blockdb");
     utxos = new CryptoKernel::Storage("./utxodb");
-    log = GlobalLog;;
+    log = GlobalLog;
 }
 
 bool CryptoKernel::Blockchain::loadChain(CryptoKernel::Consensus* consensus)
@@ -43,8 +43,14 @@ bool CryptoKernel::Blockchain::loadChain(CryptoKernel::Consensus* consensus)
     chainLock.lock();
     this->consensus = consensus;
     chainTipId = blocks->get("tip")["id"].asString();
-    if(chainTipId == "")
+    const bool dbCorrupt = blocks->get("dirty").asBool();
+    if(chainTipId == "" || dbCorrupt)
     {
+        if(dbCorrupt) {
+            log->printf(LOG_LEVEL_WARN, "blockchain(): blockdb is corrupted");
+
+            emptyDB();
+        }
         bool newGenesisBlock = false;
         std::ifstream t("genesisblock.json");
         if(!t.is_open())
@@ -74,7 +80,9 @@ bool CryptoKernel::Blockchain::loadChain(CryptoKernel::Consensus* consensus)
             Block.coinbaseTx = transaction();
             Block.id = calculateBlockId(Block);
 
-            submitBlock(Block, true);
+            if(!submitBlock(Block, true)) {
+                log->printf(LOG_LEVEL_ERR, "blockchain(): Failed to import new genesis block");
+            }
 
             std::ofstream f;
             f.open("genesisblock.json");
@@ -426,6 +434,12 @@ std::string CryptoKernel::Blockchain::calculateOutputId(output Output)
 bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
 {
     chainLock.lock();
+    if(blocks->get("dirty").asBool()) {
+        log->printf(LOG_LEVEL_ERR, "blockchain::submitBlock(): blockdb is corrupted");
+        chainLock.unlock();
+        return false;
+    }
+
     //Check block does not already exist
     if(blocks->get(newBlock.id)["id"].asString() == newBlock.id && blocks->get(newBlock.id)["mainChain"].asBool())
     {
@@ -511,14 +525,14 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
             fees += calculateTransactionFee((*it));
         }
 
-        if(!newBlock.coinbaseTx.inputs.empty())
-        {
-            log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Coinbase tx has inputs");
-            chainLock.unlock();
-            return false;
-        }
-        else if(!genesisBlock)
-        {
+        if(!genesisBlock) {
+            if(!newBlock.coinbaseTx.inputs.empty())
+            {
+                log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Coinbase tx has inputs");
+                chainLock.unlock();
+                return false;
+            }
+
             uint64_t outputTotal = 0;
             std::vector<output>::iterator it2;
             for(it2 = newBlock.coinbaseTx.outputs.begin(); it2 < newBlock.coinbaseTx.outputs.end(); it2++)
@@ -542,7 +556,20 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
             }
 
             newBlock.coinbaseTx.confirmingBlock = newBlock.id;
+        }
+
+        blocks->store("dirty", Json::Value(true));
+
+        if(!consensus->submitBlock(newBlock)) {
+            blocks->store("dirty", Json::Value(false));
+            log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Consensus submitBlock callback returned false");
+            chainLock.unlock();
+            return false;
+        }
+
+        if(!genesisBlock) {
             if(!confirmTransaction(newBlock.coinbaseTx, true)) {
+                blocks->store("dirty", Json::Value(false));
                 log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Could not verify coinbase transaction");
                 chainLock.unlock();
                 return false;
@@ -563,6 +590,8 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
 
     newBlock.mainChain = false;
 
+    blocks->store("dirty", Json::Value(true));
+
     if(!onlySave)
     {
         newBlock.mainChain = true;
@@ -580,6 +609,8 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
     log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): successfully submitted block: " + CryptoKernel::Storage::toString(blocks->get(newBlock.id)));
 
     checkRep();
+
+    blocks->store("dirty", Json::Value(false));
 
     chainLock.unlock();
 
@@ -699,27 +730,18 @@ bool CryptoKernel::Blockchain::reindexChain(std::string newTipId)
 
     if(currentBlock.id != genesisBlockId)
     {
-        log->printf(LOG_LEVEL_WARN, "blockchain::reindexChain(): Chain has incorrect genesis block");
-        return false;
+        log->printf(LOG_LEVEL_ERR, "blockchain::reindexChain(): Chain has incorrect genesis block");
     }
 
     status = false;
 
     chainTipId = "";
 
-    delete transactions;
-    CryptoKernel::Storage::destroy("./transactiondb");
-    transactions = new CryptoKernel::Storage("./transactiondb");
+    emptyDB();
 
-    delete utxos;
-    CryptoKernel::Storage::destroy("./utxodb");
-    utxos = new CryptoKernel::Storage("./utxodb");
-
-    delete blocks;
-    CryptoKernel::Storage::destroy("./blockdb");
-    blocks = new CryptoKernel::Storage("./blockdb");
-
-    submitBlock(currentBlock, true);
+    if(!submitBlock(currentBlock, true)) {
+        log->printf(LOG_LEVEL_ERR, "blockchain::reindexChain(): Failed to import genesis block");
+    }
 
     while(!blockList.empty())
     {
@@ -980,6 +1002,8 @@ bool CryptoKernel::Blockchain::reverseBlock()
 {
     block tip = getBlock("tip");
 
+    blocks->store("dirty", Json::Value(true));
+
     std::vector<output>::iterator it2;
     for(it2 = tip.coinbaseTx.outputs.begin(); it2 < tip.coinbaseTx.outputs.end(); it2++)
     {
@@ -1029,6 +1053,8 @@ bool CryptoKernel::Blockchain::reverseBlock()
     tip.mainChain = false;
     blocks->store(tip.id, blockToJson(tip));
 
+    blocks->store("dirty", Json::Value(false));
+
     return true;
 }
 
@@ -1075,4 +1101,18 @@ std::set<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::getTra
     chainLock.unlock();
 
     return returning;
+}
+
+void CryptoKernel::Blockchain::emptyDB() {
+    delete transactions;
+    CryptoKernel::Storage::destroy("./transactiondb");
+    transactions = new CryptoKernel::Storage("./transactiondb");
+
+    delete utxos;
+    CryptoKernel::Storage::destroy("./utxodb");
+    utxos = new CryptoKernel::Storage("./utxodb");
+
+    delete blocks;
+    CryptoKernel::Storage::destroy("./blockdb");
+    blocks = new CryptoKernel::Storage("./blockdb");
 }

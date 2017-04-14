@@ -70,3 +70,19 @@ Json::Value CryptoKernel::Consensus::AVRR::consensusDataToJson(const consensusDa
     returning["sequenceNumber"] = static_cast<unsigned long long int>(data.sequenceNumber);
     return returning;
 }
+
+bool CryptoKernel::Consensus::AVRR::verifyTransaction(const CryptoKernel::Blockchain::transaction tx) {
+    return true;
+}
+
+bool CryptoKernel::Consensus::AVRR::confirmTransaction(const CryptoKernel::Blockchain::transaction tx) {
+    return true;
+}
+
+bool CryptoKernel::Consensus::AVRR::submitTransaction(const CryptoKernel::Blockchain::transaction tx) {
+    return true;
+}
+
+bool CryptoKernel::Consensus::AVRR::submitBlock(const CryptoKernel::Blockchain::block block) {
+    return true;
+}

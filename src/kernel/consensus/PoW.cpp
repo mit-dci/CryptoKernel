@@ -196,3 +196,7 @@ bool CryptoKernel::Consensus::PoW::KGW_SHA256::confirmTransaction(const CryptoKe
 bool CryptoKernel::Consensus::PoW::KGW_SHA256::submitTransaction(const CryptoKernel::Blockchain::transaction tx) {
     return true;
 }
+
+bool CryptoKernel::Consensus::PoW::KGW_SHA256::submitBlock(const CryptoKernel::Blockchain::block block) {
+    return true;
+}
