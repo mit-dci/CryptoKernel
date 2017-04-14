@@ -175,7 +175,12 @@ void CryptoKernel::Network::networkFunc()
                         do
                         {
                             log->printf(LOG_LEVEL_INFO, "Network(): Downloading blocks " + std::to_string(currentHeight + 1) + " to " + std::to_string(currentHeight + 201));
-                            blocks = it->second->peer->getBlocks(currentHeight + 1, currentHeight + 201);
+                            try {
+                                blocks = it->second->peer->getBlocks(currentHeight + 1, currentHeight + 201);
+                            } catch(Peer::NetworkError& e) {
+                                log->printf(LOG_LEVEL_WARN, "Network(): Failed to contact peer while downloading blocks");
+                                break;
+                            }
                             currentHeight = std::max(1, (int)currentHeight - 200);
                         } while(!blockchain->submitBlock(blocks[0]));
 
