@@ -48,9 +48,8 @@ bool CryptoKernel::Blockchain::loadChain(CryptoKernel::Consensus* consensus)
     {
         if(dbCorrupt) {
             log->printf(LOG_LEVEL_WARN, "blockchain(): blockdb is corrupted");
-
-            emptyDB();
         }
+        emptyDB();
         bool newGenesisBlock = false;
         std::ifstream t("genesisblock.json");
         if(!t.is_open())
