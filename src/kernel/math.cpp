@@ -24,13 +24,13 @@
 
 std::string CryptoKernel::Math::addHex(std::string first, std::string second)
 {
-    BIGNUM *bn1 = NULL;
-    BIGNUM *bn2 = NULL;
-
-    BN_CTX *ctx = BN_CTX_new();
-
     if(first.size() > 0 && second.size() > 0)
     {
+        BIGNUM *bn1 = NULL;
+        BIGNUM *bn2 = NULL;
+
+        BN_CTX *ctx = BN_CTX_new();
+
         BN_hex2bn(&bn1, first.c_str());
         BN_hex2bn(&bn2, second.c_str());
 
@@ -64,13 +64,13 @@ std::string CryptoKernel::Math::addHex(std::string first, std::string second)
 
 std::string CryptoKernel::Math::subtractHex(std::string first, std::string second)
 {
-    BIGNUM *bn1 = NULL;
-    BIGNUM *bn2 = NULL;
-
-    BN_CTX *ctx = BN_CTX_new();
-
     if(first.size() > 0 && second.size() > 0)
     {
+        BIGNUM *bn1 = NULL;
+        BIGNUM *bn2 = NULL;
+
+        BN_CTX *ctx = BN_CTX_new();
+
         BN_hex2bn(&bn1, first.c_str());
         BN_hex2bn(&bn2, second.c_str());
 
@@ -100,17 +100,17 @@ std::string CryptoKernel::Math::subtractHex(std::string first, std::string secon
 
 bool CryptoKernel::Math::hex_greater(std::string first, std::string second)
 {
-    BIGNUM *bn1 = NULL;
-    BIGNUM *bn2 = NULL;
-
-    BN_CTX *ctx = BN_CTX_new();
-
     if(first.size() > 0 && second.size() > 0)
     {
+        BIGNUM *bn1 = NULL;
+        BIGNUM *bn2 = NULL;
+
+        BN_CTX *ctx = BN_CTX_new();
+
         BN_hex2bn(&bn1, first.c_str());
         BN_hex2bn(&bn2, second.c_str());
 
-        int test = BN_cmp(bn1, bn2);
+        const int test = BN_cmp(bn1, bn2);
 
         BN_free(bn1);
         BN_free(bn2);
