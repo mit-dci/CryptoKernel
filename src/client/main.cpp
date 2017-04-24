@@ -76,7 +76,7 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* c
 
             CryptoKernel::Blockchain::block previousBlock;
             previousBlock = blockchain->getBlock(Block.previousBlockId);
-            const std::string inverse = CryptoKernel::Math::subtractHex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", Block.consensusData["PoW"].asString());
+            const std::string inverse = CryptoKernel::Math::subtractHex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", Block.consensusData["target"].asString());
             Block.consensusData["totalWork"] = CryptoKernel::Math::addHex(inverse, previousBlock.consensusData["totalWork"].asString());
 
             if(blockchain->submitBlock(Block))
@@ -128,7 +128,7 @@ int main(int argc, char* argv[])
         blockchain.loadChain(&consensus);
         CryptoKernel::Network network(&log, &blockchain);
         CryptoCurrency::Wallet wallet(&blockchain, &network);
-        //std::thread minerThread(miner, &blockchain, &consensus, &wallet, &log, &network);
+        std::thread minerThread(miner, &blockchain, &consensus, &wallet, &log, &network);
 
         jsonrpc::HttpServer httpserver(8383);
         CryptoServer server(httpserver);
