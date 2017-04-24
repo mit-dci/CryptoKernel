@@ -110,14 +110,16 @@ bool CryptoKernel::ContractRunner::evaluateValid(const CryptoKernel::Blockchain:
             {
                 throw std::runtime_error("Failed to load sandbox.lua");
             }
-            try {
-                if(!(*state.get())["verifyTransaction"](base64_decode((*it).data["contract"].asString())))
-                {
-                    return false;
-                }
-            } catch(std::exception& e) {
-                return false;
+
+            bool result = false;
+            std::string errorMessage = "";
+            sel::tie(result, errorMessage) = (*state.get())["verifyTransaction"](base64_decode((*it).data["contract"].asString()));
+
+            if(errorMessage != "") {
+                throw std::runtime_error(errorMessage);
             }
+
+            return result;
         }
     }
 
