@@ -57,7 +57,7 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* c
             {
                 t = std::time(0);
                 time2 = static_cast<uint64_t> (t);
-                if((time2 - now) % 120 == 0 && (time2 - now) > 0)
+                if((time2 - now) % 20 == 0 && (time2 - now) > 0)
                 {
                     std::stringstream message;
                     message << "miner(): Hashrate: " << ((count / (time2 - now)) / 1000.0f) << " kH/s";
