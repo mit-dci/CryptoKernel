@@ -155,6 +155,8 @@ namespace CryptoKernel
     */
     class Consensus {
         public:
+            virtual ~Consensus() {};
+
             /**
             * Pure virtual method that returns true if the given block forms a
             * longer chain than the current chain tip. Internally it is used to
