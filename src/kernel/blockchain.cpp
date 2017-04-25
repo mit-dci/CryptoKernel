@@ -498,7 +498,10 @@ bool CryptoKernel::Blockchain::submitBlock(block newBlock, bool genesisBlock)
         if(consensus->isBlockBetter(newBlock, tip))
         {
             log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Forking the chain");
-            reorgChain(newBlock.previousBlockId);
+            if(!reorgChain(newBlock.previousBlockId)) {
+                log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Alternative chain is not valid");
+                return false;
+            }
         }
         else
         {
@@ -666,7 +669,7 @@ Json::Value CryptoKernel::Blockchain::blockToJson(block Block, bool PoW)
 bool CryptoKernel::Blockchain::confirmTransaction(transaction tx, bool coinbaseTx)
 {
     //Check if transaction is already confirmed
-    if(transactions->get(tx.id)["id"] == tx.id)
+    if(transactions->get(tx.id)["id"].asString() == tx.id)
     {
         return false;
     }
@@ -757,8 +760,9 @@ bool CryptoKernel::Blockchain::reindexChain(std::string newTipId)
     return true;
 }
 
-bool CryptoKernel::Blockchain::reorgChain(std::string newTipId)
+bool CryptoKernel::Blockchain::reorgChain(const std::string newTipId)
 {
+    const std::string oldTipId = chainTipId;
     std::stack<block> blockList;
 
     //Find common fork block
@@ -782,10 +786,7 @@ bool CryptoKernel::Blockchain::reorgChain(std::string newTipId)
     //Reverse blocks to that point
     while(getBlock("tip").id != currentBlock.id)
     {
-        if(!reverseBlock())
-        {
-            return false;
-        }
+        reverseBlock();
     }
 
     //Submit new blocks
@@ -793,6 +794,11 @@ bool CryptoKernel::Blockchain::reorgChain(std::string newTipId)
     {
         if(!submitBlock(blockList.top()))
         {
+            if(!reorgChain(oldTipId)) {
+                blocks->store("dirty", Json::Value(true));
+                log->printf(LOG_LEVEL_ERR, "blockchain::reorgChain(): Failed to reapply original chain after new chain failed to verify");
+            }
+
             return false;
         }
         blockList.pop();
@@ -997,7 +1003,7 @@ std::string CryptoKernel::Blockchain::calculateOutputSetId(const std::vector<out
     return returning;
 }
 
-bool CryptoKernel::Blockchain::reverseBlock()
+void CryptoKernel::Blockchain::reverseBlock()
 {
     block tip = getBlock("tip");
 
@@ -1006,11 +1012,7 @@ bool CryptoKernel::Blockchain::reverseBlock()
     std::vector<output>::iterator it2;
     for(it2 = tip.coinbaseTx.outputs.begin(); it2 < tip.coinbaseTx.outputs.end(); it2++)
     {
-        if(!utxos->erase((*it2).id))
-        {
-            reindexChain(tip.id);
-            return false;
-        }
+        utxos->erase((*it2).id);
     }
 
     std::vector<transaction>::iterator it;
@@ -1018,11 +1020,7 @@ bool CryptoKernel::Blockchain::reverseBlock()
     {
         for(it2 = (*it).outputs.begin(); it2 < (*it).outputs.end(); it2++)
         {
-            if(!utxos->erase((*it2).id))
-            {
-                reindexChain(tip.id);
-                return false;
-            }
+            utxos->erase((*it2).id);
         }
 
         for(it2 = (*it).inputs.begin(); it2 < (*it).inputs.end(); it2++)
@@ -1032,16 +1030,11 @@ bool CryptoKernel::Blockchain::reverseBlock()
             utxos->store(toSave.id, outputToJson(toSave));
         }
 
-        if(!transactions->erase((*it).id))
-        {
-            reindexChain(tip.id);
-            return false;
-        }
+        transactions->erase((*it).id);
 
         if(!submitTransaction(*it))
         {
-            reindexChain(tip.id);
-            return false;
+            log->printf(LOG_LEVEL_ERR, "Blockchain::reverseBlock(): previously moved transaction is now invalid");
         }
     }
 
@@ -1053,8 +1046,6 @@ bool CryptoKernel::Blockchain::reverseBlock()
     blocks->store(tip.id, blockToJson(tip));
 
     blocks->store("dirty", Json::Value(false));
-
-    return true;
 }
 
 CryptoKernel::Storage::Iterator* CryptoKernel::Blockchain::newIterator()

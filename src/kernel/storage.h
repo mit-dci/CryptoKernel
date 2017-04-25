@@ -41,6 +41,7 @@ namespace CryptoKernel
             * the existing database.
             *
             * @param filename the directory of the LevelDB database to use
+            * @throw std::runtime_error if there is a failure
             */
             Storage(const std::string filename);
 
@@ -55,9 +56,9 @@ namespace CryptoKernel
             *
             * @param key the key of the value to store in the database
             * @param value the json value to store in the database
-            * @return true if the store operation was successful, false otherwise
+            * @throw std::runtime_error if there is a failure writing to the database
             */
-            bool store(const std::string key, const Json::Value value);
+            void store(const std::string key, const Json::Value value);
 
             /**
             * Gets the json value stored at the given key in the database.
@@ -69,19 +70,12 @@ namespace CryptoKernel
             Json::Value get(const std::string key);
 
             /**
-            * Erase the given key from the database
+            * Erase the given key from the database if it exists
             *
             * @param key the key to erase
-            * @return true if the key was erased successfully, false otherwise
+            * @throw std::runtime_error if there is a failure
             */
-            bool erase(const std::string key);
-
-            /**
-            * Returns the current status of the storage module
-            *
-            * @return true if it is safe to continue, false otherwise
-            */
-            bool getStatus();
+            void erase(const std::string key);
 
             /**
             * Provides an iterator for iterating over keys and values in the database
@@ -185,7 +179,6 @@ namespace CryptoKernel
         private:
             leveldb::DB* db;
             std::mutex dbMutex;
-            bool status;
     };
 }
 

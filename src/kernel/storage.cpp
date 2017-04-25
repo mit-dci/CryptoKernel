@@ -22,7 +22,7 @@
 
 #include "storage.h"
 
-CryptoKernel::Storage::Storage(std::string filename)
+CryptoKernel::Storage::Storage(const std::string filename)
 {
     leveldb::Options options;
     options.create_if_missing = true;
@@ -33,11 +33,7 @@ CryptoKernel::Storage::Storage(std::string filename)
 
     if(!dbstatus.ok())
     {
-        status = false;
-    }
-    else
-    {
-        status = true;
+        throw std::runtime_error("Failed to open the database");
     }
 }
 
@@ -48,14 +44,9 @@ CryptoKernel::Storage::~Storage()
     dbMutex.unlock();
 }
 
-bool CryptoKernel::Storage::getStatus()
+void CryptoKernel::Storage::store(const std::string key, const Json::Value value)
 {
-    return status;
-}
-
-bool CryptoKernel::Storage::store(std::string key, Json::Value value)
-{
-    std::string dataToStore = toString(value);
+    const std::string dataToStore = toString(value);
 
     leveldb::WriteOptions options;
     options.sync = true;
@@ -64,17 +55,13 @@ bool CryptoKernel::Storage::store(std::string key, Json::Value value)
     leveldb::Status status = db->Put(options, key, dataToStore);
     dbMutex.unlock();
 
-    if(status.ok())
+    if(!status.ok())
     {
-        return true;
-    }
-    else
-    {
-        return false;
+        throw std::runtime_error("Failed to store to the database");
     }
 }
 
-Json::Value CryptoKernel::Storage::get(std::string key)
+Json::Value CryptoKernel::Storage::get(const std::string key)
 {
     std::string jsonString;
 
@@ -90,19 +77,15 @@ Json::Value CryptoKernel::Storage::get(std::string key)
     return returning;
 }
 
-bool CryptoKernel::Storage::erase(std::string key)
+void CryptoKernel::Storage::erase(const std::string key)
 {
     dbMutex.lock();
     leveldb::Status status = db->Delete(leveldb::WriteOptions(), key);
     dbMutex.unlock();
 
-    if(status.ok())
+    if(!status.ok())
     {
-        return true;
-    }
-    else
-    {
-        return false;
+        throw std::runtime_error("Failed to erase from the database");
     }
 }
 

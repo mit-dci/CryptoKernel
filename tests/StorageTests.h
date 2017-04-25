@@ -9,6 +9,7 @@ class StorageTest : public CPPUNIT_NS::TestFixture {
     CPPUNIT_TEST_SUITE(StorageTest);
 
     CPPUNIT_TEST(testGenerateDB);
+    CPPUNIT_TEST(testGetNoExcept);
     CPPUNIT_TEST(testStoreGet);
     CPPUNIT_TEST(testPersistence);
     CPPUNIT_TEST(testErase);
@@ -26,6 +27,7 @@ public:
 
 private:
     void testGenerateDB();
+    void testGetNoExcept();
     void testStoreGet();
     void testPersistence();
     void testErase();

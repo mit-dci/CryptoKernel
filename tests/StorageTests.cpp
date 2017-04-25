@@ -17,9 +17,17 @@ void StorageTest::tearDown() {
 }
 
 void StorageTest::testGenerateDB() {
+    CPPUNIT_ASSERT_NO_THROW(CryptoKernel::Storage database("./testdb"));
+}
+
+void StorageTest::testGetNoExcept() {
     CryptoKernel::Storage database("./testdb");
-        
-    CPPUNIT_ASSERT(database.getStatus());
+
+    Json::Value dbVal;
+
+    CPPUNIT_ASSERT_NO_THROW(dbVal = database.get("mydata"));
+
+    CPPUNIT_ASSERT(dbVal.empty());
 }
 
 void StorageTest::testStoreGet() {
@@ -30,7 +38,7 @@ void StorageTest::testStoreGet() {
     dataToStore["anumber"][0] = 4;
     dataToStore["anumber"][1] = 5;
 
-    CPPUNIT_ASSERT(database.store("mydata", dataToStore));
+    CPPUNIT_ASSERT_NO_THROW(database.store("mydata", dataToStore));
 
     CPPUNIT_ASSERT_EQUAL(dataToStore, database.get("mydata"));
 }
@@ -43,14 +51,16 @@ void StorageTest::testPersistence() {
     dataToStore["anumber"][0] = 4;
     dataToStore["anumber"][1] = 5;
 
-    CPPUNIT_ASSERT_EQUAL(dataToStore, database.get("mydata"));
+    const Json::Value dbVal = database.get("mydata");
+
+    CPPUNIT_ASSERT(dataToStore == dbVal);
 }
 
 
 void StorageTest::testErase() {
     CryptoKernel::Storage database("./testdb");
 
-    CPPUNIT_ASSERT(database.erase("mydata"));
+    CPPUNIT_ASSERT_NO_THROW(database.erase("mydata"));
 
     Json::Value emptyData;
 
@@ -63,7 +73,7 @@ void StorageTest::testToJson() {
     expected["anumber"][0] = 4;
     expected["anumber"][1] = 5;
 
-    const std::string stringVal = "{\"myval\":\"this\",\"anumber\":[4,5]}"; 
+    const std::string stringVal = "{\"myval\":\"this\",\"anumber\":[4,5]}";
 
     const Json::Value actual = CryptoKernel::Storage::toJson(stringVal);
 
@@ -77,7 +87,7 @@ void StorageTest::testToString() {
     expected["anumber"][1] = 5;
 
     const std::string stringVal = CryptoKernel::Storage::toString(expected);
-    
+
     const Json::Value actual = CryptoKernel::Storage::toJson(stringVal);
 
     CPPUNIT_ASSERT_EQUAL(expected, actual);
@@ -90,7 +100,7 @@ void StorageTest::testIterator() {
     dataToStore["myval"] = "this1";
 
     database.store("1", dataToStore);
-    
+
     Json::Value dataToStore2;
     dataToStore2["myval"] = "this2";
 
@@ -102,7 +112,7 @@ void StorageTest::testIterator() {
 
     it->SeekToFirst();
 
-    CPPUNIT_ASSERT(it->Valid());    
+    CPPUNIT_ASSERT(it->Valid());
     CPPUNIT_ASSERT_EQUAL(std::string("1"), it->key());
     CPPUNIT_ASSERT_EQUAL(dataToStore, it->value());
 

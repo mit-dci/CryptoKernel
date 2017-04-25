@@ -138,7 +138,7 @@ namespace CryptoKernel
             uint64_t getTransactionFee(transaction tx);
             uint64_t calculateTransactionFee(transaction tx);
             bool status;
-            bool reverseBlock();
+            void reverseBlock();
             bool reorgChain(std::string newTipId);
             std::recursive_mutex chainLock;
             virtual uint64_t getBlockReward(const uint64_t height) = 0;
