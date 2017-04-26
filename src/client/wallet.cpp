@@ -26,8 +26,9 @@ CryptoCurrency::Wallet::Wallet(CryptoKernel::Blockchain* Blockchain, CryptoKerne
 {
     blockchain = Blockchain;
     this->network = network;
-    log = new CryptoKernel::Log();
-    addresses = new CryptoKernel::Storage("./addressesdb");
+
+    walletdb.reset(new CryptoKernel::Storage("./addressesdb"));
+    addresses.reset(new CryptoKernel::Storage::Table("addresses"));
 
     rescan();
 
@@ -37,14 +38,14 @@ CryptoCurrency::Wallet::Wallet(CryptoKernel::Blockchain* Blockchain, CryptoKerne
 
 CryptoCurrency::Wallet::~Wallet()
 {
-    delete log;
-    delete addresses;
+
 }
 
 CryptoCurrency::Wallet::address CryptoCurrency::Wallet::newAddress(std::string name)
 {
     address Address;
-    if(addresses->get(name)["name"] != name)
+    std::unique_ptr<CryptoKernel::Storage::Transaction> dbTx(walletdb->begin());
+    if(addresses->get(dbTx.get(), name)["name"].asString() != name)
     {
         CryptoKernel::Crypto crypto(true);
 
@@ -53,40 +54,29 @@ CryptoCurrency::Wallet::address CryptoCurrency::Wallet::newAddress(std::string n
         Address.privateKey = crypto.getPrivateKey();
         Address.balance = 0;
 
-        addresses->store(name, addressToJson(Address));
+        addresses->put(dbTx.get(), name, addressToJson(Address));
+        addresses->put(dbTx.get(), Address.publicKey, Json::Value(name), 0);
     }
+
+    dbTx->commit();
 
     return Address;
 }
 
 CryptoCurrency::Wallet::address CryptoCurrency::Wallet::getAddressByName(std::string name)
 {
-    address Address;
+    std::unique_ptr<CryptoKernel::Storage::Transaction> dbTx(walletdb->begin());
 
-    Address = jsonToAddress(addresses->get(name));
-    updateAddressBalance(Address.name, blockchain->getBalance(Address.publicKey));
-
-    return jsonToAddress(addresses->get(name));
+    return jsonToAddress(addresses->get(dbTx.get(), name));
 }
 
-CryptoCurrency::Wallet::address CryptoCurrency::Wallet::getAddressByKey(std::string publicKey)
+CryptoCurrency::Wallet::address CryptoCurrency::Wallet::getAddressByKey(const std::string publicKey)
 {
-    address Address;
+    std::unique_ptr<CryptoKernel::Storage::Transaction> dbTx(walletdb->begin());
 
-    CryptoKernel::Storage::Iterator* it = addresses->newIterator();
-    for(it->SeekToFirst(); it->Valid(); it->Next())
-    {
-        if(it->value()["publicKey"].asString() == publicKey)
-        {
-            Address = jsonToAddress(it->value());
-            break;
-        }
-    }
-    delete it;
+    const std::string name = addresses->get(dbTx.get(), publicKey, 0).asString();
 
-    updateAddressBalance(Address.name, blockchain->getBalance(Address.publicKey));
-
-    return jsonToAddress(addresses->get(Address.name));
+    return jsonToAddress(addresses->get(dbTx.get(), name));
 }
 
 Json::Value CryptoCurrency::Wallet::addressToJson(address Address)
@@ -113,14 +103,14 @@ CryptoCurrency::Wallet::address CryptoCurrency::Wallet::jsonToAddress(Json::Valu
     return returning;
 }
 
-bool CryptoCurrency::Wallet::updateAddressBalance(std::string name, uint64_t amount)
+bool CryptoCurrency::Wallet::updateAddressBalance(CryptoKernel::Storage::Transaction* dbTx, std::string name, uint64_t amount)
 {
     address Address;
-    Address = jsonToAddress(addresses->get(name));
+    Address = jsonToAddress(addresses->get(dbTx, name));
     if(Address.name == name)
     {
         Address.balance = amount;
-        addresses->store(name, addressToJson(Address));
+        addresses->put(dbTx, name, addressToJson(Address));
         return true;
     }
     else
@@ -137,7 +127,7 @@ bool CryptoCurrency::Wallet::sendToAddress(std::string publicKey, uint64_t amoun
     }
 
     std::vector<CryptoKernel::Blockchain::output> inputs;
-    CryptoKernel::Storage::Iterator* it = addresses->newIterator();
+    CryptoKernel::Storage::Table::Iterator* it = new CryptoKernel::Storage::Table::Iterator(addresses.get(), walletdb.get());
     for(it->SeekToFirst(); it->Valid(); it->Next())
     {
         std::vector<CryptoKernel::Blockchain::output> tempInputs;
@@ -154,14 +144,12 @@ bool CryptoCurrency::Wallet::sendToAddress(std::string publicKey, uint64_t amoun
 
     double accumulator = 0;
     std::vector<CryptoKernel::Blockchain::output>::iterator it2;
+
     for(it2 = inputs.begin(); it2 < inputs.end(); it2++)
     {
         if(accumulator < amount + fee)
         {
-            address Address = getAddressByKey((*it2).publicKey);
             toSpend.push_back(*it2);
-            Address.balance -= (*it2).value;
-            updateAddressBalance(Address.name, Address.balance);
             accumulator += (*it2).value;
         }
         else
@@ -246,7 +234,7 @@ double CryptoCurrency::Wallet::getTotalBalance()
 
     double balance = 0;
 
-    CryptoKernel::Storage::Iterator* it = addresses->newIterator();
+    CryptoKernel::Storage::Table::Iterator* it = new CryptoKernel::Storage::Table::Iterator(addresses.get(), walletdb.get());
     for(it->SeekToFirst(); it->Valid(); it->Next())
     {
         balance += it->value()["balance"].asDouble();
@@ -259,7 +247,7 @@ double CryptoCurrency::Wallet::getTotalBalance()
 void CryptoCurrency::Wallet::rescan()
 {
     std::vector<address> tempAddresses;
-    CryptoKernel::Storage::Iterator* it = addresses->newIterator();
+    CryptoKernel::Storage::Table::Iterator* it = new CryptoKernel::Storage::Table::Iterator(addresses.get(), walletdb.get());
     for(it->SeekToFirst(); it->Valid(); it->Next())
     {
         address Address;
@@ -268,11 +256,15 @@ void CryptoCurrency::Wallet::rescan()
     }
     delete it;
 
+    std::unique_ptr<CryptoKernel::Storage::Transaction> dbTx(walletdb->begin());
+
     std::vector<address>::iterator it2;
     for(it2 = tempAddresses.begin(); it2 < tempAddresses.end(); it2++)
     {
-        updateAddressBalance((*it2).name, blockchain->getBalance((*it2).publicKey));
+        updateAddressBalance(dbTx.get(), (*it2).name, blockchain->getBalance((*it2).publicKey));
     }
+
+    dbTx->commit();
 }
 
 std::vector<CryptoCurrency::Wallet::address> CryptoCurrency::Wallet::listAddresses()
@@ -280,7 +272,7 @@ std::vector<CryptoCurrency::Wallet::address> CryptoCurrency::Wallet::listAddress
     rescan();
 
     std::vector<address> tempAddresses;
-    CryptoKernel::Storage::Iterator* it = addresses->newIterator();
+    CryptoKernel::Storage::Table::Iterator* it = new CryptoKernel::Storage::Table::Iterator(addresses.get(), walletdb.get());
     for(it->SeekToFirst(); it->Valid(); it->Next())
     {
         address Address;

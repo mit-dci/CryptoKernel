@@ -189,7 +189,9 @@ CryptoKernel::Storage::Table::Iterator::~Iterator() {
 
 void CryptoKernel::Storage::Table::Iterator::SeekToFirst() {
     it->Seek(prefix);
-    it->Next();
+    if(Valid()) {
+        it->Next();
+    }
 }
 
 bool CryptoKernel::Storage::Table::Iterator::Valid() {

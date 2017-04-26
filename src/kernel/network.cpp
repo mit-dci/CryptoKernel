@@ -7,9 +7,11 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log, CryptoKernel::Blockchain*
     this->log = log;
     this->blockchain = blockchain;
 
-    peers = new CryptoKernel::Storage("./peers");
+    networkdb.reset(new CryptoKernel::Storage("./peers"));
+    peers.reset(new Storage::Table("peers"));
 
-    Json::Value seeds = peers->get("seeds");
+    std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
+    Json::Value seeds = peers->get(dbTx.get(), "seeds");
     if(seeds.size() <= 0)
     {
         std::ifstream infile("peers.txt");
@@ -30,8 +32,10 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log, CryptoKernel::Blockchain*
 
         infile.close();
 
-        peers->store("seeds", seeds);
+        peers->put(dbTx.get(), "seeds", seeds);
     }
+
+    dbTx->commit();
 
     if(listener.listen(49000) != sf::Socket::Done)
     {
@@ -53,14 +57,14 @@ CryptoKernel::Network::~Network()
     connectionThread->join();
     networkThread->join();
     listener.close();
-    delete peers;
 }
 
 void CryptoKernel::Network::networkFunc()
 {
     while(running)
     {
-        Json::Value seeds = peers->get("seeds");
+        std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
+        Json::Value seeds = peers->get(dbTx.get(), "seeds");
 
         if(connected.size() < 8)
         {
@@ -144,7 +148,8 @@ void CryptoKernel::Network::networkFunc()
             }
         }
 
-        peers->store("seeds", seeds);
+        peers->put(dbTx.get(), "seeds", seeds);
+        dbTx->commit();
 
         //Determine best chain
         uint64_t currentHeight = blockchain->getBlock("tip").height;
@@ -166,39 +171,31 @@ void CryptoKernel::Network::networkFunc()
             {
                 if(it->second->info["height"].asUInt64() > currentHeight)
                 {
-                    try
+                    std::vector<CryptoKernel::Blockchain::block> blocks;
+                    //Try to submit the first block
+                    //If it fails get the 200 block previous until we can submit a block
+
+                    do
                     {
-                        std::vector<CryptoKernel::Blockchain::block> blocks;
-                        //Try to submit the first block
-                        //If it fails get the 200 block previous until we can submit a block
-
-                        do
-                        {
-                            log->printf(LOG_LEVEL_INFO, "Network(): Downloading blocks " + std::to_string(currentHeight + 1) + " to " + std::to_string(currentHeight + 201));
-                            try {
-                                blocks = it->second->peer->getBlocks(currentHeight + 1, currentHeight + 201);
-                            } catch(Peer::NetworkError& e) {
-                                log->printf(LOG_LEVEL_WARN, "Network(): Failed to contact peer while downloading blocks");
-                                break;
-                            }
-                            currentHeight = std::max(1, (int)currentHeight - 200);
-                        } while(!blockchain->submitBlock(blocks[0]));
-
-
-                        for(unsigned int i = 1; i < blocks.size(); i++)
-                        {
-                            if(!blockchain->submitBlock(blocks[i]))
-                            {
-                                break;
-                            }
+                        log->printf(LOG_LEVEL_INFO, "Network(): Downloading blocks " + std::to_string(currentHeight + 1) + " to " + std::to_string(currentHeight + 201));
+                        try {
+                            blocks = it->second->peer->getBlocks(currentHeight + 1, currentHeight + 201);
+                        } catch(Peer::NetworkError& e) {
+                            log->printf(LOG_LEVEL_WARN, "Network(): Failed to contact " + it->first + " " + e.what() + " while downloading blocks");
+                            break;
                         }
-                        break;
-                    }
-                    catch(Peer::NetworkError& e)
+                        currentHeight = std::max(1, (int)currentHeight - 200);
+                    } while(!blockchain->submitBlock(blocks[0]));
+
+
+                    for(unsigned int i = 1; i < blocks.size(); i++)
                     {
-                        log->printf(LOG_LEVEL_WARN, "Network(): Failed to contact " + it->first + " " + e.what());
-                        continue;
+                        if(!blockchain->submitBlock(blocks[i]))
+                        {
+                            break;
+                        }
                     }
+                    break;
                 }
             }
         }

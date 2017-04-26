@@ -72,7 +72,8 @@ namespace CryptoKernel
             CryptoKernel::Log* log;
             CryptoKernel::Blockchain* blockchain;
 
-            CryptoKernel::Storage* peers;
+            std::unique_ptr<CryptoKernel::Storage> networkdb;
+            std::unique_ptr<Storage::Table> peers;
 
             bool running;
 

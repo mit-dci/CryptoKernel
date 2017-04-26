@@ -40,7 +40,6 @@ namespace CryptoCurrency
             address newAddress(std::string name);
             address getAddressByName(std::string name);
             address getAddressByKey(std::string publicKey);
-            bool updateAddressBalance(std::string name, uint64_t amount);
             bool sendToAddress(std::string publicKey, uint64_t amount, uint64_t fee);
             double getTotalBalance();
             void rescan();
@@ -53,8 +52,10 @@ namespace CryptoCurrency
             CryptoKernel::Blockchain::transaction signTransaction(const CryptoKernel::Blockchain::transaction tx);
 
         private:
-            CryptoKernel::Storage* addresses;
-            CryptoKernel::Log* log;
+            std::unique_ptr<CryptoKernel::Storage> walletdb;
+            std::unique_ptr<CryptoKernel::Storage::Table> addresses;
+
+            bool updateAddressBalance(CryptoKernel::Storage::Transaction* dbTx, std::string name, uint64_t amount);
 
             CryptoKernel::Blockchain* blockchain;
             CryptoKernel::Network* network;

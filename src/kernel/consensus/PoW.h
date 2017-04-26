@@ -24,7 +24,7 @@ namespace CryptoKernel {
             * In Proof of Work this function checks if the total work of the given
             * block is greater than the total work of the current tip block.
             */
-            bool isBlockBetter(const CryptoKernel::Blockchain::block block, const CryptoKernel::Blockchain::block tip);
+            bool isBlockBetter(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block block, const CryptoKernel::Blockchain::block tip);
 
             std::string serializeConsensusData(const CryptoKernel::Blockchain::block block);
 
@@ -35,9 +35,9 @@ namespace CryptoKernel {
             *   - Proof of Work is below block target
             *   - Checks the block's total work is correct
             */
-            bool checkConsensusRules(const CryptoKernel::Blockchain::block block, const CryptoKernel::Blockchain::block previousBlock);
+            bool checkConsensusRules(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block block, const CryptoKernel::Blockchain::block previousBlock);
 
-            Json::Value generateConsensusData(const CryptoKernel::Blockchain::block block, const std::string publicKey);
+            Json::Value generateConsensusData(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block block, const std::string publicKey);
 
             /**
             * Pure virtual function that provides a proof of work hash
@@ -56,7 +56,7 @@ namespace CryptoKernel {
             *        to calculate the target for
             * @return the hex target of the block
             */
-            virtual std::string calculateTarget(const std::string previousBlockId) = 0;
+            virtual std::string calculateTarget(Storage::Transaction* transaction, const std::string previousBlockId) = 0;
 
             /**
             * This class uses Kimoto Gravity Well for difficulty adjustment
@@ -97,27 +97,27 @@ namespace CryptoKernel {
             /**
             * Uses Kimoto Gravity Well to retarget the difficulty
             */
-            std::string calculateTarget(const std::string previousBlockId);
+            std::string calculateTarget(Storage::Transaction* transaction, const std::string previousBlockId);
 
             /**
             * Has no effect, always returns true
             */
-            bool verifyTransaction(const CryptoKernel::Blockchain::transaction tx);
+            bool verifyTransaction(Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction tx);
 
             /**
             * Has no effect, always returns true
             */
-            bool confirmTransaction(const CryptoKernel::Blockchain::transaction tx);
+            bool confirmTransaction(Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction tx);
 
             /**
             * Has no effect, always returns true
             */
-            bool submitTransaction(const CryptoKernel::Blockchain::transaction tx);
+            bool submitTransaction(Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction tx);
 
             /**
             * Has no effect, always returns true
             */
-            bool submitBlock(const CryptoKernel::Blockchain::block block);
+            bool submitBlock(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block block);
     };
 }
 

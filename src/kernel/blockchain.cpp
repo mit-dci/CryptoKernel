@@ -121,21 +121,7 @@ CryptoKernel::Blockchain::~Blockchain()
 std::vector<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::getUnconfirmedTransactions()
 {
     chainLock.lock();
-    std::vector<CryptoKernel::Blockchain::transaction> returning;
-    std::vector<CryptoKernel::Blockchain::transaction>::iterator it;
-    std::unique_ptr<Storage::Transaction> dbTx(blockdb->begin());
-    for(it = unconfirmedTransactions.begin(); it < unconfirmedTransactions.end(); it++)
-    {
-        if(!verifyTransaction(dbTx.get(), *it))
-        {
-            it = unconfirmedTransactions.erase(it);
-        }
-        else
-        {
-            returning.push_back(*it);
-        }
-    }
-
+    const std::vector<CryptoKernel::Blockchain::transaction> returning = unconfirmedTransactions;
     chainLock.unlock();
 
     return returning;
@@ -143,11 +129,26 @@ std::vector<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::get
 
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlock(Storage::Transaction* transaction, const std::string id)
 {
-    std::unique_ptr<Storage::Transaction> tx(blockdb->begin());
-    return jsonToBlock(blocks->get(tx.get(), id));
+    return jsonToBlock(blocks->get(transaction, id));
 }
 
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlockByHeight(Storage::Transaction* transaction, const uint64_t height)
+{
+    const std::string id = blocks->get(transaction, std::to_string(height), 0).asString();
+    const block returning = jsonToBlock(blocks->get(transaction, id));
+    return returning;
+}
+
+CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlock(const std::string id)
+{
+    chainLock.lock();
+    std::unique_ptr<Storage::Transaction> tx(blockdb->begin());
+    const block returning = getBlock(tx.get(), id);
+    chainLock.unlock();
+    return returning;
+}
+
+CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlockByHeight(const uint64_t height)
 {
     chainLock.lock();
     std::unique_ptr<Storage::Transaction> tx(blockdb->begin());
@@ -288,7 +289,7 @@ bool CryptoKernel::Blockchain::verifyTransaction(Storage::Transaction* dbTransac
         return false;
     }
 
-    if(!consensus->verifyTransaction(tx)) {
+    if(!consensus->verifyTransaction(dbTransaction, tx)) {
         log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Could not verify custom rules");
         return false;
     }
@@ -296,12 +297,23 @@ bool CryptoKernel::Blockchain::verifyTransaction(Storage::Transaction* dbTransac
     return true;
 }
 
+bool CryptoKernel::Blockchain::submitTransaction(const transaction tx) {
+    chainLock.lock();
+    std::unique_ptr<Storage::Transaction> dbTx(blockdb->begin());
+    const bool result = submitTransaction(dbTx.get(), tx);
+    if(result) {
+        dbTx->commit();
+    }
+    chainLock.unlock();
+    return result;
+}
+
 bool CryptoKernel::Blockchain::submitTransaction(Storage::Transaction* dbTx, transaction tx)
 {
     chainLock.lock();
     if(verifyTransaction(dbTx, tx))
     {
-        if(consensus->submitTransaction(tx)) {
+        if(consensus->submitTransaction(dbTx, tx)) {
             if(transactions->get(dbTx, tx.id)["id"].asString() == tx.id)
             {
                 //Transaction has already been submitted and verified
@@ -425,6 +437,17 @@ std::string CryptoKernel::Blockchain::calculateOutputId(output Output)
     return crypto.sha256(buffer.str());
 }
 
+bool CryptoKernel::Blockchain::submitBlock(const block newBlock, const bool genesisBlock) {
+    chainLock.lock();
+    std::unique_ptr<Storage::Transaction> dbTx(blockdb->begin());
+    const bool result = submitBlock(dbTx.get(), newBlock, genesisBlock);
+    if(result) {
+        dbTx->commit();
+    }
+    chainLock.unlock();
+    return result;
+}
+
 bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx, block newBlock, bool genesisBlock)
 {
     chainLock.lock();
@@ -469,7 +492,7 @@ bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx, block new
     }
 
     if(!genesisBlock) {
-        if(!consensus->checkConsensusRules(newBlock, previousBlock)) {
+        if(!consensus->checkConsensusRules(dbTx, newBlock, previousBlock)) {
             log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Consensus rules cannot verify this block");
             chainLock.unlock();
             return false;
@@ -484,7 +507,7 @@ bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx, block new
         //This block does not directly lead on from last block
         //Check if the verifier should've come before the current tip
         //If so, reorg, otherwise ignore it
-        if(consensus->isBlockBetter(newBlock, tip))
+        if(consensus->isBlockBetter(dbTx, newBlock, tip))
         {
             log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Forking the chain");
             if(!reorgChain(dbTx, newBlock.previousBlockId)) {
@@ -549,7 +572,7 @@ bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx, block new
             newBlock.coinbaseTx.confirmingBlock = newBlock.id;
         }
 
-        if(!consensus->submitBlock(newBlock)) {
+        if(!consensus->submitBlock(dbTx, newBlock)) {
             log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Consensus submitBlock callback returned false");
             chainLock.unlock();
             return false;
@@ -592,8 +615,6 @@ bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx, block new
     log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): successfully submitted block: " + CryptoKernel::Storage::toString(blocks->get(dbTx, newBlock.id)));
 
     checkRep(dbTx);
-
-    dbTx->commit();
 
     chainLock.unlock();
 
@@ -662,7 +683,7 @@ bool CryptoKernel::Blockchain::confirmTransaction(Storage::Transaction* dbTransa
     }
 
     //Execute custom transaction rules callback
-    if(!consensus->confirmTransaction(tx)) {
+    if(!consensus->confirmTransaction(dbTransaction, tx)) {
         return false;
     }
 
@@ -895,6 +916,7 @@ uint64_t CryptoKernel::Blockchain::calculateTransactionFee(transaction tx)
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateVerifyingBlock(std::string publicKey)
 {
     chainLock.lock();
+    std::unique_ptr<Storage::Transaction> dbTx(blockdb->begin());
     block returning;
 
     returning.transactions = getUnconfirmedTransactions();
@@ -903,7 +925,7 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateVerifyingBlock
     returning.timestamp = now;
 
     block previousBlock;
-    previousBlock = getBlock("tip");
+    previousBlock = getBlock(dbTx.get(), "tip");
 
     returning.height = previousBlock.height + 1;
     returning.previousBlockId = previousBlock.id;
@@ -933,7 +955,7 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateVerifyingBlock
         returning.coinbaseTx = coinbaseTx;
     }
 
-    returning.consensusData = consensus->generateConsensusData(returning, publicKey);
+    returning.consensusData = consensus->generateConsensusData(dbTx.get(), returning, publicKey);
 
     returning.id = calculateBlockId(returning);
 

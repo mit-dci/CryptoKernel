@@ -156,6 +156,7 @@ namespace CryptoKernel
             block getBlockByHeight(Storage::Transaction* transaction, const uint64_t height);
             bool submitTransaction(Storage::Transaction* dbTx, transaction tx);
             bool submitBlock(Storage::Transaction* dbTx, block newBlock, bool genesisBlock = false);
+            friend class Consensus;
     };
 
     /**
@@ -180,7 +181,7 @@ namespace CryptoKernel
             * @return true iff block takes precedence over the current chain tip,
             *         otherwise false
             */
-            virtual bool isBlockBetter(const CryptoKernel::Blockchain::block block, const CryptoKernel::Blockchain::block tip) = 0;
+            virtual bool isBlockBetter(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block block, const CryptoKernel::Blockchain::block tip) = 0;
 
             /**
             * Pure virtual method that returns true iff the given block conforms to
@@ -192,7 +193,7 @@ namespace CryptoKernel
             * @param block the block to check the consensus rules of
             * @return true iff the rules are valid, otherwise false
             */
-            virtual bool checkConsensusRules(const CryptoKernel::Blockchain::block block, const CryptoKernel::Blockchain::block previousBlock) = 0;
+            virtual bool checkConsensusRules(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block block, const CryptoKernel::Blockchain::block previousBlock) = 0;
 
             /**
             * Pure virtual function that generates the consensus data
@@ -203,7 +204,7 @@ namespace CryptoKernel
             * @param publicKey the public key to that will own this block
             * @return the consensusData for the block
             */
-            virtual Json::Value generateConsensusData(const CryptoKernel::Blockchain::block block, const std::string publicKey) = 0;
+            virtual Json::Value generateConsensusData(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block block, const std::string publicKey) = 0;
 
             /**
             * Pure virtual function that serializes the consensus data field of a block
@@ -223,7 +224,7 @@ namespace CryptoKernel
             * @param tx the transaction to check the validity of
             * @return true iff the transaction is valid given the current blockchain state
             */
-            virtual bool verifyTransaction(const CryptoKernel::Blockchain::transaction tx) = 0;
+            virtual bool verifyTransaction(Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction tx) = 0;
 
             /**
             * Callback for custom transaction behavior when the blockchain if confirming a transaction
@@ -233,7 +234,7 @@ namespace CryptoKernel
             * @param tx the transaction to be confirmed
             * @return true iff the transaction was successfully confirmed given the current blockchain state
             */
-            virtual bool confirmTransaction(const CryptoKernel::Blockchain::transaction tx) = 0;
+            virtual bool confirmTransaction(Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction tx) = 0;
 
             /**
             * Callback for custom transaction behavior when the blockchain is submitting a transaction
@@ -242,7 +243,7 @@ namespace CryptoKernel
             * @param tx the transaction being submitted
             * @return true iff the transaction was successfully submitted given the current blockchain state
             */
-            virtual bool submitTransaction(const CryptoKernel::Blockchain::transaction tx) = 0;
+            virtual bool submitTransaction(Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction tx) = 0;
 
             /**
             * Callback for custom block submission behavior when the blockchain is submitting a block.
@@ -252,7 +253,7 @@ namespace CryptoKernel
             * @param block the block being submitted
             * @return true iff the block was successfully submitted given the current blockchain state
             */
-            virtual bool submitBlock(const CryptoKernel::Blockchain::block block) = 0;
+            virtual bool submitBlock(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block block) = 0;
 
             class PoW;
             class AVRR;

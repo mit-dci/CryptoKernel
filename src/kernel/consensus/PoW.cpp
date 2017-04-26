@@ -9,7 +9,7 @@ CryptoKernel::Consensus::PoW::PoW(const uint64_t blockTarget, CryptoKernel::Bloc
     this->blockchain = blockchain;
 }
 
-bool CryptoKernel::Consensus::PoW::isBlockBetter(const CryptoKernel::Blockchain::block block, const CryptoKernel::Blockchain::block tip) {
+bool CryptoKernel::Consensus::PoW::isBlockBetter(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block block, const CryptoKernel::Blockchain::block tip) {
     const consensusData blockData = getConsensusData(block);
     const consensusData tipData = getConsensusData(tip);
     return CryptoKernel::Math::hex_greater(blockData.totalWork, tipData.totalWork);
@@ -37,10 +37,10 @@ std::string CryptoKernel::Consensus::PoW::serializeConsensusData(const CryptoKer
     return block.consensusData["target"].asString();
 }
 
-bool CryptoKernel::Consensus::PoW::checkConsensusRules(const CryptoKernel::Blockchain::block block, const CryptoKernel::Blockchain::block previousBlock) {
+bool CryptoKernel::Consensus::PoW::checkConsensusRules(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block block, const CryptoKernel::Blockchain::block previousBlock) {
     //Check target
     const consensusData blockData = getConsensusData(block);
-    if(blockData.target != calculateTarget(block.previousBlockId)) {
+    if(blockData.target != calculateTarget(transaction, block.previousBlockId)) {
         return false;
     }
 
@@ -67,9 +67,9 @@ std::string CryptoKernel::Consensus::PoW::calculatePoW(const CryptoKernel::Block
     return powFunction(buffer.str());
 }
 
-Json::Value CryptoKernel::Consensus::PoW::generateConsensusData(const CryptoKernel::Blockchain::block block, const std::string publicKey) {
+Json::Value CryptoKernel::Consensus::PoW::generateConsensusData(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block block, const std::string publicKey) {
     consensusData data;
-    data.target = calculateTarget(block.previousBlockId);
+    data.target = calculateTarget(transaction, block.previousBlockId);
 
     return consensusDataToJson(data);
 }
@@ -83,12 +83,12 @@ std::string CryptoKernel::Consensus::PoW::KGW_SHA256::powFunction(const std::str
     return crypto.sha256(inputString);
 }
 
-std::string CryptoKernel::Consensus::PoW::KGW_SHA256::calculateTarget(const std::string previousBlockId) {
+std::string CryptoKernel::Consensus::PoW::KGW_SHA256::calculateTarget(Storage::Transaction* transaction, const std::string previousBlockId) {
     const uint64_t minBlocks = 144;
     const uint64_t maxBlocks = 4032;
     const std::string minDifficulty = "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
-    CryptoKernel::Blockchain::block currentBlock = blockchain->getBlock(previousBlockId);
+    CryptoKernel::Blockchain::block currentBlock = blockchain->getBlock(transaction, previousBlockId);
     consensusData currentBlockData = getConsensusData(currentBlock);
     CryptoKernel::Blockchain::block lastSolved = currentBlock;
 
@@ -160,7 +160,7 @@ std::string CryptoKernel::Consensus::PoW::KGW_SHA256::calculateTarget(const std:
             {
                 break;
             }
-            currentBlock = blockchain->getBlock(currentBlock.previousBlockId);
+            currentBlock = blockchain->getBlock(transaction, currentBlock.previousBlockId);
             currentBlockData = getConsensusData(currentBlock);
         }
 
@@ -185,18 +185,18 @@ std::string CryptoKernel::Consensus::PoW::KGW_SHA256::calculateTarget(const std:
     }
 }
 
-bool CryptoKernel::Consensus::PoW::KGW_SHA256::verifyTransaction(const CryptoKernel::Blockchain::transaction tx) {
+bool CryptoKernel::Consensus::PoW::KGW_SHA256::verifyTransaction(Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction tx) {
     return true;
 }
 
-bool CryptoKernel::Consensus::PoW::KGW_SHA256::confirmTransaction(const CryptoKernel::Blockchain::transaction tx) {
+bool CryptoKernel::Consensus::PoW::KGW_SHA256::confirmTransaction(Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction tx) {
     return true;
 }
 
-bool CryptoKernel::Consensus::PoW::KGW_SHA256::submitTransaction(const CryptoKernel::Blockchain::transaction tx) {
+bool CryptoKernel::Consensus::PoW::KGW_SHA256::submitTransaction(Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction tx) {
     return true;
 }
 
-bool CryptoKernel::Consensus::PoW::KGW_SHA256::submitBlock(const CryptoKernel::Blockchain::block block) {
+bool CryptoKernel::Consensus::PoW::KGW_SHA256::submitBlock(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block block) {
     return true;
 }
