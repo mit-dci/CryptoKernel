@@ -50,10 +50,12 @@ std::string CryptoKernel::Math::addHex(std::string first, std::string second)
     }
     else if(first.size() > 0)
     {
+        std::transform(first.begin(), first.end(), first.begin(), ::tolower);
         return first;
     }
     else if(second.size() > 0)
     {
+        std::transform(second.begin(), second.end(), second.begin(), ::tolower);
         return second;
     }
     else
@@ -90,6 +92,7 @@ std::string CryptoKernel::Math::subtractHex(std::string first, std::string secon
     }
     else if(first.size() > 0)
     {
+        std::transform(first.begin(), first.end(), first.begin(), ::tolower);
         return first;
     }
     else

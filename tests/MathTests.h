@@ -13,6 +13,7 @@ class MathTest : public CPPUNIT_NS::TestFixture {
     CPPUNIT_TEST(testMultiply);
     CPPUNIT_TEST(testDivide);
     CPPUNIT_TEST(testHexGreater);
+    CPPUNIT_TEST(testEmptyOperand);
 
     CPPUNIT_TEST_SUITE_END();
 
@@ -28,6 +29,7 @@ private:
     void testMultiply();
     void testDivide();
     void testHexGreater();
+    void testEmptyOperand();
 };
 
 #endif

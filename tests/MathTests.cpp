@@ -18,11 +18,11 @@ void MathTest::testAdd() {
     const std::string first = "aBc381023c383Def";
     const std::string second = "bAc391045cEE3Dfe";
     const std::string expected = "16687120699267bed";
-    
+
     std::string actual = CryptoKernel::Math::addHex(first, second);
-    
+
     actual.erase(0, std::min(actual.find_first_not_of('0'), actual.size()-1));
-    
+
     CPPUNIT_ASSERT_EQUAL(expected, actual);
 }
 
@@ -30,11 +30,11 @@ void MathTest::testSubtract() {
     const std::string first = "aBc381023c383Def";
     const std::string second = "bAc391045cEE3Dfe";
     const std::string expected = "f00100220b6000f";
-    
+
     std::string actual = CryptoKernel::Math::subtractHex(second, first);
-    
+
     actual.erase(0, std::min(actual.find_first_not_of('0'), actual.size()-1));
-    
+
     CPPUNIT_ASSERT_EQUAL(expected, actual);
 }
 
@@ -54,7 +54,7 @@ void MathTest::testDivide() {
     const std::string expected = "1";
 
     std::string actual = CryptoKernel::Math::divideHex(second, first);
-    
+
     actual.erase(0, std::min(actual.find_first_not_of('0'), actual.size()-1));
 
     CPPUNIT_ASSERT_EQUAL(expected, actual);
@@ -66,4 +66,16 @@ void MathTest::testHexGreater() {
 
     CPPUNIT_ASSERT_EQUAL(true, CryptoKernel::Math::hex_greater(second, first));
     CPPUNIT_ASSERT_EQUAL(false, CryptoKernel::Math::hex_greater(first, second));
+}
+
+void MathTest::testEmptyOperand() {
+    const std::string first = "aBc381023c383Def";
+    const std::string second = "";
+    const std::string expected = "abc381023c383def";
+
+    std::string actual = CryptoKernel::Math::addHex(second, first);
+
+    actual.erase(0, std::min(actual.find_first_not_of('0'), actual.size()-1));
+
+    CPPUNIT_ASSERT_EQUAL(expected, actual);
 }
