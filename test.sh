@@ -3,7 +3,7 @@
 exe() { echo "$@" ; "$@" ; }
 
 CXX=g++
-CXXFLAGS="-Wall -std=c++14 -O2 -fPIC -Wl,-E -g"
+CXXFLAGS="-Wall -std=c++14 -O2 -fPIC -Wl,-E -g -I/usr/include/lua5.3"
 INCLUDES="-Isrc/kernel"
 LIBS="-lCryptoKernel -lcrypto -lleveldb -ljsoncpp -pthread -lcppunit -llua5.3 -ldl"
 

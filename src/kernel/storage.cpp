@@ -20,6 +20,8 @@
 #include <jsoncpp/json/writer.h>
 #include <jsoncpp/json/reader.h>
 
+#include <leveldb/write_batch.h>
+
 #include "storage.h"
 
 CryptoKernel::Storage::Storage(const std::string filename)
@@ -42,105 +44,6 @@ CryptoKernel::Storage::~Storage()
     dbMutex.lock();
     delete db;
     dbMutex.unlock();
-}
-
-void CryptoKernel::Storage::store(const std::string key, const Json::Value value)
-{
-    const std::string dataToStore = toString(value);
-
-    leveldb::WriteOptions options;
-    options.sync = true;
-
-    dbMutex.lock();
-    leveldb::Status status = db->Put(options, key, dataToStore);
-    dbMutex.unlock();
-
-    if(!status.ok())
-    {
-        throw std::runtime_error("Failed to store to the database");
-    }
-}
-
-Json::Value CryptoKernel::Storage::get(const std::string key)
-{
-    std::string jsonString;
-
-    leveldb::ReadOptions options;
-    options.verify_checksums = true;
-
-    dbMutex.lock();
-    db->Get(options, key, &jsonString);
-    dbMutex.unlock();
-
-    Json::Value returning = toJson(jsonString);
-
-    return returning;
-}
-
-void CryptoKernel::Storage::erase(const std::string key)
-{
-    dbMutex.lock();
-    leveldb::Status status = db->Delete(leveldb::WriteOptions(), key);
-    dbMutex.unlock();
-
-    if(!status.ok())
-    {
-        throw std::runtime_error("Failed to erase from the database");
-    }
-}
-
-CryptoKernel::Storage::Iterator* CryptoKernel::Storage::newIterator()
-{
-    Iterator* it = new Iterator(db, &dbMutex);
-    return it;
-}
-
-CryptoKernel::Storage::Iterator::Iterator(leveldb::DB* db, std::mutex* mut)
-{
-    leveldb::ReadOptions options;
-    options.verify_checksums = true;
-
-    dbMutex = mut;
-    dbMutex->lock();
-    it = db->NewIterator(options);
-}
-
-CryptoKernel::Storage::Iterator::~Iterator()
-{
-    delete it;
-    dbMutex->unlock();
-}
-
-void CryptoKernel::Storage::Iterator::SeekToFirst()
-{
-    it->SeekToFirst();
-}
-
-void CryptoKernel::Storage::Iterator::Next()
-{
-    it->Next();
-}
-
-bool CryptoKernel::Storage::Iterator::Valid()
-{
-    return it->Valid();
-}
-
-std::string CryptoKernel::Storage::Iterator::key()
-{
-    return it->key().ToString();
-}
-
-Json::Value CryptoKernel::Storage::Iterator::value()
-{
-    std::string jsonString = it->value().ToString();
-
-    return toJson(jsonString);
-}
-
-bool CryptoKernel::Storage::Iterator::getStatus()
-{
-    return it->status().ok();
 }
 
 Json::Value CryptoKernel::Storage::toJson(std::string json)
@@ -176,4 +79,135 @@ bool CryptoKernel::Storage::destroy(std::string filename)
     leveldb::DestroyDB(filename, options);
 
     return true;
+}
+
+CryptoKernel::Storage::Transaction* CryptoKernel::Storage::begin() {
+    return new Transaction(this);
+}
+
+CryptoKernel::Storage::Transaction::Transaction(CryptoKernel::Storage* db) {
+    db->dbMutex.lock();
+    this->db = db;
+    finished = false;
+}
+
+CryptoKernel::Storage::Transaction::~Transaction() {
+    if(!finished) {
+        abort();
+    }
+}
+
+bool CryptoKernel::Storage::Transaction::ended() {
+    return finished;
+}
+
+void CryptoKernel::Storage::Transaction::commit() {
+    if(!finished) {
+        leveldb::WriteBatch batch;
+        for(auto& update : dbStateCache) {
+            if(update.second.erased) {
+                batch.Delete(update.first);
+            } else {
+                batch.Put(update.first, CryptoKernel::Storage::toString(update.second.data));
+            }
+        }
+
+        leveldb::WriteOptions options;
+        options.sync = true;
+
+        leveldb::Status status = db->db->Write(options, &batch);
+
+        if(!status.ok()) {
+            throw std::runtime_error("Could not commit transaction " + status.ToString());
+        }
+
+        abort();
+    } else {
+        throw std::runtime_error("Attempted to commit finished transaction");
+    }
+}
+
+void CryptoKernel::Storage::Transaction::abort() {
+    finished = true;
+    db->dbMutex.unlock();
+}
+
+void CryptoKernel::Storage::Transaction::put(const std::string key, const Json::Value data) {
+    dbStateCache[key] = dbObject{data, false};
+}
+
+void CryptoKernel::Storage::Transaction::erase(const std::string key) {
+    dbStateCache[key] = dbObject{Json::Value(), true};
+}
+
+Json::Value CryptoKernel::Storage::Transaction::get(const std::string key) {
+    const auto it = dbStateCache.find(key);
+    if(it != dbStateCache.end()) {
+        return it->second.data;
+    } else {
+        std::string data;
+        db->db->Get(leveldb::ReadOptions(), key, &data);
+        return CryptoKernel::Storage::toJson(data);
+    }
+}
+
+CryptoKernel::Storage::Table::Table(const std::string name) {
+    tableName = name;
+}
+
+std::string CryptoKernel::Storage::Table::getKey(const std::string key, const int index) {
+    return tableName + "/" + std::to_string(index + 1) + "/" + key;
+}
+
+void CryptoKernel::Storage::Table::put(Transaction* transaction, const std::string key, const Json::Value data, const int index) {
+    transaction->put(getKey("", index), Json::Value());
+    transaction->put(getKey(key, index), data);
+}
+
+void CryptoKernel::Storage::Table::erase(Transaction* transaction, const std::string key, const int index) {
+    transaction->erase(getKey(key, index));
+}
+
+Json::Value CryptoKernel::Storage::Table::get(Transaction* transaction, const std::string key, const int index) {
+    return transaction->get(getKey(key, index));
+}
+
+CryptoKernel::Storage::Table::Iterator::Iterator(Table* table, Storage* db) {
+    this->table = table;
+    this->db = db;
+    db->dbMutex.lock();
+
+    it = db->db->NewIterator(leveldb::ReadOptions());
+
+    prefix = table->getKey("");
+}
+
+CryptoKernel::Storage::Table::Iterator::~Iterator() {
+    delete it;
+    db->dbMutex.unlock();
+}
+
+void CryptoKernel::Storage::Table::Iterator::SeekToFirst() {
+    it->Seek(prefix);
+    it->Next();
+}
+
+bool CryptoKernel::Storage::Table::Iterator::Valid() {
+    if(it->Valid()) {
+        return it->key().ToString().compare(0, prefix.size(), prefix);
+    } else {
+        return false;
+    }
+}
+
+void CryptoKernel::Storage::Table::Iterator::Next() {
+    it->Next();
+}
+
+std::string CryptoKernel::Storage::Table::Iterator::key() {
+    return it->key().ToString().substr(prefix.size());
+}
+
+Json::Value CryptoKernel::Storage::Table::Iterator::value() {
+    return CryptoKernel::Storage::toJson(it->value().ToString());
 }

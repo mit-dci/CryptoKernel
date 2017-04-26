@@ -50,105 +50,89 @@ namespace CryptoKernel
             */
             ~Storage();
 
-            /**
-            * Stores a json value at the given key string. If the key exists already, overwrite
-            * the old value with the new one.
-            *
-            * @param key the key of the value to store in the database
-            * @param value the json value to store in the database
-            * @throw std::runtime_error if there is a failure writing to the database
-            */
-            void store(const std::string key, const Json::Value value);
-
-            /**
-            * Gets the json value stored at the given key in the database.
-            *
-            * @param key the key of the json value to be retrieved
-            * @return the value stored at the given key or an empty value if the key
-            *         has no associated value
-            */
-            Json::Value get(const std::string key);
-
-            /**
-            * Erase the given key from the database if it exists
-            *
-            * @param key the key to erase
-            * @throw std::runtime_error if there is a failure
-            */
-            void erase(const std::string key);
-
-            /**
-            * Provides an iterator for iterating over keys and values in the database
-            */
-            class Iterator
-            {
+            class Transaction {
                 public:
-                    /**
-                    * Constructs an iterator. While in existence the given db is locked
-                    * and other database calls will block until it is deleted
-                    *
-                    * @param db the LevelDB database object to iterate over
-                    * @param dbMutex the mutex associated with the LevelDB mutex
-                    */
-                    Iterator(leveldb::DB* db, std::mutex* dbMutex);
+                    Transaction(Storage* db);
 
-                    /**
-                    * Default deconstructor. Unlocks the database mutex.
-                    */
-                    ~Iterator();
+                    ~Transaction();
 
-                    /**
-                    * Sets the iterator to the first key in the database
-                    */
-                    void SeekToFirst();
+                    void commit();
+                    void abort();
 
-                    /**
-                    * Determines whether there are additional keys still in the database
-                    *
-                    * @return true if there are keys after the current iterator, false otherwise
-                    */
-                    bool Valid();
+                    void put(const std::string key, const Json::Value data);
+                    void erase(const std::string key);
+                    Json::Value get(const std::string key);
 
-                    /**
-                    * Shifts the iterator to the next key in the database
-                    */
-                    void Next();
-
-                    /**
-                    * Returns the current key the iterator points to
-                    *
-                    * @return the key the iterator points to
-                    */
-                    std::string key();
-
-                    /**
-                    * Returns the current json value the iterator points to
-                    *
-                    * @return the json value the iterator points to
-                    */
-                    Json::Value value();
-
-                    /**
-                    * Returns the current status of the iterator
-                    *
-                    * @return true if there are no errors, false if it is not safe to continue
-                    */
-                    bool getStatus();
+                    bool ended();
 
                 private:
-                    leveldb::Iterator* it;
-                    std::mutex* dbMutex;
+                    struct dbObject {
+                        Json::Value data;
+                        bool erased;
+                    };
+                    std::map<std::string, dbObject> dbStateCache;
+                    Storage* db;
+                    bool finished;
             };
 
-            /**
-            * Creates a new iterator to this storage database. Once created,
-            * the iterator will block the database for all other methods other
-            * than the iterator until it is deleted.
-            *
-            * @return a pointer to a new iterator object to this database.
-            *         Must be deleted once finished with.
-            */
-            Iterator* newIterator();
+            Transaction* begin();
+
+            class Table {
+                public:
+                    Table(const std::string name);
+
+                    void put(Transaction* transaction, const std::string key, const Json::Value data, const int index = -1);
+                    void erase(Transaction* transaction, const std::string key, const int index = -1);
+                    Json::Value get(Transaction* transaction, const std::string key, const int index = -1);
+
+                    class Iterator {
+                        public:
+                            Iterator(Table* table, Storage* db);
+
+                            ~Iterator();
+
+                            /**
+                            * Sets the iterator to the first key in the database
+                            */
+                            void SeekToFirst();
+
+                            /**
+                            * Determines whether there are additional keys still in the database
+                            *
+                            * @return true if there are keys after the current iterator, false otherwise
+                            */
+                            bool Valid();
+
+                            /**
+                            * Shifts the iterator to the next key in the database
+                            */
+                            void Next();
+
+                            /**
+                            * Returns the current key the iterator points to
+                            *
+                            * @return the key the iterator points to
+                            */
+                            std::string key();
+
+                            /**
+                            * Returns the current json value the iterator points to
+                            *
+                            * @return the json value the iterator points to
+                            */
+                            Json::Value value();
+                        private:
+                            leveldb::Iterator* it;
+                            Table* table;
+                            Storage* db;
+                            std::string prefix;
+                    };
+
+                    std::string getKey(const std::string key, const int index = -1);
+                private:
+                    std::string tableName;
+            };
+
 
             /**
             * Deletes the LevelDB database in the given directory

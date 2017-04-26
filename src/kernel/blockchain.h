@@ -20,6 +20,7 @@
 
 #include <vector>
 #include <set>
+#include <memory>
 
 #include "storage.h"
 #include "log.h"
@@ -66,8 +67,12 @@ namespace CryptoKernel
                 bool mainChain;
                 Json::Value consensusData;
             };
+
+
             bool submitTransaction(transaction tx);
             bool submitBlock(block newBlock, bool genesisBlock = false);
+
+
             uint64_t getBalance(std::string publicKey);
             block generateVerifyingBlock(std::string publicKey);
             static Json::Value transactionToJson(transaction tx);
@@ -76,7 +81,9 @@ namespace CryptoKernel
             static block jsonToBlock(Json::Value Block);
             static transaction jsonToTransaction(Json::Value tx);
             static output jsonToOutput(Json::Value Output);
-            block getBlock(std::string id);
+
+
+            block getBlock(const std::string id);
 
             /**
             * Retrieves the block from the current main chain with the given height
@@ -120,31 +127,35 @@ namespace CryptoKernel
             * @return true iff the chain loaded successfully
             */
             bool loadChain(Consensus* consensus);
-            Storage::Iterator* newIterator();
             std::string genesisBlockId;
 
         private:
-            Storage *transactions;
-            Storage *blocks;
-            Storage *utxos;
+            std::unique_ptr<Storage::Table> blocks;
+            std::unique_ptr<Storage::Table> transactions;
+            std::unique_ptr<Storage::Table> utxos;
+
+            std::unique_ptr<Storage> blockdb;
             Log *log;
-            void checkRep();
+            void checkRep(Storage::Transaction* dbTransaction);
             std::vector<transaction> unconfirmedTransactions;
             std::string calculateBlockId(block Block);
-            bool verifyTransaction(transaction tx, bool coinbaseTx = false);
-            bool confirmTransaction(transaction tx, bool coinbaseTx = false);
-            std::string chainTipId;
+            bool verifyTransaction(Storage::Transaction* dbTransaction, transaction tx, bool coinbaseTx = false);
+            bool confirmTransaction(Storage::Transaction* dbTransaction, transaction tx, bool coinbaseTx = false);
             bool reindexChain(std::string newTipId);
             uint64_t getTransactionFee(transaction tx);
             uint64_t calculateTransactionFee(transaction tx);
             bool status;
-            void reverseBlock();
-            bool reorgChain(std::string newTipId);
+            void reverseBlock(Storage::Transaction* dbTransaction);
+            bool reorgChain(Storage::Transaction* dbTransaction, std::string newTipId);
             std::recursive_mutex chainLock;
             virtual uint64_t getBlockReward(const uint64_t height) = 0;
             virtual std::string getCoinbaseOwner(const std::string publicKey) = 0;
             Consensus* consensus;
             void emptyDB();
+            block getBlock(Storage::Transaction* transaction, const std::string id);
+            block getBlockByHeight(Storage::Transaction* transaction, const uint64_t height);
+            bool submitTransaction(Storage::Transaction* dbTx, transaction tx);
+            bool submitBlock(Storage::Transaction* dbTx, block newBlock, bool genesisBlock = false);
     };
 
     /**

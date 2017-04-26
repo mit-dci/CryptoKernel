@@ -96,19 +96,23 @@ void StorageTest::testToString() {
 void StorageTest::testIterator() {
     CryptoKernel::Storage database("./testdb");
 
+    CryptoKernel::Storage::Table myTable("myTable");
+
     Json::Value dataToStore;
     dataToStore["myval"] = "this1";
 
-    database.store("1", dataToStore);
+    std::unique_ptr<CryptoKernel::Storage::Transaction> transaction = database->begin();
+
+    myTable.put(transaction, "1", dataToStore);
 
     Json::Value dataToStore2;
     dataToStore2["myval"] = "this2";
 
-    database.store("2", dataToStore2);
+    myTable.put(transaction, "2", dataToStore2);
 
-    CryptoKernel::Storage::Iterator *it = database.newIterator();
+    transaction->commit();
 
-    CPPUNIT_ASSERT(it->getStatus());
+    std::unique_ptr<CryptoKernel::Storage::Table::Iterator> it(new CryptoKernel::Storage::Table::Iterator(&myTable, &database));
 
     it->SeekToFirst();
 
@@ -125,6 +129,4 @@ void StorageTest::testIterator() {
     it->Next();
 
     CPPUNIT_ASSERT(!it->Valid());
-
-    delete it;
 }
