@@ -196,7 +196,7 @@ void CryptoKernel::Storage::Table::Iterator::SeekToFirst() {
 
 bool CryptoKernel::Storage::Table::Iterator::Valid() {
     if(it->Valid()) {
-        return it->key().ToString().compare(0, prefix.size(), prefix);
+        return it->key().ToString().compare(0, prefix.size(), prefix) == 0;
     } else {
         return false;
     }

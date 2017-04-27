@@ -23,9 +23,11 @@ void StorageTest::testGenerateDB() {
 void StorageTest::testGetNoExcept() {
     CryptoKernel::Storage database("./testdb");
 
+    std::unique_ptr<CryptoKernel::Storage::Transaction> dbTx(database.begin());
+
     Json::Value dbVal;
 
-    CPPUNIT_ASSERT_NO_THROW(dbVal = database.get("mydata"));
+    CPPUNIT_ASSERT_NO_THROW(dbVal = dbTx->get("mydata"));
 
     CPPUNIT_ASSERT(dbVal.empty());
 }
@@ -38,9 +40,19 @@ void StorageTest::testStoreGet() {
     dataToStore["anumber"][0] = 4;
     dataToStore["anumber"][1] = 5;
 
-    CPPUNIT_ASSERT_NO_THROW(database.store("mydata", dataToStore));
+    std::unique_ptr<CryptoKernel::Storage::Transaction> dbTx(database.begin());
 
-    CPPUNIT_ASSERT_EQUAL(dataToStore, database.get("mydata"));
+    CPPUNIT_ASSERT_NO_THROW(dbTx->put("mydata", dataToStore));
+
+    CPPUNIT_ASSERT_EQUAL(dataToStore, dbTx->get("mydata"));
+
+    dbTx->commit();
+
+    dbTx.reset(database.begin());
+
+    CPPUNIT_ASSERT_NO_THROW(dbTx->put("otherdata", dataToStore));
+
+    CPPUNIT_ASSERT_EQUAL(dataToStore, dbTx->get("otherdata"));
 }
 
 void StorageTest::testPersistence() {
@@ -51,20 +63,28 @@ void StorageTest::testPersistence() {
     dataToStore["anumber"][0] = 4;
     dataToStore["anumber"][1] = 5;
 
-    const Json::Value dbVal = database.get("mydata");
+    std::unique_ptr<CryptoKernel::Storage::Transaction> dbTx(database.begin());
 
-    CPPUNIT_ASSERT(dataToStore == dbVal);
+    const Json::Value dbVal = dbTx->get("mydata");
+
+    CPPUNIT_ASSERT_EQUAL(dataToStore, dbVal);
+
+    const Json::Value dbVal2 = dbTx->get("otherdata");
+
+    CPPUNIT_ASSERT(dbVal2.empty());
 }
 
 
 void StorageTest::testErase() {
     CryptoKernel::Storage database("./testdb");
 
-    CPPUNIT_ASSERT_NO_THROW(database.erase("mydata"));
+    std::unique_ptr<CryptoKernel::Storage::Transaction> dbTx(database.begin());
+
+    CPPUNIT_ASSERT_NO_THROW(dbTx->erase("mydata"));
 
     Json::Value emptyData;
 
-    CPPUNIT_ASSERT_EQUAL(emptyData, database.get("mydata"));
+    CPPUNIT_ASSERT_EQUAL(emptyData, dbTx->get("mydata"));
 }
 
 void StorageTest::testToJson() {
@@ -101,14 +121,14 @@ void StorageTest::testIterator() {
     Json::Value dataToStore;
     dataToStore["myval"] = "this1";
 
-    std::unique_ptr<CryptoKernel::Storage::Transaction> transaction = database->begin();
+    std::unique_ptr<CryptoKernel::Storage::Transaction> transaction(database.begin());
 
-    myTable.put(transaction, "1", dataToStore);
+    myTable.put(transaction.get(), "1", dataToStore);
 
     Json::Value dataToStore2;
     dataToStore2["myval"] = "this2";
 
-    myTable.put(transaction, "2", dataToStore2);
+    myTable.put(transaction.get(), "2", dataToStore2);
 
     transaction->commit();
 
