@@ -283,7 +283,7 @@ bool CryptoKernel::Blockchain::verifyTransaction(Storage::Transaction* dbTransac
     }
 
     CryptoKernel::ContractRunner lvm(this);
-    if(!lvm.evaluateValid(tx))
+    if(!lvm.evaluateValid(dbTransaction, tx))
     {
         log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Script returned false");
         return false;
@@ -1044,10 +1044,9 @@ void CryptoKernel::Blockchain::reverseBlock(Storage::Transaction* dbTransaction)
     blocks->put(dbTransaction, tip.id, blockToJson(tip));
 }
 
-CryptoKernel::Blockchain::transaction CryptoKernel::Blockchain::getTransaction(const std::string id)
+CryptoKernel::Blockchain::transaction CryptoKernel::Blockchain::getTransaction(Storage::Transaction* transaction, const std::string id)
 {
-    std::unique_ptr<Storage::Transaction> dbTx(blockdb->begin());
-    return CryptoKernel::Blockchain::jsonToTransaction(transactions->get(dbTx.get(), id));
+    return CryptoKernel::Blockchain::jsonToTransaction(transactions->get(transaction, id));
 }
 
 std::set<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::getTransactionsByPubKeys(const std::set<std::string> pubKeys) {
@@ -1089,4 +1088,11 @@ void CryptoKernel::Blockchain::emptyDB() {
     blockdb.reset();
     CryptoKernel::Storage::destroy("./blockdb");
     blockdb.reset(new CryptoKernel::Storage("./blockdb"));
+}
+
+CryptoKernel::Storage::Transaction* CryptoKernel::Blockchain::getTxHandle() {
+    chainLock.lock();
+    Storage::Transaction* dbTx = blockdb->begin();
+    chainLock.unlock();
+    return dbTx;
 }

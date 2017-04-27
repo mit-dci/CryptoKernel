@@ -82,6 +82,8 @@ namespace CryptoKernel
             static transaction jsonToTransaction(Json::Value tx);
             static output jsonToOutput(Json::Value Output);
 
+            block getBlock(Storage::Transaction* transaction, const std::string id);
+            block getBlockByHeight(Storage::Transaction* transaction, const uint64_t height);
 
             block getBlock(const std::string id);
 
@@ -101,7 +103,7 @@ namespace CryptoKernel
             * @return the confirmed transaction with the given id or an empty transaction
             *         if it doesn't exist
             */
-            transaction getTransaction(const std::string id);
+            transaction getTransaction(Storage::Transaction* transaction, const std::string id);
 
             /**
             * Retrieves all of the transactions associated with
@@ -127,7 +129,8 @@ namespace CryptoKernel
             * @return true iff the chain loaded successfully
             */
             bool loadChain(Consensus* consensus);
-            std::string genesisBlockId;
+
+            Storage::Transaction* getTxHandle();
 
         private:
             std::unique_ptr<Storage::Table> blocks;
@@ -135,6 +138,7 @@ namespace CryptoKernel
             std::unique_ptr<Storage::Table> utxos;
 
             std::unique_ptr<Storage> blockdb;
+            std::string genesisBlockId;
             Log *log;
             void checkRep(Storage::Transaction* dbTransaction);
             std::vector<transaction> unconfirmedTransactions;
@@ -152,8 +156,6 @@ namespace CryptoKernel
             virtual std::string getCoinbaseOwner(const std::string publicKey) = 0;
             Consensus* consensus;
             void emptyDB();
-            block getBlock(Storage::Transaction* transaction, const std::string id);
-            block getBlockByHeight(Storage::Transaction* transaction, const uint64_t height);
             bool submitTransaction(Storage::Transaction* dbTx, transaction tx);
             bool submitBlock(Storage::Transaction* dbTx, block newBlock, bool genesisBlock = false);
             friend class Consensus;

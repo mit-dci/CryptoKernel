@@ -62,7 +62,9 @@ bool ContractTest::runScript(const std::string contract)
     tx.timestamp = 123135278;
     tx.id = blockchain->calculateTransactionId(tx);
 
-    return lvm.evaluateValid(tx);
+    std::unique_ptr<CryptoKernel::Storage::Transaction> blockchainHandle(blockchain->getTxHandle());
+
+    return lvm.evaluateValid(blockchainHandle.get(), tx);
 }
 
 void ContractTest::testBasicTrue()
