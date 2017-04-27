@@ -6,7 +6,7 @@ CXX=g++
 CXXFLAGS="-g -Wall -std=c++14 -O2 -Wl,-E -Isrc/kernel -I/usr/include/lua5.3"
 SRC_DIR="src/client"
 OBJ_DIR="obj"
-LIBS="-lCryptoKernel -llua -llz4 -ljsoncpp -lcrypto -pthread -lleveldb -ljsonrpccpp-server -ljsonrpccpp-client -ljsonrpccpp-common -lmicrohttpd -lcurl -lsfml-system -lsfml-network -lws2_32"
+LIBS="-L/usr/local/lib -lCryptoKernel -llua -ljsoncpp -lcrypto -pthread -lleveldb -ljsonrpccpp-server -ljsonrpccpp-client -ljsonrpccpp-common -lmicrohttpd -lcurl -lsfml-system -lsfml-network -lws2_32"
 
 exe mkdir ${OBJ_DIR}
 
