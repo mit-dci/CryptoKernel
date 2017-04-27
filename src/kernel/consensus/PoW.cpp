@@ -15,7 +15,7 @@ bool CryptoKernel::Consensus::PoW::isBlockBetter(Storage::Transaction* transacti
     return CryptoKernel::Math::hex_greater(blockData.totalWork, tipData.totalWork);
 }
 
-CryptoKernel::Consensus::PoW::consensusData CryptoKernel::Consensus::PoW::getConsensusData(const CryptoKernel::Blockchain::block block) {
+CryptoKernel::Consensus::PoW::consensusData CryptoKernel::Consensus::PoW::getConsensusData(const CryptoKernel::Blockchain::block& block) {
     consensusData data;
     data.PoW = block.consensusData["PoW"].asString();
     data.target = block.consensusData["target"].asString();
@@ -59,7 +59,7 @@ bool CryptoKernel::Consensus::PoW::checkConsensusRules(Storage::Transaction* tra
     return true;
 }
 
-std::string CryptoKernel::Consensus::PoW::calculatePoW(const CryptoKernel::Blockchain::block block) {
+std::string CryptoKernel::Consensus::PoW::calculatePoW(const CryptoKernel::Blockchain::block& block) {
     const consensusData blockData = getConsensusData(block);
     std::stringstream buffer;
     buffer << block.id << blockData.nonce;

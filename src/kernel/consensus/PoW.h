@@ -70,7 +70,7 @@ namespace CryptoKernel {
             * @param block the block to calculate the Proof of Work of
             * @return a hex string representing the PoW hash of the given block
             */
-            std::string calculatePoW(const CryptoKernel::Blockchain::block block);
+            std::string calculatePoW(const CryptoKernel::Blockchain::block& block);
 
         protected:
             CryptoKernel::Blockchain* blockchain;
@@ -81,7 +81,7 @@ namespace CryptoKernel {
                 std::string PoW;
                 uint64_t nonce;
             };
-            consensusData getConsensusData(const CryptoKernel::Blockchain::block block);
+            consensusData getConsensusData(const CryptoKernel::Blockchain::block& block);
             Json::Value consensusDataToJson(const consensusData data);
     };
 
