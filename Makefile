@@ -4,7 +4,7 @@ ifeq ($(UNAME), GNU/Linux)
 LUA_INCDIR ?= /usr/local/include/lua5.3
 LUA_LIBDIR ?= /usr/local/lib
 LIBFLAGS   ?= -shared
-BINFLAGS   ?= -I. -L. -lck -llua5.3 -lcrypto -ldl -pthread -lleveldb -lmicrohttpd -ljsonrpccpp-common -ljsonrpccpp-server -lcurl -ljsonrpccpp-client -ljsoncpp -lsfml-system -lsfml-network
+BINFLAGS   ?= -I. -L. -Wl,-rpath -Wl,./ -lck -llua5.3 -lcrypto -ldl -pthread -lleveldb -lmicrohttpd -ljsonrpccpp-common -ljsonrpccpp-server -lcurl -ljsonrpccpp-client -ljsoncpp -lsfml-system -lsfml-network
 PLATFORMCXXFLAGS ?= -fPIC
 CKLIB ?= libck.so
 CKBIN ?= ckd
@@ -37,7 +37,7 @@ TESTOBJS = $(TESTSRC:.cpp=.o)
 CXXFLAGS = $(KERNELCXXFLAGS) $(PLATFORMCXXFLAGS) -I$(LUA_INCDIR)
 KERNELLDFLAGS = $(LIBFLAGS) -L$(LUA_LIBDIR)
 CLIENTLDFLAGS = $(BINFLAGS) -L$(LUA_LIBDIR)
-TESTLDFLAGS = $(CLIENTLDFLAGS) -lcppunit -Wl,-rpath -Wl,./
+TESTLDFLAGS = $(CLIENTLDFLAGS) -lcppunit
 
 all: daemon
 
