@@ -20,71 +20,39 @@
 
 #include <string>
 
+#include <openssl/bn.h>
 
 namespace CryptoKernel
 {
-    /**
-    * Static math module of CryptoKernel. Handles integer operations on
-    * arbitrary length hex integers.
-    */
-    class Math
-    {
+    class BigNum {
         public:
-            /**
-            * Constructs an instance of the math class
-            */
-            Math();
+            BigNum(const std::string& hexString);
 
-            /**
-            * Class deconstructor
-            */
-            ~Math();
+            BigNum();
 
-            /**
-            * Adds two hex strings and returns the result as a lower case
-            * hex string.
-            *
-            * @param first the first integer to add
-            * @param second the second integer to add
-            * @return the sum of first and second as a lower case hex string
-            */
-            static std::string addHex(const std::string first, const std::string second);
+            ~BigNum();
 
-            /**
-            * Subtracts two hex integers from each other
-            *
-            * @param first the hex integer string to subtract from
-            * @param second the hex integer string to subtract
-            * @return the lowercase hex integer string from first - second
-            */
-            static std::string subtractHex(const std::string first, const std::string second);
+            std::string toString();
 
-            /**
-            * Compares two hex strings to determine which is greater
-            *
-            * @param first the first hex integer to compare
-            * @param second the second integer to check if greater than the first
-            * @return true iff first greater than second, otherwise false
-            */
-            static bool hex_greater(const std::string first, const std::string second);
+            void operator=(const BigNum& other);
 
-            /**
-            * Divides two hex integer, one from the other
-            *
-            * @param first the numerator hex integer of the division
-            * @param second the denominator hex integer of the division
-            * @return the lowercase hex integer produced by first//second
-            */
-            static std::string divideHex(const std::string first, const std::string second);
+            BigNum operator+(const BigNum& rhs);
+            BigNum operator-(const BigNum& rhs);
+            BigNum operator*(const BigNum& rhs);
+            BigNum operator/(const BigNum& rhs);
 
-            /**
-            * Multiplies two hex integers
-            *
-            * @param first the first integer to multiply
-            * @param second the second integer to multiply
-            * @return the lowercase hex integer produced by first * second
-            */
-            static std::string multiplyHex(const std::string first, const std::string second);
+            bool operator!=(const BigNum& rhs);
+            bool operator==(const BigNum& rhs);
+
+            bool operator>(const BigNum& rhs);
+            bool operator<(const BigNum& rhs);
+            bool operator>=(const BigNum& rhs);
+            bool operator<=(const BigNum& rhs);
+
+        private:
+            BIGNUM* bn;
+
+            int compare(const BigNum& lhs, const BigNum& rhs);
     };
 }
 

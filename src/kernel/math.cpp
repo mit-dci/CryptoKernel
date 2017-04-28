@@ -18,178 +18,91 @@
 #include <sstream>
 #include <algorithm>
 
-#include <openssl/bn.h>
-
 #include "ckmath.h"
 
-std::string CryptoKernel::Math::addHex(std::string first, std::string second)
-{
-    if(first.size() > 0 && second.size() > 0)
-    {
-        BIGNUM *bn1 = NULL;
-        BIGNUM *bn2 = NULL;
-
-        BN_CTX *ctx = BN_CTX_new();
-
-        BN_hex2bn(&bn1, first.c_str());
-        BN_hex2bn(&bn2, second.c_str());
-
-        BN_add(bn1, bn1, bn2);
-
-        std::stringstream buffer;
-        buffer << BN_bn2hex(bn1);
-
-        BN_free(bn1);
-        BN_free(bn2);
-        BN_CTX_free(ctx);
-
-        std::string returning = buffer.str();
-        std::transform(returning.begin(), returning.end(), returning.begin(), ::tolower);
-
-        return returning;
-    }
-    else if(first.size() > 0)
-    {
-        std::transform(first.begin(), first.end(), first.begin(), ::tolower);
-        return first;
-    }
-    else if(second.size() > 0)
-    {
-        std::transform(second.begin(), second.end(), second.begin(), ::tolower);
-        return second;
-    }
-    else
-    {
-        return "0";
-    }
+CryptoKernel::BigNum::BigNum(const std::string& hexString) {
+    bn = BN_new();
+    BN_hex2bn(&bn, hexString.c_str());
 }
 
-std::string CryptoKernel::Math::subtractHex(std::string first, std::string second)
-{
-    if(first.size() > 0 && second.size() > 0)
-    {
-        BIGNUM *bn1 = NULL;
-        BIGNUM *bn2 = NULL;
-
-        BN_CTX *ctx = BN_CTX_new();
-
-        BN_hex2bn(&bn1, first.c_str());
-        BN_hex2bn(&bn2, second.c_str());
-
-        BN_sub(bn1, bn1, bn2);
-
-        std::stringstream buffer;
-        buffer << BN_bn2hex(bn1);
-
-        BN_free(bn1);
-        BN_free(bn2);
-        BN_CTX_free(ctx);
-
-        std::string returning = buffer.str();
-        std::transform(returning.begin(), returning.end(), returning.begin(), ::tolower);
-
-        return returning;
-    }
-    else if(first.size() > 0)
-    {
-        std::transform(first.begin(), first.end(), first.begin(), ::tolower);
-        return first;
-    }
-    else
-    {
-        return "0";
-    }
+CryptoKernel::BigNum::BigNum() {
+    bn = BN_new();
 }
 
-bool CryptoKernel::Math::hex_greater(std::string first, std::string second)
-{
-    if(first.size() > 0 && second.size() > 0)
-    {
-        BIGNUM *bn1 = NULL;
-        BIGNUM *bn2 = NULL;
-
-        BN_CTX *ctx = BN_CTX_new();
-
-        BN_hex2bn(&bn1, first.c_str());
-        BN_hex2bn(&bn2, second.c_str());
-
-        const int test = BN_cmp(bn1, bn2);
-
-        BN_free(bn1);
-        BN_free(bn2);
-        BN_CTX_free(ctx);
-
-        if(test > 0)
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-    else if(first.size() > 0)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+CryptoKernel::BigNum::~BigNum() {
+    BN_free(bn);
 }
 
-std::string CryptoKernel::Math::divideHex(std::string first, std::string second)
-{
-    BIGNUM *bn1 = NULL;
-    BIGNUM *bn2 = NULL;
-
-    BN_CTX *ctx = BN_CTX_new();
-
-    BN_hex2bn(&bn1, first.c_str());
-    BN_hex2bn(&bn2, second.c_str());
-
-    BIGNUM *DivBN = BN_new();
-    BIGNUM *RemBN = BN_new();
-    BN_div(DivBN, RemBN, bn1, bn2, ctx);
-
+std::string CryptoKernel::BigNum::toString() {
     std::stringstream buffer;
-    buffer << BN_bn2hex(DivBN);
-
-    BN_free(bn1);
-    BN_free(bn2);
-    BN_free(DivBN);
-    BN_free(RemBN);
-    BN_CTX_free(ctx);
+    buffer << BN_bn2hex(bn);
 
     std::string returning = buffer.str();
     std::transform(returning.begin(), returning.end(), returning.begin(), ::tolower);
 
+    returning.erase(0, std::min(returning.find_first_not_of('0'), returning.size()-1));
+
     return returning;
 }
 
-std::string CryptoKernel::Math::multiplyHex(std::string first, std::string second)
-{
-    BIGNUM *bn1 = NULL;
-    BIGNUM *bn2 = NULL;
+void CryptoKernel::BigNum::operator=(const BigNum& other) {
+    BN_copy(bn, other.bn);
+}
 
-    BN_CTX *ctx = BN_CTX_new();
-
-    BN_hex2bn(&bn1, first.c_str());
-    BN_hex2bn(&bn2, second.c_str());
-
-    BIGNUM *MulBN = BN_new();
-    BN_mul(MulBN, bn1, bn2, ctx);
-
-    std::stringstream buffer;
-    buffer << BN_bn2hex(MulBN);
-
-    BN_free(bn1);
-    BN_free(bn2);
-    BN_free(MulBN);
-    BN_CTX_free(ctx);
-
-    std::string returning = buffer.str();
-    std::transform(returning.begin(), returning.end(), returning.begin(), ::tolower);
-
+CryptoKernel::BigNum CryptoKernel::BigNum::operator+(const BigNum& rhs) {
+    BigNum returning;
+    BN_add(returning.bn, bn, rhs.bn);
     return returning;
+}
+
+CryptoKernel::BigNum CryptoKernel::BigNum::operator-(const BigNum& rhs) {
+    BigNum returning;
+    BN_sub(returning.bn, bn, rhs.bn);
+    return returning;
+}
+
+CryptoKernel::BigNum CryptoKernel::BigNum::operator*(const BigNum& rhs) {
+    BigNum returning;
+    BN_CTX *ctx = BN_CTX_new();
+    BN_mul(returning.bn, bn, rhs.bn, ctx);
+    BN_CTX_free(ctx);
+    return returning;
+}
+
+CryptoKernel::BigNum CryptoKernel::BigNum::operator/(const BigNum& rhs) {
+    BigNum returning;
+    BN_CTX *ctx = BN_CTX_new();
+    BIGNUM *remBN = BN_new();
+    BN_div(returning.bn, remBN, bn, rhs.bn, ctx);
+    BN_free(remBN);
+    BN_CTX_free(ctx);
+    return returning;
+}
+
+int CryptoKernel::BigNum::compare(const BigNum& lhs, const BigNum& rhs) {
+    return BN_cmp(lhs.bn, rhs.bn);
+}
+
+bool CryptoKernel::BigNum::operator==(const BigNum& rhs) {
+    return compare(*this, rhs) == 0;
+}
+
+bool CryptoKernel::BigNum::operator!=(const BigNum& rhs) {
+    return compare(*this, rhs) != 0;
+}
+
+bool CryptoKernel::BigNum::operator>(const BigNum& rhs) {
+    return compare(*this, rhs) > 0;
+}
+
+bool CryptoKernel::BigNum::operator<(const BigNum& rhs) {
+    return compare(*this, rhs) < 0;
+}
+
+bool CryptoKernel::BigNum::operator>=(const BigNum& rhs) {
+    return compare(*this, rhs) >= 0;
+}
+
+bool CryptoKernel::BigNum::operator<=(const BigNum& rhs) {
+    return compare(*this, rhs) <= 0;
 }

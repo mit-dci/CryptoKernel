@@ -34,40 +34,110 @@ namespace CryptoKernel
         public:
             Blockchain(CryptoKernel::Log* GlobalLog);
             ~Blockchain();
-            struct output
-            {
-                std::string id;
-                uint64_t value;
-                std::string signature;
-                std::string publicKey;
-                uint64_t nonce;
-                Json::Value data;
-                Json::Value spendData;
-                std::string creationTx;
-            };
-            struct transaction
-            {
-                std::string id;
-                std::vector<output> inputs;
-                std::vector<output> outputs;
-                uint64_t timestamp;
-                std::string confirmingBlock;
-                friend bool operator<(const transaction& lhs, const transaction& rhs) {
-                    return CryptoKernel::Math::hex_greater(rhs.id, lhs.id);
-                };
-            };
-            struct block
-            {
-                std::string id;
-                unsigned int height;
-                std::vector<transaction> transactions;
-                transaction coinbaseTx;
-                std::string previousBlockId;
-                uint64_t timestamp;
-                bool mainChain;
-                Json::Value consensusData;
+
+            class output {
+                public:
+                    output(const uint64_t value, const uint64_t nonce, const Json::Value& data);
+                    output(const Json::Value& jsonOutput);
+
+                    Json::Value toJson();
+
+                private:
+                    uint64_t value;
+                    uint64_t nonce;
+                    Json::Value data;
             };
 
+            class dbOutput : public output {
+                public:
+                    dbOutput(const output& compactOutput);
+                    dbOutput(const Json::Value& jsonOutput);
+
+                    Json::Value toJson();
+
+                private:
+                    BigNum id;
+                    BigNum creationTx;
+            };
+
+            class input {
+                public:
+                    input(const BigNum& outputId, const Json::Value& data);
+                    input(const Json::Value& inputJson);
+
+                    Json::Value toJson();
+
+                private:
+                    BigNum outputId;
+                    Json::Value data;
+            };
+
+            class dbInput : public input {
+                public:
+                    dbInput(const input& compactInput);
+                    dbInput(const Json::Value& inputJson);
+
+                    Json::Value toJson();
+
+                private:
+                    BigNum id;
+            };
+
+            class transaction {
+                public:
+                    transaction(const std::vector<input>& inputs, const std::vector<output>& outputs, const uint64_t timestamp);
+                    transaction(const Json::Value& jsonTransaction);
+
+                    Json::Value toJson();
+
+                private:
+                    std::vector<input> inputs;
+                    std::vector<output> outputs;
+                    uint64_t timestamp;
+            };
+
+            class dbTransaction : public transaction {
+                public:
+                    dbTransaction(const transaction& compactTransaction);
+                    dbTransaction(const Json::Value& jsonTransaction);
+
+                    Json::Value toJson();
+
+                private:
+                    std::vector<BigNum> inputs;
+                    std::vector<BigNum> outputs;
+                    BigNum id;
+                    BigNum confirmingBlock;
+            };
+
+            class block {
+                public:
+                    block(const std::vector<transaction>& transactions, const transaction& coinbaseTx, const BigNum& previousBlockId, const uint64_t timestamp, const Json::Value& consensusData);
+                    block(const Json::Value& jsonBlock);
+
+                    Json::Value toJson();
+
+                private:
+                    std::vector<transaction> transactions;
+                    transaction coinbaseTx;
+                    BigNum previousBlockId;
+                    uint64_t timestamp;
+                    Json::Value consensusData;
+            };
+
+            class dbBlock : public block {
+                public:
+                    dbBlock(const block& compactBlock);
+                    dbBlock(const Json::Value& jsonBlock);
+
+                    Json::Value toJson();
+
+                private:
+                    std::vector<BigNum> transactions;
+                    bool mainChain;
+                    uint64_t height;
+                    BigNum id;
+            };
 
             bool submitTransaction(transaction tx);
             bool submitBlock(block newBlock, bool genesisBlock = false);
