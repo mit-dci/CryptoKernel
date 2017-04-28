@@ -1,4 +1,5 @@
 #include "raft.h"
+#include "crypto.h"
 
 CryptoKernel::Consensus::Raft::Raft(const std::set<std::string> verifiers, const uint64_t electionTimeout, const uint64_t heartbeatTimeout) {
     this->verifiers = verifiers;
@@ -43,13 +44,47 @@ CryptoKernel::Consensus::Raft::consensusData CryptoKernel::Consensus::Raft::getC
 
 bool CryptoKernel::Consensus::Raft::checkConsensusRules(const CryptoKernel::Blockchain::block block, const CryptoKernel::Blockchain::block previousBlock) {
     const consensusData blockData = getConsensusData(block);
-    if(blockData.leader == currentLeader) {
+    // Check if block is from current leader
+    if(blockData.leader == currentLeader && electionTerm == blockData.term) {
+        // If so, check if block has majority of votes
+        std::set<std::string> blockVoters;
+        for(const auto vote : blockData.votes) {
+            if(verifiers.find(vote.first) != verifiers.end()) {
+                if(blockVoters.find(vote.first) != blockVoters.end()) {
+                    return false;
+                } else {
+                    CryptoKernel::Crypto crypto;
+                    if(!crypto.setPublicKey(vote.first)) {
+                        return false;
+                    }
 
+                    if(!crypto.verify(block.id, vote.second)) {
+                        return false;
+                    }
+                    blockVoters.insert(vote.first);
+                }
+            } else {
+                return false;
+            }
+        }
+
+        if(blockVoters.size() > 0.5 * verifiers.size()) {
+            return true;
+        } else {
+            /* The block was otherwise valid but doesn't have enough votes yet
+
+               If we haven't signed the block yet, sign it and broadcast a block
+               sign transaction. Also rebroadcast the block so other verifiers
+               can see it.
+
+
+            */
+        }
     } else {
         return false;
     }
-    // Check if block is from current leader
-        // If so, check if block has majority of votes
-            // If so, return true hence updating the blockchain
-            // Otherwise, return false and potentially vote for the block
+}
+
+bool CryptoKernel::Consensus::Raft::submitBlock(const CryptoKernel::Blockchain::block block) {
+
 }

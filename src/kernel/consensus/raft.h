@@ -18,6 +18,7 @@ namespace CryptoKernel {
 
             bool checkConsensusRules(const CryptoKernel::Blockchain::block block, const CryptoKernel::Blockchain::block previousBlock);
 
+            bool submitBlock(const CryptoKernel::Blockchain::block block);
         private:
             uint64_t electionTimeout;
             uint64_t heartbeatTimeout;
