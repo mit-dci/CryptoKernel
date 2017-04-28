@@ -135,7 +135,9 @@ bool CryptoCurrency::Wallet::sendToAddress(std::string publicKey, uint64_t amoun
         std::vector<CryptoKernel::Blockchain::output>::iterator it2;
         for(it2 = tempInputs.begin(); it2 < tempInputs.end(); it2++)
         {
-            inputs.push_back(*it2);
+            if((*it2).data["contract"].empty()) {
+                inputs.push_back(*it2);
+            }
         }
     }
     delete it;
