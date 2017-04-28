@@ -1,6 +1,6 @@
 UNAME := $(shell uname -o)
 
-ifeq ($(UNAME), Linux)
+ifeq ($(UNAME), GNU/Linux)
 LUA_INCDIR ?= /usr/local/include/lua5.3
 LUA_LIBDIR ?= /usr/local/lib
 LIBFLAGS   ?= -shared
@@ -8,6 +8,7 @@ BINFLAGS   ?= -I. -L. -lck -llua5.3 -lcrypto -ldl -pthread -lleveldb -lmicrohttp
 PLATFORMCXXFLAGS ?= -fPIC
 CKLIB ?= libck.so
 CKBIN ?= ckd
+TESTBIN ?= test-ck
 CC = g++
 endif
 ifeq ($(UNAME), Msys)
@@ -18,6 +19,7 @@ BINFLAGS   ?= -I. -L. -lck -llua -ljsoncpp -lcrypto -pthread -lleveldb -ljsonrpc
 KERNELLIBS ?= -llua -ljsoncpp -lcrypto -pthread -lleveldb -lsfml-system -lsfml-network -lws2_32
 CKLIB ?= libck.dll
 CKBIN ?= ckd.exe
+TESTBIN ?= test-ck.exe
 CC = g++
 endif
 
@@ -29,18 +31,31 @@ KERNELOBJS = $(KERNELSRC:.cpp=.o)
 CLIENTSRC = src/client/main.cpp src/client/rpcserver.cpp src/client/wallet.cpp
 CLIENTOBJS = $(CLIENTSRC:.cpp=.o)
 
+TESTSRC = tests/CryptoKernelTestRunner.cpp tests/CryptoTests.cpp tests/MathTests.cpp tests/StorageTests.cpp tests/LogTests.cpp tests/ContractTests.cpp
+TESTOBJS = $(TESTSRC:.cpp=.o)
+
 CXXFLAGS = $(KERNELCXXFLAGS) $(PLATFORMCXXFLAGS) -I$(LUA_INCDIR)
 KERNELLDFLAGS = $(LIBFLAGS) -L$(LUA_LIBDIR)
 CLIENTLDFLAGS = $(BINFLAGS) -L$(LUA_LIBDIR)
+TESTLDFLAGS = $(CLIENTLDFLAGS) -lcppunit
 
 all: daemon
 
-lib: $(KERNELSRC) $(CKLIB) 
+lib: $(KERNELSRC) $(CKLIB)
 
 daemon: $(CKLIB) $(CLIENTSRC) $(CKBIN)
 
+doc: 
+	doxygen .
+
+test: $(CKLIB) $(TESTSRC) $(TESTBIN)
+	./$(TESTBIN)
+
+$(TESTBIN): $(TESTOBJS)
+	$(CC) $(TESTOBJS) -o $@ $(TESTLDFLAGS)
+
 clean:
-	$(RM) $(CLIENTOBJS) $(KERNELOBJS) $(CKLIB) $(CKBIN)
+	$(RM) $(CLIENTOBJS) $(KERNELOBJS) $(TESTOBJS) $(CKLIB) $(CKBIN) $(TESTBIN) ./doxygen
 
 $(CKBIN): $(CLIENTOBJS)
 	$(CC) $(CLIENTOBJS) -o $@ $(CLIENTLDFLAGS)
