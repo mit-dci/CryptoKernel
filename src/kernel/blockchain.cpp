@@ -239,6 +239,21 @@ bool CryptoKernel::Blockchain::verifyTransaction(Storage::Transaction* dbTransac
 
     for(it = tx.inputs.begin(); it < tx.inputs.end(); it++)
     {
+        //Check input id is correct
+        if((*it).id != calculateOutputId(*it))
+        {
+            log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Input incorrect id");
+            return false;
+        }
+
+        //Check if input has already been spent
+        std::string id = utxos->get(dbTransaction, (*it).id)["id"].asString();
+        if(id != (*it).id)
+        {
+            log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Output has already been spent");
+            return false;
+        }
+
         inputTotal += (*it).value;
         CryptoKernel::Crypto crypto;
         crypto.setPublicKey((*it).publicKey);
@@ -246,23 +261,6 @@ bool CryptoKernel::Blockchain::verifyTransaction(Storage::Transaction* dbTransac
         {
             log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Could not verify input signature");
             return false;
-        }
-        else
-        {
-            //Check input id is correct
-            if((*it).id != calculateOutputId(*it))
-            {
-                log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Input incorrect id");
-                return false;
-            }
-
-            //Check if input has already been spent
-            std::string id = utxos->get(dbTransaction, (*it).id)["id"].asString();
-            if(id != (*it).id)
-            {
-                log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Output has already been spent");
-                return false;
-            }
         }
     }
 
