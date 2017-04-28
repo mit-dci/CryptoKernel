@@ -795,7 +795,7 @@ bool CryptoKernel::Blockchain::reorgChain(Storage::Transaction* dbTransaction, c
     //Submit new blocks
     while(blockList.size() > 0)
     {
-        if(!submitBlock(blockList.top()))
+        if(!submitBlock(dbTransaction, blockList.top()))
         {
             log->printf(LOG_LEVEL_WARN, "blockchain::reorgChain(): Failed to reapply original chain after new chain failed to verify");
 
@@ -1038,7 +1038,7 @@ void CryptoKernel::Blockchain::reverseBlock(Storage::Transaction* dbTransaction)
     }
 
     blocks->erase(dbTransaction, std::to_string(tip.height), 0);
-    blocks->put(dbTransaction, "tip", blockToJson(getBlock(tip.previousBlockId)));
+    blocks->put(dbTransaction, "tip", blockToJson(getBlock(dbTransaction, tip.previousBlockId)));
 
     tip.mainChain = false;
     blocks->put(dbTransaction, tip.id, blockToJson(tip));
