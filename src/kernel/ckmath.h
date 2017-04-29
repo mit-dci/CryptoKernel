@@ -32,7 +32,7 @@ namespace CryptoKernel
 
             ~BigNum();
 
-            std::string toString();
+            std::string toString() const;
 
             void operator=(const BigNum& other);
 
@@ -41,13 +41,13 @@ namespace CryptoKernel
             BigNum operator*(const BigNum& rhs);
             BigNum operator/(const BigNum& rhs);
 
-            bool operator!=(const BigNum& rhs);
-            bool operator==(const BigNum& rhs);
+            bool operator!=(const BigNum& rhs) const;
+            bool operator==(const BigNum& rhs) const;
 
-            bool operator>(const BigNum& rhs);
-            bool operator<(const BigNum& rhs);
-            bool operator>=(const BigNum& rhs);
-            bool operator<=(const BigNum& rhs);
+            bool operator>(const BigNum& rhs) const;
+            bool operator<(const BigNum& rhs) const;
+            bool operator>=(const BigNum& rhs) const;
+            bool operator<=(const BigNum& rhs) const;
 
         private:
             BIGNUM* bn;

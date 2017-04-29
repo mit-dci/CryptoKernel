@@ -59,7 +59,7 @@ Json::Value CryptoKernel::Storage::toJson(std::string json)
     return returning;
 }
 
-std::string CryptoKernel::Storage::toString(Json::Value json, bool pretty)
+std::string CryptoKernel::Storage::toString(const Json::Value& json, const bool pretty)
 {
     if(pretty)
     {

@@ -33,7 +33,7 @@ CryptoKernel::BigNum::~BigNum() {
     BN_free(bn);
 }
 
-std::string CryptoKernel::BigNum::toString() {
+std::string CryptoKernel::BigNum::toString() const {
     std::stringstream buffer;
     buffer << BN_bn2hex(bn);
 

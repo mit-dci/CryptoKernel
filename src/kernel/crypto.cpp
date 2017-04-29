@@ -24,7 +24,7 @@
 #include "crypto.h"
 #include "base64.h"
 
-CryptoKernel::Crypto::Crypto(bool fGenerate)
+CryptoKernel::Crypto::Crypto(const bool fGenerate)
 {
     eckey = EC_KEY_new();
     if(eckey == NULL)
@@ -72,7 +72,7 @@ CryptoKernel::Crypto::~Crypto()
     }
 }
 
-bool CryptoKernel::Crypto::verify(std::string message, std::string signature)
+bool CryptoKernel::Crypto::verify(const std::string& message, const std::string& signature)
 {
     if(!status || signature == "" || message == "")
     {
@@ -92,7 +92,7 @@ bool CryptoKernel::Crypto::verify(std::string message, std::string signature)
     }
 }
 
-std::string CryptoKernel::Crypto::sign(std::string message)
+std::string CryptoKernel::Crypto::sign(const std::string& message)
 {
     if(!status || message == "")
     {
@@ -162,7 +162,7 @@ std::string CryptoKernel::Crypto::getPrivateKey()
     }
 }
 
-bool CryptoKernel::Crypto::setPublicKey(std::string publicKey)
+bool CryptoKernel::Crypto::setPublicKey(const std::string& publicKey)
 {
     if(!status || publicKey == "")
     {
@@ -185,7 +185,7 @@ bool CryptoKernel::Crypto::setPublicKey(std::string publicKey)
     }
 }
 
-bool CryptoKernel::Crypto::setPrivateKey(std::string privateKey)
+bool CryptoKernel::Crypto::setPrivateKey(const std::string& privateKey)
 {
     if(!status || privateKey == "")
     {
@@ -208,7 +208,7 @@ bool CryptoKernel::Crypto::setPrivateKey(std::string privateKey)
     }
 }
 
-std::string CryptoKernel::Crypto::sha256(std::string message)
+std::string CryptoKernel::Crypto::sha256(const std::string& message)
 {
     if(message != "")
     {

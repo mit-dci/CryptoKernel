@@ -365,87 +365,6 @@ bool CryptoKernel::Blockchain::submitTransaction(Storage::Transaction* dbTx, tra
     }
 }
 
-Json::Value CryptoKernel::Blockchain::transactionToJson(transaction tx)
-{
-    Json::Value returning;
-
-    std::vector<output>::iterator it;
-    for(it = tx.inputs.begin(); it < tx.inputs.end(); it++)
-    {
-        returning["inputs"].append(outputToJson((*it)));
-    }
-
-    for(it = tx.outputs.begin(); it < tx.outputs.end(); it++)
-    {
-        returning["outputs"].append(outputToJson((*it)));
-    }
-
-    returning["timestamp"] = static_cast<unsigned long long int>(tx.timestamp);
-    returning["id"] = tx.id;
-    returning["confirmingBlock"] = tx.confirmingBlock;
-
-    return returning;
-}
-
-Json::Value CryptoKernel::Blockchain::outputToJson(output Output)
-{
-    Json::Value returning;
-
-    returning["id"] = Output.id;
-    returning["value"] = static_cast<unsigned long long int>(Output.value);
-    returning["signature"] = Output.signature;
-    returning["publicKey"] = Output.publicKey;
-    returning["nonce"] = static_cast<unsigned long long int>(Output.nonce);
-    returning["data"] = Output.data;
-    returning["spendData"] = Output.spendData;
-    returning["creationTx"] = Output.creationTx;
-
-    return returning;
-}
-
-std::string CryptoKernel::Blockchain::calculateTransactionId(transaction tx)
-{
-    std::stringstream buffer;
-
-    std::vector<output>::iterator it;
-    for(it = tx.inputs.begin(); it < tx.inputs.end(); it++)
-    {
-        buffer << calculateOutputId((*it));
-    }
-
-    for(it = tx.outputs.begin(); it < tx.outputs.end(); it++)
-    {
-        buffer << calculateOutputId((*it));
-    }
-
-    buffer << tx.timestamp;
-
-    CryptoKernel::Crypto crypto;
-
-    return crypto.sha256(buffer.str());
-}
-
-std::string CryptoKernel::Blockchain::calculateOutputId(output Output)
-{
-    std::stringstream buffer;
-
-    buffer << Output.publicKey << Output.value << Output.nonce << CryptoKernel::Storage::toString(Output.data);
-
-    CryptoKernel::Crypto crypto;
-    return crypto.sha256(buffer.str());
-}
-
-bool CryptoKernel::Blockchain::submitBlock(const block newBlock, const bool genesisBlock) {
-    chainLock.lock();
-    std::unique_ptr<Storage::Transaction> dbTx(blockdb->begin());
-    const bool result = submitBlock(dbTx.get(), newBlock, genesisBlock);
-    if(result) {
-        dbTx->commit();
-    }
-    chainLock.unlock();
-    return result;
-}
-
 bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx, block newBlock, bool genesisBlock)
 {
     chainLock.lock();
@@ -619,53 +538,6 @@ bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx, block new
     return true;
 }
 
-std::string CryptoKernel::Blockchain::calculateBlockId(block Block)
-{
-    std::stringstream buffer;
-
-    std::vector<transaction>::iterator it;
-    for(it = Block.transactions.begin(); it < Block.transactions.end(); it++)
-    {
-        //This should probably be converted to calculate a merkle root
-        buffer << calculateTransactionId((*it));
-    }
-
-    buffer << calculateTransactionId(Block.coinbaseTx);
-
-    buffer << Block.previousBlockId << Block.timestamp << Block.height << consensus->serializeConsensusData(Block);
-
-    CryptoKernel::Crypto crypto;
-    return crypto.sha256(buffer.str());
-}
-
-Json::Value CryptoKernel::Blockchain::blockToJson(block Block, bool PoW)
-{
-    Json::Value returning;
-
-    returning["id"] = Block.id;
-    returning["height"] = Block.height;
-    returning["previousBlockId"] = Block.previousBlockId;
-    returning["timestamp"] = static_cast<unsigned long long int>(Block.timestamp);
-    std::vector<transaction>::iterator it;
-    for(it = Block.transactions.begin(); it < Block.transactions.end(); it++)
-    {
-        returning["transactions"].append(transactionToJson((*it)));
-    }
-
-    if(Block.coinbaseTx.id != "") {
-        returning["coinbaseTx"] = transactionToJson(Block.coinbaseTx);
-    }
-
-    if(!PoW)
-    {
-        returning["mainChain"] = Block.mainChain;
-    }
-
-    returning["consensusData"] = Block.consensusData;
-
-    return returning;
-}
-
 bool CryptoKernel::Blockchain::confirmTransaction(Storage::Transaction* dbTransaction, transaction tx, bool coinbaseTx)
 {
     //Check if transaction is already confirmed
@@ -803,65 +675,6 @@ bool CryptoKernel::Blockchain::reorgChain(Storage::Transaction* dbTransaction, c
     }
 
     return true;
-}
-
-CryptoKernel::Blockchain::block CryptoKernel::Blockchain::jsonToBlock(Json::Value Block)
-{
-    block returning;
-
-    returning.id = Block["id"].asString();
-    returning.previousBlockId = Block["previousBlockId"].asString();
-    returning.timestamp = Block["timestamp"].asUInt64();
-    returning.height = Block["height"].asUInt();
-
-    for(unsigned int i = 0; i < Block["transactions"].size(); i++)
-    {
-        returning.transactions.push_back(jsonToTransaction(Block["transactions"][i]));
-    }
-
-    returning.coinbaseTx = jsonToTransaction(Block["coinbaseTx"]);
-    returning.mainChain = Block["mainChain"].asBool();
-    returning.consensusData = Block["consensusData"];
-
-    return returning;
-}
-
-CryptoKernel::Blockchain::transaction CryptoKernel::Blockchain::jsonToTransaction(Json::Value tx)
-{
-    transaction returning;
-
-    returning.id = tx["id"].asString();
-    returning.timestamp = tx["timestamp"].asUInt64();
-
-    returning.confirmingBlock = tx["confirmingBlock"].asString();
-
-    for(unsigned int i = 0; i < tx["inputs"].size(); i++)
-    {
-        returning.inputs.push_back(jsonToOutput(tx["inputs"][i]));
-    }
-
-    for(unsigned int i = 0; i < tx["outputs"].size(); i++)
-    {
-        returning.outputs.push_back(jsonToOutput(tx["outputs"][i]));
-    }
-
-    return returning;
-}
-
-CryptoKernel::Blockchain::output CryptoKernel::Blockchain::jsonToOutput(Json::Value Output)
-{
-    output returning;
-
-    returning.id = Output["id"].asString();
-    returning.publicKey = Output["publicKey"].asString();
-    returning.signature = Output["signature"].asString();
-    returning.data = Output["data"];
-    returning.spendData = Output["spendData"];
-    returning.value = Output["value"].asUInt64();
-    returning.nonce = Output["nonce"].asUInt64();
-    returning.creationTx = Output["creationTx"].asString();
-
-    return returning;
 }
 
 uint64_t CryptoKernel::Blockchain::getTransactionFee(transaction tx)
