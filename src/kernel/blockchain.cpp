@@ -36,6 +36,9 @@ CryptoKernel::Blockchain::Blockchain(CryptoKernel::Log* GlobalLog)
     blocks.reset(new CryptoKernel::Storage::Table("blocks"));
     transactions.reset(new CryptoKernel::Storage::Table("transactions"));
     utxos.reset(new CryptoKernel::Storage::Table("utxos"));
+    stxos.reset(new CryptoKernel::Storage::Table("stxos"));
+    inputs.reset(new CryptoKernel::Storage::Table("inputs"));
+    candidates.reset(new CryptoKernel::Storage::Table("candidates"));
     log = GlobalLog;
 }
 
@@ -44,9 +47,9 @@ bool CryptoKernel::Blockchain::loadChain(CryptoKernel::Consensus* consensus)
     chainLock.lock();
     this->consensus = consensus;
     std::unique_ptr<Storage::Transaction> dbTransaction(blockdb->begin());
-    const std::string chainTipId = blocks->get(dbTransaction.get(), "tip")["id"].asString();
+    const bool tipExists = blocks->get(dbTransaction.get(), "tip").isObject();
     dbTransaction->abort();
-    if(chainTipId == "")
+    if(!tipExists)
     {
         emptyDB();
         bool newGenesisBlock = false;
@@ -58,7 +61,9 @@ bool CryptoKernel::Blockchain::loadChain(CryptoKernel::Consensus* consensus)
         } else {
             std::string buffer((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
 
-            if(submitBlock(jsonToBlock(CryptoKernel::Storage::toJson(buffer)), true))
+            block genesisBlock(CryptoKernel::Storage::toJson(buffer));
+
+            if(submitBlock(genesisBlock, true))
             {
                 log->printf(LOG_LEVEL_INFO, "blockchain(): Successfully imported genesis block");
             }
@@ -74,9 +79,7 @@ bool CryptoKernel::Blockchain::loadChain(CryptoKernel::Consensus* consensus)
         if(newGenesisBlock) {
             log->printf(LOG_LEVEL_INFO, "blockchain(): Generating new genesis block");
             CryptoKernel::Crypto crypto(true);
-            block Block = generateVerifyingBlock(crypto.getPublicKey());
-            Block.coinbaseTx = transaction();
-            Block.id = calculateBlockId(Block);
+            const block Block = generateVerifyingBlock(crypto.getPublicKey());
 
             if(!submitBlock(Block, true)) {
                 log->printf(LOG_LEVEL_ERR, "blockchain(): Failed to import new genesis block");
@@ -84,33 +87,19 @@ bool CryptoKernel::Blockchain::loadChain(CryptoKernel::Consensus* consensus)
 
             std::ofstream f;
             f.open("genesisblock.json");
-            f << CryptoKernel::Storage::toString(CryptoKernel::Blockchain::blockToJson(Block, true));
+            f << CryptoKernel::Storage::toString(Block.toJson(), true);
             f.close();
         }
     }
 
     const block genesisBlock = getBlockByHeight(1);
-    genesisBlockId = genesisBlock.id;
-
-    //reindexChain(chainTipId);
+    genesisBlockId = genesisBlock.getId();
 
     status = true;
-
-    dbTransaction.reset(blockdb->begin());
-    checkRep(dbTransaction.get());
 
     chainLock.unlock();
 
     return true;
-}
-
-void CryptoKernel::Blockchain::checkRep(Storage::Transaction* dbTransaction)
-{
-    assert(log != nullptr);
-
-    assert(getBlock(dbTransaction, "tip").mainChain);
-    assert(getBlock(dbTransaction, genesisBlockId).id == genesisBlockId);
-    assert(getBlock(dbTransaction, genesisBlockId).mainChain);
 }
 
 CryptoKernel::Blockchain::~Blockchain()
@@ -118,10 +107,10 @@ CryptoKernel::Blockchain::~Blockchain()
     chainLock.lock();
 }
 
-std::vector<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::getUnconfirmedTransactions()
+std::set<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::getUnconfirmedTransactions()
 {
     chainLock.lock();
-    const std::vector<CryptoKernel::Blockchain::transaction> returning = unconfirmedTransactions;
+    const std::set<CryptoKernel::Blockchain::transaction> returning = unconfirmedTransactions;
     chainLock.unlock();
 
     return returning;
@@ -129,14 +118,15 @@ std::vector<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::get
 
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlock(Storage::Transaction* transaction, const std::string id)
 {
-    return jsonToBlock(blocks->get(transaction, id));
+    const dbBlock block = getBlockDB(transaction, id);
+
+    return buildBlock(transaction, block);
 }
 
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlockByHeight(Storage::Transaction* transaction, const uint64_t height)
 {
     const std::string id = blocks->get(transaction, std::to_string(height), 0).asString();
-    const block returning = jsonToBlock(blocks->get(transaction, id));
-    return returning;
+    return getBlock(transaction, id);
 }
 
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlock(const std::string id)
@@ -152,8 +142,7 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlockByHeight(const
 {
     chainLock.lock();
     std::unique_ptr<Storage::Transaction> tx(blockdb->begin());
-    const std::string id = blocks->get(tx.get(), std::to_string(height), 0).asString();
-    const block returning = jsonToBlock(blocks->get(tx.get(), id));
+    const block returning = getBlockByHeight(tx.get(), height);
     chainLock.unlock();
     return returning;
 }
@@ -168,9 +157,11 @@ uint64_t CryptoKernel::Blockchain::getBalance(std::string publicKey)
         CryptoKernel::Storage::Table::Iterator *it = new CryptoKernel::Storage::Table::Iterator(utxos.get(), blockdb.get());
         for(it->SeekToFirst(); it->Valid(); it->Next())
         {
-            if(it->value()["publicKey"].asString() == publicKey)
-            {
-                total += it->value()["value"].asUInt64();
+            const dbOutput out = dbOutput(it->value());
+            const Json::Value data = out.getData();
+
+            if(data["publicKey"].asString() == publicKey && data["contract"].empty()) {
+                total += out.getValue();
             }
         }
         delete it;
@@ -181,86 +172,54 @@ uint64_t CryptoKernel::Blockchain::getBalance(std::string publicKey)
     return total;
 }
 
-bool CryptoKernel::Blockchain::verifyTransaction(Storage::Transaction* dbTransaction, transaction tx, bool coinbaseTx)
+bool CryptoKernel::Blockchain::verifyTransaction(Storage::Transaction* dbTransaction, const transaction& tx, const bool coinbaseTx)
 {
-    if(calculateTransactionId(tx) != tx.id)
-    {
-        log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): tx id is incorrect");
-        return false;
-    }
-
-    if(transactions->get(dbTransaction, tx.id)["id"].asString() == tx.id)
+    if(transactions->get(dbTransaction, tx.getId().toString()).isObject())
     {
         log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): tx already exists");
         return false;
     }
 
-    if(tx.inputs.size() < 1 && !coinbaseTx)
-    {
-        log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): tx has no inputs");
-        return false;
-    }
-
-    if(tx.outputs.size() < 1)
-    {
-        log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): tx has no outputs");
-        return false;
-    }
-
     uint64_t inputTotal = 0;
     uint64_t outputTotal = 0;
-    std::vector<output>::iterator it;
 
-    std::string outputHash = calculateOutputSetId(tx.outputs);
-
-    for(it = tx.outputs.begin(); it < tx.outputs.end(); it++)
-    {
-        if((*it).id != calculateOutputId(*it))
-        {
-            log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Output has incorrect id");
-            return false;
-        }
-
-        if(utxos->get(dbTransaction, (*it).id)["id"] == (*it).id || (*it).value < 1)
-        {
-            log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Duplicate output in tx");
+    for(const output& out : tx.getOutputs()) {
+        if(utxos->get(dbTransaction, out.getId().toString()).isObject()) {
+            log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Output already in UTXO set");
             //Duplicate output
             return false;
         }
-        CryptoKernel::Crypto crypto;
-        if(!crypto.setPublicKey((*it).publicKey))
-        {
-           log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Public key is invalid");
-            //Invalid key
-            return false;
-        }
-        outputTotal += (*it).value;
+
+        outputTotal += out.getValue();
     }
 
-    for(it = tx.inputs.begin(); it < tx.inputs.end(); it++)
-    {
-        //Check input id is correct
-        if((*it).id != calculateOutputId(*it))
-        {
-            log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Input incorrect id");
-            return false;
-        }
+    const CryptoKernel::BigNum outputHash = tx.getOutputSetId();
 
-        //Check if input has already been spent
-        std::string id = utxos->get(dbTransaction, (*it).id)["id"].asString();
-        if(id != (*it).id)
-        {
+    for(const input& inp : tx.getInputs()) {
+        const Json::Value outJson = utxos->get(dbTransaction, inp.getOutputId().toString());
+        if(!outJson.isObject()) {
             log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Output has already been spent");
             return false;
         }
 
-        inputTotal += (*it).value;
-        CryptoKernel::Crypto crypto;
-        crypto.setPublicKey((*it).publicKey);
-        if((!crypto.verify((*it).id + outputHash, (*it).signature) && (*it).data["contract"].empty()) || (*it).value <= 0)
-        {
-            log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Could not verify input signature");
-            return false;
+        const dbOutput out = dbOutput(outJson);
+        inputTotal += out.getValue();
+
+        const Json::Value outData = out.getData();
+        if(!outData["publicKey"].empty() && outData["contract"].empty()) {
+            const Json::Value spendData = inp.getData();
+            if(spendData["signature"].empty()) {
+                log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Could not verify input signature");
+                return false;
+            }
+
+            CryptoKernel::Crypto crypto;
+            crypto.setPublicKey(outData["publicKey"].asString());
+            if(!crypto.verify(out.getId().toString() + outputHash.toString(), spendData["signature"].asString()))
+            {
+                log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Could not verify input signature");
+                return false;
+            }
         }
     }
 
@@ -312,46 +271,34 @@ bool CryptoKernel::Blockchain::submitTransaction(Storage::Transaction* dbTx, tra
     if(verifyTransaction(dbTx, tx))
     {
         if(consensus->submitTransaction(dbTx, tx)) {
-            if(transactions->get(dbTx, tx.id)["id"].asString() == tx.id)
+            //Transaction has not already been verified
+            bool found = false;
+
+            //Check if transaction is already in the unconfirmed vector
+            for(const transaction& utx : unconfirmedTransactions)
             {
-                //Transaction has already been submitted and verified
-                log->printf(LOG_LEVEL_INFO, "blockchain::submitTransaction(): Received transaction that has already been verified");
+                found = (utx.getId() == tx.getId());
+                if(found)
+                {
+                    break;
+                }
+            }
+
+            if(!found)
+            {
+                unconfirmedTransactions.insert(tx);
+                log->printf(LOG_LEVEL_INFO, "blockchain::submitTransaction(): Received transaction we didn't already know about");
                 chainLock.unlock();
-                return false;
+                return true;
             }
             else
             {
-                //Transaction has not already been verified
-                bool found = false;
-
-                //Check if transaction is already in the unconfirmed vector
-                std::vector<transaction>::iterator it;
-                for(it = unconfirmedTransactions.begin(); it < unconfirmedTransactions.end(); it++)
-                {
-                    found = ((*it).id == tx.id);
-                    if(found)
-                    {
-                        break;
-                    }
-                }
-
-                if(!found)
-                {
-                    unconfirmedTransactions.push_back(tx);
-                    log->printf(LOG_LEVEL_INFO, "blockchain::submitTransaction(): Received transaction we didn't already know about");
-                    chainLock.unlock();
-                    return true;
-                }
-                else
-                {
-                    //Transaction is already in the unconfirmed vector
-                    log->printf(LOG_LEVEL_INFO, "blockchain::submitTransaction(): Received transaction we already know about");
-                    chainLock.unlock();
-                    return true;
-                }
+                //Transaction is already in the unconfirmed vector
+                log->printf(LOG_LEVEL_INFO, "blockchain::submitTransaction(): Received transaction we already know about");
+                chainLock.unlock();
+                return true;
             }
-        }
-        else {
+        } else {
             log->printf(LOG_LEVEL_INFO, "blockchain::submitTransaction(): Failed to submit transaction to consensus method");
             chainLock.unlock();
             return false;
@@ -368,74 +315,72 @@ bool CryptoKernel::Blockchain::submitTransaction(Storage::Transaction* dbTx, tra
 bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx, block newBlock, bool genesisBlock)
 {
     chainLock.lock();
+    const std::string idAsString = newBlock.getId().toString();
     //Check block does not already exist
-    if(blocks->get(dbTx, newBlock.id)["id"].asString() == newBlock.id && blocks->get(dbTx, newBlock.id)["mainChain"].asBool())
+    if(blocks->get(dbTx, idAsString).isObject())
     {
         log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Block already exists");
         chainLock.unlock();
         return true;
     }
 
-    const block previousBlock = getBlock(dbTx, newBlock.previousBlockId);
-    //Check the previous block exists
-    if((previousBlock.id != newBlock.previousBlockId || newBlock.previousBlockId == "") && !genesisBlock)
-    {
-        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Previous block does not exist");
-        chainLock.unlock();
-        return false;
-    }
+    Json::Value previousBlockJson = blocks->get(dbTx, newBlock.getPreviousBlockId().toString());
+    uint64_t blockHeight = 1;
 
-    if(newBlock.height != previousBlock.height + 1 && !genesisBlock)
-    {
-        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Block height is incorrect");
-        chainLock.unlock();
-        return false;
-    }
-
-    //Check the id is correct
-    if(calculateBlockId(newBlock) != newBlock.id)
-    {
-        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Block id is incorrect");
-        chainLock.unlock();
-        return false;
-    }
-
-    //Check that the timestamp is realistic
-    if(newBlock.timestamp < previousBlock.timestamp && !genesisBlock)
-    {
-        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Timestamp is unrealistic");
-        chainLock.unlock();
-        return false;
-    }
+    bool onlySave = false;
 
     if(!genesisBlock) {
+        if(!previousBlockJson.isObject()) {
+            previousBlockJson = candidates->get(dbTx, newBlock.getPreviousBlockId().toString());
+            if(!previousBlockJson.isObject()) {
+                log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Previous block does not exist");
+                chainLock.unlock();
+                return false;
+            }
+
+            const block previousBlock = block(previousBlockJson);
+            previousBlockJson = dbBlock(previousBlock, 0).toJson();
+        }
+
+        const dbBlock previousBlock = dbBlock(previousBlockJson);
+
+        //Check that the timestamp is realistic
+        if(newBlock.getTimestamp() < previousBlock.getTimestamp())
+        {
+            log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Timestamp is unrealistic");
+            chainLock.unlock();
+            return false;
+        }
+
         if(!consensus->checkConsensusRules(dbTx, newBlock, previousBlock)) {
             log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Consensus rules cannot verify this block");
             chainLock.unlock();
             return false;
         }
-    }
 
-    bool onlySave = false;
-
-    const block tip = getBlock(dbTx, "tip");
-    if(newBlock.previousBlockId != tip.id && !genesisBlock)
-    {
-        //This block does not directly lead on from last block
-        //Check if the verifier should've come before the current tip
-        //If so, reorg, otherwise ignore it
-        if(consensus->isBlockBetter(dbTx, newBlock, tip))
+        const dbBlock tip = getBlockDB(dbTx, "tip");
+        if(previousBlock.getId() != tip.getId())
         {
-            log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Forking the chain");
-            if(!reorgChain(dbTx, newBlock.previousBlockId)) {
-                log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Alternative chain is not valid");
-                return false;
+            //This block does not directly lead on from last block
+            //Check if the verifier should've come before the current tip
+            //If so, reorg, otherwise ignore it
+            if(consensus->isBlockBetter(dbTx, newBlock, tip))
+            {
+                log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Forking the chain");
+                if(!reorgChain(dbTx, previousBlock.getId())) {
+                    log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Alternative chain is not valid");
+                    return false;
+                }
+
+                blockHeight = getBlockDB(dbTx, "tip").getHeight() + 1;
             }
-        }
-        else
-        {
-            log->printf(LOG_LEVEL_WARN, "blockchain::submitBlock(): Chain has less verifier backing than current chain");
-            onlySave = true;
+            else
+            {
+                log->printf(LOG_LEVEL_WARN, "blockchain::submitBlock(): Chain has less verifier backing than current chain");
+                onlySave = true;
+            }
+        } else {
+            blockHeight = tip.getHeight() + 1;
         }
     }
 
@@ -443,50 +388,35 @@ bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx, block new
     {
         uint64_t fees = 0;
         //Verify Transactions
-        std::vector<CryptoKernel::Blockchain::transaction>::iterator it;
-        for(it = newBlock.transactions.begin(); it < newBlock.transactions.end(); it++)
+        for(const transaction& tx : newBlock.getTransactions())
         {
-            (*it).confirmingBlock = newBlock.id;
-            if(!verifyTransaction(dbTx, *it))
+            if(!verifyTransaction(dbTx, tx))
             {
                 log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Transaction could not be verified");
                 chainLock.unlock();
                 return false;
             }
-            fees += calculateTransactionFee((*it));
+            fees += calculateTransactionFee(dbTx, tx);
         }
 
-        if(!genesisBlock) {
-            if(!newBlock.coinbaseTx.inputs.empty())
-            {
-                log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Coinbase tx has inputs");
-                chainLock.unlock();
-                return false;
-            }
+        if(!verifyTransaction(dbTx, newBlock.getCoinbaseTx(), true))
+        {
+            log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Coinbase transaction could not be verified");
+            chainLock.unlock();
+            return false;
+        }
 
-            uint64_t outputTotal = 0;
-            std::vector<output>::iterator it2;
-            for(it2 = newBlock.coinbaseTx.outputs.begin(); it2 < newBlock.coinbaseTx.outputs.end(); it2++)
-            {
-                (*it2).creationTx = newBlock.coinbaseTx.id;
-                if((*it2).publicKey != getCoinbaseOwner((*it2).publicKey))
-                {
-                    //Invalid key
-                    log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Coinbase public key is invalid");
-                    chainLock.unlock();
-                    return false;
-                }
-                outputTotal += (*it2).value;
-            }
+        uint64_t outputTotal = 0;
+        for(const output& out : newBlock.getCoinbaseTx().getOutputs())
+        {
+            outputTotal += out.getValue();
+        }
 
-            if(outputTotal != fees + getBlockReward(newBlock.height))
-            {
-                log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Coinbase output is not the correct value");
-                chainLock.unlock();
-                return false;
-            }
-
-            newBlock.coinbaseTx.confirmingBlock = newBlock.id;
+        if(outputTotal != fees + getBlockReward(blockHeight))
+        {
+            log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Coinbase output is not the correct value");
+            chainLock.unlock();
+            return false;
         }
 
         if(!consensus->submitBlock(dbTx, newBlock)) {
@@ -495,143 +425,63 @@ bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx, block new
             return false;
         }
 
-        if(!genesisBlock) {
-            if(!confirmTransaction(dbTx, newBlock.coinbaseTx, true)) {
-                log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Could not verify coinbase transaction");
-                chainLock.unlock();
-                return false;
-            }
-        }
+        confirmTransaction(dbTx, newBlock.getCoinbaseTx(), newBlock.getId(), true);
 
         //Move transactions from unconfirmed to confirmed and add transaction utxos to db
-        for(it = newBlock.transactions.begin(); it < newBlock.transactions.end(); it++)
-        {
-            if(!confirmTransaction(dbTx, *it))
-            {
-                chainLock.unlock();
-                return false;
-            }
+        for(const transaction& tx : newBlock.getTransactions()) {
+            confirmTransaction(dbTx, tx, newBlock.getId());
         }
     }
 
-    newBlock.mainChain = false;
-
-    if(!onlySave)
-    {
-        newBlock.mainChain = true;
-        blocks->put(dbTx, "tip", blockToJson(newBlock));
-        blocks->put(dbTx, std::to_string(newBlock.height), Json::Value(newBlock.id), 0);
+    if(onlySave) {
+        candidates->put(dbTx, newBlock.getId().toString(), newBlock.toJson());
+    } else {
+        const dbBlock toSave = dbBlock(newBlock, blockHeight);
+        const Json::Value blockAsJson = toSave.toJson();
+        candidates->erase(dbTx, idAsString);
+        blocks->put(dbTx, "tip", blockAsJson);
+        blocks->put(dbTx, std::to_string(blockHeight), Json::Value(idAsString), 0);
+        blocks->put(dbTx, idAsString, blockAsJson);
     }
-
-    blocks->put(dbTx, newBlock.id, blockToJson(newBlock));
 
     if(genesisBlock) {
-        genesisBlockId = newBlock.id;
+        genesisBlockId = newBlock.getId();
     }
 
-    log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): successfully submitted block: " + CryptoKernel::Storage::toString(blocks->get(dbTx, newBlock.id)));
-
-    checkRep(dbTx);
+    log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): successfully submitted block: " + CryptoKernel::Storage::toString(blocks->get(dbTx, idAsString), true));
 
     chainLock.unlock();
 
     return true;
 }
 
-bool CryptoKernel::Blockchain::confirmTransaction(Storage::Transaction* dbTransaction, transaction tx, bool coinbaseTx)
+void CryptoKernel::Blockchain::confirmTransaction(Storage::Transaction* dbTransaction, const transaction& tx, const BigNum& confirmingBlock, const bool coinbaseTx)
 {
-    //Check if transaction is already confirmed
-    if(transactions->get(dbTransaction, tx.id)["id"].asString() == tx.id)
-    {
-        return false;
-    }
-
-    //Prevent against double spends by checking again before confirmation
-    if(!verifyTransaction(dbTransaction, tx, coinbaseTx))
-    {
-        return false;
-    }
-
     //Execute custom transaction rules callback
     if(!consensus->confirmTransaction(dbTransaction, tx)) {
-        return false;
+        log->printf(LOG_LEVEL_ERR, "Consensus rules failed to confirm transaction");
     }
 
     //"Spend" UTXOs
-    std::vector<output>::iterator it;
-    for(it = tx.inputs.begin(); it < tx.inputs.end(); it++)
-    {
-        utxos->erase(dbTransaction, (*it).id);
+    for(const input& inp : tx.getInputs()) {
+        const std::string outputId = inp.getOutputId().toString();
+        const Json::Value utxo = utxos->get(dbTransaction, outputId);
+        stxos->put(dbTransaction, outputId, utxo);
+        utxos->erase(dbTransaction, outputId);
+
+        inputs->put(dbTransaction, inp.getId().toString(), dbInput(&inp).toJson());
     }
 
     //Add new outputs to UTXOs
-    for(it = tx.outputs.begin(); it < tx.outputs.end(); it++)
-    {
-        (*it).creationTx = tx.id;
-        utxos->put(dbTransaction, (*it).id, outputToJson((*it)));
+    for(const output& out : tx.getOutputs()) {
+        utxos->put(dbTransaction, out.getId().toString(), dbOutput(&out, tx.getId()).toJson());
     }
 
     //Commit transaction
-    transactions->put(dbTransaction, tx.id, transactionToJson(tx));
+    transactions->put(dbTransaction, tx.getId().toString(), Blockchain::dbTransaction(tx, confirmingBlock, coinbaseTx).toJson());
 
     //Remove transaction from unconfirmed transactions vector
-    std::vector<transaction>::iterator it2;
-    for(it2 = unconfirmedTransactions.begin(); it2 < unconfirmedTransactions.end();)
-    {
-        if((*it2).id == tx.id)
-        {
-            it2 = unconfirmedTransactions.erase(it2);
-        }
-        else
-        {
-            ++it2;
-        }
-    }
-
-    return true;
-}
-
-bool CryptoKernel::Blockchain::reindexChain(const std::string newTipId)
-{
-    std::stack<block> blockList;
-
-    std::unique_ptr<Storage::Transaction> dbTx(blockdb->begin());
-
-    block currentBlock = getBlock(dbTx.get(), newTipId);
-    while(currentBlock.previousBlockId != "")
-    {
-        blockList.push(currentBlock);
-        currentBlock = getBlock(dbTx.get(), currentBlock.previousBlockId);
-    }
-
-    if(currentBlock.id != genesisBlockId)
-    {
-        log->printf(LOG_LEVEL_ERR, "blockchain::reindexChain(): Chain has incorrect genesis block");
-    }
-
-    status = false;
-
-    dbTx->commit();
-
-    emptyDB();
-
-    if(!submitBlock(currentBlock, true)) {
-        log->printf(LOG_LEVEL_ERR, "blockchain::reindexChain(): Failed to import genesis block");
-    }
-
-    while(!blockList.empty())
-    {
-        currentBlock = blockList.top();
-        blockList.pop();
-        if(!submitBlock(currentBlock))
-        {
-            return false;
-        }
-    }
-
-    status = true;
-
-    return true;
+    unconfirmedTransactions.erase(tx);
 }
 
 bool CryptoKernel::Blockchain::reorgChain(Storage::Transaction* dbTransaction, const std::string newTipId)
@@ -705,20 +555,18 @@ uint64_t CryptoKernel::Blockchain::getTransactionFee(transaction tx)
     return fee;
 }
 
-uint64_t CryptoKernel::Blockchain::calculateTransactionFee(transaction tx)
+uint64_t CryptoKernel::Blockchain::calculateTransactionFee(Storage::Transaction* dbTx, transaction tx)
 {
     uint64_t inputTotal = 0;
     uint64_t outputTotal = 0;
-    std::vector<output>::iterator it;
 
-    for(it = tx.inputs.begin(); it < tx.inputs.end(); it++)
-    {
-        inputTotal += (*it).value;
+    for(const output& out : tx.getOutputs()) {
+        outputTotal += out.getValue();
     }
 
-    for(it = tx.outputs.begin(); it < tx.outputs.end(); it++)
-    {
-        outputTotal += (*it).value;
+    for(const input& inp : tx.getInputs()) {
+        const dbOutput out = dbOutput(utxos->get(dbTx, inp.getOutputId().toString()));
+        inputTotal += out.getValue();
     }
 
     return inputTotal - outputTotal;
@@ -857,6 +705,7 @@ void CryptoKernel::Blockchain::reverseBlock(Storage::Transaction* dbTransaction)
 
 CryptoKernel::Blockchain::transaction CryptoKernel::Blockchain::getTransaction(Storage::Transaction* transaction, const std::string id)
 {
+
     return CryptoKernel::Blockchain::jsonToTransaction(transactions->get(transaction, id));
 }
 

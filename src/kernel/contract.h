@@ -63,8 +63,22 @@ namespace CryptoKernel
             {
                 public:
                     BlockchainInterface(CryptoKernel::Blockchain* blockchain) {this->blockchain = blockchain;}
-                    std::string getBlock(const std::string id) {return CryptoKernel::Storage::toString(CryptoKernel::Blockchain::blockToJson(blockchain->getBlock(dbTx, id)));}
-                    std::string getTransaction(const std::string id) {return CryptoKernel::Storage::toString(CryptoKernel::Blockchain::transactionToJson(blockchain->getTransaction(dbTx, id)));}
+                    std::string getBlock(const std::string id) {
+                        try {
+                            const Blockchain::block block = blockchain->getBlock(dbTx, id);
+                            return CryptoKernel::Storage::toString(block.toJson());
+                        } catch(const Blockchain::NotFoundException& e) {
+                            return "";
+                        }
+                    }
+                    std::string getTransaction(const std::string id) {
+                        try {
+                            const Blockchain::transaction tx = blockchain->getTransaction(dbTx, id);
+                            return CryptoKernel::Storage::toString(tx.toJson());
+                        } catch(const Blockchain::NotFoundException& e) {
+                            return "";
+                        }
+                    }
                     void setTransaction(Storage::Transaction* dbTx) {this->dbTx = dbTx;};
 
                 private:

@@ -27,6 +27,14 @@ void CryptoKernel::Blockchain::output::checkRep() {
     if(value < 1) {
         throw InvalidElementException("Output value cannot be less than 1");
     }
+
+    if(data["contract"].empty() && !data["publicKey"].empty()) {
+        CryptoKernel::Crypto crypto;
+        if(!crypto.setPublicKey(data["publicKey"].asString()))
+        {
+            throw InvalidElementException("Public key is invalid");
+        }
+    }
 }
 
 uint64_t CryptoKernel::Blockchain::output::getValue() const {
@@ -226,6 +234,17 @@ CryptoKernel::BigNum CryptoKernel::Blockchain::transaction::getId() const {
     return id;
 }
 
+CryptoKernel::BigNum CryptoKernel::Blockchain::transaction::getOutputSetId() const {
+    std::stringstream buffer;
+
+    for(const output& out : outputs) {
+        buffer << out.getId().toString();
+    }
+
+    CryptoKernel::Crypto crypto;
+    return CryptoKernel::BigNum(crypto.sha256(buffer.str()));
+}
+
 uint64_t CryptoKernel::Blockchain::transaction::getTimestamp() const {
     return timestamp;
 }
@@ -342,7 +361,7 @@ std::set<CryptoKernel::BigNum> CryptoKernel::Blockchain::dbTransaction::getOutpu
 }
 
 CryptoKernel::Blockchain::block::block(const std::set<transaction>& transactions, const transaction& coinbaseTx, const BigNum& previousBlockId, const uint64_t timestamp, const Json::Value& consensusData)
-: coinbaseTx(coinbaseTx.getInputs(), coinbaseTx.getOutputs(), coinbaseTx.getTimestamp()) {
+: coinbaseTx(coinbaseTx.getInputs(), coinbaseTx.getOutputs(), coinbaseTx.getTimestamp(), true) {
     this->transactions = transactions;
     this->previousBlockId = previousBlockId;
     this->timestamp = timestamp;
@@ -354,7 +373,7 @@ CryptoKernel::Blockchain::block::block(const std::set<transaction>& transactions
 }
 
 CryptoKernel::Blockchain::block::block(const Json::Value& jsonBlock)
-: coinbaseTx(jsonBlock["coinbaseTx"]) {
+: coinbaseTx(jsonBlock["coinbaseTx"], true) {
     timestamp = jsonBlock["timestamp"].asUInt64();
     previousBlockId = CryptoKernel::BigNum(jsonBlock["previousBlockId"].asString());
     consensusData = jsonBlock["consensusData"];
@@ -464,7 +483,6 @@ CryptoKernel::Blockchain::dbBlock::dbBlock(const Json::Value& jsonBlock) {
     coinbaseTx = CryptoKernel::BigNum(jsonBlock["coinbaseTx"].asString());
     previousBlockId = CryptoKernel::BigNum(jsonBlock["previousBlockId"].asString());
     timestamp = jsonBlock["timestamp"].asUInt64();
-    mainChain = jsonBlock["mainChain"].asBool();
     height = jsonBlock["height"].asUInt64();
     consensusData = jsonBlock["consensusData"];
 
@@ -477,12 +495,11 @@ CryptoKernel::Blockchain::dbBlock::dbBlock(const Json::Value& jsonBlock) {
     id = calculateId();
 }
 
-CryptoKernel::Blockchain::dbBlock::dbBlock(const block& compactBlock, const bool mainChain, const uint64_t height) {
+CryptoKernel::Blockchain::dbBlock::dbBlock(const block& compactBlock, const uint64_t height) {
     coinbaseTx = compactBlock.getCoinbaseTx().getId();
     previousBlockId = compactBlock.getPreviousBlockId();
     timestamp = compactBlock.getTimestamp();
     consensusData = compactBlock.getConsensusData();
-    this->mainChain = mainChain;
     this->height = height;
 
     for(const transaction& tx : compactBlock.getTransactions()) {
@@ -518,7 +535,6 @@ Json::Value CryptoKernel::Blockchain::dbBlock::toJson() const {
     returning["previousBlockId"] = previousBlockId.toString();
     returning["timestamp"] = static_cast<unsigned long long int>(timestamp);
     returning["consensusData"] = consensusData;
-    returning["mainChain"] = mainChain;
     returning["height"] = static_cast<unsigned long long int>(height);
 
     for(const BigNum& tx : transactions) {
@@ -546,10 +562,6 @@ uint64_t CryptoKernel::Blockchain::dbBlock::getTimestamp() const {
 
 uint64_t CryptoKernel::Blockchain::dbBlock::getHeight() const {
     return height;
-}
-
-bool CryptoKernel::Blockchain::dbBlock::onMainChain() const {
-    return mainChain;
 }
 
 Json::Value CryptoKernel::Blockchain::dbBlock::getConsensusData() const {

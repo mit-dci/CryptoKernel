@@ -48,6 +48,19 @@ namespace CryptoKernel
                     std::string message;
             };
 
+            class NotFoundException : public std::exception {
+                public:
+                    NotFoundException(const std::string& message) {
+                        this->message = message;
+                    }
+
+                    const char* what() {
+                        return message.c_str();
+                    }
+                private:
+                    std::string message;
+            };
+
             class output {
                 public:
                     output(const uint64_t value, const uint64_t nonce, const Json::Value& data);
@@ -112,6 +125,8 @@ namespace CryptoKernel
                     std::set<input> getInputs() const;
                     std::set<output> getOutputs() const;
 
+                    BigNum getOutputSetId() const;
+
                     bool operator<(const transaction& rhs) const;
 
                 private:
@@ -155,6 +170,38 @@ namespace CryptoKernel
                     BigNum id;
             };
 
+            class dbBlock {
+                public:
+                    dbBlock(const block& compactBlock, const uint64_t height);
+                    dbBlock(const Json::Value& jsonBlock);
+
+                    Json::Value toJson() const;
+
+                    std::set<BigNum> getTransactions() const;
+                    BigNum getCoinbaseTx() const;
+                    BigNum getPreviousBlockId() const;
+                    uint64_t getTimestamp() const;
+                    Json::Value getConsensusData() const;
+
+                    uint64_t getHeight() const;
+
+                    BigNum getId() const;
+
+                private:
+                    void checkRep();
+
+                    BigNum calculateId();
+
+                    std::set<BigNum> transactions;
+                    BigNum coinbaseTx;
+                    BigNum previousBlockId;
+                    uint64_t timestamp;
+                    Json::Value consensusData;
+                    uint64_t height;
+
+                    BigNum id;
+            };
+
             bool submitTransaction(transaction tx);
             bool submitBlock(block newBlock, bool genesisBlock = false);
 
@@ -163,6 +210,11 @@ namespace CryptoKernel
 
             block getBlock(Storage::Transaction* transaction, const std::string id);
             block getBlockByHeight(Storage::Transaction* transaction, const uint64_t height);
+
+            dbBlock getBlockDB(Storage::Transaction* transaction, const std::string id);
+            dbBlock getBlockByHeightDB(Storage::Transaction* transaction, const uint64_t height);
+
+            block buildBlock(Storage::Transaction* transaction, const dbBlock& dbblock);
 
             block getBlock(const std::string id);
 
@@ -197,7 +249,7 @@ namespace CryptoKernel
 
             std::vector<output> getUnspentOutputs(std::string publicKey);
 
-            std::vector<transaction> getUnconfirmedTransactions();
+            std::set<transaction> getUnconfirmedTransactions();
 
             /**
             * Loads the chain from disk using the given consensus class
@@ -211,17 +263,19 @@ namespace CryptoKernel
 
         private:
             std::unique_ptr<Storage::Table> blocks;
+            std::unique_ptr<Storage::Table> candidates;
             std::unique_ptr<Storage::Table> transactions;
             std::unique_ptr<Storage::Table> utxos;
+            std::unique_ptr<Storage::Table> stxos;
+            std::unique_ptr<Storage::Table> inputs;
 
             std::unique_ptr<Storage> blockdb;
-            std::string genesisBlockId;
+            BigNum genesisBlockId;
             Log *log;
-            void checkRep(Storage::Transaction* dbTransaction);
-            std::vector<transaction> unconfirmedTransactions;
-            bool verifyTransaction(Storage::Transaction* dbTransaction, transaction tx, bool coinbaseTx = false);
-            bool confirmTransaction(Storage::Transaction* dbTransaction, transaction tx, bool coinbaseTx = false);
-            bool reindexChain(std::string newTipId);
+
+            std::set<transaction> unconfirmedTransactions;
+            bool verifyTransaction(Storage::Transaction* dbTransaction, const transaction& tx, const bool coinbaseTx = false);
+            void confirmTransaction(Storage::Transaction* dbTransaction, const transaction& tx, const BigNum& confirmingBlock, const bool coinbaseTx = false);
             uint64_t getTransactionFee(transaction tx);
             uint64_t calculateTransactionFee(transaction tx);
             bool status;
@@ -278,40 +332,6 @@ namespace CryptoKernel
                     uint64_t timestamp;
                     std::set<BigNum> inputs;
                     std::set<BigNum> outputs;
-
-                    BigNum id;
-            };
-
-            class dbBlock {
-                public:
-                    dbBlock(const block& compactBlock, const bool mainChain, const uint64_t height);
-                    dbBlock(const Json::Value& jsonBlock);
-
-                    Json::Value toJson() const;
-
-                    std::set<BigNum> getTransactions() const;
-                    BigNum getCoinbaseTx() const;
-                    BigNum getPreviousBlockId() const;
-                    uint64_t getTimestamp() const;
-                    Json::Value getConsensusData() const;
-
-                    bool onMainChain() const;
-                    uint64_t getHeight() const;
-
-                    BigNum getId() const;
-
-                private:
-                    void checkRep();
-
-                    BigNum calculateId();
-
-                    std::set<BigNum> transactions;
-                    BigNum coinbaseTx;
-                    BigNum previousBlockId;
-                    uint64_t timestamp;
-                    Json::Value consensusData;
-                    bool mainChain;
-                    uint64_t height;
 
                     BigNum id;
             };
