@@ -18,7 +18,6 @@ bool CryptoKernel::Consensus::PoW::isBlockBetter(Storage::Transaction* transacti
 CryptoKernel::Consensus::PoW::consensusData CryptoKernel::Consensus::PoW::getConsensusData(const CryptoKernel::Blockchain::block& block) {
     consensusData data;
     const Json::Value consensusJson = block.getConsensusData();
-    data.PoW = CryptoKernel::BigNum(consensusJson["PoW"].asString());
     data.target = CryptoKernel::BigNum(consensusJson["target"].asString());
     data.totalWork = CryptoKernel::BigNum(consensusJson["totalWork"].asString());
     data.nonce = consensusJson["nonce"].asUInt64();
@@ -28,7 +27,6 @@ CryptoKernel::Consensus::PoW::consensusData CryptoKernel::Consensus::PoW::getCon
 CryptoKernel::Consensus::PoW::consensusData CryptoKernel::Consensus::PoW::getConsensusData(const CryptoKernel::Blockchain::dbBlock& block) {
     consensusData data;
     const Json::Value consensusJson = block.getConsensusData();
-    data.PoW = CryptoKernel::BigNum(consensusJson["PoW"].asString());
     data.target = CryptoKernel::BigNum(consensusJson["target"].asString());
     data.totalWork = CryptoKernel::BigNum(consensusJson["totalWork"].asString());
     data.nonce = consensusJson["nonce"].asUInt64();
@@ -37,7 +35,6 @@ CryptoKernel::Consensus::PoW::consensusData CryptoKernel::Consensus::PoW::getCon
 
 Json::Value CryptoKernel::Consensus::PoW::consensusDataToJson(const CryptoKernel::Consensus::PoW::consensusData& data) {
     Json::Value returning;
-    returning["PoW"] = data.PoW.toString();
     returning["target"] = data.target.toString();
     returning["totalWork"] = data.totalWork.toString();
     returning["nonce"] = static_cast<unsigned long long int>(data.nonce);

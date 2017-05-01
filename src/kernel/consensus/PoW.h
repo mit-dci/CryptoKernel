@@ -78,7 +78,6 @@ namespace CryptoKernel {
             struct consensusData {
                 BigNum totalWork;
                 BigNum target;
-                BigNum PoW;
                 uint64_t nonce;
             };
             consensusData getConsensusData(const CryptoKernel::Blockchain::block& block);
