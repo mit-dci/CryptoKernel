@@ -190,7 +190,9 @@ void CryptoKernel::Blockchain::transaction::checkRep(const bool coinbaseTx) {
 
     if(coinbaseTx && inputs.size() > 0) {
         throw InvalidElementException("Coinbase transaction must have no inputs");
-    } else if(inputs.size() < 1) {
+    }
+
+    if(!coinbaseTx && inputs.size() < 1) {
         throw InvalidElementException("Transaction has no inputs");
     }
 
@@ -278,7 +280,7 @@ Json::Value CryptoKernel::Blockchain::transaction::toJson() const {
 }
 
 CryptoKernel::Blockchain::dbTransaction::dbTransaction(const Json::Value& jsonTransaction) {
-    this->confirmingBlock = CryptoKernel::BigNum(jsonTransaction["coinbaseTx"].asString());
+    this->confirmingBlock = CryptoKernel::BigNum(jsonTransaction["confirmingBlock"].asString());
     this->coinbaseTx = jsonTransaction["coinbaseTx"].asBool();
 
     for(const Json::Value& inp : jsonTransaction["inputs"]) {
@@ -339,7 +341,9 @@ void CryptoKernel::Blockchain::dbTransaction::checkRep () {
 
     if(coinbaseTx && inputs.size() > 0) {
         throw InvalidElementException("Coinbase transaction must have no inputs");
-    } else if(inputs.size() < 1) {
+    }
+
+    if(!coinbaseTx && inputs.size() < 1) {
         throw InvalidElementException("Transaction has no inputs");
     }
 }

@@ -603,10 +603,20 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateVerifyingBlock
     std::unique_ptr<Storage::Transaction> dbTx(blockdb->begin());
 
     const std::set<transaction> blockTransactions = getUnconfirmedTransactions();
-    const dbBlock previousBlock = getBlockDB(dbTx.get(), "tip");
+
+    uint64_t height;
+    BigNum previousBlockId;
+    bool genesisBlock = false;
+    try {
+        const dbBlock previousBlock = getBlockDB(dbTx.get(), "tip");
+        height = previousBlock.getHeight() + 1;
+        previousBlockId = previousBlock.getId();
+    } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
+        height = 1;
+        genesisBlock = true;
+    }
     const time_t t = std::time(0);
-    const uint64_t now = static_cast<uint64_t> (t);
-    const uint64_t height = previousBlock.getHeight() + 1;
+    const uint64_t now = static_cast<uint64_t> (t);;
 
     uint64_t value = getBlockReward(height);
 
@@ -629,9 +639,12 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateVerifyingBlock
 
     const transaction coinbaseTx = transaction(std::set<input>(), outputs, now, true);
 
-    const Json::Value consensusData = consensus->generateConsensusData(dbTx.get(), previousBlock.getId(), publicKey);
+    Json::Value consensusData;
+    if(!genesisBlock) {
+        consensusData = consensus->generateConsensusData(dbTx.get(), previousBlockId, publicKey);
+    }
 
-    const block returning = block(blockTransactions, coinbaseTx, previousBlock.getId(), now, consensusData);
+    const block returning = block(blockTransactions, coinbaseTx, previousBlockId, now, consensusData);
 
     chainLock.unlock();
 

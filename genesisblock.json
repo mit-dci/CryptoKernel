@@ -1,12 +1,18 @@
 {
-   "consensusData" : {
-      "PoW" : "",
-      "nonce" : 0,
-      "target" : "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-      "totalWork" : ""
+   "coinbaseTx" : {
+      "outputs" : [
+         {
+            "data" : {
+               "contract" : null,
+               "publicKey" : "BNWaHb2UVALNtXfMTYstbWezTxVgqdW4X9pNlhHgEwTfr8gDXmB9MqNdFwaOMvfj7yxreW5Jw9YY8iTpr6Haa2k="
+            },
+            "nonce" : 3361528818,
+            "value" : 100000000
+         }
+      ],
+      "timestamp" : 1493617008
    },
-   "height" : 1,
-   "id" : "584ce0855260bb4cbb3b093fe892c747f4b699dcaff247c35ba55dd255d211a1",
-   "previousBlockId" : "",
-   "timestamp" : 1490670835
+   "consensusData" : null,
+   "previousBlockId" : "0",
+   "timestamp" : 1493617008
 }
