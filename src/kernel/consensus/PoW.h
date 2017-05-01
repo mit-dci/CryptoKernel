@@ -70,7 +70,7 @@ namespace CryptoKernel {
             * @param block the block to calculate the Proof of Work of
             * @return a hex string representing the PoW hash of the given block
             */
-            CryptoKernel::BigNum calculatePoW(const CryptoKernel::Blockchain::block& block);
+            CryptoKernel::BigNum calculatePoW(const CryptoKernel::Blockchain::block& block, const uint64_t nonce);
 
         protected:
             CryptoKernel::Blockchain* blockchain;

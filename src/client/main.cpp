@@ -41,7 +41,7 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* c
 
     while(true)
     {
-        if(network->getConnections() > 0 && network->syncProgress() >= 1)
+        if(/*network->getConnections() > 0 &&*/ network->syncProgress() >= 1)
         {
             CryptoKernel::Blockchain::block Block = blockchain->generateVerifyingBlock(wallet->getAddressByName("mining").publicKey);
             uint64_t nonce = 0;
@@ -81,12 +81,12 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* c
                 count += 1;
                 nonce += 1;
 
-                consensusData["nonce"] = static_cast<unsigned long long int>(nonce);
-                Block.setConsensusData(consensusData);
-
-                pow = consensus->calculatePoW(Block);
+                pow = consensus->calculatePoW(Block, nonce);
             }
             while(pow >= target);
+
+            consensusData["nonce"] = static_cast<unsigned long long int>(nonce);
+            Block.setConsensusData(consensusData);
 
             if(blockchain->submitBlock(Block))
             {

@@ -49,7 +49,7 @@ bool CryptoKernel::Consensus::PoW::checkConsensusRules(Storage::Transaction* tra
     }
 
     //Check proof of work
-    if(blockData.target <= calculatePoW(block)) {
+    if(blockData.target <= calculatePoW(block, blockData.nonce)) {
         return false;
     }
 
@@ -63,8 +63,10 @@ bool CryptoKernel::Consensus::PoW::checkConsensusRules(Storage::Transaction* tra
     return true;
 }
 
-CryptoKernel::BigNum CryptoKernel::Consensus::PoW::calculatePoW(const CryptoKernel::Blockchain::block& block) {
-    return powFunction(block.getId().toString());
+CryptoKernel::BigNum CryptoKernel::Consensus::PoW::calculatePoW(const CryptoKernel::Blockchain::block& block, const uint64_t nonce) {
+    std::stringstream buffer;
+    buffer << block.getId().toString() << nonce;
+    return powFunction(buffer.str());
 }
 
 Json::Value CryptoKernel::Consensus::PoW::generateConsensusData(Storage::Transaction* transaction, const CryptoKernel::BigNum& previousBlockId, const std::string& publicKey) {

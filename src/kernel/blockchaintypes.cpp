@@ -425,7 +425,7 @@ CryptoKernel::BigNum CryptoKernel::Blockchain::block::calculateId() {
         buffer << tx.getId().toString();
     }
 
-    buffer << coinbaseTx.getId().toString() << previousBlockId.toString() << timestamp << CryptoKernel::Storage::toString(consensusData);
+    buffer << coinbaseTx.getId().toString() << previousBlockId.toString() << timestamp;
 
     CryptoKernel::Crypto crypto;
     return CryptoKernel::BigNum(crypto.sha256(buffer.str()));
@@ -553,7 +553,7 @@ CryptoKernel::BigNum CryptoKernel::Blockchain::dbBlock::calculateId() {
         buffer << tx.toString();
     }
 
-    buffer << coinbaseTx.toString() << previousBlockId.toString() << timestamp << CryptoKernel::Storage::toString(consensusData);
+    buffer << coinbaseTx.toString() << previousBlockId.toString() << timestamp;
 
     CryptoKernel::Crypto crypto;
     return CryptoKernel::BigNum(crypto.sha256(buffer.str()));
