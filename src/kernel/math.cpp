@@ -29,6 +29,11 @@ CryptoKernel::BigNum::BigNum() {
     bn = BN_new();
 }
 
+CryptoKernel::BigNum::BigNum(const BigNum& other) {
+    bn = BN_new();
+    BN_copy(bn, other.bn);
+}
+
 CryptoKernel::BigNum::~BigNum() {
     BN_free(bn);
 }

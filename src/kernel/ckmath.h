@@ -30,6 +30,8 @@ namespace CryptoKernel
 
             BigNum();
 
+            BigNum(const BigNum& other);
+
             ~BigNum();
 
             std::string toString() const;
