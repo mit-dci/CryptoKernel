@@ -111,7 +111,7 @@ void CryptoKernel::Network::Peer::requestFunc()
                 {
                     Json::Value response;
                     response["data"]["version"] = version;
-                    response["data"]["tipHeight"] = blockchain->getBlock("tip").height;
+                    response["data"]["tipHeight"] = static_cast<unsigned long long int>(blockchain->getBlockDB("tip").getHeight());
                     response["nonce"] = request["nonce"];
                     send(response);
                 }
@@ -120,12 +120,12 @@ void CryptoKernel::Network::Peer::requestFunc()
                     std::vector<CryptoKernel::Blockchain::transaction> txs;
                     for(unsigned int i = 0; i < request["data"].size(); i++)
                     {
-                        const CryptoKernel::Blockchain::transaction tx = CryptoKernel::Blockchain::jsonToTransaction(request["data"][i]);
-                        const std::vector<CryptoKernel::Blockchain::transaction> unconfirmedTransactions = blockchain->getUnconfirmedTransactions();
+                        const CryptoKernel::Blockchain::transaction tx = CryptoKernel::Blockchain::transaction(request["data"][i]);
+                        const std::set<CryptoKernel::Blockchain::transaction> unconfirmedTransactions = blockchain->getUnconfirmedTransactions();
                         bool found = false;
-                        for(CryptoKernel::Blockchain::transaction utx : unconfirmedTransactions)
+                        for(const CryptoKernel::Blockchain::transaction& utx : unconfirmedTransactions)
                         {
-                            if(utx.id == tx.id)
+                            if(utx.getId() == tx.getId())
                             {
                                 found = true;
                                 break;
@@ -144,12 +144,11 @@ void CryptoKernel::Network::Peer::requestFunc()
                 }
                 else if(request["command"] == "block")
                 {
-                    const CryptoKernel::Blockchain::block block = CryptoKernel::Blockchain::jsonToBlock(request["data"]);
+                    const CryptoKernel::Blockchain::block block = CryptoKernel::Blockchain::block(request["data"]);
 
-                    bool blockExists = (blockchain->getBlock(block.id).id == block.id);
-
-                    if(!blockExists)
-                    {
+                    try {
+                        blockchain->getBlockDB(block.getId().toString());
+                    } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
                         if(blockchain->submitBlock(block, false))
                         {
                             network->broadcastBlock(block);
@@ -158,11 +157,11 @@ void CryptoKernel::Network::Peer::requestFunc()
                 }
                 else if(request["command"] == "getunconfirmed")
                 {
-                    const std::vector<CryptoKernel::Blockchain::transaction> unconfirmedTransactions = blockchain->getUnconfirmedTransactions();
+                    const std::set<CryptoKernel::Blockchain::transaction> unconfirmedTransactions = blockchain->getUnconfirmedTransactions();
                     Json::Value response;
-                    for(CryptoKernel::Blockchain::transaction tx : unconfirmedTransactions)
+                    for(const CryptoKernel::Blockchain::transaction& tx : unconfirmedTransactions)
                     {
-                        response["data"].append(CryptoKernel::Blockchain::transactionToJson(tx));
+                        response["data"].append(tx.toJson());
                     }
 
                     response["nonce"] = request["nonce"];
@@ -173,27 +172,16 @@ void CryptoKernel::Network::Peer::requestFunc()
                 {
                     const uint64_t start = request["data"]["start"].asUInt64();
                     const uint64_t end = request["data"]["end"].asUInt64();
-                    std::vector<CryptoKernel::Blockchain::block> blocks;
                     if(end > start && (end - start) <= 500)
                     {
-                        CryptoKernel::Blockchain::block currentBlock = blockchain->getBlock("tip");
-                        while(currentBlock.height > 0 && currentBlock.height > end)
-                        {
-                            currentBlock = blockchain->getBlock(currentBlock.previousBlockId);
-                        }
-
-                        while(currentBlock.height >= start && currentBlock.height > 0)
-                        {
-                            blocks.push_back(currentBlock);
-                            currentBlock = blockchain->getBlock(currentBlock.previousBlockId);
-                        }
-
-                        std::reverse(blocks.begin(), blocks.end());
-
                         Json::Value returning;
-                        for(CryptoKernel::Blockchain::block block : blocks)
+                        for(unsigned int i = start; i < end; i++)
                         {
-                            returning["data"].append(CryptoKernel::Blockchain::blockToJson(block));
+                            try {
+                                returning["data"].append(blockchain->getBlockByHeight(i).toJson());
+                            } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
+                                break;
+                            }
                         }
 
                         returning["nonce"] = request["nonce"];
@@ -211,14 +199,12 @@ void CryptoKernel::Network::Peer::requestFunc()
                 {
                     if(request["data"]["id"].empty())
                     {
-                        CryptoKernel::Blockchain::block currentBlock = blockchain->getBlock("tip");
-                        while(currentBlock.height > 0 && currentBlock.height != request["data"]["height"].asUInt64())
-                        {
-                            currentBlock = blockchain->getBlock(currentBlock.previousBlockId);
-                        }
-
                         Json::Value response;
-                        response["data"] = CryptoKernel::Blockchain::blockToJson(currentBlock);
+                        try {
+                            response["data"] = blockchain->getBlockByHeight(request["data"]["height"].asUInt64()).toJson();
+                        } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
+                            response["data"] = Json::Value();
+                        }
 
                         response["nonce"] = request["nonce"];
 
@@ -227,7 +213,11 @@ void CryptoKernel::Network::Peer::requestFunc()
                     else
                     {
                         Json::Value response;
-                        response["data"] = CryptoKernel::Blockchain::blockToJson(blockchain->getBlock(request["data"]["id"].asString()));
+                        try {
+                            response["data"] = blockchain->getBlock(request["data"]["id"].asString()).toJson();
+                        } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
+                            response["data"] = Json::Value();
+                        }
                         response["nonce"] = request["nonce"];
                         send(response);
                     }
@@ -256,23 +246,23 @@ Json::Value CryptoKernel::Network::Peer::getInfo()
     return sendRecv(request);
 }
 
-void CryptoKernel::Network::Peer::sendTransactions(const std::vector<CryptoKernel::Blockchain::transaction> transactions)
+void CryptoKernel::Network::Peer::sendTransactions(const std::vector<CryptoKernel::Blockchain::transaction>& transactions)
 {
     Json::Value request;
     request["command"] = "transactions";
-    for(CryptoKernel::Blockchain::transaction tx : transactions)
+    for(const CryptoKernel::Blockchain::transaction& tx : transactions)
     {
-        request["data"].append(CryptoKernel::Blockchain::transactionToJson(tx));
+        request["data"].append(tx.toJson());
     }
 
     send(request);
 }
 
-void CryptoKernel::Network::Peer::sendBlock(const CryptoKernel::Blockchain::block block)
+void CryptoKernel::Network::Peer::sendBlock(const CryptoKernel::Blockchain::block& block)
 {
     Json::Value request;
     request["command"] = "block";
-    request["data"] = CryptoKernel::Blockchain::blockToJson(block);
+    request["data"] = block.toJson();
 
     send(request);
 }
@@ -286,13 +276,13 @@ std::vector<CryptoKernel::Blockchain::transaction> CryptoKernel::Network::Peer::
     std::vector<CryptoKernel::Blockchain::transaction> returning;
     for(unsigned int i = 0; i < unconfirmed.size(); i++)
     {
-        returning.push_back(CryptoKernel::Blockchain::jsonToTransaction(unconfirmed[i]));
+        returning.push_back(CryptoKernel::Blockchain::transaction(unconfirmed[i]));
     }
 
     return returning;
 }
 
-CryptoKernel::Blockchain::block CryptoKernel::Network::Peer::getBlock(const uint64_t height, const std::string id)
+CryptoKernel::Blockchain::block CryptoKernel::Network::Peer::getBlock(const uint64_t height, const std::string& id)
 {
     Json::Value request;
     request["command"] = "getblock";
@@ -308,7 +298,7 @@ CryptoKernel::Blockchain::block CryptoKernel::Network::Peer::getBlock(const uint
         block = sendRecv(request);
     }
 
-    return CryptoKernel::Blockchain::jsonToBlock(block);
+    return CryptoKernel::Blockchain::block(block);
 }
 
 std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Peer::getBlocks(const uint64_t start, const uint64_t end)
@@ -322,7 +312,7 @@ std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Peer::getBlo
     std::vector<CryptoKernel::Blockchain::block> returning;
     for(unsigned int i = 0; i < blocks.size(); i++)
     {
-        returning.push_back(CryptoKernel::Blockchain::jsonToBlock(blocks[i]));
+        returning.push_back(CryptoKernel::Blockchain::block(blocks[i]));
     }
 
     return returning;

@@ -49,19 +49,19 @@ void CryptoKernel::BigNum::operator=(const BigNum& other) {
     BN_copy(bn, other.bn);
 }
 
-CryptoKernel::BigNum CryptoKernel::BigNum::operator+(const BigNum& rhs) {
+CryptoKernel::BigNum CryptoKernel::BigNum::operator+(const BigNum& rhs) const {
     BigNum returning;
     BN_add(returning.bn, bn, rhs.bn);
     return returning;
 }
 
-CryptoKernel::BigNum CryptoKernel::BigNum::operator-(const BigNum& rhs) {
+CryptoKernel::BigNum CryptoKernel::BigNum::operator-(const BigNum& rhs) const {
     BigNum returning;
     BN_sub(returning.bn, bn, rhs.bn);
     return returning;
 }
 
-CryptoKernel::BigNum CryptoKernel::BigNum::operator*(const BigNum& rhs) {
+CryptoKernel::BigNum CryptoKernel::BigNum::operator*(const BigNum& rhs) const {
     BigNum returning;
     BN_CTX *ctx = BN_CTX_new();
     BN_mul(returning.bn, bn, rhs.bn, ctx);
@@ -69,7 +69,7 @@ CryptoKernel::BigNum CryptoKernel::BigNum::operator*(const BigNum& rhs) {
     return returning;
 }
 
-CryptoKernel::BigNum CryptoKernel::BigNum::operator/(const BigNum& rhs) {
+CryptoKernel::BigNum CryptoKernel::BigNum::operator/(const BigNum& rhs) const {
     BigNum returning;
     BN_CTX *ctx = BN_CTX_new();
     BIGNUM *remBN = BN_new();
@@ -79,30 +79,30 @@ CryptoKernel::BigNum CryptoKernel::BigNum::operator/(const BigNum& rhs) {
     return returning;
 }
 
-int CryptoKernel::BigNum::compare(const BigNum& lhs, const BigNum& rhs) {
+int CryptoKernel::BigNum::compare(const BigNum& lhs, const BigNum& rhs) const {
     return BN_cmp(lhs.bn, rhs.bn);
 }
 
-bool CryptoKernel::BigNum::operator==(const BigNum& rhs) {
+bool CryptoKernel::BigNum::operator==(const BigNum& rhs) const {
     return compare(*this, rhs) == 0;
 }
 
-bool CryptoKernel::BigNum::operator!=(const BigNum& rhs) {
+bool CryptoKernel::BigNum::operator!=(const BigNum& rhs) const {
     return compare(*this, rhs) != 0;
 }
 
-bool CryptoKernel::BigNum::operator>(const BigNum& rhs) {
+bool CryptoKernel::BigNum::operator>(const BigNum& rhs) const {
     return compare(*this, rhs) > 0;
 }
 
-bool CryptoKernel::BigNum::operator<(const BigNum& rhs) {
+bool CryptoKernel::BigNum::operator<(const BigNum& rhs) const {
     return compare(*this, rhs) < 0;
 }
 
-bool CryptoKernel::BigNum::operator>=(const BigNum& rhs) {
+bool CryptoKernel::BigNum::operator>=(const BigNum& rhs) const {
     return compare(*this, rhs) >= 0;
 }
 
-bool CryptoKernel::BigNum::operator<=(const BigNum& rhs) {
+bool CryptoKernel::BigNum::operator<=(const BigNum& rhs) const {
     return compare(*this, rhs) <= 0;
 }

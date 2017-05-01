@@ -77,7 +77,7 @@ std::string CryptoKernel::ContractRunner::compile(const std::string contractScri
     return base64_encode((unsigned char*)compressedBytecode.c_str(), compressedBytecode.size());
 }
 
-void CryptoKernel::ContractRunner::setupEnvironment(Storage::Transaction* dbTx, const CryptoKernel::Blockchain::transaction tx, const CryptoKernel::Blockchain::output input)
+void CryptoKernel::ContractRunner::setupEnvironment(Storage::Transaction* dbTx, const CryptoKernel::Blockchain::transaction& tx, const CryptoKernel::Blockchain::output& input)
 {
     const int lim = this->pcLimit;
     (*state.get())["pcLimit"] = lim;
@@ -90,23 +90,20 @@ void CryptoKernel::ContractRunner::setupEnvironment(Storage::Transaction* dbTx, 
                                                          "verify", &CryptoKernel::Crypto::verify,
                                                          "getStatus", &CryptoKernel::Crypto::getStatus
                                                         );
-    (*state.get())["txJson"] = CryptoKernel::Storage::toString(CryptoKernel::Blockchain::transactionToJson(tx));
-    (*state.get())["thisInputJson"] = CryptoKernel::Storage::toString(CryptoKernel::Blockchain::outputToJson(input));
-    (*state.get())["outputSetId"] = CryptoKernel::Blockchain::calculateOutputSetId(tx.outputs);
+    (*state.get())["txJson"] = CryptoKernel::Storage::toString(tx.toJson());
+    (*state.get())["thisInputJson"] = CryptoKernel::Storage::toString(input.toJson());
+    (*state.get())["outputSetId"] = tx.getOutputSetId().toString();
     blockchainInterface->setTransaction(dbTx);
     (*state.get())["Blockchain"].SetObj((*blockchainInterface), "getBlock", &BlockchainInterface::getBlock, "getTransaction", &BlockchainInterface::getTransaction);
 }
 
-bool CryptoKernel::ContractRunner::evaluateValid(Storage::Transaction* dbTx, const CryptoKernel::Blockchain::transaction tx)
+bool CryptoKernel::ContractRunner::evaluateValid(Storage::Transaction* dbTx, const CryptoKernel::Blockchain::transaction& tx)
 {
-    CryptoKernel::Blockchain::transaction myTx = tx;
-
-    std::vector<CryptoKernel::Blockchain::output>::iterator it;
-    for(it = myTx.inputs.begin(); it < myTx.inputs.end(); it++)
-    {
-        if(!(*it).data["contract"].empty())
-        {
-            setupEnvironment(dbTx, tx, (*it));
+    for(const CryptoKernel::Blockchain::input& inp : tx.getInputs()) {
+        const CryptoKernel::Blockchain::output out = CryptoKernel::Blockchain::dbOutput(blockchain->utxos->get(dbTx, inp.getOutputId().toString()));
+        const Json::Value data = out.getData();
+        if(!data["contract"].empty()) {
+            setupEnvironment(dbTx, tx, out);
             if(!(*state.get()).Load("./sandbox.lua"))
             {
                 throw std::runtime_error("Failed to load sandbox.lua");
@@ -114,7 +111,7 @@ bool CryptoKernel::ContractRunner::evaluateValid(Storage::Transaction* dbTx, con
 
             bool result = false;
             std::string errorMessage = "";
-            sel::tie(result, errorMessage) = (*state.get())["verifyTransaction"](base64_decode((*it).data["contract"].asString()));
+            sel::tie(result, errorMessage) = (*state.get())["verifyTransaction"](base64_decode(data["contract"].asString()));
 
             if(errorMessage != "") {
                 throw std::runtime_error(errorMessage);

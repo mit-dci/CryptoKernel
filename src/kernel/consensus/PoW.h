@@ -24,9 +24,9 @@ namespace CryptoKernel {
             * In Proof of Work this function checks if the total work of the given
             * block is greater than the total work of the current tip block.
             */
-            bool isBlockBetter(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block block, const CryptoKernel::Blockchain::block tip);
+            bool isBlockBetter(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block& block, const CryptoKernel::Blockchain::dbBlock& tip);
 
-            std::string serializeConsensusData(const CryptoKernel::Blockchain::block block);
+            std::string serializeConsensusData(const CryptoKernel::Blockchain::block& block);
 
             /**
             * Checks the following rules:
@@ -35,9 +35,9 @@ namespace CryptoKernel {
             *   - Proof of Work is below block target
             *   - Checks the block's total work is correct
             */
-            bool checkConsensusRules(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block block, const CryptoKernel::Blockchain::block previousBlock);
+            bool checkConsensusRules(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block& block, const CryptoKernel::Blockchain::dbBlock& previousBlock);
 
-            Json::Value generateConsensusData(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block block, const std::string publicKey);
+            Json::Value generateConsensusData(Storage::Transaction* transaction, const CryptoKernel::BigNum& previousBlockId, const std::string& publicKey);
 
             /**
             * Pure virtual function that provides a proof of work hash
@@ -46,7 +46,7 @@ namespace CryptoKernel {
             * @param inputString the string to hash
             * @return the hash of the given input in hex
             */
-            virtual std::string powFunction(const std::string inputString) = 0;
+            virtual CryptoKernel::BigNum powFunction(const std::string& inputString) = 0;
 
             /**
             * Pure virtual function that calculates the proof of work target
@@ -56,7 +56,7 @@ namespace CryptoKernel {
             *        to calculate the target for
             * @return the hex target of the block
             */
-            virtual std::string calculateTarget(Storage::Transaction* transaction, const std::string previousBlockId) = 0;
+            virtual CryptoKernel::BigNum calculateTarget(Storage::Transaction* transaction, const BigNum& previousBlockId) = 0;
 
             /**
             * This class uses Kimoto Gravity Well for difficulty adjustment
@@ -70,19 +70,20 @@ namespace CryptoKernel {
             * @param block the block to calculate the Proof of Work of
             * @return a hex string representing the PoW hash of the given block
             */
-            std::string calculatePoW(const CryptoKernel::Blockchain::block& block);
+            CryptoKernel::BigNum calculatePoW(const CryptoKernel::Blockchain::block& block);
 
         protected:
             CryptoKernel::Blockchain* blockchain;
             uint64_t blockTarget;
             struct consensusData {
-                std::string totalWork;
-                std::string target;
-                std::string PoW;
+                BigNum totalWork;
+                BigNum target;
+                BigNum PoW;
                 uint64_t nonce;
             };
             consensusData getConsensusData(const CryptoKernel::Blockchain::block& block);
-            Json::Value consensusDataToJson(const consensusData data);
+            consensusData getConsensusData(const CryptoKernel::Blockchain::dbBlock& block);
+            Json::Value consensusDataToJson(const consensusData& data);
     };
 
     class Consensus::PoW::KGW_SHA256 : public PoW {
@@ -92,32 +93,32 @@ namespace CryptoKernel {
             /**
             * Uses SHA256 to calculate the hash
             */
-            std::string powFunction(const std::string inputString);
+            CryptoKernel::BigNum powFunction(const std::string& inputString);
 
             /**
             * Uses Kimoto Gravity Well to retarget the difficulty
             */
-            std::string calculateTarget(Storage::Transaction* transaction, const std::string previousBlockId);
+            CryptoKernel::BigNum calculateTarget(Storage::Transaction* transaction, const BigNum& previousBlockId);
 
             /**
             * Has no effect, always returns true
             */
-            bool verifyTransaction(Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction tx);
+            bool verifyTransaction(Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction& tx);
 
             /**
             * Has no effect, always returns true
             */
-            bool confirmTransaction(Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction tx);
+            bool confirmTransaction(Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction& tx);
 
             /**
             * Has no effect, always returns true
             */
-            bool submitTransaction(Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction tx);
+            bool submitTransaction(Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction& tx);
 
             /**
             * Has no effect, always returns true
             */
-            bool submitBlock(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block block);
+            bool submitBlock(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block& block);
     };
 }
 

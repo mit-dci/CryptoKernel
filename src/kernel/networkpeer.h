@@ -14,10 +14,10 @@ class CryptoKernel::Network::Peer
         ~Peer();
 
         Json::Value getInfo();
-        void sendTransactions(const std::vector<CryptoKernel::Blockchain::transaction> transactions);
-        void sendBlock(const CryptoKernel::Blockchain::block block);
+        void sendTransactions(const std::vector<CryptoKernel::Blockchain::transaction>& transactions);
+        void sendBlock(const CryptoKernel::Blockchain::block& block);
         std::vector<CryptoKernel::Blockchain::transaction> getUnconfirmedTransactions();
-        CryptoKernel::Blockchain::block getBlock(const uint64_t height, const std::string id);
+        CryptoKernel::Blockchain::block getBlock(const uint64_t height, const std::string& id);
         std::vector<CryptoKernel::Blockchain::block> getBlocks(const uint64_t start, const uint64_t end);
 
         class NetworkError : std::exception

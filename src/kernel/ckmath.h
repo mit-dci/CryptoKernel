@@ -36,10 +36,10 @@ namespace CryptoKernel
 
             void operator=(const BigNum& other);
 
-            BigNum operator+(const BigNum& rhs);
-            BigNum operator-(const BigNum& rhs);
-            BigNum operator*(const BigNum& rhs);
-            BigNum operator/(const BigNum& rhs);
+            BigNum operator+(const BigNum& rhs) const;
+            BigNum operator-(const BigNum& rhs) const;
+            BigNum operator*(const BigNum& rhs) const;
+            BigNum operator/(const BigNum& rhs) const;
 
             bool operator!=(const BigNum& rhs) const;
             bool operator==(const BigNum& rhs) const;
@@ -52,7 +52,7 @@ namespace CryptoKernel
         private:
             BIGNUM* bn;
 
-            int compare(const BigNum& lhs, const BigNum& rhs);
+            int compare(const BigNum& lhs, const BigNum& rhs) const;
     };
 }
 

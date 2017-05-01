@@ -1,8 +1,8 @@
 UNAME := $(shell uname -o)
 
 ifeq ($(UNAME), GNU/Linux)
-LUA_INCDIR ?= /usr/local/include/lua5.3
-LUA_LIBDIR ?= /usr/local/lib
+LUA_INCDIR ?= /usr/include/lua5.3
+LUA_LIBDIR ?= /usr/lib
 LIBFLAGS   ?= -shared
 BINFLAGS   ?= -I. -L. -Wl,-rpath -Wl,./ -lck -llua5.3 -lcrypto -ldl -pthread -lleveldb -lmicrohttpd -ljsonrpccpp-common -ljsonrpccpp-server -lcurl -ljsonrpccpp-client -ljsoncpp -lsfml-system -lsfml-network
 PLATFORMCXXFLAGS ?= -fPIC
@@ -25,7 +25,7 @@ endif
 
 KERNELCXXFLAGS ?= -g -Wall -std=c++14 -O2 -Wl,-E -Isrc/kernel
 
-KERNELSRC = src/kernel/blockchain.cpp src/kernel/math.cpp src/kernel/storage.cpp src/kernel/network.cpp src/kernel/networkpeer.cpp src/kernel/base64.cpp src/kernel/crypto.cpp src/kernel/log.cpp src/kernel/contract.cpp src/kernel/consensus/AVRR.cpp src/kernel/consensus/PoW.cpp
+KERNELSRC = src/kernel/blockchain.cpp src/kernel/blockchaintypes.cpp src/kernel/math.cpp src/kernel/storage.cpp src/kernel/network.cpp src/kernel/networkpeer.cpp src/kernel/base64.cpp src/kernel/crypto.cpp src/kernel/log.cpp src/kernel/contract.cpp src/kernel/consensus/AVRR.cpp src/kernel/consensus/PoW.cpp
 KERNELOBJS = $(KERNELSRC:.cpp=.o)
 
 CLIENTSRC = src/client/main.cpp src/client/rpcserver.cpp src/client/wallet.cpp

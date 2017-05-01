@@ -119,104 +119,80 @@ bool CryptoCurrency::Wallet::updateAddressBalance(CryptoKernel::Storage::Transac
     }
 }
 
-bool CryptoCurrency::Wallet::sendToAddress(std::string publicKey, uint64_t amount, uint64_t fee)
+bool CryptoCurrency::Wallet::sendToAddress(const std::string& publicKey, const uint64_t amount, const uint64_t fee)
 {
-    if(getTotalBalance() < amount + fee)
-    {
+    if(getTotalBalance() < amount + fee) {
         return false;
     }
 
-    std::vector<CryptoKernel::Blockchain::output> inputs;
+    CryptoKernel::Crypto crypto;
+    if(!crypto.setPublicKey(publicKey)) {
+        return false;
+    }
+
+    std::set<CryptoKernel::Blockchain::output> inputs;
     CryptoKernel::Storage::Table::Iterator* it = new CryptoKernel::Storage::Table::Iterator(addresses.get(), walletdb.get());
-    for(it->SeekToFirst(); it->Valid(); it->Next())
-    {
-        std::vector<CryptoKernel::Blockchain::output> tempInputs;
+    for(it->SeekToFirst(); it->Valid(); it->Next()) {
+        std::set<CryptoKernel::Blockchain::output> tempInputs;
         tempInputs = blockchain->getUnspentOutputs(it->value()["publicKey"].asString());
-        std::vector<CryptoKernel::Blockchain::output>::iterator it2;
-        for(it2 = tempInputs.begin(); it2 < tempInputs.end(); it2++)
-        {
-            if((*it2).data["contract"].empty()) {
-                inputs.push_back(*it2);
+        for(const CryptoKernel::Blockchain::output& out : tempInputs) {
+            if(out.getData()["contract"].empty()) {
+                inputs.insert(out);
             }
         }
     }
     delete it;
 
-    std::vector<CryptoKernel::Blockchain::output> toSpend;
-
-    double accumulator = 0;
-    std::vector<CryptoKernel::Blockchain::output>::iterator it2;
-
-    for(it2 = inputs.begin(); it2 < inputs.end(); it2++)
-    {
-        if(accumulator < amount + fee)
-        {
-            toSpend.push_back(*it2);
-            accumulator += (*it2).value;
-        }
-        else
-        {
+    std::set<CryptoKernel::Blockchain::output> toSpend;
+    uint64_t accumulator = 0;
+    for(const CryptoKernel::Blockchain::output& out : inputs) {
+        if(accumulator < amount + fee) {
+            toSpend.insert(out);
+            accumulator += out.getValue();
+        } else {
             break;
         }
     }
 
-    CryptoKernel::Blockchain::output toThem;
-    toThem.value = amount;
-
-    CryptoKernel::Crypto crypto;
-    if(!crypto.setPublicKey(publicKey))
-    {
-        return false;
-    }
-    toThem.publicKey = publicKey;
-
     std::uniform_int_distribution<uint64_t> distribution(0, std::numeric_limits<uint64_t>::max());
-    toThem.nonce = distribution(generator);
-
-    //const std::string contract = "local json = Json.new() local tx = json:decode(txJson) local crypto = Crypto.new() crypto:setPublicKey(tx[\"inputs\"][1][\"publicKey\"]) if crypto:verify(tx[\"inputs\"][1][\"id\"] .. outputSetId, tx[\"inputs\"][1][\"signature\"]) then return true else return false end";
-    //const std::string compressedBytecode = CryptoKernel::ContractRunner::compile(contract);
-
     Json::Value data;
-    //data["contract"] = compressedBytecode;
+    data["publicKey"] = publicKey;
 
-    toThem.data = data;
-
-    toThem.id = blockchain->calculateOutputId(toThem);
-
-    CryptoKernel::Blockchain::output change;
-    change.value = accumulator - amount - fee;
+    const CryptoKernel::Blockchain::output toThem = CryptoKernel::Blockchain::output(amount, distribution(generator), data);
 
     std::stringstream buffer;
     buffer << distribution(generator) << "_change";
-    address Address = newAddress(buffer.str());
+    const address Address = newAddress(buffer.str());
 
-    change.publicKey = Address.publicKey;
-    change.nonce = distribution(generator);
-    change.id = blockchain->calculateOutputId(change);
+    data.clear();
+    data["publicKey"] = Address.publicKey;
 
-    std::vector<CryptoKernel::Blockchain::output> outputs;
-    outputs.push_back(change);
-    outputs.push_back(toThem);
-    std::string outputHash = blockchain->calculateOutputSetId(outputs);
+    const CryptoKernel::Blockchain::output change = CryptoKernel::Blockchain::output(accumulator - amount - fee, distribution(generator), data);
 
-    for(it2 = toSpend.begin(); it2 < toSpend.end(); it2++)
-    {
-        address Address = getAddressByKey((*it2).publicKey);
+    std::set<CryptoKernel::Blockchain::output> outputs;
+    outputs.insert(change);
+    outputs.insert(toThem);
+
+    const std::string outputHash = CryptoKernel::Blockchain::transaction::getOutputSetId(outputs).toString();
+
+    std::set<CryptoKernel::Blockchain::input> spends;
+
+    for(const CryptoKernel::Blockchain::output& out : toSpend) {
+        address Address = getAddressByKey(out.getData()["publicKey"].asString());
         crypto.setPrivateKey(Address.privateKey);
-        std::string signature = crypto.sign((*it2).id + outputHash);
-        (*it2).signature = signature;
-    }
 
-    CryptoKernel::Blockchain::transaction tx;
-    tx.inputs = toSpend;
-    tx.outputs.push_back(toThem);
-    tx.outputs.push_back(change);
+        const std::string signature = crypto.sign(out.getId().toString() + outputHash);
+        Json::Value spendData;
+        spendData["signature"] = signature;
+
+        const CryptoKernel::Blockchain::input inp = CryptoKernel::Blockchain::input(out.getId(), spendData);
+        spends.insert(inp);
+    }
 
     const time_t t = std::time(0);
     const uint64_t now = static_cast<uint64_t> (t);
 
-    tx.timestamp = now;
-    tx.id = blockchain->calculateTransactionId(tx);
+    const CryptoKernel::Blockchain::transaction tx = CryptoKernel::Blockchain::transaction(spends, outputs, now);
 
     if(!blockchain->submitTransaction(tx))
     {
@@ -288,34 +264,33 @@ std::vector<CryptoCurrency::Wallet::address> CryptoCurrency::Wallet::listAddress
 
 CryptoKernel::Blockchain::transaction CryptoCurrency::Wallet::signTransaction(const CryptoKernel::Blockchain::transaction tx)
 {
-    CryptoKernel::Blockchain::transaction returning = tx;
-    const std::string outputHash = blockchain->calculateOutputSetId(returning.outputs);
+    const std::string outputHash = tx.getOutputSetId().toString();
 
     CryptoKernel::Crypto crypto;
 
-    for(CryptoKernel::Blockchain::output& input : returning.inputs)
-    {
-        const address Address = getAddressByKey(input.publicKey);
+    std::set<CryptoKernel::Blockchain::input> newInputs;
+
+    for(const CryptoKernel::Blockchain::input& input : tx.getInputs()) {
+        const address Address = getAddressByKey(input.getData()["publicKey"].asString());
         crypto.setPrivateKey(Address.privateKey);
-        const std::string signature = crypto.sign(input.id + outputHash);
-        input.signature = signature;
+        const std::string signature = crypto.sign(input.getOutputId().toString() + outputHash);
+        Json::Value spendData = input.getData();
+        spendData["signature"] = signature;
+        newInputs.insert(CryptoKernel::Blockchain::input(input.getOutputId(), spendData));
     }
 
     const time_t t = std::time(0);
     const uint64_t now = static_cast<uint64_t> (t);
 
-    returning.timestamp = now;
-    returning.id = blockchain->calculateTransactionId(returning);
-
-    return returning;
+    return CryptoKernel::Blockchain::transaction(newInputs, tx.getOutputs(), now);
 }
 
 std::set<CryptoKernel::Blockchain::transaction> CryptoCurrency::Wallet::listTransactions() {
-    const std::vector<address> addrs = listAddresses();
+    /*const std::vector<address> addrs = listAddresses();
     std::set<std::string> pubKeys;
     for(const address addr : addrs) {
         pubKeys.insert(addr.publicKey);
     }
 
-    return blockchain->getTransactionsByPubKeys(pubKeys);
+    return blockchain->getTransactionsByPubKeys(pubKeys);*/
 }

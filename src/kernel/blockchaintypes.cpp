@@ -79,7 +79,7 @@ CryptoKernel::Blockchain::dbOutput::dbOutput(const Json::Value& jsonOutput) : ou
     creationTx = CryptoKernel::BigNum(jsonOutput["creationTx"].asString());
 }
 
-CryptoKernel::Blockchain::dbOutput::dbOutput(output& compactOutput, const BigNum& creationTx) : output(compactOutput.getValue(), compactOutput.getNonce(), compactOutput.getData()) {
+CryptoKernel::Blockchain::dbOutput::dbOutput(const output& compactOutput, const BigNum& creationTx) : output(compactOutput.getValue(), compactOutput.getNonce(), compactOutput.getData()) {
     this->creationTx = creationTx;
 }
 
@@ -149,7 +149,7 @@ CryptoKernel::Blockchain::dbInput::dbInput(const Json::Value& inputJson) : input
 
 }
 
-CryptoKernel::Blockchain::dbInput::dbInput(input& compactInput) : input(compactInput.getOutputId(), compactInput.getData()) {
+CryptoKernel::Blockchain::dbInput::dbInput(const input& compactInput) : input(compactInput.getOutputId(), compactInput.getData()) {
 
 }
 
@@ -235,6 +235,10 @@ CryptoKernel::BigNum CryptoKernel::Blockchain::transaction::getId() const {
 }
 
 CryptoKernel::BigNum CryptoKernel::Blockchain::transaction::getOutputSetId() const {
+    return getOutputSetId(outputs);
+}
+
+CryptoKernel::BigNum CryptoKernel::Blockchain::transaction::getOutputSetId(const std::set<output>& outputs) {
     std::stringstream buffer;
 
     for(const output& out : outputs) {
@@ -273,8 +277,8 @@ Json::Value CryptoKernel::Blockchain::transaction::toJson() const {
     return returning;
 }
 
-CryptoKernel::Blockchain::dbTransaction::dbTransaction(const Json::Value& jsonTransaction, const BigNum& confirmingBlock) {
-    this->confirmingBlock = confirmingBlock;
+CryptoKernel::Blockchain::dbTransaction::dbTransaction(const Json::Value& jsonTransaction) {
+    this->confirmingBlock = CryptoKernel::BigNum(jsonTransaction["coinbaseTx"].asString());
     this->coinbaseTx = jsonTransaction["coinbaseTx"].asBool();
 
     for(const Json::Value& inp : jsonTransaction["inputs"]) {
@@ -309,6 +313,23 @@ CryptoKernel::Blockchain::dbTransaction::dbTransaction(const transaction& compac
     checkRep();
 
     id = calculateId();
+}
+
+CryptoKernel::BigNum CryptoKernel::Blockchain::dbTransaction::calculateId() {
+    std::stringstream buffer;
+
+    for(const BigNum& inp : inputs) {
+        buffer << inp.toString();
+    }
+
+    for(const BigNum& out : outputs) {
+        buffer << out.toString();
+    }
+
+    buffer << timestamp;
+
+    CryptoKernel::Crypto crypto;
+    return CryptoKernel::BigNum(crypto.sha256(buffer.str()));
 }
 
 void CryptoKernel::Blockchain::dbTransaction::checkRep () {
@@ -383,6 +404,12 @@ CryptoKernel::Blockchain::block::block(const Json::Value& jsonBlock)
     }
 
     checkRep();
+
+    id = calculateId();
+}
+
+void CryptoKernel::Blockchain::block::setConsensusData(const Json::Value& data) {
+    consensusData = data;
 
     id = calculateId();
 }

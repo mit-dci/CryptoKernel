@@ -127,6 +127,8 @@ namespace CryptoKernel
 
                     BigNum getOutputSetId() const;
 
+                    static BigNum getOutputSetId(const std::set<output>& outputs);
+
                     bool operator<(const transaction& rhs) const;
 
                 private:
@@ -153,6 +155,8 @@ namespace CryptoKernel
                     BigNum getPreviousBlockId() const;
                     uint64_t getTimestamp() const;
                     Json::Value getConsensusData() const;
+
+                    void setConsensusData(const Json::Value& data);
 
                     BigNum getId() const;
 
@@ -202,21 +206,24 @@ namespace CryptoKernel
                     BigNum id;
             };
 
-            bool submitTransaction(transaction tx);
-            bool submitBlock(block newBlock, bool genesisBlock = false);
+            bool submitTransaction(const transaction& tx);
+            bool submitBlock(const block& newBlock, bool genesisBlock = false);
 
-            uint64_t getBalance(std::string publicKey);
-            block generateVerifyingBlock(std::string publicKey);
+            uint64_t getBalance(const std::string& publicKey);
+            block generateVerifyingBlock(const std::string& publicKey);
 
-            block getBlock(Storage::Transaction* transaction, const std::string id);
+            block getBlock(Storage::Transaction* transaction, const std::string& id);
             block getBlockByHeight(Storage::Transaction* transaction, const uint64_t height);
 
-            dbBlock getBlockDB(Storage::Transaction* transaction, const std::string id);
+            dbBlock getBlockDB(Storage::Transaction* transaction, const std::string& id);
             dbBlock getBlockByHeightDB(Storage::Transaction* transaction, const uint64_t height);
+
+            dbBlock getBlockDB(const std::string& id);
+            dbBlock getBlockByHeightDB(const uint64_t height);
 
             block buildBlock(Storage::Transaction* transaction, const dbBlock& dbblock);
 
-            block getBlock(const std::string id);
+            block getBlock(const std::string& id);
 
             /**
             * Retrieves the block from the current main chain with the given height
@@ -234,20 +241,9 @@ namespace CryptoKernel
             * @return the confirmed transaction with the given id or an empty transaction
             *         if it doesn't exist
             */
-            transaction getTransaction(Storage::Transaction* transaction, const std::string id);
+            transaction getTransaction(Storage::Transaction* transaction, const std::string& id);
 
-            /**
-            * Retrieves all of the transactions associated with
-            * a given set of public keys by checking the publicKey
-            * field in every transactions' inputs and outputs.
-            *
-            * @param pubKeys a set containing the public keys to search for
-            * @return a set containing the transactions associated with the key
-            *         set
-            */
-            std::set<transaction> getTransactionsByPubKeys(const std::set<std::string> pubKeys);
-
-            std::vector<output> getUnspentOutputs(std::string publicKey);
+            std::set<output> getUnspentOutputs(const std::string& publicKey);
 
             std::set<transaction> getUnconfirmedTransactions();
 
@@ -276,23 +272,24 @@ namespace CryptoKernel
             std::set<transaction> unconfirmedTransactions;
             bool verifyTransaction(Storage::Transaction* dbTransaction, const transaction& tx, const bool coinbaseTx = false);
             void confirmTransaction(Storage::Transaction* dbTransaction, const transaction& tx, const BigNum& confirmingBlock, const bool coinbaseTx = false);
-            uint64_t getTransactionFee(transaction tx);
-            uint64_t calculateTransactionFee(transaction tx);
+            uint64_t getTransactionFee(const transaction& tx);
+            uint64_t calculateTransactionFee(Storage::Transaction* dbTx, const transaction& tx);
             bool status;
             void reverseBlock(Storage::Transaction* dbTransaction);
-            bool reorgChain(Storage::Transaction* dbTransaction, std::string newTipId);
+            bool reorgChain(Storage::Transaction* dbTransaction, const BigNum& newTipId);
             std::recursive_mutex chainLock;
             virtual uint64_t getBlockReward(const uint64_t height) = 0;
-            virtual std::string getCoinbaseOwner(const std::string publicKey) = 0;
+            virtual std::string getCoinbaseOwner(const std::string& publicKey) = 0;
             Consensus* consensus;
             void emptyDB();
-            bool submitTransaction(Storage::Transaction* dbTx, transaction tx);
-            bool submitBlock(Storage::Transaction* dbTx, block newBlock, bool genesisBlock = false);
+            bool submitTransaction(Storage::Transaction* dbTx, const transaction& tx);
+            bool submitBlock(Storage::Transaction* dbTx, const block& newBlock, bool genesisBlock = false);
             friend class Consensus;
+            friend class ContractRunner;
 
             class dbInput : public input {
                 public:
-                    dbInput(input& compactInput);
+                    dbInput(const input& compactInput);
                     dbInput(const Json::Value& inputJson);
 
                     Json::Value toJson() const;
@@ -300,7 +297,7 @@ namespace CryptoKernel
 
             class dbOutput : public output {
                 public:
-                    dbOutput(output& compactOutput, const BigNum& creationTx);
+                    dbOutput(const output& compactOutput, const BigNum& creationTx);
                     dbOutput(const Json::Value& jsonOutput);
 
                     Json::Value toJson() const;
@@ -312,7 +309,7 @@ namespace CryptoKernel
             class dbTransaction {
                 public:
                     dbTransaction(const transaction& compactTransaction, const BigNum& confirmingBlock, const bool coinbaseTx = false);
-                    dbTransaction(const Json::Value& jsonTransaction, const BigNum& confirmingBlock);
+                    dbTransaction(const Json::Value& jsonTransaction);
 
                     Json::Value toJson() const;
 
@@ -335,6 +332,7 @@ namespace CryptoKernel
 
                     BigNum id;
             };
+
     };
 
     /**
@@ -359,7 +357,7 @@ namespace CryptoKernel
             * @return true iff block takes precedence over the current chain tip,
             *         otherwise false
             */
-            virtual bool isBlockBetter(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block block, const CryptoKernel::Blockchain::block tip) = 0;
+            virtual bool isBlockBetter(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block& block, const CryptoKernel::Blockchain::dbBlock& tip) = 0;
 
             /**
             * Pure virtual method that returns true iff the given block conforms to
@@ -371,7 +369,7 @@ namespace CryptoKernel
             * @param block the block to check the consensus rules of
             * @return true iff the rules are valid, otherwise false
             */
-            virtual bool checkConsensusRules(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block block, const CryptoKernel::Blockchain::block previousBlock) = 0;
+            virtual bool checkConsensusRules(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block& block, const CryptoKernel::Blockchain::dbBlock& previousBlock) = 0;
 
             /**
             * Pure virtual function that generates the consensus data
@@ -382,17 +380,7 @@ namespace CryptoKernel
             * @param publicKey the public key to that will own this block
             * @return the consensusData for the block
             */
-            virtual Json::Value generateConsensusData(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block block, const std::string publicKey) = 0;
-
-            /**
-            * Pure virtual function that serializes the consensus data field of a block
-            * into a string to be used when calculating a block's ID.
-            *
-            * @param block the block to serialize the consensus data of
-            * @return a string that represents the serialization of the given block's
-            *         consensus data
-            */
-            virtual std::string serializeConsensusData(const CryptoKernel::Blockchain::block block) = 0;
+            virtual Json::Value generateConsensusData(Storage::Transaction* transaction, const CryptoKernel::BigNum& previousBlockId, const std::string& publicKey) = 0;
 
             /**
             * Callback for custom transaction behavior when when the blockchain needs to check
@@ -402,7 +390,7 @@ namespace CryptoKernel
             * @param tx the transaction to check the validity of
             * @return true iff the transaction is valid given the current blockchain state
             */
-            virtual bool verifyTransaction(Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction tx) = 0;
+            virtual bool verifyTransaction(Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction& tx) = 0;
 
             /**
             * Callback for custom transaction behavior when the blockchain if confirming a transaction
@@ -412,7 +400,7 @@ namespace CryptoKernel
             * @param tx the transaction to be confirmed
             * @return true iff the transaction was successfully confirmed given the current blockchain state
             */
-            virtual bool confirmTransaction(Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction tx) = 0;
+            virtual bool confirmTransaction(Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction& tx) = 0;
 
             /**
             * Callback for custom transaction behavior when the blockchain is submitting a transaction
@@ -421,7 +409,7 @@ namespace CryptoKernel
             * @param tx the transaction being submitted
             * @return true iff the transaction was successfully submitted given the current blockchain state
             */
-            virtual bool submitTransaction(Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction tx) = 0;
+            virtual bool submitTransaction(Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction& tx) = 0;
 
             /**
             * Callback for custom block submission behavior when the blockchain is submitting a block.
@@ -431,7 +419,7 @@ namespace CryptoKernel
             * @param block the block being submitted
             * @return true iff the block was successfully submitted given the current blockchain state
             */
-            virtual bool submitBlock(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block block) = 0;
+            virtual bool submitBlock(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block& block) = 0;
 
             class PoW;
             class AVRR;

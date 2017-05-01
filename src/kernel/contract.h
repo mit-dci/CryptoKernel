@@ -48,10 +48,10 @@ namespace CryptoKernel
             * @param tx the transaction to be verified
             * @return true iff the transaction is valid according to contract scripts, false otherwise
             */
-            bool evaluateValid(Storage::Transaction* dbTx, const CryptoKernel::Blockchain::transaction tx);
+            bool evaluateValid(Storage::Transaction* dbTx, const CryptoKernel::Blockchain::transaction& tx);
 
         private:
-            void setupEnvironment(Storage::Transaction* dbTx, const CryptoKernel::Blockchain::transaction tx, const CryptoKernel::Blockchain::output input);
+            void setupEnvironment(Storage::Transaction* dbTx, const CryptoKernel::Blockchain::transaction& tx, const CryptoKernel::Blockchain::output& input);
             std::unique_ptr<sel::State> state;
             std::unique_ptr<int> ud;
             static void* allocWrapper(void* thisPointer, void* ptr, size_t osize, size_t nsize);

@@ -152,7 +152,7 @@ void CryptoKernel::Network::networkFunc()
         dbTx->commit();
 
         //Determine best chain
-        uint64_t currentHeight = blockchain->getBlock("tip").height;
+        uint64_t currentHeight = blockchain->getBlockDB("tip").getHeight();
         uint64_t bestHeight = currentHeight;
         for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin(); it != connected.end(); it++)
         {
@@ -280,7 +280,7 @@ void CryptoKernel::Network::broadcastBlock(const CryptoKernel::Blockchain::block
 
 double CryptoKernel::Network::syncProgress()
 {
-    uint64_t currentHeight = blockchain->getBlock("tip").height;
+    uint64_t currentHeight = blockchain->getBlockDB("tip").getHeight();
     uint64_t bestHeight = currentHeight;
     for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin(); it != connected.end(); it++)
     {

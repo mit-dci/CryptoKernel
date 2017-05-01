@@ -34,7 +34,6 @@
 
 void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* consensus, CryptoCurrency::Wallet* wallet, CryptoKernel::Log* log, CryptoKernel::Network* network)
 {
-    CryptoKernel::Blockchain::block Block;
     wallet->newAddress("mining");
 
     time_t t = std::time(0);
@@ -44,7 +43,7 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* c
     {
         if(network->getConnections() > 0 && network->syncProgress() >= 1)
         {
-            Block = blockchain->generateVerifyingBlock(wallet->getAddressByName("mining").publicKey);
+            CryptoKernel::Blockchain::block Block = blockchain->generateVerifyingBlock(wallet->getAddressByName("mining").publicKey);
             uint64_t nonce = 0;
 
             t = std::time(0);
@@ -52,6 +51,14 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* c
 
             uint64_t time2 = now;
             uint64_t count = 0;
+            CryptoKernel::BigNum pow;
+
+            CryptoKernel::BigNum target = CryptoKernel::BigNum(Block.getConsensusData()["target"].asString());
+            CryptoKernel::Blockchain::dbBlock previousBlock = blockchain->getBlockDB(Block.getPreviousBlockId().toString());
+            const CryptoKernel::BigNum inverse = CryptoKernel::BigNum("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff") - target;
+            Json::Value consensusData = Block.getConsensusData();
+            consensusData["totalWork"] = (inverse + CryptoKernel::BigNum(previousBlock.getConsensusData()["totalWork"].asString())).toString();
+            consensusData["nonce"] = static_cast<unsigned long long int>(nonce);
 
             do
             {
@@ -63,21 +70,23 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* c
                     message << "miner(): Hashrate: " << ((count / (time2 - now)) / 1000.0f) << " kH/s";
                     log->printf(LOG_LEVEL_INFO, message.str());
                     Block = blockchain->generateVerifyingBlock(wallet->getAddressByName("mining").publicKey);
+                    target = CryptoKernel::BigNum(Block.getConsensusData()["target"].asString());
+                    const CryptoKernel::BigNum inverse = CryptoKernel::BigNum("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff") - target;
+                    consensusData = Block.getConsensusData();
+                    consensusData["totalWork"] = (inverse + CryptoKernel::BigNum(previousBlock.getConsensusData()["totalWork"].asString())).toString();
                     now = time2;
                     count = 0;
                 }
 
                 count += 1;
                 nonce += 1;
-                Block.consensusData["nonce"] = static_cast<unsigned long long int>(nonce);
-                Block.consensusData["PoW"] = consensus->calculatePoW(Block);
-            }
-            while(!CryptoKernel::Math::hex_greater(Block.consensusData["target"].asString(), Block.consensusData["PoW"].asString()));
 
-            CryptoKernel::Blockchain::block previousBlock;
-            previousBlock = blockchain->getBlock(Block.previousBlockId);
-            const std::string inverse = CryptoKernel::Math::subtractHex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", Block.consensusData["target"].asString());
-            Block.consensusData["totalWork"] = CryptoKernel::Math::addHex(inverse, previousBlock.consensusData["totalWork"].asString());
+                consensusData["nonce"] = static_cast<unsigned long long int>(nonce);
+                Block.setConsensusData(consensusData);
+
+                pow = consensus->calculatePoW(Block);
+            }
+            while(pow >= target);
 
             if(blockchain->submitBlock(Block))
             {
@@ -112,7 +121,7 @@ class MyBlockchain : public CryptoKernel::Blockchain
             }
         }
 
-        std::string getCoinbaseOwner(const std::string publicKey) {
+        std::string getCoinbaseOwner(const std::string& publicKey) {
             return publicKey;
         }
 };

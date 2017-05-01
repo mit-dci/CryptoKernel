@@ -44,7 +44,7 @@ Json::Value CryptoServer::getinfo()
     std::stringstream buffer;
     buffer << std::setprecision(8) << balance;
     returning["balance"] = buffer.str();
-    returning["height"] = blockchain->getBlock("tip").height;
+    returning["height"] = static_cast<unsigned long long int>(blockchain->getBlockDB("tip").getHeight());
     returning["connections"] = network->getConnections();
 
     return returning;
@@ -78,7 +78,7 @@ bool CryptoServer::sendtoaddress(const std::string& address, double amount, doub
 
 bool CryptoServer::sendrawtransaction(const Json::Value tx)
 {
-    const CryptoKernel::Blockchain::transaction transaction = CryptoKernel::Blockchain::jsonToTransaction(tx);
+    const CryptoKernel::Blockchain::transaction transaction = CryptoKernel::Blockchain::transaction(tx);
     if(blockchain->submitTransaction(transaction))
     {
         std::vector<CryptoKernel::Blockchain::transaction> txs;
@@ -116,13 +116,13 @@ Json::Value CryptoServer::listunspentoutputs(const std::string& account)
 {
     CryptoCurrency::Wallet::address addr = wallet->getAddressByName(account);
 
-    const std::vector<CryptoKernel::Blockchain::output> utxos = blockchain->getUnspentOutputs(addr.publicKey);
+    const std::set<CryptoKernel::Blockchain::output> utxos = blockchain->getUnspentOutputs(addr.publicKey);
 
     Json::Value returning;
 
     for(CryptoKernel::Blockchain::output output : utxos)
     {
-        returning["outputs"].append(CryptoKernel::Blockchain::outputToJson(output));
+        returning["outputs"].append(output.toJson());
     }
 
     return returning;
@@ -135,30 +135,29 @@ std::string CryptoServer::compilecontract(const std::string& code)
 
 std::string CryptoServer::calculateoutputid(const Json::Value output)
 {
-    const CryptoKernel::Blockchain::output out = CryptoKernel::Blockchain::jsonToOutput(output);
-    return CryptoKernel::Blockchain::calculateOutputId(out);
+    const CryptoKernel::Blockchain::output out = CryptoKernel::Blockchain::output(output);
+    return out.getId().toString();
 }
 
 Json::Value CryptoServer::signtransaction(const Json::Value tx)
 {
-    const CryptoKernel::Blockchain::transaction transaction = CryptoKernel::Blockchain::jsonToTransaction(tx);
+    const CryptoKernel::Blockchain::transaction transaction = CryptoKernel::Blockchain::transaction(tx);
 
-    return CryptoKernel::Blockchain::transactionToJson(wallet->signTransaction(transaction));
+    return wallet->signTransaction(transaction).toJson();
 }
 
 Json::Value CryptoServer::listtransactions() {
     Json::Value returning;
 
-    const std::set<CryptoKernel::Blockchain::transaction> transactions = wallet->listTransactions();
+    /*const std::set<CryptoKernel::Blockchain::transaction> transactions = wallet->listTransactions();
     std::set<std::string> pubKeys;
     for(const auto address : wallet->listAddresses()) {
         pubKeys.insert(address.publicKey);
     }
     for(const CryptoKernel::Blockchain::transaction tx : transactions) {
         Json::Value transaction;
-        transaction["id"] = tx.id;
-        transaction["confirmingBlock"] = tx.confirmingBlock;
-        transaction["timestamp"] = static_cast<unsigned long long int>(tx.timestamp);
+        transaction["id"] = tx.getId().toString();
+        transaction["timestamp"] = static_cast<unsigned long long int>(tx.getTimestamp());
 
         std::string toThem = "";
         std::string toMe = "";
@@ -200,7 +199,7 @@ Json::Value CryptoServer::listtransactions() {
         }
 
         returning["transactions"].append(transaction);
-    }
+    }*/
 
     return returning;
 }

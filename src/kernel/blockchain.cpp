@@ -116,11 +116,44 @@ std::set<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::getUnc
     return returning;
 }
 
-CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlock(Storage::Transaction* transaction, const std::string id)
+CryptoKernel::Blockchain::dbBlock CryptoKernel::Blockchain::getBlockDB(Storage::Transaction* transaction, const std::string& id) {
+    const Json::Value jsonBlock = blocks->get(transaction, id);
+    if(!jsonBlock.isObject()) {
+        throw NotFoundException("Block " + id);
+    }
+
+    return dbBlock(jsonBlock);
+}
+
+CryptoKernel::Blockchain::dbBlock CryptoKernel::Blockchain::getBlockDB(const std::string& id) {
+    chainLock.lock();
+    std::unique_ptr<Storage::Transaction> tx(blockdb->begin());
+
+    const Json::Value jsonBlock = blocks->get(tx.get(), id);
+    if(!jsonBlock.isObject()) {
+        throw NotFoundException("Block " + id);
+    }
+
+    chainLock.unlock();
+
+    return dbBlock(jsonBlock);
+}
+
+CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlock(Storage::Transaction* transaction, const std::string& id)
 {
     const dbBlock block = getBlockDB(transaction, id);
 
     return buildBlock(transaction, block);
+}
+
+CryptoKernel::Blockchain::block CryptoKernel::Blockchain::buildBlock(Storage::Transaction* dbTx, const dbBlock& dbblock) {
+    std::set<transaction> transactions;
+
+    for(const BigNum& txid : dbblock.getTransactions()) {
+        transactions.insert(getTransaction(dbTx, txid.toString()));
+    }
+
+    return block(transactions, getTransaction(dbTx, dbblock.getCoinbaseTx().toString()), dbblock.getPreviousBlockId(), dbblock.getTimestamp(), dbblock.getConsensusData());
 }
 
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlockByHeight(Storage::Transaction* transaction, const uint64_t height)
@@ -129,7 +162,7 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlockByHeight(Stora
     return getBlock(transaction, id);
 }
 
-CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlock(const std::string id)
+CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlock(const std::string& id)
 {
     chainLock.lock();
     std::unique_ptr<Storage::Transaction> tx(blockdb->begin());
@@ -147,7 +180,7 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlockByHeight(const
     return returning;
 }
 
-uint64_t CryptoKernel::Blockchain::getBalance(std::string publicKey)
+uint64_t CryptoKernel::Blockchain::getBalance(const std::string& publicKey)
 {
     chainLock.lock();
     uint64_t total = 0;
@@ -184,8 +217,8 @@ bool CryptoKernel::Blockchain::verifyTransaction(Storage::Transaction* dbTransac
     uint64_t outputTotal = 0;
 
     for(const output& out : tx.getOutputs()) {
-        if(utxos->get(dbTransaction, out.getId().toString()).isObject()) {
-            log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Output already in UTXO set");
+        if(utxos->get(dbTransaction, out.getId().toString()).isObject() || stxos->get(dbTransaction, out.getId().toString()).isObject()) {
+            log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Output already exists");
             //Duplicate output
             return false;
         }
@@ -254,7 +287,7 @@ bool CryptoKernel::Blockchain::verifyTransaction(Storage::Transaction* dbTransac
     return true;
 }
 
-bool CryptoKernel::Blockchain::submitTransaction(const transaction tx) {
+bool CryptoKernel::Blockchain::submitTransaction(const transaction& tx) {
     chainLock.lock();
     std::unique_ptr<Storage::Transaction> dbTx(blockdb->begin());
     const bool result = submitTransaction(dbTx.get(), tx);
@@ -265,7 +298,18 @@ bool CryptoKernel::Blockchain::submitTransaction(const transaction tx) {
     return result;
 }
 
-bool CryptoKernel::Blockchain::submitTransaction(Storage::Transaction* dbTx, transaction tx)
+bool CryptoKernel::Blockchain::submitBlock(const block& newBlock, bool genesisBlock) {
+    chainLock.lock();
+    std::unique_ptr<Storage::Transaction> dbTx(blockdb->begin());
+    const bool result = submitBlock(dbTx.get(), newBlock, genesisBlock);
+    if(result) {
+        dbTx->commit();
+    }
+    chainLock.unlock();
+    return result;
+}
+
+bool CryptoKernel::Blockchain::submitTransaction(Storage::Transaction* dbTx, const transaction& tx)
 {
     chainLock.lock();
     if(verifyTransaction(dbTx, tx))
@@ -312,7 +356,7 @@ bool CryptoKernel::Blockchain::submitTransaction(Storage::Transaction* dbTx, tra
     }
 }
 
-bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx, block newBlock, bool genesisBlock)
+bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx, const block& newBlock, bool genesisBlock)
 {
     chainLock.lock();
     const std::string idAsString = newBlock.getId().toString();
@@ -469,12 +513,12 @@ void CryptoKernel::Blockchain::confirmTransaction(Storage::Transaction* dbTransa
         stxos->put(dbTransaction, outputId, utxo);
         utxos->erase(dbTransaction, outputId);
 
-        inputs->put(dbTransaction, inp.getId().toString(), dbInput(&inp).toJson());
+        inputs->put(dbTransaction, inp.getId().toString(), dbInput(inp).toJson());
     }
 
     //Add new outputs to UTXOs
     for(const output& out : tx.getOutputs()) {
-        utxos->put(dbTransaction, out.getId().toString(), dbOutput(&out, tx.getId()).toJson());
+        utxos->put(dbTransaction, out.getId().toString(), dbOutput(out, tx.getId()).toJson());
     }
 
     //Commit transaction
@@ -484,40 +528,30 @@ void CryptoKernel::Blockchain::confirmTransaction(Storage::Transaction* dbTransa
     unconfirmedTransactions.erase(tx);
 }
 
-bool CryptoKernel::Blockchain::reorgChain(Storage::Transaction* dbTransaction, const std::string newTipId)
+bool CryptoKernel::Blockchain::reorgChain(Storage::Transaction* dbTransaction, const BigNum& newTipId)
 {
     std::stack<block> blockList;
 
     //Find common fork block
-    block currentBlock = getBlock(dbTransaction, newTipId);
-    while(!currentBlock.mainChain && currentBlock.previousBlockId != "")
-    {
+    Json::Value blockJson = candidates->get(dbTransaction, newTipId.toString());
+    while(blockJson.isObject()) {
+        const block currentBlock = block(blockJson);
         blockList.push(currentBlock);
-        std::string id = currentBlock.previousBlockId;
-        currentBlock = getBlock(dbTransaction, id);
-        if(currentBlock.id != id)
-        {
-            return false;
-        }
-    }
-
-    if(blocks->get(dbTransaction, currentBlock.id)["id"].asString() != currentBlock.id)
-    {
-        return false;
+        blockJson = candidates->get(dbTransaction, currentBlock.getPreviousBlockId().toString());
     }
 
     //Reverse blocks to that point
-    while(getBlock(dbTransaction, "tip").id != currentBlock.id)
-    {
+    const BigNum forkBlockId = blockList.top().getPreviousBlockId();
+    while(getBlockDB(dbTransaction, "tip").getId() != forkBlockId) {
         reverseBlock(dbTransaction);
     }
 
     //Submit new blocks
-    while(blockList.size() > 0)
-    {
-        if(!submitBlock(dbTransaction, blockList.top()))
-        {
-            log->printf(LOG_LEVEL_WARN, "blockchain::reorgChain(): Failed to reapply original chain after new chain failed to verify");
+    while(!blockList.empty()) {
+        if(!submitBlock(dbTransaction, blockList.top())) {
+            //TODO: should probably blacklist this fork if this happens
+
+            log->printf(LOG_LEVEL_WARN, "blockchain::reorgChain(): New chain failed to verify");
 
             return false;
         }
@@ -527,35 +561,26 @@ bool CryptoKernel::Blockchain::reorgChain(Storage::Transaction* dbTransaction, c
     return true;
 }
 
-uint64_t CryptoKernel::Blockchain::getTransactionFee(transaction tx)
+uint64_t CryptoKernel::Blockchain::getTransactionFee(const transaction& tx)
 {
     uint64_t fee = 0;
 
-    std::vector<output>::iterator it;
-    for(it = tx.inputs.begin(); it < tx.inputs.end(); it++)
-    {
-        if((*it).value < 100000)
-        {
-            fee += 10000;
-        }
-
-        fee += CryptoKernel::Storage::toString((*it).data).size() * 1000;
+    for(const input& inp : tx.getInputs()) {
+        fee += CryptoKernel::Storage::toString(inp.getData()).size() * 1000;
     }
 
-    for(it = tx.outputs.begin(); it < tx.outputs.end(); it++)
-    {
-        if((*it).value < 100000)
-        {
+    for(const output& out : tx.getOutputs()) {
+        if(out.getValue() < 100000) {
             fee += 10000;
         }
 
-        fee += CryptoKernel::Storage::toString((*it).data).size() * 1000;
+        fee += CryptoKernel::Storage::toString(out.getData()).size() * 1000;
     }
 
     return fee;
 }
 
-uint64_t CryptoKernel::Blockchain::calculateTransactionFee(Storage::Transaction* dbTx, transaction tx)
+uint64_t CryptoKernel::Blockchain::calculateTransactionFee(Storage::Transaction* dbTx, const transaction& tx)
 {
     uint64_t inputTotal = 0;
     uint64_t outputTotal = 0;
@@ -572,176 +597,128 @@ uint64_t CryptoKernel::Blockchain::calculateTransactionFee(Storage::Transaction*
     return inputTotal - outputTotal;
 }
 
-CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateVerifyingBlock(std::string publicKey)
+CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateVerifyingBlock(const std::string& publicKey)
 {
     chainLock.lock();
     std::unique_ptr<Storage::Transaction> dbTx(blockdb->begin());
-    block returning;
 
-    returning.transactions = getUnconfirmedTransactions();
-    time_t t = std::time(0);
-    uint64_t now = static_cast<uint64_t> (t);
-    returning.timestamp = now;
+    const std::set<transaction> blockTransactions = getUnconfirmedTransactions();
+    const dbBlock previousBlock = getBlockDB(dbTx.get(), "tip");
+    const time_t t = std::time(0);
+    const uint64_t now = static_cast<uint64_t> (t);
+    const uint64_t height = previousBlock.getHeight() + 1;
 
-    block previousBlock;
-    previousBlock = getBlock(dbTx.get(), "tip");
+    uint64_t value = getBlockReward(height);
 
-    returning.height = previousBlock.height + 1;
-    returning.previousBlockId = previousBlock.id;
-
-    output toMe;
-    toMe.value = getBlockReward(returning.height);
-
-    std::vector<transaction>::iterator it;
-    for(it = returning.transactions.begin(); it < returning.transactions.end(); it++)
+    for(const transaction& tx : blockTransactions)
     {
-        toMe.value += calculateTransactionFee((*it));
+        value += calculateTransactionFee(dbTx.get(), tx);
     }
-    toMe.publicKey = getCoinbaseOwner(publicKey);
+
+    const std::string pubKey = getCoinbaseOwner(publicKey);
 
     std::default_random_engine generator(now);
     std::uniform_int_distribution<unsigned int> distribution(0, UINT_MAX);
-    toMe.nonce = distribution(generator);
+    const uint64_t nonce = distribution(generator);
 
-    toMe.id = calculateOutputId(toMe);
+    Json::Value data;
+    data["publicKey"] = pubKey;
 
-    transaction coinbaseTx;
-    coinbaseTx.outputs.push_back(toMe);
-    coinbaseTx.timestamp = now;
-    coinbaseTx.id = calculateTransactionId(coinbaseTx);
+    std::set<output> outputs;
+    outputs.insert(output(value, nonce, data));
 
-    if(coinbaseTx.outputs[0].value > 0) {
-        returning.coinbaseTx = coinbaseTx;
-    }
+    const transaction coinbaseTx = transaction(std::set<input>(), outputs, now, true);
 
-    returning.consensusData = consensus->generateConsensusData(dbTx.get(), returning, publicKey);
+    const Json::Value consensusData = consensus->generateConsensusData(dbTx.get(), previousBlock.getId(), publicKey);
 
-    returning.id = calculateBlockId(returning);
+    const block returning = block(blockTransactions, coinbaseTx, previousBlock.getId(), now, consensusData);
 
     chainLock.unlock();
 
     return returning;
 }
 
-std::vector<CryptoKernel::Blockchain::output> CryptoKernel::Blockchain::getUnspentOutputs(std::string publicKey)
+std::set<CryptoKernel::Blockchain::output> CryptoKernel::Blockchain::getUnspentOutputs(const std::string& publicKey)
 {
     chainLock.lock();
-    std::vector<output> returning;
+    std::set<output> returning;
 
-    if(status)
-    {
-        CryptoKernel::Storage::Table::Iterator* it = new Storage::Table::Iterator(utxos.get(), blockdb.get());
-        for(it->SeekToFirst(); it->Valid(); it->Next())
-        {
-            if(it->value()["publicKey"] == publicKey)
-            {
-                returning.push_back(jsonToOutput(it->value()));
-            }
+    CryptoKernel::Storage::Table::Iterator* it = new Storage::Table::Iterator(utxos.get(), blockdb.get());
+    for(it->SeekToFirst(); it->Valid(); it->Next()) {
+        if(it->value()["data"]["publicKey"].asString() == publicKey) {
+            returning.insert(output(it->value()));
         }
-        delete it;
     }
+    delete it;
 
     chainLock.unlock();
-
-    return returning;
-}
-std::string CryptoKernel::Blockchain::calculateOutputSetId(const std::vector<output> outputs)
-{
-    std::vector<output> orderedOutputs = outputs;
-
-    std::sort(orderedOutputs.begin(), orderedOutputs.end(), [](CryptoKernel::Blockchain::output first, CryptoKernel::Blockchain::output second){
-        return CryptoKernel::Math::hex_greater(second.id, first.id);
-    });
-
-    std::string returning = "";
-    CryptoKernel::Crypto crypto;
-    for(CryptoKernel::Blockchain::output output : orderedOutputs)
-    {
-        returning = crypto.sha256(returning + output.id);
-    }
 
     return returning;
 }
 
 void CryptoKernel::Blockchain::reverseBlock(Storage::Transaction* dbTransaction)
 {
-    block tip = getBlock(dbTransaction, "tip");
+    const block tip = getBlock(dbTransaction, "tip");
 
-    std::vector<output>::iterator it2;
-    for(it2 = tip.coinbaseTx.outputs.begin(); it2 < tip.coinbaseTx.outputs.end(); it2++)
-    {
-        utxos->erase(dbTransaction, (*it2).id);
+    for(const output& out : tip.getCoinbaseTx().getOutputs()) {
+        utxos->erase(dbTransaction, out.getId().toString());
     }
 
-    std::vector<transaction>::iterator it;
-    for(it = tip.transactions.begin(); it < tip.transactions.end(); it++)
-    {
-        for(it2 = (*it).outputs.begin(); it2 < (*it).outputs.end(); it2++)
-        {
-            utxos->erase(dbTransaction, (*it2).id);
+    transactions->erase(dbTransaction, tip.getCoinbaseTx().getId().toString());
+
+    for(const transaction& tx : tip.getTransactions()) {
+        for(const output& out : tx.getOutputs()) {
+            utxos->erase(dbTransaction, out.getId().toString());
         }
 
-        for(it2 = (*it).inputs.begin(); it2 < (*it).inputs.end(); it2++)
-        {
-            output toSave = (*it2);
-            toSave.signature = "";
-            utxos->put(dbTransaction, toSave.id, outputToJson(toSave));
+        for(const input& inp : tx.getInputs()) {
+            inputs->erase(dbTransaction, inp.getId().toString());
+            const std::string oldOutputId = inp.getOutputId().toString();
+            const dbOutput oldOutput = dbOutput(stxos->get(dbTransaction, oldOutputId));
+            stxos->erase(dbTransaction, oldOutputId);
+            utxos->put(dbTransaction, oldOutputId, oldOutput.toJson());
         }
 
-        transactions->erase(dbTransaction, (*it).id);
+        transactions->erase(dbTransaction, tx.getId().toString());
 
-        if(!submitTransaction(dbTransaction, *it))
-        {
+        if(!submitTransaction(dbTransaction, tx)) {
             log->printf(LOG_LEVEL_ERR, "Blockchain::reverseBlock(): previously moved transaction is now invalid");
         }
     }
 
-    blocks->erase(dbTransaction, std::to_string(tip.height), 0);
-    blocks->put(dbTransaction, "tip", blockToJson(getBlock(dbTransaction, tip.previousBlockId)));
+    const dbBlock tipDB = getBlockDB(dbTransaction, "tip");
 
-    tip.mainChain = false;
-    blocks->put(dbTransaction, tip.id, blockToJson(tip));
+    blocks->erase(dbTransaction, std::to_string(tipDB.getHeight()), 0);
+    blocks->put(dbTransaction, "tip", getBlockDB(dbTransaction, tip.getPreviousBlockId().toString()).toJson());
+
+    candidates->put(dbTransaction, tip.getId().toString(), tip.toJson());
 }
 
-CryptoKernel::Blockchain::transaction CryptoKernel::Blockchain::getTransaction(Storage::Transaction* transaction, const std::string id)
+CryptoKernel::Blockchain::transaction CryptoKernel::Blockchain::getTransaction(Storage::Transaction* transaction, const std::string& id)
 {
+    const Json::Value jsonTx = transactions->get(transaction, id);
+    if(!jsonTx.isObject()) {
+        throw NotFoundException("Transaction " + id);
+    }
 
-    return CryptoKernel::Blockchain::jsonToTransaction(transactions->get(transaction, id));
-}
-
-std::set<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::getTransactionsByPubKeys(const std::set<std::string> pubKeys) {
-    chainLock.lock();
-
-    std::set<transaction> returning;
-
-    block currentBlock;
-    currentBlock.previousBlockId = getBlock("tip").id;
-    do {
-        currentBlock = getBlock(currentBlock.previousBlockId);
-        for(const transaction tx : currentBlock.transactions) {
-            bool found = false;
-            for(const output output : tx.outputs) {
-                if(pubKeys.find(output.publicKey) != pubKeys.end()) {
-                    returning.insert(tx);
-                    found = true;
-                    break;
-                }
-            }
-
-            if(!found) {
-                for(const output input : tx.inputs) {
-                    if(pubKeys.find(input.publicKey) != pubKeys.end()) {
-                        returning.insert(tx);
-                        break;
-                    }
-                }
-            }
+    const dbTransaction tx = dbTransaction(jsonTx);
+    std::set<output> outputs;
+    for(const BigNum& id : tx.getOutputs()) {
+        const std::string idString = id.toString();
+        Json::Value outputJson = utxos->get(transaction, idString);
+        if(!outputJson.isObject()) {
+            outputJson = stxos->get(transaction, idString);
         }
-    } while(currentBlock.id != genesisBlockId);
 
-    chainLock.unlock();
+        outputs.insert(output(outputJson));
+    }
 
-    return returning;
+    std::set<input> inps;
+    for(const BigNum& id : tx.getInputs()) {
+        inps.insert(input(inputs->get(transaction, id.toString())));
+    }
+
+    return CryptoKernel::Blockchain::transaction(inps, outputs, tx.getTimestamp(), tx.isCoinbaseTx());
 }
 
 void CryptoKernel::Blockchain::emptyDB() {

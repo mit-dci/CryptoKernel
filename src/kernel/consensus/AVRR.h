@@ -20,7 +20,7 @@ namespace CryptoKernel {
             * @param verifiers the set of verifier public keys
             * @param blockTarget the number of seconds between each block
             */
-            AVRR(const std::set<std::string> verifiers, const uint64_t blockTarget);
+            AVRR(const std::set<std::string>& verifiers, const uint64_t blockTarget);
 
             /**
             * In AVRR, a block displaces the current block tip if it is at least as high
@@ -28,9 +28,9 @@ namespace CryptoKernel {
             * verifier's block in the round-robin always takes precedence but that verifiers
             * who miss their block submission slot cannot retroactively submit a block.
             */
-            bool isBlockBetter(const CryptoKernel::Blockchain::block block, const CryptoKernel::Blockchain::block tip);
+            bool isBlockBetter(const CryptoKernel::Blockchain::dbBlock& block, const CryptoKernel::Blockchain::dbBlock& tip);
 
-            std::string serializeConsensusData(const CryptoKernel::Blockchain::block block);
+            std::string serializeConsensusData(const CryptoKernel::Blockchain::block& block);
 
             /**
             * Checks the following rules:
@@ -40,9 +40,9 @@ namespace CryptoKernel {
             *   - Checks the block's timestamp with the system clock to make sure it is not
             *     from the future
             */
-            bool checkConsensusRules(const CryptoKernel::Blockchain::block block, const CryptoKernel::Blockchain::block previousBlock);
+            bool checkConsensusRules(const CryptoKernel::Blockchain::block& block, const CryptoKernel::Blockchain::block& previousBlockId);
 
-            Json::Value generateConsensusData(const CryptoKernel::Blockchain::block block, const std::string publicKey);
+            Json::Value generateConsensusData(const CryptoKernel::Blockchain::block& block, const std::string& publicKey);
 
             /**
             * Returns the public key of the verifier for the given block
@@ -50,27 +50,27 @@ namespace CryptoKernel {
             * @param block the block to get the verifier of
             * @return the public key of the verifier
             */
-            std::string getVerifier(const CryptoKernel::Blockchain::block block);
+            std::string getVerifier(const CryptoKernel::Blockchain::block& block);
 
             /**
             * Has no effect, always returns true
             */
-            bool verifyTransaction(const CryptoKernel::Blockchain::transaction tx);
+            bool verifyTransaction(const CryptoKernel::Blockchain::transaction& tx);
 
             /**
             * Has no effect, always returns true
             */
-            bool confirmTransaction(const CryptoKernel::Blockchain::transaction tx);
+            bool confirmTransaction(const CryptoKernel::Blockchain::transaction& tx);
 
             /**
             * Has no effect, always returns true
             */
-            bool submitTransaction(const CryptoKernel::Blockchain::transaction tx);
+            bool submitTransaction(const CryptoKernel::Blockchain::transaction& tx);
 
             /**
             * Has no effect, always returns true
             */
-            bool submitBlock(const CryptoKernel::Blockchain::block block);
+            bool submitBlock(const CryptoKernel::Blockchain::block& block);
         private:
             std::set<std::string> verifiers;
             uint64_t blockTarget;
@@ -79,8 +79,8 @@ namespace CryptoKernel {
                 std::string signature;
                 std::string publicKey;
             };
-            consensusData getConsensusData(const CryptoKernel::Blockchain::block block);
-            Json::Value consensusDataToJson(const consensusData data);
+            consensusData getConsensusData(const CryptoKernel::Blockchain::block& block);
+            Json::Value consensusDataToJson(const consensusData& data);
     };
 }
 
