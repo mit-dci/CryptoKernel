@@ -361,6 +361,7 @@ Json::Value CryptoKernel::Blockchain::dbTransaction::toJson() const {
 
     returning["confirmingBlock"] = confirmingBlock.toString();
     returning["coinbaseTx"] = coinbaseTx;
+    returning["timestamp"] = static_cast<unsigned long long int>(timestamp);
 
     return returning;
 }
