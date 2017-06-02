@@ -44,7 +44,7 @@ CryptoKernel::Blockchain::Blockchain(CryptoKernel::Log* GlobalLog)
 
 bool CryptoKernel::Blockchain::loadChain(CryptoKernel::Consensus* consensus)
 {
-    chainLock.lock();
+    std::lock_guard<std::recursive_mutex> lock(chainLock);
     this->consensus = consensus;
     std::unique_ptr<Storage::Transaction> dbTransaction(blockdb->begin());
     const bool tipExists = blocks->get(dbTransaction.get(), "tip").isObject();
@@ -97,8 +97,6 @@ bool CryptoKernel::Blockchain::loadChain(CryptoKernel::Consensus* consensus)
 
     status = true;
 
-    chainLock.unlock();
-
     return true;
 }
 
@@ -126,15 +124,13 @@ CryptoKernel::Blockchain::dbBlock CryptoKernel::Blockchain::getBlockDB(Storage::
 }
 
 CryptoKernel::Blockchain::dbBlock CryptoKernel::Blockchain::getBlockDB(const std::string& id) {
-    chainLock.lock();
+    std::lock_guard<std::recursive_mutex> lock(chainLock);
     std::unique_ptr<Storage::Transaction> tx(blockdb->begin());
 
     const Json::Value jsonBlock = blocks->get(tx.get(), id);
     if(!jsonBlock.isObject()) {
         throw NotFoundException("Block " + id);
     }
-
-    chainLock.unlock();
 
     return dbBlock(jsonBlock);
 }
@@ -164,19 +160,17 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlockByHeight(Stora
 
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlock(const std::string& id)
 {
-    chainLock.lock();
+    std::lock_guard<std::recursive_mutex> lock(chainLock);
     std::unique_ptr<Storage::Transaction> tx(blockdb->begin());
     const block returning = getBlock(tx.get(), id);
-    chainLock.unlock();
     return returning;
 }
 
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlockByHeight(const uint64_t height)
 {
-    chainLock.lock();
+    std::lock_guard<std::recursive_mutex> lock(chainLock);
     std::unique_ptr<Storage::Transaction> tx(blockdb->begin());
     const block returning = getBlockByHeight(tx.get(), height);
-    chainLock.unlock();
     return returning;
 }
 
@@ -288,30 +282,28 @@ bool CryptoKernel::Blockchain::verifyTransaction(Storage::Transaction* dbTransac
 }
 
 bool CryptoKernel::Blockchain::submitTransaction(const transaction& tx) {
-    chainLock.lock();
+    std::lock_guard<std::recursive_mutex> lock(chainLock);
     std::unique_ptr<Storage::Transaction> dbTx(blockdb->begin());
     const bool result = submitTransaction(dbTx.get(), tx);
     if(result) {
         dbTx->commit();
     }
-    chainLock.unlock();
     return result;
 }
 
 bool CryptoKernel::Blockchain::submitBlock(const block& newBlock, bool genesisBlock) {
-    chainLock.lock();
+    std::lock_guard<std::recursive_mutex> lock(chainLock);
     std::unique_ptr<Storage::Transaction> dbTx(blockdb->begin());
     const bool result = submitBlock(dbTx.get(), newBlock, genesisBlock);
     if(result) {
         dbTx->commit();
     }
-    chainLock.unlock();
     return result;
 }
 
 bool CryptoKernel::Blockchain::submitTransaction(Storage::Transaction* dbTx, const transaction& tx)
 {
-    chainLock.lock();
+    std::lock_guard<std::recursive_mutex> lock(chainLock);
     if(verifyTransaction(dbTx, tx))
     {
         if(consensus->submitTransaction(dbTx, tx)) {
@@ -332,39 +324,35 @@ bool CryptoKernel::Blockchain::submitTransaction(Storage::Transaction* dbTx, con
             {
                 unconfirmedTransactions.insert(tx);
                 log->printf(LOG_LEVEL_INFO, "blockchain::submitTransaction(): Received transaction we didn't already know about");
-                chainLock.unlock();
                 return true;
             }
             else
             {
                 //Transaction is already in the unconfirmed vector
                 log->printf(LOG_LEVEL_INFO, "blockchain::submitTransaction(): Received transaction we already know about");
-                chainLock.unlock();
                 return true;
             }
         } else {
             log->printf(LOG_LEVEL_INFO, "blockchain::submitTransaction(): Failed to submit transaction to consensus method");
-            chainLock.unlock();
             return false;
         }
     }
     else
     {
         log->printf(LOG_LEVEL_INFO, "blockchain::submitTransaction(): Failed to verify transaction");
-        chainLock.unlock();
         return false;
     }
 }
 
 bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx, const block& newBlock, bool genesisBlock)
 {
-    chainLock.lock();
+    std::lock_guard<std::recursive_mutex> lock(chainLock);
+
     const std::string idAsString = newBlock.getId().toString();
     //Check block does not already exist
     if(blocks->get(dbTx, idAsString).isObject())
     {
         log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Block already exists");
-        chainLock.unlock();
         return true;
     }
 
@@ -378,7 +366,6 @@ bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx, const blo
             previousBlockJson = candidates->get(dbTx, newBlock.getPreviousBlockId().toString());
             if(!previousBlockJson.isObject()) {
                 log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Previous block does not exist");
-                chainLock.unlock();
                 return false;
             }
 
@@ -392,13 +379,11 @@ bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx, const blo
         if(newBlock.getTimestamp() < previousBlock.getTimestamp())
         {
             log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Timestamp is unrealistic");
-            chainLock.unlock();
             return false;
         }
 
         if(!consensus->checkConsensusRules(dbTx, newBlock, previousBlock)) {
             log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Consensus rules cannot verify this block");
-            chainLock.unlock();
             return false;
         }
 
@@ -437,7 +422,6 @@ bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx, const blo
             if(!verifyTransaction(dbTx, tx))
             {
                 log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Transaction could not be verified");
-                chainLock.unlock();
                 return false;
             }
             fees += calculateTransactionFee(dbTx, tx);
@@ -446,7 +430,6 @@ bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx, const blo
         if(!verifyTransaction(dbTx, newBlock.getCoinbaseTx(), true))
         {
             log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Coinbase transaction could not be verified");
-            chainLock.unlock();
             return false;
         }
 
@@ -459,13 +442,11 @@ bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx, const blo
         if(outputTotal != fees + getBlockReward(blockHeight))
         {
             log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Coinbase output is not the correct value");
-            chainLock.unlock();
             return false;
         }
 
         if(!consensus->submitBlock(dbTx, newBlock)) {
             log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Consensus submitBlock callback returned false");
-            chainLock.unlock();
             return false;
         }
 
@@ -493,8 +474,6 @@ bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx, const blo
     }
 
     log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): successfully submitted block: " + CryptoKernel::Storage::toString(blocks->get(dbTx, idAsString), true));
-
-    chainLock.unlock();
 
     return true;
 }
@@ -599,7 +578,7 @@ uint64_t CryptoKernel::Blockchain::calculateTransactionFee(Storage::Transaction*
 
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateVerifyingBlock(const std::string& publicKey)
 {
-    chainLock.lock();
+    std::lock_guard<std::recursive_mutex> lock(chainLock);
     std::unique_ptr<Storage::Transaction> dbTx(blockdb->begin());
 
     const std::set<transaction> blockTransactions = getUnconfirmedTransactions();
@@ -646,14 +625,12 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateVerifyingBlock
 
     const block returning = block(blockTransactions, coinbaseTx, previousBlockId, now, consensusData);
 
-    chainLock.unlock();
-
     return returning;
 }
 
 std::set<CryptoKernel::Blockchain::output> CryptoKernel::Blockchain::getUnspentOutputs(const std::string& publicKey)
 {
-    chainLock.lock();
+    std::lock_guard<std::recursive_mutex> lock(chainLock);
     std::set<output> returning;
 
     CryptoKernel::Storage::Table::Iterator* it = new Storage::Table::Iterator(utxos.get(), blockdb.get());
@@ -663,8 +640,6 @@ std::set<CryptoKernel::Blockchain::output> CryptoKernel::Blockchain::getUnspentO
         }
     }
     delete it;
-
-    chainLock.unlock();
 
     return returning;
 }
