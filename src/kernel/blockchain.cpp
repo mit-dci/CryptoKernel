@@ -115,9 +115,13 @@ std::set<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::getUnc
 }
 
 CryptoKernel::Blockchain::dbBlock CryptoKernel::Blockchain::getBlockDB(Storage::Transaction* transaction, const std::string& id) {
-    const Json::Value jsonBlock = blocks->get(transaction, id);
+    Json::Value jsonBlock = blocks->get(transaction, id);
     if(!jsonBlock.isObject()) {
-        throw NotFoundException("Block " + id);
+        // Check if it's an orphan
+        jsonBlock = candidates->get(transaction, id);
+        if(!jsonBlock.isObject()) {
+            throw NotFoundException("Block " + id);
+        }
     }
 
     return dbBlock(jsonBlock);
@@ -127,12 +131,7 @@ CryptoKernel::Blockchain::dbBlock CryptoKernel::Blockchain::getBlockDB(const std
     std::lock_guard<std::recursive_mutex> lock(chainLock);
     std::unique_ptr<Storage::Transaction> tx(blockdb->begin());
 
-    const Json::Value jsonBlock = blocks->get(tx.get(), id);
-    if(!jsonBlock.isObject()) {
-        throw NotFoundException("Block " + id);
-    }
-
-    return dbBlock(jsonBlock);
+    return getBlockDB(tx.get(), id);
 }
 
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlock(Storage::Transaction* transaction, const std::string& id)
@@ -162,16 +161,14 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlock(const std::st
 {
     std::lock_guard<std::recursive_mutex> lock(chainLock);
     std::unique_ptr<Storage::Transaction> tx(blockdb->begin());
-    const block returning = getBlock(tx.get(), id);
-    return returning;
+    return getBlock(tx.get(), id);
 }
 
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlockByHeight(const uint64_t height)
 {
     std::lock_guard<std::recursive_mutex> lock(chainLock);
     std::unique_ptr<Storage::Transaction> tx(blockdb->begin());
-    const block returning = getBlockByHeight(tx.get(), height);
-    return returning;
+    return getBlockByHeight(tx.get(), height);
 }
 
 uint64_t CryptoKernel::Blockchain::getBalance(const std::string& publicKey)
@@ -352,7 +349,7 @@ bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx, const blo
     //Check block does not already exist
     if(blocks->get(dbTx, idAsString).isObject())
     {
-        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Block already exists");
+        log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Block is already in main chain");
         return true;
     }
 
@@ -473,7 +470,7 @@ bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx, const blo
         genesisBlockId = newBlock.getId();
     }
 
-    log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): successfully submitted block: " + CryptoKernel::Storage::toString(blocks->get(dbTx, idAsString), true));
+    log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): successfully submitted block: " + CryptoKernel::Storage::toString(getBlockDB(dbTx, idAsString).toJson()));
 
     return true;
 }
