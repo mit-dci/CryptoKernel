@@ -121,6 +121,8 @@ CryptoKernel::Blockchain::dbBlock CryptoKernel::Blockchain::getBlockDB(Storage::
         jsonBlock = candidates->get(transaction, id);
         if(!jsonBlock.isObject()) {
             throw NotFoundException("Block " + id);
+        } else {
+            return dbBlock(block(jsonBlock), 0);
         }
     }
 
@@ -470,7 +472,7 @@ bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx, const blo
         genesisBlockId = newBlock.getId();
     }
 
-    log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): successfully submitted block: " + CryptoKernel::Storage::toString(getBlockDB(dbTx, idAsString).toJson()));
+    log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): successfully submitted block: " + CryptoKernel::Storage::toString(getBlockDB(dbTx, idAsString).toJson(), true));
 
     return true;
 }
