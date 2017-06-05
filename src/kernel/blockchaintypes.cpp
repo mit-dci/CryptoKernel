@@ -51,7 +51,7 @@ Json::Value CryptoKernel::Blockchain::output::getData() const {
 
 CryptoKernel::BigNum CryptoKernel::Blockchain::output::calculateId() {
     std::stringstream buffer;
-    buffer << value << nonce << CryptoKernel::Storage::toString(data);
+    buffer << value << nonce << CryptoKernel::Storage::toString(data, false);
 
     CryptoKernel::Crypto crypto;
     return CryptoKernel::BigNum(crypto.sha256(buffer.str()));
@@ -139,7 +139,7 @@ CryptoKernel::BigNum CryptoKernel::Blockchain::input::getId() const {
 
 CryptoKernel::BigNum CryptoKernel::Blockchain::input::calculateId() {
     std::stringstream buffer;
-    buffer << outputId.toString() << CryptoKernel::Storage::toString(data);
+    buffer << outputId.toString() << CryptoKernel::Storage::toString(data, false);
 
     CryptoKernel::Crypto crypto;
     return CryptoKernel::BigNum(crypto.sha256(buffer.str()));
