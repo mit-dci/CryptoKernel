@@ -158,19 +158,18 @@ int main(int argc, char* argv[])
         httpclient.SetTimeout(30000);
         CryptoClient client(httpclient);
 
-
         try
         {
             if(command == "getinfo")
             {
-                std::cout << CryptoKernel::Storage::toString(client.getinfo()) << std::endl;
+                std::cout << client.getinfo().toStyledString() << std::endl;
             }
             else if(command == "account")
             {
                 if(argc == 3)
                 {
                     std::string name(argv[2]);
-                    std::cout << CryptoKernel::Storage::toString(client.account(name)) << std::endl;
+                    std::cout << client.account(name).toStyledString() << std::endl;
                 }
                 else
                 {
@@ -193,14 +192,14 @@ int main(int argc, char* argv[])
             }
             else if(command == "listaccounts")
             {
-                std::cout << CryptoKernel::Storage::toString(client.listaccounts()) << std::endl;
+                std::cout << client.listaccounts().toStyledString() << std::endl;
             }
             else if(command == "listunspentoutputs")
             {
                 if(argc == 3)
                 {
                     std::string name(argv[2]);
-                    std::cout << CryptoKernel::Storage::toString(client.listunspentoutputs(name)) << std::endl;
+                    std::cout << client.listunspentoutputs(name).toStyledString() << std::endl;
                 }
                 else
                 {
@@ -220,7 +219,7 @@ int main(int argc, char* argv[])
                 }
             }
             else if(command == "listtransactions") {
-                std::cout << CryptoKernel::Storage::toString(client.listtransactions()) << std::endl;
+                std::cout << client.listtransactions().toStyledString() << std::endl;
             } else if(command == "getblockbyheight") {
                 if(argc == 3) {
                     std::cout << client.getblockbyheight(std::strtoull(argv[2], nullptr, 0)).toStyledString() << std::endl;
