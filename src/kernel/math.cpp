@@ -40,7 +40,12 @@ CryptoKernel::BigNum::~BigNum() {
 
 std::string CryptoKernel::BigNum::toString() const {
     std::stringstream buffer;
-    buffer << BN_bn2hex(bn);
+
+    char* hexStr = BN_bn2hex(bn);
+
+    buffer << hexStr;
+
+    free(hexStr);
 
     std::string returning = buffer.str();
     std::transform(returning.begin(), returning.end(), returning.begin(), ::tolower);

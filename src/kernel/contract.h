@@ -54,6 +54,7 @@ namespace CryptoKernel
             void setupEnvironment(Storage::Transaction* dbTx, const CryptoKernel::Blockchain::transaction& tx, const CryptoKernel::Blockchain::output& input);
             std::unique_ptr<sel::State> state;
             std::unique_ptr<int> ud;
+            lua_State* luaState;
             static void* allocWrapper(void* thisPointer, void* ptr, size_t osize, size_t nsize);
             void* l_alloc_restricted(void* ud, void* ptr, size_t osize, size_t nsize);
             uint64_t memoryLimit;

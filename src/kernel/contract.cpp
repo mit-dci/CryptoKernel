@@ -11,9 +11,9 @@ CryptoKernel::ContractRunner::ContractRunner(CryptoKernel::Blockchain* blockchai
 
     ud.reset(new int);
     *ud.get() = 0;
-    lua_State* _l = lua_newstate(&CryptoKernel::ContractRunner::allocWrapper, this);
-    luaL_openlibs(_l);
-    state.reset(new sel::State(_l));
+    luaState = lua_newstate(&CryptoKernel::ContractRunner::allocWrapper, this);
+    luaL_openlibs(luaState);
+    state.reset(new sel::State(luaState));
 
     blockchainInterface = new BlockchainInterface(blockchain);
 }
@@ -27,6 +27,7 @@ void* CryptoKernel::ContractRunner::allocWrapper(void* thisPointer, void* ptr, s
 CryptoKernel::ContractRunner::~ContractRunner()
 {
     delete blockchainInterface;
+    lua_close(luaState);
 }
 
 void* CryptoKernel::ContractRunner::l_alloc_restricted(void* ud, void* ptr, size_t osize, size_t nsize)

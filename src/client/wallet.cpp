@@ -199,8 +199,6 @@ bool CryptoCurrency::Wallet::sendToAddress(const std::string& publicKey, const u
         return false;
     }
 
-    std::cout << tx.toJson().toStyledString() << std::endl;
-
     std::vector<CryptoKernel::Blockchain::transaction> txs;
     txs.push_back(tx);
     network->broadcastTransactions(txs);
