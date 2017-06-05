@@ -97,6 +97,8 @@ CryptoKernel::Blockchain::input::input(const Json::Value& inputJson) {
     outputId = CryptoKernel::BigNum(inputJson["outputId"].asString());
 
     checkRep();
+
+    id = calculateId();
 }
 
 CryptoKernel::Blockchain::input::input(const BigNum& outputId, const Json::Value& data) {
