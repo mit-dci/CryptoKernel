@@ -203,3 +203,8 @@ Json::Value CryptoServer::listtransactions() {
 
     return returning;
 }
+
+Json::Value CryptoServer::getblockbyheight(const uint64_t height)
+{
+    return blockchain->getBlockByHeight(height).toJson();
+}

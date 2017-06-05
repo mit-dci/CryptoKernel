@@ -415,8 +415,6 @@ CryptoKernel::Blockchain::block::block(const Json::Value& jsonBlock)
 
 void CryptoKernel::Blockchain::block::setConsensusData(const Json::Value& data) {
     consensusData = data;
-
-    id = calculateId();
 }
 
 CryptoKernel::BigNum CryptoKernel::Blockchain::block::calculateId() {

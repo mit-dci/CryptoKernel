@@ -219,15 +219,21 @@ int main(int argc, char* argv[])
                     std::cout << "Usage: compilecontract [code]" << std::endl;
                 }
             }
-            else if(command == "listtransactions")
-            {
+            else if(command == "listtransactions") {
                 std::cout << CryptoKernel::Storage::toString(client.listtransactions()) << std::endl;
+            } else if(command == "getblockbyheight") {
+                if(argc == 3) {
+                    std::cout << client.getblockbyheight(std::strtoull(argv[2], nullptr, 0)).toStyledString() << std::endl;
+                } else {
+                    std::cout << "Usage: getblockbyheight [height]" << std::endl;
+                }
             }
             else
             {
                 std::cout << "CryptoKernel - Blockchain Development Toolkit - v" << version << "\n\n"
                      << "account [accountname]\n"
                      << "compilecontract [code]\n"
+                     << "getblockbyheight [height]\n"
                      << "getinfo\n"
                      << "listaccounts\n"
                      << "listtransactions\n"
