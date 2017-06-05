@@ -19,9 +19,7 @@ void MathTest::testAdd() {
     const std::string second = "bAc391045cEE3Dfe";
     const std::string expected = "16687120699267bed";
 
-    std::string actual = CryptoKernel::Math::addHex(first, second);
-
-    actual.erase(0, std::min(actual.find_first_not_of('0'), actual.size()-1));
+    const std::string actual = (CryptoKernel::BigNum(first) + CryptoKernel::BigNum(second)).toString();
 
     CPPUNIT_ASSERT_EQUAL(expected, actual);
 }
@@ -29,11 +27,9 @@ void MathTest::testAdd() {
 void MathTest::testSubtract() {
     const std::string first = "aBc381023c383Def";
     const std::string second = "bAc391045cEE3Dfe";
-    const std::string expected = "f00100220b6000f";
+    const std::string expected = "-0f00100220b6000f";
 
-    std::string actual = CryptoKernel::Math::subtractHex(second, first);
-
-    actual.erase(0, std::min(actual.find_first_not_of('0'), actual.size()-1));
+    const std::string actual = (CryptoKernel::BigNum(first) - CryptoKernel::BigNum(second)).toString();
 
     CPPUNIT_ASSERT_EQUAL(expected, actual);
 }
@@ -43,7 +39,7 @@ void MathTest::testMultiply() {
     const std::string second = "bAc391045cEE3Dfe";
     const std::string expected = "7d4f42f38def1fb25e7211d89ec16622";
 
-    const std::string actual = CryptoKernel::Math::multiplyHex(second, first);
+    const std::string actual = (CryptoKernel::BigNum(first) * CryptoKernel::BigNum(second)).toString();
 
     CPPUNIT_ASSERT_EQUAL(expected, actual);
 }
@@ -53,9 +49,7 @@ void MathTest::testDivide() {
     const std::string second = "bAc391045cEE3Dfe";
     const std::string expected = "1";
 
-    std::string actual = CryptoKernel::Math::divideHex(second, first);
-
-    actual.erase(0, std::min(actual.find_first_not_of('0'), actual.size()-1));
+    std::string actual = (CryptoKernel::BigNum(second) / CryptoKernel::BigNum(first)).toString();
 
     CPPUNIT_ASSERT_EQUAL(expected, actual);
 }
@@ -64,8 +58,8 @@ void MathTest::testHexGreater() {
     const std::string first = "aBc381023c383Def";
     const std::string second = "bAc391045cEE3Dfe";
 
-    CPPUNIT_ASSERT_EQUAL(true, CryptoKernel::Math::hex_greater(second, first));
-    CPPUNIT_ASSERT_EQUAL(false, CryptoKernel::Math::hex_greater(first, second));
+    CPPUNIT_ASSERT_EQUAL(true, CryptoKernel::BigNum(second) > CryptoKernel::BigNum(first));
+    CPPUNIT_ASSERT_EQUAL(false, CryptoKernel::BigNum(first) > CryptoKernel::BigNum(second));
 }
 
 void MathTest::testEmptyOperand() {
@@ -73,9 +67,7 @@ void MathTest::testEmptyOperand() {
     const std::string second = "";
     const std::string expected = "abc381023c383def";
 
-    std::string actual = CryptoKernel::Math::addHex(second, first);
-
-    actual.erase(0, std::min(actual.find_first_not_of('0'), actual.size()-1));
+    const std::string actual = (CryptoKernel::BigNum(second) + CryptoKernel::BigNum(first)).toString();
 
     CPPUNIT_ASSERT_EQUAL(expected, actual);
 }

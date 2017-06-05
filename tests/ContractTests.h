@@ -36,7 +36,7 @@ class MyBlockchain : public CryptoKernel::Blockchain
             }
         }
 
-        std::string getCoinbaseOwner(const std::string publicKey) {
+        std::string getCoinbaseOwner(const std::string& publicKey) {
             return publicKey;
         }
 };
