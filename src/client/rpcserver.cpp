@@ -120,9 +120,11 @@ Json::Value CryptoServer::listunspentoutputs(const std::string& account)
 
     Json::Value returning;
 
-    for(CryptoKernel::Blockchain::output output : utxos)
+    for(const CryptoKernel::Blockchain::output& output : utxos)
     {
-        returning["outputs"].append(output.toJson());
+        Json::Value out = output.toJson();
+        out["id"] = output.getId().toString();
+        returning["outputs"].append(out);
     }
 
     return returning;
