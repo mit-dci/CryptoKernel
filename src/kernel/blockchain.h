@@ -229,8 +229,8 @@ namespace CryptoKernel
             * Retrieves the block from the current main chain with the given height
             *
             * @param height the height of the block to retrieve
-            * @return the block with the given height in the main chain, or an empty
-            *         block if it does not exist
+            * @return the block with the given height in the main chain
+            * @throw NotFoundException if the block is not found
             */
             block getBlockByHeight(const uint64_t height);
 
@@ -238,10 +238,22 @@ namespace CryptoKernel
             * Retrieves the transaction with the given id
             *
             * @param id the id of the transaction to get
-            * @return the confirmed transaction with the given id or an empty transaction
-            *         if it doesn't exist
+            * @return the confirmed transaction with the given id
+            * @throw NotFoundException if the transaction is not found
             */
             transaction getTransaction(Storage::Transaction* transaction, const std::string& id);
+
+            /**
+            * Retrieves the output, spent or unspent, that is associated
+            * with the given id
+            *
+            * @param id the id of the output to get
+            * @return the output with the given id in the main chain
+            * @throw NotFoundException if the output is not found
+            */
+            output getOutput(const std::string& id);
+
+            output getOutput(Storage::Transaction* dbTx, const std::string& id);
 
             std::set<output> getUnspentOutputs(const std::string& publicKey);
 

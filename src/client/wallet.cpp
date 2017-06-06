@@ -271,7 +271,15 @@ CryptoKernel::Blockchain::transaction CryptoCurrency::Wallet::signTransaction(co
     std::set<CryptoKernel::Blockchain::input> newInputs;
 
     for(const CryptoKernel::Blockchain::input& input : tx.getInputs()) {
-        const address Address = getAddressByKey(input.getData()["publicKey"].asString());
+        // Look up UTXO to get publicKey
+        Json::Value outputData;
+        try {
+            outputData = blockchain->getOutput(input.getOutputId().toString()).getData();
+        } catch(CryptoKernel::Blockchain::NotFoundException e) {
+            // TODO: throw an error here rather than fail silently
+            return tx;
+        }
+        const address Address = getAddressByKey(outputData["publicKey"].asString());
         crypto.setPrivateKey(Address.privateKey);
         const std::string signature = crypto.sign(input.getOutputId().toString() + outputHash);
         Json::Value spendData = input.getData();
