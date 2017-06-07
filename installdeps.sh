@@ -12,11 +12,6 @@ cd ../
 git clone https://github.com/metalicjames/selene.git
 cp -r selene/include/* /usr/local/include
 
-cd ../CryptoKernel
-chmod +x build.sh
-chmod +x buildclient.sh
-
-cd ../
 git clone https://github.com/metalicjames/lua-lz4.git
 cd lua-lz4
 make
