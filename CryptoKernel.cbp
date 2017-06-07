@@ -92,6 +92,57 @@
 					<Add option="-ldl" />
 				</Linker>
 			</Target>
+			<Target title="Debug-Client-Windows">
+				<Option platforms="Windows;" />
+				<Option output="CryptoCurrency" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option use_console_runner="0" />
+				<Compiler>
+					<Add option="-std=c++14" />
+					<Add option="-g" />
+					<Add directory="C:/TDM-GCC-64/msys/local/lib/lua/5.3" />
+				</Compiler>
+				<Linker>
+					<Add option="-lws2_32" />
+					<Add option="-lgdi32" />
+					<Add option="-lwinmm" />
+					<Add option="-lcrypt32" />
+					<Add option="-llua" />
+					<Add option="-ljsonrpccpp-server" />
+					<Add option="-lmicrohttpd" />
+					<Add option="-ljsonrpccpp-common" />
+					<Add option="-ljsonrpccpp-client" />
+					<Add option="-lcurl" />
+				</Linker>
+			</Target>
+			<Target title="Release-Client-Windows">
+				<Option platforms="Windows;" />
+				<Option output="CryptoCurrency" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option use_console_runner="0" />
+				<Compiler>
+					<Add option="-O3" />
+					<Add option="-std=c++14" />
+					<Add directory="C:/TDM-GCC-64/msys/local/lib/lua/5.3" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+					<Add option="-lws2_32" />
+					<Add option="-lgdi32" />
+					<Add option="-lwinmm" />
+					<Add option="-lcrypt32" />
+					<Add option="-llua" />
+					<Add option="-ljsonrpccpp-server" />
+					<Add option="-lmicrohttpd" />
+					<Add option="-ljsonrpccpp-common" />
+					<Add option="-ljsonrpccpp-client" />
+					<Add option="-lcurl" />
+				</Linker>
+			</Target>
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
@@ -105,7 +156,6 @@
 			<Add option="-pthread" />
 			<Add option="-lleveldb" />
 			<Add option="-ljsoncpp" />
-			<Add option="-llua5.3" />
 			<Add option="-lsfml-system" />
 			<Add option="-lsfml-network" />
 		</Linker>
@@ -120,21 +170,33 @@
 		</Unit>
 		<Unit filename="src/client/cryptoclient.h">
 			<Option target="Debug-Client-Unix" />
+			<Option target="Debug-Client-Windows" />
+			<Option target="Release-Client-Windows" />
 		</Unit>
 		<Unit filename="src/client/cryptoserver.h">
 			<Option target="Debug-Client-Unix" />
+			<Option target="Debug-Client-Windows" />
+			<Option target="Release-Client-Windows" />
 		</Unit>
 		<Unit filename="src/client/main.cpp">
 			<Option target="Debug-Client-Unix" />
+			<Option target="Debug-Client-Windows" />
+			<Option target="Release-Client-Windows" />
 		</Unit>
 		<Unit filename="src/client/rpcserver.cpp">
 			<Option target="Debug-Client-Unix" />
+			<Option target="Debug-Client-Windows" />
+			<Option target="Release-Client-Windows" />
 		</Unit>
 		<Unit filename="src/client/wallet.cpp">
 			<Option target="Debug-Client-Unix" />
+			<Option target="Debug-Client-Windows" />
+			<Option target="Release-Client-Windows" />
 		</Unit>
 		<Unit filename="src/client/wallet.h">
 			<Option target="Debug-Client-Unix" />
+			<Option target="Debug-Client-Windows" />
+			<Option target="Release-Client-Windows" />
 		</Unit>
 		<Unit filename="src/kernel/base64.cpp" />
 		<Unit filename="src/kernel/base64.h" />
