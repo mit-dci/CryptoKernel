@@ -78,13 +78,17 @@ bool CryptoServer::sendtoaddress(const std::string& address, double amount, doub
 
 bool CryptoServer::sendrawtransaction(const Json::Value tx)
 {
-    const CryptoKernel::Blockchain::transaction transaction = CryptoKernel::Blockchain::transaction(tx);
-    if(blockchain->submitTransaction(transaction))
-    {
-        std::vector<CryptoKernel::Blockchain::transaction> txs;
-        txs.push_back(transaction);
-        network->broadcastTransactions(txs);
-        return true;
+    try {
+        const CryptoKernel::Blockchain::transaction transaction = CryptoKernel::Blockchain::transaction(tx);
+        if(blockchain->submitTransaction(transaction))
+        {
+            std::vector<CryptoKernel::Blockchain::transaction> txs;
+            txs.push_back(transaction);
+            network->broadcastTransactions(txs);
+            return true;
+        }
+    } catch(CryptoKernel::Blockchain::InvalidElementException e) {
+        return false;
     }
 
     return false;
@@ -137,15 +141,23 @@ std::string CryptoServer::compilecontract(const std::string& code)
 
 std::string CryptoServer::calculateoutputid(const Json::Value output)
 {
-    const CryptoKernel::Blockchain::output out = CryptoKernel::Blockchain::output(output);
-    return out.getId().toString();
+    try {
+        const CryptoKernel::Blockchain::output out = CryptoKernel::Blockchain::output(output);
+        return out.getId().toString();
+    } catch(CryptoKernel::Blockchain::InvalidElementException e) {
+        return "";
+    }
 }
 
 Json::Value CryptoServer::signtransaction(const Json::Value tx)
 {
-    const CryptoKernel::Blockchain::transaction transaction = CryptoKernel::Blockchain::transaction(tx);
+    try {
+        const CryptoKernel::Blockchain::transaction transaction = CryptoKernel::Blockchain::transaction(tx);
 
-    return wallet->signTransaction(transaction).toJson();
+        return wallet->signTransaction(transaction).toJson();
+    } catch(CryptoKernel::Blockchain::InvalidElementException e) {
+        return Json::Value();
+    }
 }
 
 Json::Value CryptoServer::listtransactions() {
