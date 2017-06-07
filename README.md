@@ -8,8 +8,7 @@ Building on Ubuntu 16.04
 
 ```
 ./installdeps.sh
-./build.sh
-./buildclient.sh
+make
 ```
 
 Usage
@@ -19,12 +18,12 @@ See the source files in src/client/ for example usage. CryptoKernel ships with a
 To launch CryptoKernel as a currency with its default setup, simply write:
 
 ```
-./CryptoCurrency
+./ckd
 ```
 
 To get a list of command line RPC commands use:
 ```
-./CryptoCurrency help
+./ckd help
 ```
 
 There is also a GUI for CryptoKernel that runs client-side in a web browser available here: https://github.com/metalicjames/ckui
