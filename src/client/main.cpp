@@ -19,6 +19,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <algorithm>
+#include <cmath>
 
 #include <jsonrpccpp/server/connectors/httpserver.h>
 #include <jsonrpccpp/client/connectors/httpclient.h>
