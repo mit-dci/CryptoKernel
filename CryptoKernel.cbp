@@ -90,6 +90,7 @@
 					<Add option="-lcurl" />
 					<Add option="-ljsonrpccpp-client" />
 					<Add option="-ldl" />
+					<Add option="-llua5.3" />
 				</Linker>
 			</Target>
 			<Target title="Debug-Client-Windows">
