@@ -27,15 +27,15 @@ LUA_INCDIR ?= /opt/local/include
 LUA_LIBDIR ?= /opt/local/lib
 LIBFLAGS   ?= -shared -stdlib=libc++ -std=c++14
 BINFLAGS   ?= -I. -L. -lck -llua -ljsoncpp -lcrypto -lleveldb -ljsonrpccpp-server -ljsonrpccpp-client -ljsonrpccpp-common -lmicrohttpd -lcurl -lsfml-system -lsfml-network
-KERNELLIBS ?= -llua -ljsoncpp -lcrypto -lleveldb -lsfml-system -lsfml-network
-KERNELCXXFLAGS ?= -stdlib=libc++
+KERNELLIBS ?= -llua -ljsoncpp -lcrypto.1.1 -lleveldb -lsfml-system -lsfml-network
+KERNELCXXFLAGS += -stdlib=libc++
 CKLIB ?= libck.dylib
 CKBIN ?= ckd
 TESTBIN ?= test-ck
 CC = clang++
 endif
 
-KERNELCXXFLAGS ?= -g -Wall -std=c++14 -O2 -Wl,-E -Isrc/kernel
+KERNELCXXFLAGS += -g -Wall -std=c++14 -O2 -Wl,-E -Isrc/kernel
 
 KERNELSRC = src/kernel/blockchain.cpp src/kernel/blockchaintypes.cpp src/kernel/math.cpp src/kernel/storage.cpp src/kernel/network.cpp src/kernel/networkpeer.cpp src/kernel/base64.cpp src/kernel/crypto.cpp src/kernel/log.cpp src/kernel/contract.cpp src/kernel/consensus/AVRR.cpp src/kernel/consensus/PoW.cpp
 KERNELOBJS = $(KERNELSRC:.cpp=.o)
