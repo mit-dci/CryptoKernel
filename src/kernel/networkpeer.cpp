@@ -107,120 +107,124 @@ void CryptoKernel::Network::Peer::requestFunc()
 
             if(!request["command"].empty())
             {
-                if(request["command"] == "info")
-                {
-                    Json::Value response;
-                    response["data"]["version"] = version;
-                    response["data"]["tipHeight"] = static_cast<unsigned long long int>(blockchain->getBlockDB("tip").getHeight());
-                    response["nonce"] = request["nonce"];
-                    send(response);
-                }
-                else if(request["command"] == "transactions")
-                {
-                    std::vector<CryptoKernel::Blockchain::transaction> txs;
-                    for(unsigned int i = 0; i < request["data"].size(); i++)
+                try {
+                    if(request["command"] == "info")
                     {
-                        const CryptoKernel::Blockchain::transaction tx = CryptoKernel::Blockchain::transaction(request["data"][i]);
-                        const std::set<CryptoKernel::Blockchain::transaction> unconfirmedTransactions = blockchain->getUnconfirmedTransactions();
-                        bool found = false;
-                        for(const CryptoKernel::Blockchain::transaction& utx : unconfirmedTransactions)
+                        Json::Value response;
+                        response["data"]["version"] = version;
+                        response["data"]["tipHeight"] = static_cast<unsigned long long int>(blockchain->getBlockDB("tip").getHeight());
+                        response["nonce"] = request["nonce"];
+                        send(response);
+                    }
+                    else if(request["command"] == "transactions")
+                    {
+                        std::vector<CryptoKernel::Blockchain::transaction> txs;
+                        for(unsigned int i = 0; i < request["data"].size(); i++)
                         {
-                            if(utx.getId() == tx.getId())
+                            const CryptoKernel::Blockchain::transaction tx = CryptoKernel::Blockchain::transaction(request["data"][i]);
+                            const std::set<CryptoKernel::Blockchain::transaction> unconfirmedTransactions = blockchain->getUnconfirmedTransactions();
+                            bool found = false;
+                            for(const CryptoKernel::Blockchain::transaction& utx : unconfirmedTransactions)
                             {
-                                found = true;
-                                break;
+                                if(utx.getId() == tx.getId())
+                                {
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if(blockchain->submitTransaction(tx) && !found)
+                            {
+                                txs.push_back(tx);
                             }
                         }
-                        if(blockchain->submitTransaction(tx) && !found)
+
+                        if(txs.size() > 0)
                         {
-                            txs.push_back(tx);
+                            network->broadcastTransactions(txs);
                         }
                     }
-
-                    if(txs.size() > 0)
+                    else if(request["command"] == "block")
                     {
-                        network->broadcastTransactions(txs);
-                    }
-                }
-                else if(request["command"] == "block")
-                {
-                    const CryptoKernel::Blockchain::block block = CryptoKernel::Blockchain::block(request["data"]);
+                        const CryptoKernel::Blockchain::block block = CryptoKernel::Blockchain::block(request["data"]);
 
-                    try {
-                        blockchain->getBlockDB(block.getId().toString());
-                    } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
-                        if(blockchain->submitBlock(block, false))
-                        {
-                            network->broadcastBlock(block);
+                        try {
+                            blockchain->getBlockDB(block.getId().toString());
+                        } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
+                            if(blockchain->submitBlock(block, false))
+                            {
+                                network->broadcastBlock(block);
+                            }
                         }
                     }
-                }
-                else if(request["command"] == "getunconfirmed")
-                {
-                    const std::set<CryptoKernel::Blockchain::transaction> unconfirmedTransactions = blockchain->getUnconfirmedTransactions();
-                    Json::Value response;
-                    for(const CryptoKernel::Blockchain::transaction& tx : unconfirmedTransactions)
+                    else if(request["command"] == "getunconfirmed")
                     {
-                        response["data"].append(tx.toJson());
-                    }
-
-                    response["nonce"] = request["nonce"];
-
-                    send(response);
-                }
-                else if(request["command"] == "getblocks")
-                {
-                    const uint64_t start = request["data"]["start"].asUInt64();
-                    const uint64_t end = request["data"]["end"].asUInt64();
-                    if(end > start && (end - start) <= 500)
-                    {
-                        Json::Value returning;
-                        for(unsigned int i = start; i < end; i++)
+                        const std::set<CryptoKernel::Blockchain::transaction> unconfirmedTransactions = blockchain->getUnconfirmedTransactions();
+                        Json::Value response;
+                        for(const CryptoKernel::Blockchain::transaction& tx : unconfirmedTransactions)
                         {
+                            response["data"].append(tx.toJson());
+                        }
+
+                        response["nonce"] = request["nonce"];
+
+                        send(response);
+                    }
+                    else if(request["command"] == "getblocks")
+                    {
+                        const uint64_t start = request["data"]["start"].asUInt64();
+                        const uint64_t end = request["data"]["end"].asUInt64();
+                        if(end > start && (end - start) <= 500)
+                        {
+                            Json::Value returning;
+                            for(unsigned int i = start; i < end; i++)
+                            {
+                                try {
+                                    returning["data"].append(blockchain->getBlockByHeight(i).toJson());
+                                } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
+                                    break;
+                                }
+                            }
+
+                            returning["nonce"] = request["nonce"];
+
+                            send(returning);
+                        }
+                        else
+                        {
+                            Json::Value response;
+                            response["nonce"] = request["nonce"];
+                            send(response);
+                        }
+                    }
+                    else if(request["command"] == "getblock")
+                    {
+                        if(request["data"]["id"].empty())
+                        {
+                            Json::Value response;
                             try {
-                                returning["data"].append(blockchain->getBlockByHeight(i).toJson());
+                                response["data"] = blockchain->getBlockByHeight(request["data"]["height"].asUInt64()).toJson();
                             } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
-                                break;
+                                response["data"] = Json::Value();
                             }
+
+                            response["nonce"] = request["nonce"];
+
+                            send(response);
                         }
-
-                        returning["nonce"] = request["nonce"];
-
-                        send(returning);
-                    }
-                    else
-                    {
-                        Json::Value response;
-                        response["nonce"] = request["nonce"];
-                        send(response);
-                    }
-                }
-                else if(request["command"] == "getblock")
-                {
-                    if(request["data"]["id"].empty())
-                    {
-                        Json::Value response;
-                        try {
-                            response["data"] = blockchain->getBlockByHeight(request["data"]["height"].asUInt64()).toJson();
-                        } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
-                            response["data"] = Json::Value();
+                        else
+                        {
+                            Json::Value response;
+                            try {
+                                response["data"] = blockchain->getBlock(request["data"]["id"].asString()).toJson();
+                            } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
+                                response["data"] = Json::Value();
+                            }
+                            response["nonce"] = request["nonce"];
+                            send(response);
                         }
-
-                        response["nonce"] = request["nonce"];
-
-                        send(response);
                     }
-                    else
-                    {
-                        Json::Value response;
-                        try {
-                            response["data"] = blockchain->getBlock(request["data"]["id"].asString()).toJson();
-                        } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
-                            response["data"] = Json::Value();
-                        }
-                        response["nonce"] = request["nonce"];
-                        send(response);
-                    }
+                } catch(NetworkError& e) {
+                    running = false;
                 }
             }
             else if(!request["nonce"].empty())

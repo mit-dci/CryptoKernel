@@ -24,7 +24,7 @@
 
 #include "storage.h"
 
-CryptoKernel::Storage::Storage(const std::string filename)
+CryptoKernel::Storage::Storage(const std::string& filename)
 {
     leveldb::Options options;
     options.create_if_missing = true;
@@ -46,7 +46,7 @@ CryptoKernel::Storage::~Storage()
     dbMutex.unlock();
 }
 
-Json::Value CryptoKernel::Storage::toJson(std::string json)
+Json::Value CryptoKernel::Storage::toJson(const std::string& json)
 {
     Json::Value returning;
     Json::CharReaderBuilder rbuilder;
@@ -54,7 +54,11 @@ Json::Value CryptoKernel::Storage::toJson(std::string json)
     std::string errs;
     std::stringstream input;
     input << json;
-    Json::parseFromStream(rbuilder, input, &returning, &errs);
+    try {
+        Json::parseFromStream(rbuilder, input, &returning, &errs);
+    } catch(Json::Exception e) {
+        return Json::Value();
+    }
 
     return returning;
 }
@@ -73,7 +77,7 @@ std::string CryptoKernel::Storage::toString(const Json::Value& json, const bool 
     }
 }
 
-bool CryptoKernel::Storage::destroy(std::string filename)
+bool CryptoKernel::Storage::destroy(const std::string& filename)
 {
     leveldb::Options options;
     leveldb::DestroyDB(filename, options);
@@ -132,15 +136,15 @@ void CryptoKernel::Storage::Transaction::abort() {
     db->dbMutex.unlock();
 }
 
-void CryptoKernel::Storage::Transaction::put(const std::string key, const Json::Value data) {
+void CryptoKernel::Storage::Transaction::put(const std::string& key, const Json::Value& data) {
     dbStateCache[key] = dbObject{data, false};
 }
 
-void CryptoKernel::Storage::Transaction::erase(const std::string key) {
+void CryptoKernel::Storage::Transaction::erase(const std::string& key) {
     dbStateCache[key] = dbObject{Json::Value(), true};
 }
 
-Json::Value CryptoKernel::Storage::Transaction::get(const std::string key) {
+Json::Value CryptoKernel::Storage::Transaction::get(const std::string& key) {
     const auto it = dbStateCache.find(key);
     if(it != dbStateCache.end()) {
         return it->second.data;
@@ -151,24 +155,23 @@ Json::Value CryptoKernel::Storage::Transaction::get(const std::string key) {
     }
 }
 
-CryptoKernel::Storage::Table::Table(const std::string name) {
+CryptoKernel::Storage::Table::Table(const std::string& name) {
     tableName = name;
 }
 
-std::string CryptoKernel::Storage::Table::getKey(const std::string key, const int index) {
+std::string CryptoKernel::Storage::Table::getKey(const std::string& key, const int index) {
     return tableName + "/" + std::to_string(index + 1) + "/" + key;
 }
 
-void CryptoKernel::Storage::Table::put(Transaction* transaction, const std::string key, const Json::Value data, const int index) {
-    transaction->put(getKey("", index), Json::Value());
+void CryptoKernel::Storage::Table::put(Transaction* transaction, const std::string& key, const Json::Value& data, const int index) {
     transaction->put(getKey(key, index), data);
 }
 
-void CryptoKernel::Storage::Table::erase(Transaction* transaction, const std::string key, const int index) {
+void CryptoKernel::Storage::Table::erase(Transaction* transaction, const std::string& key, const int index) {
     transaction->erase(getKey(key, index));
 }
 
-Json::Value CryptoKernel::Storage::Table::get(Transaction* transaction, const std::string key, const int index) {
+Json::Value CryptoKernel::Storage::Table::get(Transaction* transaction, const std::string& key, const int index) {
     return transaction->get(getKey(key, index));
 }
 

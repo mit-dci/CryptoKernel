@@ -43,7 +43,7 @@ namespace CryptoKernel
             * @param filename the directory of the LevelDB database to use
             * @throw std::runtime_error if there is a failure
             */
-            Storage(const std::string filename);
+            Storage(const std::string& filename);
 
             /**
             * Default destructor, saves and closes the database
@@ -59,9 +59,9 @@ namespace CryptoKernel
                     void commit();
                     void abort();
 
-                    void put(const std::string key, const Json::Value data);
-                    void erase(const std::string key);
-                    Json::Value get(const std::string key);
+                    void put(const std::string& key, const Json::Value& data);
+                    void erase(const std::string& key);
+                    Json::Value get(const std::string& key);
 
                     bool ended();
 
@@ -79,11 +79,11 @@ namespace CryptoKernel
 
             class Table {
                 public:
-                    Table(const std::string name);
+                    Table(const std::string& name);
 
-                    void put(Transaction* transaction, const std::string key, const Json::Value data, const int index = -1);
-                    void erase(Transaction* transaction, const std::string key, const int index = -1);
-                    Json::Value get(Transaction* transaction, const std::string key, const int index = -1);
+                    void put(Transaction* transaction, const std::string& key, const Json::Value& data, const int index = -1);
+                    void erase(Transaction* transaction, const std::string& key, const int index = -1);
+                    Json::Value get(Transaction* transaction, const std::string& key, const int index = -1);
 
                     class Iterator {
                         public:
@@ -128,7 +128,7 @@ namespace CryptoKernel
                             std::string prefix;
                     };
 
-                    std::string getKey(const std::string key, const int index = -1);
+                    std::string getKey(const std::string& key, const int index = -1);
                 private:
                     std::string tableName;
             };
@@ -140,7 +140,7 @@ namespace CryptoKernel
             * @param filename the directory of the database to delete
             * @return true if the database was deleted successfully, false otherwise
             */
-            static bool destroy(const std::string filename);
+            static bool destroy(const std::string& filename);
 
             /**
             * Converts a string to a Json::Value
@@ -148,7 +148,7 @@ namespace CryptoKernel
             * @param json a valid json string to be converted
             * @return a Json::Value representation of the given string
             */
-            static Json::Value toJson(const std::string json);
+            static Json::Value toJson(const std::string& json);
 
             /**
             * Converts a Json::Value to a json string representation
