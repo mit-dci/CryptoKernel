@@ -18,6 +18,8 @@
 #ifndef WALLET_H_INCLUDED
 #define WALLET_H_INCLUDED
 
+#include <random>
+
 #include "storage.h"
 #include "log.h"
 #include "blockchain.h"
