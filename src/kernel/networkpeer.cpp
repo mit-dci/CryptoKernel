@@ -103,17 +103,18 @@ void CryptoKernel::Network::Peer::requestFunc()
             std::string requestString;
             packet >> requestString;
 
+            // If this breaks, request will be null
             const Json::Value request = CryptoKernel::Storage::toJson(requestString);
 
-            if(!request["command"].empty())
-            {
-                try {
+            try {
+                if(!request["command"].empty())
+                {
                     if(request["command"] == "info")
                     {
                         Json::Value response;
                         response["data"]["version"] = version;
                         response["data"]["tipHeight"] = static_cast<unsigned long long int>(blockchain->getBlockDB("tip").getHeight());
-                        response["nonce"] = request["nonce"];
+                        response["nonce"] = request["nonce"].asUInt64();
                         send(response);
                     }
                     else if(request["command"] == "transactions")
@@ -165,7 +166,7 @@ void CryptoKernel::Network::Peer::requestFunc()
                             response["data"].append(tx.toJson());
                         }
 
-                        response["nonce"] = request["nonce"];
+                        response["nonce"] = request["nonce"].asUInt64();
 
                         send(response);
                     }
@@ -185,14 +186,14 @@ void CryptoKernel::Network::Peer::requestFunc()
                                 }
                             }
 
-                            returning["nonce"] = request["nonce"];
+                            returning["nonce"] = request["nonce"].asUInt64();
 
                             send(returning);
                         }
                         else
                         {
                             Json::Value response;
-                            response["nonce"] = request["nonce"];
+                            response["nonce"] = request["nonce"].asUInt64();
                             send(response);
                         }
                     }
@@ -207,7 +208,7 @@ void CryptoKernel::Network::Peer::requestFunc()
                                 response["data"] = Json::Value();
                             }
 
-                            response["nonce"] = request["nonce"];
+                            response["nonce"] = request["nonce"].asUInt64();
 
                             send(response);
                         }
@@ -219,19 +220,27 @@ void CryptoKernel::Network::Peer::requestFunc()
                             } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
                                 response["data"] = Json::Value();
                             }
-                            response["nonce"] = request["nonce"];
+                            response["nonce"] = request["nonce"].asUInt64();
                             send(response);
                         }
+                    } else {
+                        //TODO: ban the peer
+                        running = false;
                     }
-                } catch(NetworkError& e) {
-                    running = false;
                 }
-            }
-            else if(!request["nonce"].empty())
-            {
-                clientMutex.lock();
-                responses[request["nonce"].asUInt64()] = request["data"];
-                clientMutex.unlock();
+                else if(!request["nonce"].empty())
+                {
+                    std::lock_guard<std::mutex> lock(clientMutex);
+                    responses[request["nonce"].asUInt64()] = request["data"];
+                }
+            } catch(const NetworkError& e) {
+                running = false;
+            } catch(const CryptoKernel::Blockchain::InvalidElementException& e) {
+                //TODO: if this happens should probably ban this peer
+                running = false;
+            } catch(const Json::Exception& e) {
+                //TODO: also ban here
+                running = false;
             }
         }
         else
@@ -280,7 +289,13 @@ std::vector<CryptoKernel::Blockchain::transaction> CryptoKernel::Network::Peer::
     std::vector<CryptoKernel::Blockchain::transaction> returning;
     for(unsigned int i = 0; i < unconfirmed.size(); i++)
     {
-        returning.push_back(CryptoKernel::Blockchain::transaction(unconfirmed[i]));
+        try {
+            returning.push_back(CryptoKernel::Blockchain::transaction(unconfirmed[i]));
+        } catch(const CryptoKernel::Blockchain::InvalidElementException& e) {
+            //TODO: ban the peer
+            running = false;
+            throw NetworkError();
+        }
     }
 
     return returning;
@@ -302,7 +317,13 @@ CryptoKernel::Blockchain::block CryptoKernel::Network::Peer::getBlock(const uint
         block = sendRecv(request);
     }
 
-    return CryptoKernel::Blockchain::block(block);
+    try {
+        return CryptoKernel::Blockchain::block(block);
+    } catch(const CryptoKernel::Blockchain::InvalidElementException& e) {
+        //TODO: ban the peer
+        running = false;
+        throw NetworkError();
+    }
 }
 
 std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Peer::getBlocks(const uint64_t start, const uint64_t end)
@@ -316,7 +337,13 @@ std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Peer::getBlo
     std::vector<CryptoKernel::Blockchain::block> returning;
     for(unsigned int i = 0; i < blocks.size(); i++)
     {
-        returning.push_back(CryptoKernel::Blockchain::block(blocks[i]));
+        try {
+            returning.push_back(CryptoKernel::Blockchain::block(blocks[i]));
+        } catch(const CryptoKernel::Blockchain::InvalidElementException& e) {
+            //TODO: ban the peer
+            running = false;
+            throw NetworkError();
+        }
     }
 
     return returning;

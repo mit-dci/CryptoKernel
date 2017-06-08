@@ -18,18 +18,26 @@ bool CryptoKernel::Consensus::PoW::isBlockBetter(Storage::Transaction* transacti
 CryptoKernel::Consensus::PoW::consensusData CryptoKernel::Consensus::PoW::getConsensusData(const CryptoKernel::Blockchain::block& block) {
     consensusData data;
     const Json::Value consensusJson = block.getConsensusData();
-    data.target = CryptoKernel::BigNum(consensusJson["target"].asString());
-    data.totalWork = CryptoKernel::BigNum(consensusJson["totalWork"].asString());
-    data.nonce = consensusJson["nonce"].asUInt64();
+    try {
+        data.target = CryptoKernel::BigNum(consensusJson["target"].asString());
+        data.totalWork = CryptoKernel::BigNum(consensusJson["totalWork"].asString());
+        data.nonce = consensusJson["nonce"].asUInt64();
+    } catch(const Json::Exception& e) {
+        throw CryptoKernel::Blockchain::InvalidElementException("Block consensusData JSON is malformed");
+    }
     return data;
 }
 
 CryptoKernel::Consensus::PoW::consensusData CryptoKernel::Consensus::PoW::getConsensusData(const CryptoKernel::Blockchain::dbBlock& block) {
     consensusData data;
     const Json::Value consensusJson = block.getConsensusData();
-    data.target = CryptoKernel::BigNum(consensusJson["target"].asString());
-    data.totalWork = CryptoKernel::BigNum(consensusJson["totalWork"].asString());
-    data.nonce = consensusJson["nonce"].asUInt64();
+    try {
+        data.target = CryptoKernel::BigNum(consensusJson["target"].asString());
+        data.totalWork = CryptoKernel::BigNum(consensusJson["totalWork"].asString());
+        data.nonce = consensusJson["nonce"].asUInt64();
+    } catch(const Json::Exception& e) {
+        throw CryptoKernel::Blockchain::InvalidElementException("Block consensusData JSON is malformed");
+    }
     return data;
 }
 
@@ -43,24 +51,28 @@ Json::Value CryptoKernel::Consensus::PoW::consensusDataToJson(const CryptoKernel
 
 bool CryptoKernel::Consensus::PoW::checkConsensusRules(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block& block, const CryptoKernel::Blockchain::dbBlock& previousBlock) {
     //Check target
-    const consensusData blockData = getConsensusData(block);
-    if(blockData.target != calculateTarget(transaction, block.getPreviousBlockId())) {
+    try {
+        const consensusData blockData = getConsensusData(block);
+        if(blockData.target != calculateTarget(transaction, block.getPreviousBlockId())) {
+            return false;
+        }
+
+        //Check proof of work
+        if(blockData.target <= calculatePoW(block, blockData.nonce)) {
+            return false;
+        }
+
+        //Check total work
+        const consensusData tipData = getConsensusData(previousBlock);
+        const BigNum inverse = CryptoKernel::BigNum("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff") - blockData.target;
+        if(blockData.totalWork != inverse + tipData.totalWork) {
+            return false;
+        }
+
+        return true;
+    } catch(const CryptoKernel::Blockchain::InvalidElementException& e) {
         return false;
     }
-
-    //Check proof of work
-    if(blockData.target <= calculatePoW(block, blockData.nonce)) {
-        return false;
-    }
-
-    //Check total work
-    const consensusData tipData = getConsensusData(previousBlock);
-    const BigNum inverse = CryptoKernel::BigNum("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff") - blockData.target;
-    if(blockData.totalWork != inverse + tipData.totalWork) {
-        return false;
-    }
-
-    return true;
 }
 
 CryptoKernel::BigNum CryptoKernel::Consensus::PoW::calculatePoW(const CryptoKernel::Blockchain::block& block, const uint64_t nonce) {

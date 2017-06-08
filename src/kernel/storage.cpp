@@ -56,7 +56,7 @@ Json::Value CryptoKernel::Storage::toJson(const std::string& json)
     input << json;
     try {
         Json::parseFromStream(rbuilder, input, &returning, &errs);
-    } catch(Json::Exception e) {
+    } catch(const Json::Exception& e) {
         return Json::Value();
     }
 

@@ -4,9 +4,13 @@
 #include "crypto.h"
 
 CryptoKernel::Blockchain::output::output(const Json::Value& jsonOutput) {
-    value = jsonOutput["value"].asUInt64();
-    nonce = jsonOutput["nonce"].asUInt64();
-    data = jsonOutput["data"];
+    try {
+        value = jsonOutput["value"].asUInt64();
+        nonce = jsonOutput["nonce"].asUInt64();
+        data = jsonOutput["data"];
+    } catch(const Json::Exception& e) {
+        throw InvalidElementException("Output JSON is malformed");
+    }
 
     checkRep();
 
@@ -30,9 +34,12 @@ void CryptoKernel::Blockchain::output::checkRep() {
 
     if(data["contract"].empty() && !data["publicKey"].empty()) {
         CryptoKernel::Crypto crypto;
-        if(!crypto.setPublicKey(data["publicKey"].asString()))
-        {
-            throw InvalidElementException("Public key is invalid");
+        try {
+            if(!crypto.setPublicKey(data["publicKey"].asString())) {
+                throw InvalidElementException("Public key is invalid");
+            }
+        } catch(const Json::Exception& e) {
+            throw InvalidElementException("Output JSON is malformed");
         }
     }
 }
@@ -76,7 +83,11 @@ bool CryptoKernel::Blockchain::output::operator<(const output& rhs) const {
 }
 
 CryptoKernel::Blockchain::dbOutput::dbOutput(const Json::Value& jsonOutput) : output(jsonOutput) {
-    creationTx = CryptoKernel::BigNum(jsonOutput["creationTx"].asString());
+    try {
+        creationTx = CryptoKernel::BigNum(jsonOutput["creationTx"].asString());
+    } catch(const Json::Exception& e) {
+        throw InvalidElementException("Output JSON is malformed");
+    }
 }
 
 CryptoKernel::Blockchain::dbOutput::dbOutput(const output& compactOutput, const BigNum& creationTx) : output(compactOutput.getValue(), compactOutput.getNonce(), compactOutput.getData()) {
@@ -93,8 +104,12 @@ Json::Value CryptoKernel::Blockchain::dbOutput::toJson() const {
 }
 
 CryptoKernel::Blockchain::input::input(const Json::Value& inputJson) {
-    data = inputJson["data"];
-    outputId = CryptoKernel::BigNum(inputJson["outputId"].asString());
+    try {
+        data = inputJson["data"];
+        outputId = CryptoKernel::BigNum(inputJson["outputId"].asString());
+    } catch(const Json::Exception& e) {
+        throw InvalidElementException("Input JSON is malformed");
+    }
 
     checkRep();
 
@@ -178,7 +193,11 @@ CryptoKernel::Blockchain::transaction::transaction(const Json::Value& jsonTransa
         outputs.insert(CryptoKernel::Blockchain::output(out));
     }
 
-    timestamp = jsonTransaction["timestamp"].asUInt64();
+    try {
+        timestamp = jsonTransaction["timestamp"].asUInt64();
+    } catch(const Json::Exception& e) {
+        throw InvalidElementException("Transaction JSON is malformed");
+    }
 
     checkRep(coinbaseTx);
 
@@ -282,18 +301,22 @@ Json::Value CryptoKernel::Blockchain::transaction::toJson() const {
 }
 
 CryptoKernel::Blockchain::dbTransaction::dbTransaction(const Json::Value& jsonTransaction) {
-    this->confirmingBlock = CryptoKernel::BigNum(jsonTransaction["confirmingBlock"].asString());
-    this->coinbaseTx = jsonTransaction["coinbaseTx"].asBool();
+    try {
+        this->confirmingBlock = CryptoKernel::BigNum(jsonTransaction["confirmingBlock"].asString());
+        this->coinbaseTx = jsonTransaction["coinbaseTx"].asBool();
 
-    for(const Json::Value& inp : jsonTransaction["inputs"]) {
-        inputs.insert(CryptoKernel::BigNum(inp.asString()));
+        for(const Json::Value& inp : jsonTransaction["inputs"]) {
+            inputs.insert(CryptoKernel::BigNum(inp.asString()));
+        }
+
+        for(const Json::Value& out : jsonTransaction["outputs"]) {
+            outputs.insert(CryptoKernel::BigNum(out.asString()));
+        }
+
+        timestamp = jsonTransaction["timestamp"].asUInt64();
+    } catch(const Json::Exception& e) {
+        throw InvalidElementException("Transaction JSON is malformed");
     }
-
-    for(const Json::Value& out : jsonTransaction["outputs"]) {
-        outputs.insert(CryptoKernel::BigNum(out.asString()));
-    }
-
-    timestamp = jsonTransaction["timestamp"].asUInt64();
 
     checkRep();
 
@@ -402,12 +425,16 @@ CryptoKernel::Blockchain::block::block(const std::set<transaction>& transactions
 
 CryptoKernel::Blockchain::block::block(const Json::Value& jsonBlock)
 : coinbaseTx(jsonBlock["coinbaseTx"], true) {
-    timestamp = jsonBlock["timestamp"].asUInt64();
-    previousBlockId = CryptoKernel::BigNum(jsonBlock["previousBlockId"].asString());
-    consensusData = jsonBlock["consensusData"];
+    try {
+        timestamp = jsonBlock["timestamp"].asUInt64();
+        previousBlockId = CryptoKernel::BigNum(jsonBlock["previousBlockId"].asString());
+        consensusData = jsonBlock["consensusData"];
 
-    for(const Json::Value& tx : jsonBlock["transactions"]) {
-        transactions.insert(CryptoKernel::Blockchain::transaction(tx));
+        for(const Json::Value& tx : jsonBlock["transactions"]) {
+            transactions.insert(CryptoKernel::Blockchain::transaction(tx));
+        }
+    } catch(const Json::Exception& e) {
+        throw InvalidElementException("Block JSON is malformed");
     }
 
     checkRep();
@@ -512,14 +539,18 @@ CryptoKernel::BigNum CryptoKernel::Blockchain::block::getId() const {
 }
 
 CryptoKernel::Blockchain::dbBlock::dbBlock(const Json::Value& jsonBlock) {
-    coinbaseTx = CryptoKernel::BigNum(jsonBlock["coinbaseTx"].asString());
-    previousBlockId = CryptoKernel::BigNum(jsonBlock["previousBlockId"].asString());
-    timestamp = jsonBlock["timestamp"].asUInt64();
-    height = jsonBlock["height"].asUInt64();
-    consensusData = jsonBlock["consensusData"];
+    try {
+        coinbaseTx = CryptoKernel::BigNum(jsonBlock["coinbaseTx"].asString());
+        previousBlockId = CryptoKernel::BigNum(jsonBlock["previousBlockId"].asString());
+        timestamp = jsonBlock["timestamp"].asUInt64();
+        height = jsonBlock["height"].asUInt64();
+        consensusData = jsonBlock["consensusData"];
 
-    for(const Json::Value& tx : jsonBlock["transactions"]) {
-        transactions.insert(CryptoKernel::BigNum(tx.asString()));
+        for(const Json::Value& tx : jsonBlock["transactions"]) {
+            transactions.insert(CryptoKernel::BigNum(tx.asString()));
+        }
+    } catch(const Json::Exception& e) {
+        throw InvalidElementException("Block JSON is malformed");
     }
 
     checkRep();
