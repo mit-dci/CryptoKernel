@@ -46,7 +46,7 @@ CryptoKernel::Storage::~Storage()
     dbMutex.unlock();
 }
 
-Json::Value CryptoKernel::Storage::toJson(std::string json)
+Json::Value CryptoKernel::Storage::toJson(const std::string& json)
 {
     Json::Value returning;
     Json::CharReaderBuilder rbuilder;
@@ -54,7 +54,11 @@ Json::Value CryptoKernel::Storage::toJson(std::string json)
     std::string errs;
     std::stringstream input;
     input << json;
-    Json::parseFromStream(rbuilder, input, &returning, &errs);
+    try {
+        Json::parseFromStream(rbuilder, input, &returning, &errs);
+    } catch(Json::Exception e) {
+        return Json::Value();
+    }
 
     return returning;
 }
@@ -160,7 +164,6 @@ std::string CryptoKernel::Storage::Table::getKey(const std::string key, const in
 }
 
 void CryptoKernel::Storage::Table::put(Transaction* transaction, const std::string key, const Json::Value data, const int index) {
-    transaction->put(getKey("", index), Json::Value());
     transaction->put(getKey(key, index), data);
 }
 

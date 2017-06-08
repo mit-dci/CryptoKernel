@@ -148,7 +148,7 @@ namespace CryptoKernel
             * @param json a valid json string to be converted
             * @return a Json::Value representation of the given string
             */
-            static Json::Value toJson(const std::string json);
+            static Json::Value toJson(const std::string& json);
 
             /**
             * Converts a Json::Value to a json string representation
