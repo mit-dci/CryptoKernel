@@ -25,7 +25,7 @@ CryptoKernel::Network::Peer::~Peer()
     delete client;
 }
 
-Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value request)
+Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request)
 {
     std::uniform_int_distribution<uint64_t> distribution(0, std::numeric_limits<uint64_t>::max());
     for(unsigned int tries = 0; tries < 3; tries++)
@@ -36,7 +36,7 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value request)
         modifiedRequest["nonce"] = static_cast<unsigned long long int>(nonce);
 
         sf::Packet packet;
-        packet << modifiedRequest.toStyledString();
+        packet << CryptoKernel::Storage::toString(modifiedRequest, false);
 
         clientMutex.lock();
 
@@ -73,10 +73,10 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value request)
     throw NetworkError();
 }
 
-void CryptoKernel::Network::Peer::send(const Json::Value response)
+void CryptoKernel::Network::Peer::send(const Json::Value& response)
 {
     sf::Packet packet;
-    packet << response.toStyledString();
+    packet << CryptoKernel::Storage::toString(response, false);
 
     clientMutex.lock();
     client->setBlocking(true);

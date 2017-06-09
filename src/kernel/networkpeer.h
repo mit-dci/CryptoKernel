@@ -34,8 +34,8 @@ class CryptoKernel::Network::Peer
         CryptoKernel::Blockchain* blockchain;
         CryptoKernel::Network* network;
         std::mutex clientMutex;
-        Json::Value sendRecv(const Json::Value request);
-        void send(const Json::Value response);
+        Json::Value sendRecv(const Json::Value& request);
+        void send(const Json::Value& response);
         void requestFunc();
         bool running;
         std::unique_ptr<std::thread> requestThread;
