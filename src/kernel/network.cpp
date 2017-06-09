@@ -111,7 +111,13 @@ void CryptoKernel::Network::networkFunc()
                 log->printf(LOG_LEVEL_INFO, "Network(): Successfully connected to " + seeds[i]["url"].asString());
 
                 // Update info
-                seeds[i]["height"] = info["tipHeight"];
+                try {
+                    seeds[i]["height"] = info["tipHeight"].asUInt64();
+                } catch(const Json::Exception& e) {
+                    log->printf(LOG_LEVEL_WARN, "Network(): " + seeds[i]["url"].asString() + " sent a malformed info message");
+                    delete peerInfo;
+                    continue;
+                }
 
                 std::time_t result = std::time(nullptr);
                 seeds[i]["lastseen"] = std::asctime(std::localtime(&result));
@@ -133,7 +139,14 @@ void CryptoKernel::Network::networkFunc()
                     log->printf(LOG_LEVEL_WARN, "Network(): " + it->first + " has a different major version than us");
                     throw Peer::NetworkError();
                 }
-                it->second->info["height"] = info["tipHeight"];
+
+                try {
+                    it->second->info["height"] = info["tipHeight"].asUInt64();
+                } catch(const Json::Exception& e) {
+                    log->printf(LOG_LEVEL_WARN, "Network(): " + it->first + " sent a malformed info message");
+                    throw Peer::NetworkError();
+                }
+
                 std::time_t result = std::time(nullptr);
                 it->second->info["lastseen"] = std::asctime(std::localtime(&result));
             }
@@ -227,14 +240,20 @@ void CryptoKernel::Network::connectionFunc()
             {
                 info = peerInfo->peer->getInfo();
             }
-            catch(Peer::NetworkError& e)
+            catch(const Peer::NetworkError& e)
             {
                 log->printf(LOG_LEVEL_WARN, "Network(): Failed to get information from connecting peer");
                 delete peerInfo;
                 continue;
             }
 
-            peerInfo->info["height"] = info["tipHeight"];
+            try {
+                peerInfo->info["height"] = info["tipHeight"].asUInt64();
+            } catch(const Json::Exception& e) {
+                log->printf(LOG_LEVEL_WARN, "Network(): Incoming peer sent invalid info message");
+                delete peerInfo;
+                continue;
+            }
 
             std::time_t result = std::time(nullptr);
             peerInfo->info["lastseen"] = std::asctime(std::localtime(&result));
