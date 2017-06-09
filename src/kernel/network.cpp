@@ -76,6 +76,10 @@ void CryptoKernel::Network::networkFunc()
                 continue;
             }
 
+            if(std::find(banned.begin(), banned.end(), it->key()) != banned.end()) {
+                continue;
+            }
+
             log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + it->key());
 
             // Attempt to connect to peer
@@ -232,6 +236,13 @@ void CryptoKernel::Network::connectionFunc()
                 continue;
             }
 
+            if(std::find(banned.begin(), banned.end(), client->getRemoteAddress().toString()) != banned.end()) {
+                log->printf(LOG_LEVEL_INFO, "Network(): Incoming connection " + client->getRemoteAddress().toString() + " is banned");
+                client->disconnect();
+                delete client;
+                continue;
+            }
+
             log->printf(LOG_LEVEL_INFO, "Network(): Peer connected from " + client->getRemoteAddress().toString() + ":" + std::to_string(client->getRemotePort()));
             PeerInfo* peerInfo = new PeerInfo();
             peerInfo->peer.reset(new Peer(client, blockchain, this));
@@ -314,4 +325,12 @@ double CryptoKernel::Network::syncProgress()
     }
 
     return (double)(currentHeight)/(double)(bestHeight);
+}
+
+void CryptoKernel::Network::changeScore(const std::string& url, const uint64_t score) {
+    connected[url]->info["score"] = connected[url]->info["score"].asUInt64() + score;
+    if(connected[url]->info["score"].asUInt64() > 200) {
+        connected.erase(url);
+        banned.push_back(url);
+    }
 }

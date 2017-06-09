@@ -86,6 +86,8 @@ namespace CryptoKernel
             std::unique_ptr<std::thread> connectionThread;
 
             sf::TcpListener listener;
+
+            std::vector<std::string> banned;
     };
 }
 

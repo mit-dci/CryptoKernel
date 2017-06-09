@@ -224,23 +224,21 @@ void CryptoKernel::Network::Peer::requestFunc()
                             send(response);
                         }
                     } else {
-                        //TODO: ban the peer
-                        running = false;
+                        network->changeScore(client->getRemoteAddress().toString(), 50);
                     }
                 }
                 else if(!request["nonce"].empty())
                 {
+                    //TODO: make sure we requested the response
                     std::lock_guard<std::mutex> lock(clientMutex);
                     responses[request["nonce"].asUInt64()] = request["data"];
                 }
             } catch(const NetworkError& e) {
                 running = false;
             } catch(const CryptoKernel::Blockchain::InvalidElementException& e) {
-                //TODO: if this happens should probably ban this peer
-                running = false;
+                network->changeScore(client->getRemoteAddress().toString(), 50);
             } catch(const Json::Exception& e) {
-                //TODO: also ban here
-                running = false;
+                network->changeScore(client->getRemoteAddress().toString(), 250);
             }
         }
         else
@@ -292,8 +290,7 @@ std::vector<CryptoKernel::Blockchain::transaction> CryptoKernel::Network::Peer::
         try {
             returning.push_back(CryptoKernel::Blockchain::transaction(unconfirmed[i]));
         } catch(const CryptoKernel::Blockchain::InvalidElementException& e) {
-            //TODO: ban the peer
-            running = false;
+            network->changeScore(client->getRemoteAddress().toString(), 50);
             throw NetworkError();
         }
     }
@@ -320,8 +317,7 @@ CryptoKernel::Blockchain::block CryptoKernel::Network::Peer::getBlock(const uint
     try {
         return CryptoKernel::Blockchain::block(block);
     } catch(const CryptoKernel::Blockchain::InvalidElementException& e) {
-        //TODO: ban the peer
-        running = false;
+        network->changeScore(client->getRemoteAddress().toString(), 50);
         throw NetworkError();
     }
 }
@@ -340,8 +336,7 @@ std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Peer::getBlo
         try {
             returning.push_back(CryptoKernel::Blockchain::block(blocks[i]));
         } catch(const CryptoKernel::Blockchain::InvalidElementException& e) {
-            //TODO: ban the peer
-            running = false;
+            network->changeScore(client->getRemoteAddress().toString(), 50);
             throw NetworkError();
         }
     }
