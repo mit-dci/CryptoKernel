@@ -11,29 +11,26 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log, CryptoKernel::Blockchain*
     peers.reset(new Storage::Table("peers"));
 
     std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
-    Json::Value seeds = peers->get(dbTx.get(), "seeds");
-    if(seeds.size() <= 0)
-    {
-        std::ifstream infile("peers.txt");
-        if(!infile.is_open())
-        {
-            log->printf(LOG_LEVEL_ERR, "Network(): Could not open peers file");
-        }
 
-        std::string line;
-        while(std::getline(infile, line))
-        {
+    std::ifstream infile("peers.txt");
+    if(!infile.is_open())
+    {
+        log->printf(LOG_LEVEL_ERR, "Network(): Could not open peers file");
+    }
+
+    std::string line;
+    while(std::getline(infile, line))
+    {
+        if(!peers->get(dbTx.get(), line).isObject()) {
             Json::Value newSeed;
-            newSeed["url"] = line;
             newSeed["lastseen"] = -1;
             newSeed["height"] = 1;
-            seeds.append(newSeed);
+            newSeed["score"] = 0;
+            peers->put(dbTx.get(), line, newSeed);
         }
-
-        infile.close();
-
-        peers->put(dbTx.get(), "seeds", seeds);
     }
+
+    infile.close();
 
     dbTx->commit();
 
@@ -63,94 +60,95 @@ void CryptoKernel::Network::networkFunc()
 {
     while(running)
     {
-        std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
-        Json::Value seeds = peers->get(dbTx.get(), "seeds");
+        CryptoKernel::Storage::Table::Iterator* it = new CryptoKernel::Storage::Table::Iterator(peers.get(), networkdb.get());
 
-        if(connected.size() < 8)
+        for(it->SeekToFirst(); it->Valid(); it->Next())
         {
-            for(unsigned int i = 0; i < seeds.size(); i++)
+            if(connected.size() >= 8)
             {
-                if(connected.size() >= 8)
-                {
-                    break;
-                }
-
-                std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.find(seeds[i]["url"].asString());
-                if(it != connected.end())
-                {
-                    continue;
-                }
-
-                log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + seeds[i]["url"].asString());
-
-                // Attempt to connect to peer
-                sf::TcpSocket* socket = new sf::TcpSocket();
-                if(socket->connect(seeds[i]["url"].asString(), 49000, sf::seconds(3)) != sf::Socket::Done)
-                {
-                    log->printf(LOG_LEVEL_WARN, "Network(): Failed to connect to " + seeds[i]["url"].asString());
-                    delete socket;
-                    continue;
-                }
-
-                PeerInfo* peerInfo = new PeerInfo;
-                peerInfo->peer.reset(new Peer(socket, blockchain, this));
-
-                // Get height
-                Json::Value info;
-                try
-                {
-                    info = peerInfo->peer->getInfo();
-                }
-                catch(Peer::NetworkError& e)
-                {
-                    log->printf(LOG_LEVEL_WARN, "Network(): Error getting info from " + seeds[i]["url"].asString());
-                    delete peerInfo;
-                    continue;
-                }
-
-                log->printf(LOG_LEVEL_INFO, "Network(): Successfully connected to " + seeds[i]["url"].asString());
-
-                // Update info
-                try {
-                    seeds[i]["height"] = info["tipHeight"].asUInt64();
-                } catch(const Json::Exception& e) {
-                    log->printf(LOG_LEVEL_WARN, "Network(): " + seeds[i]["url"].asString() + " sent a malformed info message");
-                    delete peerInfo;
-                    continue;
-                }
-
-                std::time_t result = std::time(nullptr);
-                seeds[i]["lastseen"] = std::asctime(std::localtime(&result));
-
-                peerInfo->info = seeds[i];
-
-                connected[seeds[i]["url"].asString()].reset(peerInfo);
+                break;
             }
+
+            Json::Value peer = it->value();
+
+            if(connected.find(it->key()) != connected.end())
+            {
+                continue;
+            }
+
+            log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + it->key());
+
+            // Attempt to connect to peer
+            sf::TcpSocket* socket = new sf::TcpSocket();
+            if(socket->connect(it->key(), 49000, sf::seconds(3)) != sf::Socket::Done)
+            {
+                log->printf(LOG_LEVEL_WARN, "Network(): Failed to connect to " + it->key());
+                delete socket;
+                continue;
+            }
+
+            PeerInfo* peerInfo = new PeerInfo;
+            peerInfo->peer.reset(new Peer(socket, blockchain, this));
+
+            // Get height
+            Json::Value info;
+            try
+            {
+                info = peerInfo->peer->getInfo();
+            }
+            catch(Peer::NetworkError& e)
+            {
+                log->printf(LOG_LEVEL_WARN, "Network(): Error getting info from " + it->key());
+                delete peerInfo;
+                continue;
+            }
+
+            log->printf(LOG_LEVEL_INFO, "Network(): Successfully connected to " + it->key());
+
+            // Update info
+            try {
+                peer["height"] = info["tipHeight"].asUInt64();
+            } catch(const Json::Exception& e) {
+                log->printf(LOG_LEVEL_WARN, "Network(): " + it->key() + " sent a malformed info message");
+                delete peerInfo;
+                continue;
+            }
+
+            std::time_t result = std::time(nullptr);
+            peer["lastseen"] = std::asctime(std::localtime(&result));
+
+            peer["score"] = 0;
+
+            peerInfo->info = peer;
+
+            connected[it->key()].reset(peerInfo);
         }
+
+        delete it;
 
         for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin(); it != connected.end(); it++)
         {
             try
             {
                 const Json::Value info = it->second->peer->getInfo();
-                const std::string peerVersion = info["version"].asString();
-                if(peerVersion.substr(0, peerVersion.find(".")) != version.substr(0, version.find(".")))
-                {
-                    log->printf(LOG_LEVEL_WARN, "Network(): " + it->first + " has a different major version than us");
-                    throw Peer::NetworkError();
-                }
-
                 try {
+                    const std::string peerVersion = info["version"].asString();
+                    if(peerVersion.substr(0, peerVersion.find(".")) != version.substr(0, version.find(".")))
+                    {
+                        log->printf(LOG_LEVEL_WARN, "Network(): " + it->first + " has a different major version than us");
+                        throw Peer::NetworkError();
+                    }
+
                     it->second->info["height"] = info["tipHeight"].asUInt64();
                 } catch(const Json::Exception& e) {
                     log->printf(LOG_LEVEL_WARN, "Network(): " + it->first + " sent a malformed info message");
                     throw Peer::NetworkError();
                 }
 
-                std::time_t result = std::time(nullptr);
+                const std::time_t result = std::time(nullptr);
                 it->second->info["lastseen"] = std::asctime(std::localtime(&result));
             }
-            catch(Peer::NetworkError& e)
+            catch(const Peer::NetworkError& e)
             {
                 log->printf(LOG_LEVEL_WARN, "Network(): Failed to contact " + it->first + ", disconnecting it");
                 it = connected.erase(it);
@@ -160,9 +158,6 @@ void CryptoKernel::Network::networkFunc()
                 }
             }
         }
-
-        peers->put(dbTx.get(), "seeds", seeds);
-        dbTx->commit();
 
         //Determine best chain
         uint64_t currentHeight = blockchain->getBlockDB("tip").getHeight();
@@ -230,6 +225,13 @@ void CryptoKernel::Network::connectionFunc()
         sf::TcpSocket* client = new sf::TcpSocket();
         if(listener.accept(*client) == sf::Socket::Done)
         {
+            if(connected.find(client->getRemoteAddress().toString()) != connected.end()) {
+                log->printf(LOG_LEVEL_INFO, "Network(): Incoming connection duplicates existing connection for " + client->getRemoteAddress().toString());
+                client->disconnect();
+                delete client;
+                continue;
+            }
+
             log->printf(LOG_LEVEL_INFO, "Network(): Peer connected from " + client->getRemoteAddress().toString() + ":" + std::to_string(client->getRemotePort()));
             PeerInfo* peerInfo = new PeerInfo();
             peerInfo->peer.reset(new Peer(client, blockchain, this));
@@ -255,8 +257,10 @@ void CryptoKernel::Network::connectionFunc()
                 continue;
             }
 
-            std::time_t result = std::time(nullptr);
+            const std::time_t result = std::time(nullptr);
             peerInfo->info["lastseen"] = std::asctime(std::localtime(&result));
+
+            peerInfo->info["score"] = 0;
 
             connected[client->getRemoteAddress().toString()].reset(peerInfo);
         }

@@ -62,6 +62,8 @@ namespace CryptoKernel
         private:
             class Peer;
 
+            void changeScore(const std::string& url, const uint64_t score);
+
             struct PeerInfo
             {
                 std::unique_ptr<Peer> peer;
