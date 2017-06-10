@@ -27,11 +27,12 @@ CryptoServer::CryptoServer(jsonrpc::AbstractServerConnector &connector) : Crypto
 
 }
 
-void CryptoServer::setWallet(CryptoCurrency::Wallet* Wallet, CryptoKernel::Blockchain* Blockchain, CryptoKernel::Network* Network)
+void CryptoServer::setWallet(CryptoCurrency::Wallet* Wallet, CryptoKernel::Blockchain* Blockchain, CryptoKernel::Network* Network, bool* running)
 {
     wallet = Wallet;
     blockchain = Blockchain;
     network = Network;
+    this->running = running;
 }
 
 Json::Value CryptoServer::getinfo()
@@ -225,4 +226,9 @@ Json::Value CryptoServer::getblockbyheight(const uint64_t height)
     } catch(CryptoKernel::Blockchain::NotFoundException e) {
         return Json::Value();
     }
+}
+
+bool CryptoServer::stop() {
+    *running = false;
+    return true;
 }

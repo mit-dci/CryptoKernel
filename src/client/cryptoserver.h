@@ -38,6 +38,7 @@ class CryptoRPCServer : public jsonrpc::AbstractServer<CryptoRPCServer>
             this->bindAndAddMethod(jsonrpc::Procedure("signtransaction", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_OBJECT, "transaction",jsonrpc::JSON_OBJECT, NULL), &CryptoRPCServer::signtransactionI);
             this->bindAndAddMethod(jsonrpc::Procedure("listtransactions", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_OBJECT, NULL), &CryptoRPCServer::listtransactionsI);
             this->bindAndAddMethod(jsonrpc::Procedure("getblockbyheight", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_OBJECT, "height", jsonrpc::JSON_INTEGER, NULL), &CryptoRPCServer::getblockbyheightI);
+            this->bindAndAddMethod(jsonrpc::Procedure("stop", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_BOOLEAN, NULL), &CryptoRPCServer::stopI);
         }
 
         inline virtual void getinfoI(const Json::Value &request, Json::Value &response)
@@ -84,6 +85,10 @@ class CryptoRPCServer : public jsonrpc::AbstractServer<CryptoRPCServer>
         {
             response = this->getblockbyheight(request["height"].asUInt64());
         }
+        inline virtual void stopI(const Json::Value &request, Json::Value &response)
+        {
+            response = this->stop();
+        }
         virtual Json::Value getinfo() = 0;
         virtual Json::Value account(const std::string& account) = 0;
         virtual bool sendtoaddress(const std::string& address, double amount, double fee) = 0;
@@ -95,6 +100,7 @@ class CryptoRPCServer : public jsonrpc::AbstractServer<CryptoRPCServer>
         virtual Json::Value signtransaction(const Json::Value tx) = 0;
         virtual Json::Value listtransactions() = 0;
         virtual Json::Value getblockbyheight(const uint64_t height) = 0;
+        virtual bool stop() = 0;
 };
 
 class CryptoServer : public CryptoRPCServer
@@ -106,7 +112,7 @@ class CryptoServer : public CryptoRPCServer
         virtual Json::Value account(const std::string& account);
         virtual bool sendtoaddress(const std::string& address, double amount, double fee);
         virtual bool sendrawtransaction(const Json::Value tx);
-        void setWallet(CryptoCurrency::Wallet* Wallet, CryptoKernel::Blockchain* Blockchain, CryptoKernel::Network* Network);
+        void setWallet(CryptoCurrency::Wallet* Wallet, CryptoKernel::Blockchain* Blockchain, CryptoKernel::Network* Network, bool* running);
         virtual Json::Value listaccounts();
         virtual Json::Value listunspentoutputs(const std::string& account);
         virtual std::string compilecontract(const std::string& code);
@@ -114,11 +120,13 @@ class CryptoServer : public CryptoRPCServer
         virtual Json::Value signtransaction(const Json::Value tx);
         virtual Json::Value listtransactions();
         virtual Json::Value getblockbyheight(const uint64_t height);
+        virtual bool stop();
 
     private:
         CryptoCurrency::Wallet* wallet;
         CryptoKernel::Blockchain* blockchain;
         CryptoKernel::Network* network;
+        bool* running;
 };
 
 

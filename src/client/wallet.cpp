@@ -30,8 +30,6 @@ CryptoCurrency::Wallet::Wallet(CryptoKernel::Blockchain* Blockchain, CryptoKerne
     walletdb.reset(new CryptoKernel::Storage("./addressesdb"));
     addresses.reset(new CryptoKernel::Storage::Table("addresses"));
 
-    rescan();
-
     const time_t t = std::time(0);
     generator.seed(static_cast<uint64_t> (t));
 }

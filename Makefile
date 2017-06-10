@@ -11,7 +11,7 @@ CKBIN ?= ckd
 TESTBIN ?= test-ck
 CC = g++
 endif
-ifeq ($(UNAME), Msys)
+ifeq ($(UNAME), MINGW32_NT-6.2)
 LUA_INCDIR ?= /usr/local/include
 LUA_LIBDIR ?= /usr/local/lib
 LIBFLAGS   ?= -shared

@@ -102,7 +102,7 @@ bool CryptoKernel::Blockchain::loadChain(CryptoKernel::Consensus* consensus)
 
 CryptoKernel::Blockchain::~Blockchain()
 {
-    chainLock.lock();
+
 }
 
 std::set<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::getUnconfirmedTransactions()

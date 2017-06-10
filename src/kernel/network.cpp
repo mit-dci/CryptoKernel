@@ -41,6 +41,8 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log, CryptoKernel::Blockchain*
 
     running = true;
 
+    listener.setBlocking(false);
+
     // Start connection thread
     connectionThread.reset(new std::thread(&CryptoKernel::Network::connectionFunc, this));
 
@@ -277,8 +279,8 @@ void CryptoKernel::Network::connectionFunc()
         }
         else
         {
-            log->printf(LOG_LEVEL_WARN, "Network(): Failed to accept incoming connection");
             delete client;
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
     }
 }

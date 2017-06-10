@@ -33,6 +33,8 @@
 #include "version.h"
 #include "consensus/PoW.h"
 
+bool running;
+
 void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* consensus, CryptoCurrency::Wallet* wallet, CryptoKernel::Log* log, CryptoKernel::Network* network)
 {
     wallet->newAddress("mining");
@@ -40,7 +42,7 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* c
     time_t t = std::time(0);
     uint64_t now = static_cast<uint64_t> (t);
 
-    while(true)
+    while(running)
     {
         if(/*network->getConnections() > 0 &&*/ network->syncProgress() >= 1)
         {
@@ -84,14 +86,16 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* c
 
                 pow = consensus->calculatePoW(Block, nonce);
             }
-            while(pow >= target);
+            while(pow >= target && running);
 
             consensusData["nonce"] = static_cast<unsigned long long int>(nonce);
             Block.setConsensusData(consensusData);
 
-            if(blockchain->submitBlock(Block))
-            {
-                network->broadcastBlock(Block);
+            if(running) {
+                if(blockchain->submitBlock(Block))
+                {
+                    network->broadcastBlock(Block);
+                }
             }
         }
         else
@@ -142,15 +146,19 @@ int main(int argc, char* argv[])
 
         jsonrpc::HttpServer httpserver(8383);
         CryptoServer server(httpserver);
-        server.setWallet(&wallet, &blockchain, &network);
+        running = true;
+        server.setWallet(&wallet, &blockchain, &network, &running);
         server.StartListening();
 
-        while(true)
+        while(running)
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(120000));
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
 
+        log.printf(LOG_LEVEL_INFO, "Shutting down...");
+
         server.StopListening();
+        minerThread.join();
     }
     else
     {
@@ -227,17 +235,18 @@ int main(int argc, char* argv[])
                 } else {
                     std::cout << "Usage: getblockbyheight [height]" << std::endl;
                 }
-            }
-            else
-            {
+            } else if(command == "stop") {
+                std::cout << client.stop().toStyledString() << std::endl;
+            } else {
                 std::cout << "CryptoKernel - Blockchain Development Toolkit - v" << version << "\n\n"
-                     << "account [accountname]\n"
-                     << "compilecontract [code]\n"
-                     << "getblockbyheight [height]\n"
-                     << "getinfo\n"
-                     << "listaccounts\n"
-                     << "listtransactions\n"
-                     << "listunspentoutputs [accountname]\n";
+                          << "account [accountname]\n"
+                          << "compilecontract [code]\n"
+                          << "getblockbyheight [height]\n"
+                          << "getinfo\n"
+                          << "listaccounts\n"
+                          << "listtransactions\n"
+                          << "listunspentoutputs [accountname]\n"
+                          << "stop\n";
             }
         }
         catch(jsonrpc::JsonRpcException e)
