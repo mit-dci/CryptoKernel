@@ -87,7 +87,7 @@ namespace CryptoKernel
 
             sf::TcpListener listener;
 
-            std::vector<std::string> banned;
+            std::map<std::string, bool> banned;
     };
 }
 

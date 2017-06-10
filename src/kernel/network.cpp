@@ -76,7 +76,7 @@ void CryptoKernel::Network::networkFunc()
                 continue;
             }
 
-            if(std::find(banned.begin(), banned.end(), it->key()) != banned.end()) {
+            if(banned.find(it->key()) != banned.end()) {
                 continue;
             }
 
@@ -236,7 +236,7 @@ void CryptoKernel::Network::connectionFunc()
                 continue;
             }
 
-            if(std::find(banned.begin(), banned.end(), client->getRemoteAddress().toString()) != banned.end()) {
+            if(banned.find(client->getRemoteAddress().toString()) != banned.end()) {
                 log->printf(LOG_LEVEL_INFO, "Network(): Incoming connection " + client->getRemoteAddress().toString() + " is banned");
                 client->disconnect();
                 delete client;
@@ -331,6 +331,6 @@ void CryptoKernel::Network::changeScore(const std::string& url, const uint64_t s
     connected[url]->info["score"] = connected[url]->info["score"].asUInt64() + score;
     if(connected[url]->info["score"].asUInt64() > 200) {
         connected.erase(url);
-        banned.push_back(url);
+        banned[url] = true;
     }
 }
