@@ -66,7 +66,7 @@ namespace CryptoKernel
                     BlockchainInterface(CryptoKernel::Blockchain* blockchain) {this->blockchain = blockchain;}
                     std::string getBlock(const std::string id) {
                         try {
-                            const Blockchain::block block = blockchain->getBlock(dbTx, id);
+                            const Blockchain::dbBlock block = blockchain->getBlockDB(dbTx, id);
                             return CryptoKernel::Storage::toString(block.toJson());
                         } catch(const Blockchain::NotFoundException& e) {
                             return "";
