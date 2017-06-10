@@ -82,7 +82,6 @@ bool CryptoKernel::Log::printf(int loglevel, std::string message)
 
     logfilemutex.lock();
     logfile << stagingstream.str();
-    logfile.flush();
     logfilemutex.unlock();
 
     if(loglevel == LOG_LEVEL_ERR)
