@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <algorithm>
 #include <cmath>
+#include <csignal>
 
 #include <jsonrpccpp/server/connectors/httpserver.h>
 #include <jsonrpccpp/client/connectors/httpclient.h>
@@ -137,6 +138,9 @@ int main(int argc, char* argv[])
     {
         CryptoKernel::Log log("CryptoKernel.log", true);
 
+        running = true;
+        std::signal(SIGINT, [](int signal){ running = false; });
+
         MyBlockchain blockchain(&log);
         CryptoKernel::Consensus::PoW::KGW_SHA256 consensus(150, &blockchain);
         blockchain.loadChain(&consensus);
@@ -146,7 +150,6 @@ int main(int argc, char* argv[])
 
         jsonrpc::HttpServer httpserver(8383);
         CryptoServer server(httpserver);
-        running = true;
         server.setWallet(&wallet, &blockchain, &network, &running);
         server.StartListening();
 
