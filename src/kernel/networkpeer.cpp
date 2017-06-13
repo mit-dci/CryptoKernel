@@ -133,9 +133,10 @@ void CryptoKernel::Network::Peer::requestFunc()
                                     break;
                                 }
                             }
-                            if(blockchain->submitTransaction(tx) && !found)
-                            {
+                            if(blockchain->submitTransaction(tx) && !found) {
                                 txs.push_back(tx);
+                            } else if(!found) {
+                                network->changeScore(client->getRemoteAddress().toString(), 50);
                             }
                         }
 
@@ -151,9 +152,10 @@ void CryptoKernel::Network::Peer::requestFunc()
                         try {
                             blockchain->getBlockDB(block.getId().toString());
                         } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
-                            if(blockchain->submitBlock(block, false))
-                            {
+                            if(blockchain->submitBlock(block, false)) {
                                 network->broadcastBlock(block);
+                            } else {
+                                network->changeScore(client->getRemoteAddress().toString(), 50);
                             }
                         }
                     }
