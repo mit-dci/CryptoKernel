@@ -235,8 +235,8 @@ void CryptoKernel::Network::networkFunc()
                         try {
                             blockchain->getBlockDB(blocks[0].getId().toString());
                         } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
-                            if(currentHeight <= 1) {
-                                continue;
+                            if(currentHeight == 1) {
+                                break;
                             }
                         }
 
