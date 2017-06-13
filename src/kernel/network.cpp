@@ -7,6 +7,8 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log, CryptoKernel::Blockchain*
     this->log = log;
     this->blockchain = blockchain;
 
+    myAddress = sf::IpAddress::getPublicAddress();
+
     networkdb.reset(new CryptoKernel::Storage("./peers"));
     peers.reset(new Storage::Table("peers"));
 
@@ -82,6 +84,14 @@ void CryptoKernel::Network::networkFunc()
                 continue;
             }
 
+            sf::IpAddress addr(it->key());
+
+            if(addr == sf::IpAddress::getLocalAddress()
+            || addr == myAddress
+            || addr == sf::IpAddress::LocalHost) {
+                continue;
+            }
+
             log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + it->key());
 
             // Attempt to connect to peer
@@ -153,6 +163,7 @@ void CryptoKernel::Network::networkFunc()
                         sf::IpAddress addr(peer.asString());
                         if(addr != sf::IpAddress::None) {
                             if(!peers->get(dbTx.get(), addr.toString()).isObject()) {
+                                log->printf(LOG_LEVEL_INFO, "Network(): Discovered new peer: " + addr.toString());
                                 Json::Value newSeed;
                                 newSeed["lastseen"] = -1;
                                 newSeed["height"] = 1;
@@ -161,6 +172,7 @@ void CryptoKernel::Network::networkFunc()
                             }
                         } else {
                             changeScore(it->first, 10);
+                            throw Peer::NetworkError();
                         }
                     }
                 } catch(const Json::Exception& e) {
@@ -274,6 +286,18 @@ void CryptoKernel::Network::connectionFunc()
                 delete client;
                 continue;
             }
+
+            sf::IpAddress addr(client->getRemoteAddress());
+
+            if(addr == sf::IpAddress::getLocalAddress()
+            || addr == myAddress
+            || addr == sf::IpAddress::LocalHost) {
+                log->printf(LOG_LEVEL_INFO, "Network(): Incoming connection " + client->getRemoteAddress().toString() + " is connecting to self");
+                client->disconnect();
+                delete client;
+                continue;
+            }
+
 
             log->printf(LOG_LEVEL_INFO, "Network(): Peer connected from " + client->getRemoteAddress().toString() + ":" + std::to_string(client->getRemotePort()));
             PeerInfo* peerInfo = new PeerInfo();
