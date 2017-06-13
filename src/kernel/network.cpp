@@ -384,8 +384,8 @@ double CryptoKernel::Network::syncProgress()
 }
 
 void CryptoKernel::Network::changeScore(const std::string& url, const uint64_t score) {
-    log->printf(LOG_LEVEL_WARN, "Network(): " + url + " misbehaving, increasing ban score by " + std::to_string(score) + " to " + connected[url]->info["score"].asString());
     connected[url]->info["score"] = connected[url]->info["score"].asUInt64() + score;
+    log->printf(LOG_LEVEL_WARN, "Network(): " + url + " misbehaving, increasing ban score by " + std::to_string(score) + " to " + connected[url]->info["score"].asString());
     if(connected[url]->info["score"].asUInt64() > 200) {
         log->printf(LOG_LEVEL_WARN, "Network(): Banning " + url + " for being above the ban score threshold");
         connected.erase(url);
