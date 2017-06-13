@@ -198,10 +198,21 @@ void CryptoKernel::Network::networkFunc()
                             log->printf(LOG_LEVEL_WARN, "Network(): Failed to contact " + it->first + " " + e.what() + " while downloading blocks");
                             break;
                         }
-                        currentHeight = std::max(1, (int)currentHeight - 200);
-                    } while(!blockchain->submitBlock(blocks[0]));
 
-                    for(unsigned int i = 1; i < blocks.size(); i++)
+                        currentHeight = std::max(1, (int)currentHeight - 200);
+
+                        try {
+                            blockchain->getBlockDB(blocks[0].getId().toString());
+                        } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
+                            if(currentHeight <= 1) {
+                                continue;
+                            }
+                        }
+
+                        break;
+                    } while(true);
+
+                    for(unsigned int i = 0; i < blocks.size(); i++)
                     {
                         if(!blockchain->submitBlock(blocks[i]))
                         {
