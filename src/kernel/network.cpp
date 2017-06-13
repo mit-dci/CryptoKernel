@@ -230,8 +230,6 @@ void CryptoKernel::Network::networkFunc()
                             break;
                         }
 
-                        currentHeight = std::max(1, (int)currentHeight - 200);
-
                         try {
                             blockchain->getBlockDB(blocks[0].getId().toString());
                         } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
@@ -239,6 +237,8 @@ void CryptoKernel::Network::networkFunc()
                                 break;
                             }
                         }
+
+                        currentHeight = std::max(1, (int)currentHeight - 200);
 
                         break;
                     } while(true);
