@@ -235,10 +235,11 @@ void CryptoKernel::Network::networkFunc()
                         } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
                             if(currentHeight == 1) {
                                 break;
+                            } else {
+                                currentHeight = std::max(1, (int)currentHeight - 200);
+                                continue;
                             }
                         }
-
-                        currentHeight = std::max(1, (int)currentHeight - 200);
 
                         break;
                     } while(true);
