@@ -59,6 +59,13 @@ namespace CryptoKernel
             */
             double syncProgress();
 
+            /**
+            * Returns the set of peer URLs the node is currently connected to
+            *
+            * @return a set of strings representing connected node URLs
+            */
+            std::set<std::string> getConnectedPeers();
+
         private:
             class Peer;
 

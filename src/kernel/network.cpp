@@ -132,6 +132,8 @@ void CryptoKernel::Network::networkFunc()
 
         delete it;
 
+        std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
+
         for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin(); it != connected.end(); it++)
         {
             try
@@ -146,8 +148,23 @@ void CryptoKernel::Network::networkFunc()
                     }
 
                     it->second->info["height"] = info["tipHeight"].asUInt64();
+
+                    for(const Json::Value& peer : info["peers"]) {
+                        sf::IpAddress addr(peer.asString());
+                        if(addr != sf::IpAddress::None) {
+                            if(!peers->get(dbTx.get(), addr.toString()).isObject()) {
+                                Json::Value newSeed;
+                                newSeed["lastseen"] = -1;
+                                newSeed["height"] = 1;
+                                newSeed["score"] = 0;
+                                peers->put(dbTx.get(), addr.toString(), newSeed);
+                            }
+                        } else {
+                            changeScore(it->first, 10);
+                        }
+                    }
                 } catch(const Json::Exception& e) {
-                    log->printf(LOG_LEVEL_WARN, "Network(): " + it->first + " sent a malformed info message");
+                    changeScore(it->first, 50);
                     throw Peer::NetworkError();
                 }
 
@@ -164,6 +181,8 @@ void CryptoKernel::Network::networkFunc()
                 }
             }
         }
+
+        dbTx->commit();
 
         //Determine best chain
         uint64_t currentHeight = blockchain->getBlockDB("tip").getHeight();
@@ -348,4 +367,13 @@ void CryptoKernel::Network::changeScore(const std::string& url, const uint64_t s
         connected.erase(url);
         banned[url] = true;
     }
+}
+
+std::set<std::string> CryptoKernel::Network::getConnectedPeers() {
+    std::set<std::string> peerUrls;
+    for(const auto& peer : connected) {
+        peerUrls.insert(peer.first);
+    }
+
+    return peerUrls;
 }

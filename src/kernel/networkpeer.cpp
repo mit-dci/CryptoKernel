@@ -114,6 +114,9 @@ void CryptoKernel::Network::Peer::requestFunc()
                         Json::Value response;
                         response["data"]["version"] = version;
                         response["data"]["tipHeight"] = static_cast<unsigned long long int>(blockchain->getBlockDB("tip").getHeight());
+                        for(const auto& peer : network->getConnectedPeers()) {
+                            response["data"]["peers"].append(peer);
+                        }
                         response["nonce"] = request["nonce"].asUInt64();
                         send(response);
                     }
