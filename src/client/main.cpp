@@ -74,6 +74,7 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* c
                     message << "miner(): Hashrate: " << ((count / (time2 - now)) / 1000.0f) << " kH/s";
                     log->printf(LOG_LEVEL_INFO, message.str());
                     Block = blockchain->generateVerifyingBlock(wallet->getAddressByName("mining").publicKey);
+                    previousBlock = blockchain->getBlockDB(Block.getPreviousBlockId().toString());
                     target = CryptoKernel::BigNum(Block.getConsensusData()["target"].asString());
                     const CryptoKernel::BigNum inverse = CryptoKernel::BigNum("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff") - target;
                     consensusData = Block.getConsensusData();
@@ -93,9 +94,10 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* c
             Block.setConsensusData(consensusData);
 
             if(running) {
-                if(blockchain->submitBlock(Block))
-                {
+                if(blockchain->submitBlock(Block)) {
                     network->broadcastBlock(Block);
+                } else {
+                    log->printf(LOG_LEVEL_WARN, "miner(): Produced invalid block! Block: " + Block.toJson().toStyledString() + "\ntarget: " + Block.getConsensusData()["target"].asString() + "\npow: " + consensus->calculatePoW(Block, nonce).toString());
                 }
             }
         }
