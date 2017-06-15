@@ -34,6 +34,7 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request)
 
         Json::Value modifiedRequest = request;
         modifiedRequest["nonce"] = static_cast<unsigned long long int>(nonce);
+        requests[nonce] = true;
 
         sf::Packet packet;
         packet << CryptoKernel::Storage::toString(modifiedRequest, false);
@@ -44,8 +45,8 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request)
 
         if(client->send(packet) != sf::Socket::Done)
         {
-            clientMutex.unlock();
             running = false;
+            clientMutex.unlock();
             throw NetworkError();
         }
 
@@ -82,6 +83,7 @@ void CryptoKernel::Network::Peer::send(const Json::Value& response)
     client->setBlocking(true);
     if(client->send(packet) != sf::Socket::Done)
     {
+        running = false;
         clientMutex.unlock();
         throw NetworkError();
     }
@@ -236,7 +238,13 @@ void CryptoKernel::Network::Peer::requestFunc()
                 {
                     //TODO: make sure we requested the response
                     std::lock_guard<std::mutex> lock(clientMutex);
-                    responses[request["nonce"].asUInt64()] = request["data"];
+                    const auto it = requests.find(request["nonce"].asUInt64());
+                    if(it != requests.end()) {
+                        responses[request["nonce"].asUInt64()] = request["data"];
+                        requests.erase(it);
+                    } else {
+                        network->changeScore(client->getRemoteAddress().toString(), 50);
+                    }
                 }
             } catch(const NetworkError& e) {
                 running = false;

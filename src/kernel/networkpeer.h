@@ -42,6 +42,8 @@ class CryptoKernel::Network::Peer
 
         std::map<uint64_t, Json::Value> responses;
 
+        std::map<uint64_t, bool> requests;
+
         std::default_random_engine generator;
 };
 
