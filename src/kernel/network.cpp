@@ -146,6 +146,12 @@ void CryptoKernel::Network::networkFunc()
 
         for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin(); it != connected.end(); it++)
         {
+            if(banned[it->first]) {
+                it = connected.erase(it);
+                if(connected.size() < 1) {
+                    break;
+                }
+            }
             try
             {
                 const Json::Value info = it->second->peer->getInfo();
@@ -389,7 +395,6 @@ void CryptoKernel::Network::changeScore(const std::string& url, const uint64_t s
     log->printf(LOG_LEVEL_WARN, "Network(): " + url + " misbehaving, increasing ban score by " + std::to_string(score) + " to " + connected[url]->info["score"].asString());
     if(connected[url]->info["score"].asUInt64() > 200) {
         log->printf(LOG_LEVEL_WARN, "Network(): Banning " + url + " for being above the ban score threshold");
-        connected.erase(url);
         banned[url] = true;
     }
 }

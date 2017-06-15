@@ -23,6 +23,7 @@ CryptoKernel::Network::Peer::~Peer()
     requestThread->join();
     client->disconnect();
     delete client;
+    clientMutex.unlock();
 }
 
 Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request)
@@ -236,7 +237,6 @@ void CryptoKernel::Network::Peer::requestFunc()
                 }
                 else if(!request["nonce"].empty())
                 {
-                    //TODO: make sure we requested the response
                     std::lock_guard<std::mutex> lock(clientMutex);
                     const auto it = requests.find(request["nonce"].asUInt64());
                     if(it != requests.end()) {
