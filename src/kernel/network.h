@@ -77,6 +77,7 @@ namespace CryptoKernel
                 Json::Value info;
             };
             std::map<std::string, std::unique_ptr<PeerInfo>> connected;
+            std::recursive_mutex connectedMutex;
 
             CryptoKernel::Log* log;
             CryptoKernel::Blockchain* blockchain;
@@ -92,11 +93,16 @@ namespace CryptoKernel
             void connectionFunc();
             std::unique_ptr<std::thread> connectionThread;
 
+            void peerFunc();
+            std::unique_ptr<std::thread> peerThread;
+
             sf::TcpListener listener;
 
             std::map<std::string, bool> banned;
 
             sf::IpAddress myAddress;
+
+            uint64_t bestHeight;
     };
 }
 
