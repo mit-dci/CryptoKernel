@@ -106,7 +106,7 @@ CryptoKernel::BigNum CryptoKernel::Consensus::PoW::KGW_SHA256::calculateTarget(S
     consensusData currentBlockData = getConsensusData(currentBlock);
     CryptoKernel::Blockchain::dbBlock lastSolved = currentBlock;
 
-    if(currentBlock.getHeight() < minBlocks)
+    if(currentBlock.getHeight() < minBlocks && currentBlock.getHeight() != 0)
     {
         return minDifficulty;
     }
