@@ -146,7 +146,8 @@ void CryptoKernel::Network::networkFunc()
 
         for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin(); it != connected.end(); it++)
         {
-            if(banned[it->first]) {
+            if(banned.find(it->first) != banned.end()) {
+                log->printf(LOG_LEVEL_WARN, "Network(): Disconnecting " + it->first + " for being banned");
                 it = connected.erase(it);
                 if(connected.size() < 1) {
                     break;

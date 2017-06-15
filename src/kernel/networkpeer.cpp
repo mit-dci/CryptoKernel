@@ -112,6 +112,7 @@ void CryptoKernel::Network::Peer::requestFunc()
             try {
                 if(!request["command"].empty())
                 {
+                    const double syncProgress = network->syncProgress();
                     if(request["command"] == "info")
                     {
                         Json::Value response;
@@ -125,43 +126,47 @@ void CryptoKernel::Network::Peer::requestFunc()
                     }
                     else if(request["command"] == "transactions")
                     {
-                        std::vector<CryptoKernel::Blockchain::transaction> txs;
-                        for(unsigned int i = 0; i < request["data"].size(); i++)
-                        {
-                            const CryptoKernel::Blockchain::transaction tx = CryptoKernel::Blockchain::transaction(request["data"][i]);
-                            const std::set<CryptoKernel::Blockchain::transaction> unconfirmedTransactions = blockchain->getUnconfirmedTransactions();
-                            bool found = false;
-                            for(const CryptoKernel::Blockchain::transaction& utx : unconfirmedTransactions)
+                        if(syncProgress >= 0.99) {
+                            std::vector<CryptoKernel::Blockchain::transaction> txs;
+                            for(unsigned int i = 0; i < request["data"].size(); i++)
                             {
-                                if(utx.getId() == tx.getId())
+                                const CryptoKernel::Blockchain::transaction tx = CryptoKernel::Blockchain::transaction(request["data"][i]);
+                                const std::set<CryptoKernel::Blockchain::transaction> unconfirmedTransactions = blockchain->getUnconfirmedTransactions();
+                                bool found = false;
+                                for(const CryptoKernel::Blockchain::transaction& utx : unconfirmedTransactions)
                                 {
-                                    found = true;
-                                    break;
+                                    if(utx.getId() == tx.getId())
+                                    {
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if(blockchain->submitTransaction(tx) && !found) {
+                                    txs.push_back(tx);
+                                } else if(!found) {
+                                    network->changeScore(client->getRemoteAddress().toString(), 50);
                                 }
                             }
-                            if(blockchain->submitTransaction(tx) && !found) {
-                                txs.push_back(tx);
-                            } else if(!found) {
-                                network->changeScore(client->getRemoteAddress().toString(), 50);
-                            }
-                        }
 
-                        if(txs.size() > 0)
-                        {
-                            network->broadcastTransactions(txs);
+                            if(txs.size() > 0)
+                            {
+                                network->broadcastTransactions(txs);
+                            }
                         }
                     }
                     else if(request["command"] == "block")
                     {
-                        const CryptoKernel::Blockchain::block block = CryptoKernel::Blockchain::block(request["data"]);
+                        if(syncProgress >= 0.99) {
+                            const CryptoKernel::Blockchain::block block = CryptoKernel::Blockchain::block(request["data"]);
 
-                        try {
-                            blockchain->getBlockDB(block.getId().toString());
-                        } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
-                            if(blockchain->submitBlock(block, false)) {
-                                network->broadcastBlock(block);
-                            } else {
-                                network->changeScore(client->getRemoteAddress().toString(), 50);
+                            try {
+                                blockchain->getBlockDB(block.getId().toString());
+                            } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
+                                if(blockchain->submitBlock(block, false)) {
+                                    network->broadcastBlock(block);
+                                } else {
+                                    network->changeScore(client->getRemoteAddress().toString(), 50);
+                                }
                             }
                         }
                     }
