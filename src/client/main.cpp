@@ -136,7 +136,14 @@ class MyBlockchain : public CryptoKernel::Blockchain
 
 int main(int argc, char* argv[])
 {
-    if(argc < 2)
+    bool minerOn = true;
+    if(argc == 2) {
+        if(std::string(argv[1]) == "-nominer") {
+            minerOn = false;
+        }
+    }
+
+    if(argc < 2 || !minerOn)
     {
         CryptoKernel::Log log("CryptoKernel.log", true);
 
@@ -148,7 +155,10 @@ int main(int argc, char* argv[])
         blockchain.loadChain(&consensus);
         CryptoKernel::Network network(&log, &blockchain);
         CryptoCurrency::Wallet wallet(&blockchain, &network);
-        std::thread minerThread(miner, &blockchain, &consensus, &wallet, &log, &network);
+        std::unique_ptr<std::thread> minerThread;
+        if(minerOn) {
+            minerThread.reset(new std::thread(miner, &blockchain, &consensus, &wallet, &log, &network));
+        }
 
         jsonrpc::HttpServer httpserver(8383, "", "", 1);
         CryptoServer server(httpserver);
@@ -163,7 +173,9 @@ int main(int argc, char* argv[])
         log.printf(LOG_LEVEL_INFO, "Shutting down...");
 
         server.StopListening();
-        minerThread.join();
+        if(minerOn) {
+            minerThread->join();
+        }
     }
     else
     {
