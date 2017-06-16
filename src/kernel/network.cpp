@@ -26,7 +26,7 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log, CryptoKernel::Blockchain*
     {
         if(!peers->get(dbTx.get(), line).isObject()) {
             Json::Value newSeed;
-            newSeed["lastseen"] = -1;
+            newSeed["lastseen"] = 0;
             newSeed["height"] = 1;
             newSeed["score"] = 0;
             peers->put(dbTx.get(), line, newSeed);
