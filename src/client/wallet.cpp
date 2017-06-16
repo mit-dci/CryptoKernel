@@ -143,10 +143,10 @@ std::string CryptoCurrency::Wallet::sendToAddress(const std::string& publicKey, 
 
     std::set<CryptoKernel::Blockchain::output> toSpend;
     uint64_t accumulator = 0;
-    uint64_t fee = 150000;
+    uint64_t fee = 15000;
     for(const CryptoKernel::Blockchain::output& out : inputs) {
         if(accumulator < amount + fee) {
-            fee += CryptoKernel::Storage::toString(out.getData()).size() * 600;
+            fee += CryptoKernel::Storage::toString(out.getData()).size() * 60;
             toSpend.insert(out);
             accumulator += out.getValue();
         } else {

@@ -567,15 +567,11 @@ uint64_t CryptoKernel::Blockchain::getTransactionFee(const transaction& tx)
     uint64_t fee = 0;
 
     for(const input& inp : tx.getInputs()) {
-        fee += CryptoKernel::Storage::toString(inp.getData()).size() * 1000;
+        fee += CryptoKernel::Storage::toString(inp.getData()).size() * 100;
     }
 
     for(const output& out : tx.getOutputs()) {
-        if(out.getValue() < 100000) {
-            fee += 10000;
-        }
-
-        fee += CryptoKernel::Storage::toString(out.getData()).size() * 1000;
+        fee += CryptoKernel::Storage::toString(out.getData()).size() * 100;
     }
 
     return fee;
