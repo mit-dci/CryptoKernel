@@ -88,11 +88,14 @@ void CryptoKernel::Network::peerFunc() {
                     continue;
                 }
 
-                if(banned.find(it->key()) != banned.end()) {
-                    continue;
-                }
-
                 std::time_t result = std::time(nullptr);
+
+                const auto banIt = banned.find(it->key());
+                if(banIt != banned.end()) {
+                    if(banIt->second > static_cast<uint64_t>(result)) {
+                        continue;
+                    }
+                }
 
                 if(peer["lastattempt"].asUInt64() + 5 * 60 > static_cast<unsigned long long int> (result)) {
                     continue;
@@ -250,11 +253,14 @@ void CryptoKernel::Network::networkFunc()
             {
                 bestHeight = it->second->info["height"].asUInt64();
             }
-            if(banned.find(it->first) != banned.end()) {
-                log->printf(LOG_LEVEL_WARN, "Network(): Disconnecting " + it->first + " for being banned");
-                it = connected.erase(it);
-                if(connected.size() < 1) {
-                    break;
+            const auto banIt = banned.find(it->first);
+            if(banIt != banned.end()) {
+                if(banIt->second > static_cast<uint64_t>(std::time(nullptr))) {
+                    log->printf(LOG_LEVEL_WARN, "Network(): Disconnecting " + it->first + " for being banned");
+                    it = connected.erase(it);
+                    if(connected.size() < 1) {
+                        break;
+                    }
                 }
             }
         }
@@ -343,11 +349,14 @@ void CryptoKernel::Network::connectionFunc()
                 continue;
             }
 
-            if(banned.find(client->getRemoteAddress().toString()) != banned.end()) {
-                log->printf(LOG_LEVEL_INFO, "Network(): Incoming connection " + client->getRemoteAddress().toString() + " is banned");
-                client->disconnect();
-                delete client;
-                continue;
+            const auto it = banned.find(client->getRemoteAddress().toString());
+            if(it != banned.end()) {
+                if(it->second > static_cast<uint64_t>(std::time(nullptr))) {
+                    log->printf(LOG_LEVEL_INFO, "Network(): Incoming connection " + client->getRemoteAddress().toString() + " is banned");
+                    client->disconnect();
+                    delete client;
+                    continue;
+                }
             }
 
             sf::IpAddress addr(client->getRemoteAddress());
@@ -446,7 +455,8 @@ void CryptoKernel::Network::changeScore(const std::string& url, const uint64_t s
     log->printf(LOG_LEVEL_WARN, "Network(): " + url + " misbehaving, increasing ban score by " + std::to_string(score) + " to " + connected[url]->info["score"].asString());
     if(connected[url]->info["score"].asUInt64() > 200) {
         log->printf(LOG_LEVEL_WARN, "Network(): Banning " + url + " for being above the ban score threshold");
-        banned[url] = true;
+        // Ban for 24 hours
+        banned[url] = static_cast<uint64_t>(std::time(nullptr)) + 24 * 60 * 60;
     }
 }
 

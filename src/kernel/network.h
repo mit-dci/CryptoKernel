@@ -98,7 +98,7 @@ namespace CryptoKernel
 
             sf::TcpListener listener;
 
-            std::map<std::string, bool> banned;
+            std::map<std::string, uint64_t> banned;
 
             sf::IpAddress myAddress;
 
