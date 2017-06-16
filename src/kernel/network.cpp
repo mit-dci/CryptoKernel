@@ -307,6 +307,8 @@ void CryptoKernel::Network::networkFunc()
                             break;
                         }
                     }
+
+                    currentHeight = blockchain->getBlockDB("tip").getHeight();
                 }
             }
         }
