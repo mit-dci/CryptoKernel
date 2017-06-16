@@ -70,11 +70,10 @@ Json::Value CryptoServer::account(const std::string& account)
     return returning;
 }
 
-bool CryptoServer::sendtoaddress(const std::string& address, double amount, double fee)
+std::string CryptoServer::sendtoaddress(const std::string& address, double amount)
 {
     uint64_t Amount = amount * 100000000;
-    uint64_t Fee = fee * 100000000;
-    return wallet->sendToAddress(address, Amount, Fee);
+    return wallet->sendToAddress(address, Amount);
 }
 
 bool CryptoServer::sendrawtransaction(const Json::Value tx)

@@ -192,16 +192,15 @@ int main(int argc, char* argv[])
             }
             else if(command == "sendtoaddress")
             {
-                if(argc == 5)
+                if(argc == 4)
                 {
                     std::string address(argv[2]);
                     double amount(std::strtod(argv[3], NULL));
-                    double fee(std::strtod(argv[4], NULL));
-                    std::cout << client.sendtoaddress(address, amount, fee) << std::endl;
+                    std::cout << client.sendtoaddress(address, amount) << std::endl;
                 }
                 else
                 {
-                    std::cout << "Usage: sendtoaddress [address] [amount] [fee]" << std::endl;
+                    std::cout << "Usage: sendtoaddress [address] [amount]" << std::endl;
                 }
             }
             else if(command == "listaccounts")
@@ -251,6 +250,7 @@ int main(int argc, char* argv[])
                           << "listaccounts\n"
                           << "listtransactions\n"
                           << "listunspentoutputs [accountname]\n"
+                          << "sendtoaddress [address] [amount]\n"
                           << "stop\n";
             }
         }

@@ -42,7 +42,7 @@ namespace CryptoCurrency
             address newAddress(std::string name);
             address getAddressByName(std::string name);
             address getAddressByKey(std::string publicKey);
-            bool sendToAddress(const std::string& publicKey, const uint64_t amount, const uint64_t fee);
+            std::string sendToAddress(const std::string& publicKey, const uint64_t amount);
             double getTotalBalance();
             void rescan();
 

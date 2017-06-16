@@ -55,15 +55,14 @@ class CryptoClient : public jsonrpc::Client
             else
                 throw jsonrpc::JsonRpcException(jsonrpc::Errors::ERROR_CLIENT_INVALID_RESPONSE, result.toStyledString());
         }
-        bool sendtoaddress(const std::string& address, double amount, double fee) throw (jsonrpc::JsonRpcException)
+        std::string sendtoaddress(const std::string& address, double amount) throw (jsonrpc::JsonRpcException)
         {
             Json::Value p;
             p["address"] = address;
             p["amount"] = amount;
-            p["fee"] = fee;
             Json::Value result = this->CallMethod("sendtoaddress",p);
-            if (result.isBool())
-                return result.asBool();
+            if (result.isString())
+                return result.asString();
             else
                 throw jsonrpc::JsonRpcException(jsonrpc::Errors::ERROR_CLIENT_INVALID_RESPONSE, result.toStyledString());
         }

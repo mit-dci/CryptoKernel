@@ -117,15 +117,15 @@ bool CryptoCurrency::Wallet::updateAddressBalance(CryptoKernel::Storage::Transac
     }
 }
 
-bool CryptoCurrency::Wallet::sendToAddress(const std::string& publicKey, const uint64_t amount, const uint64_t fee)
+std::string CryptoCurrency::Wallet::sendToAddress(const std::string& publicKey, const uint64_t amount)
 {
-    if(getTotalBalance() < amount + fee) {
-        return false;
+    if(getTotalBalance() < amount) {
+        return "Insufficient funds";
     }
 
     CryptoKernel::Crypto crypto;
     if(!crypto.setPublicKey(publicKey)) {
-        return false;
+        return "Invalid address";
     }
 
     std::set<CryptoKernel::Blockchain::output> inputs;
@@ -143,13 +143,19 @@ bool CryptoCurrency::Wallet::sendToAddress(const std::string& publicKey, const u
 
     std::set<CryptoKernel::Blockchain::output> toSpend;
     uint64_t accumulator = 0;
+    uint64_t fee = 150000;
     for(const CryptoKernel::Blockchain::output& out : inputs) {
         if(accumulator < amount + fee) {
+            fee += CryptoKernel::Storage::toString(out.getData()).size() * 600;
             toSpend.insert(out);
             accumulator += out.getValue();
         } else {
             break;
         }
+    }
+
+    if(accumulator < amount + fee) {
+        return "Insufficient funds when " + std::to_string(fee / 100000000.0) + " fee is included";
     }
 
     std::uniform_int_distribution<uint64_t> distribution(0, std::numeric_limits<uint64_t>::max());
@@ -194,14 +200,14 @@ bool CryptoCurrency::Wallet::sendToAddress(const std::string& publicKey, const u
 
     if(!blockchain->submitTransaction(tx))
     {
-        return false;
+        return "Error submitting transaction";
     }
 
     std::vector<CryptoKernel::Blockchain::transaction> txs;
     txs.push_back(tx);
     network->broadcastTransactions(txs);
 
-    return true;
+    return tx.getId().toString();
 }
 
 double CryptoCurrency::Wallet::getTotalBalance()
