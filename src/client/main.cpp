@@ -150,7 +150,7 @@ int main(int argc, char* argv[])
         CryptoCurrency::Wallet wallet(&blockchain, &network);
         std::thread minerThread(miner, &blockchain, &consensus, &wallet, &log, &network);
 
-        jsonrpc::HttpServer httpserver(8383);
+        jsonrpc::HttpServer httpserver(8383, "", "", 1);
         CryptoServer server(httpserver);
         server.setWallet(&wallet, &blockchain, &network, &running);
         server.StartListening();
