@@ -282,6 +282,7 @@ void CryptoKernel::Network::networkFunc()
                             blocks = it->second->peer->getBlocks(currentHeight + 1, currentHeight + 201);
                         } catch(Peer::NetworkError& e) {
                             log->printf(LOG_LEVEL_WARN, "Network(): Failed to contact " + it->first + " " + e.what() + " while downloading blocks");
+                            it = connected.erase(it);
                             break;
                         }
 
@@ -301,6 +302,7 @@ void CryptoKernel::Network::networkFunc()
 
                     for(unsigned int i = 0; i < blocks.size(); i++)
                     {
+
                         if(!blockchain->submitBlock(blocks[i]))
                         {
                             changeScore(it->first, 50);
@@ -309,6 +311,10 @@ void CryptoKernel::Network::networkFunc()
                     }
 
                     currentHeight = blockchain->getBlockDB("tip").getHeight();
+
+                    if(connected.size() < 1) {
+                        break;
+                    }
                 }
             }
         }
