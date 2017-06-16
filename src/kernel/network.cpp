@@ -97,7 +97,7 @@ void CryptoKernel::Network::peerFunc() {
                     }
                 }
 
-                if(peer["lastattempt"].asUInt64() + 5 * 60 > static_cast<unsigned long long int> (result)) {
+                if(peer["lastattempt"].asUInt64() + 5 * 60 > static_cast<unsigned long long int> (result) && peer["lastattempt"].asUInt64() != peer["lastseen"].asUInt64()) {
                     continue;
                 }
 
@@ -199,7 +199,7 @@ void CryptoKernel::Network::peerFunc() {
                                 if(!peers->get(dbTx.get(), addr.toString()).isObject()) {
                                     log->printf(LOG_LEVEL_INFO, "Network(): Discovered new peer: " + addr.toString());
                                     Json::Value newSeed;
-                                    newSeed["lastseen"] = -1;
+                                    newSeed["lastseen"] = 0;
                                     newSeed["height"] = 1;
                                     newSeed["score"] = 0;
                                     peers->put(dbTx.get(), addr.toString(), newSeed);
