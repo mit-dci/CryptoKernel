@@ -93,6 +93,9 @@ void CryptoKernel::Network::Peer::send(const Json::Value& response)
 
 void CryptoKernel::Network::Peer::requestFunc()
 {
+    uint64_t nRequests = 0;
+    uint64_t startTime = static_cast<uint64_t>(std::time(nullptr));
+
     while(running)
     {
         sf::Packet packet;
@@ -102,6 +105,8 @@ void CryptoKernel::Network::Peer::requestFunc()
 
         if(client->receive(packet) == sf::Socket::Done)
         {
+            nRequests++;
+
             clientMutex.unlock();
             std::string requestString;
             packet >> requestString;
@@ -263,6 +268,13 @@ void CryptoKernel::Network::Peer::requestFunc()
         {
             clientMutex.unlock();
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+
+        const uint64_t timeElapsed = static_cast<uint64_t>(std::time(nullptr)) - startTime;
+        if(timeElapsed >= 30 && (double)nRequests/(double)timeElapsed > 1.0) {
+            network->changeScore(client->getRemoteAddress().toString(), 20);
+            nRequests = 0;
+            startTime += timeElapsed;
         }
     }
 }
