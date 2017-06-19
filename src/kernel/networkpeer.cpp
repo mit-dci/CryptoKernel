@@ -108,6 +108,14 @@ void CryptoKernel::Network::Peer::requestFunc()
             nRequests++;
 
             clientMutex.unlock();
+
+            // Don't allow packets bigger than 50MB
+            if(packet.getDataSize() > 50 * 1024) {
+                network->changeScore(client->getRemoteAddress().toString(), 250);
+                running = false;
+                break;
+            }
+
             std::string requestString;
             packet >> requestString;
 
