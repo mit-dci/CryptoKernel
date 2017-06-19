@@ -175,10 +175,6 @@ void CryptoKernel::Network::peerFunc() {
             std::lock_guard<std::recursive_mutex> lock(connectedMutex);
             std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
 
-            for(const auto& peer : peerInfos) {
-                peers->put(dbTx.get(), peer.first, peer.second);
-            }
-
             for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin(); it != connected.end(); it++)
             {
                 try
@@ -227,6 +223,10 @@ void CryptoKernel::Network::peerFunc() {
                         break;
                     }
                 }
+            }
+
+            for(const auto& peer : peerInfos) {
+                peers->put(dbTx.get(), peer.first, peer.second);
             }
 
             dbTx->commit();
