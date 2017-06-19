@@ -205,6 +205,11 @@ CryptoKernel::Blockchain::transaction::transaction(const Json::Value& jsonTransa
 }
 
 void CryptoKernel::Blockchain::transaction::checkRep(const bool coinbaseTx) {
+    // Check for transaction size
+    if(CryptoKernel::Storage::toString(toJson()).size() > 100 * 1024) {
+        throw InvalidElementException("Transaction is too large");
+    }
+
     if(outputs.size() < 1) {
         throw InvalidElementException("Transaction has no outputs");
     }
@@ -463,6 +468,11 @@ CryptoKernel::BigNum CryptoKernel::Blockchain::block::calculateId() {
 }
 
 void CryptoKernel::Blockchain::block::checkRep() {
+    // Check for block size
+    if(CryptoKernel::Storage::toString(toJson()).size() > 4 * 1024 * 1024) {
+        throw InvalidElementException("Block is too large");
+    }
+
     // Check for input/output conflicts
     unsigned int totalPuts = 0;
     unsigned int totalInputs = 0;
