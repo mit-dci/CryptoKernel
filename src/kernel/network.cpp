@@ -105,7 +105,8 @@ void CryptoKernel::Network::peerFunc() {
 
                 if(addr == sf::IpAddress::getLocalAddress()
                 || addr == myAddress
-                || addr == sf::IpAddress::LocalHost) {
+                || addr == sf::IpAddress::LocalHost
+                || addr == sf::IpAddress::None) {
                     continue;
                 }
 
@@ -245,6 +246,7 @@ void CryptoKernel::Network::networkFunc()
     {
         //Determine best chain
         uint64_t currentHeight = blockchain->getBlockDB("tip").getHeight();
+        this->currentHeight = currentHeight;
         uint64_t bestHeight = currentHeight;
         connectedMutex.lock();
         for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin(); it != connected.end(); it++)
@@ -363,7 +365,8 @@ void CryptoKernel::Network::connectionFunc()
 
             if(addr == sf::IpAddress::getLocalAddress()
             || addr == myAddress
-            || addr == sf::IpAddress::LocalHost) {
+            || addr == sf::IpAddress::LocalHost
+            || addr == sf::IpAddress::None) {
                 log->printf(LOG_LEVEL_INFO, "Network(): Incoming connection " + client->getRemoteAddress().toString() + " is connecting to self");
                 client->disconnect();
                 delete client;
@@ -446,7 +449,6 @@ void CryptoKernel::Network::broadcastBlock(const CryptoKernel::Blockchain::block
 
 double CryptoKernel::Network::syncProgress()
 {
-    const uint64_t currentHeight = blockchain->getBlockDB("tip").getHeight();
     return (double)(currentHeight)/(double)(bestHeight);
 }
 
@@ -467,4 +469,8 @@ std::set<std::string> CryptoKernel::Network::getConnectedPeers() {
     }
 
     return peerUrls;
+}
+
+uint64_t CryptoKernel::Network::getCurrentHeight() {
+    return currentHeight;
 }

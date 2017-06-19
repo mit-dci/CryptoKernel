@@ -66,6 +66,13 @@ namespace CryptoKernel
             */
             std::set<std::string> getConnectedPeers();
 
+            /**
+            * Returns the current sync height of this network's blockchain
+            *
+            * @return the current height of the main chain of the blockchain
+            */
+            uint64_t getCurrentHeight();
+
         private:
             class Peer;
 
@@ -103,6 +110,7 @@ namespace CryptoKernel
             sf::IpAddress myAddress;
 
             uint64_t bestHeight;
+            uint64_t currentHeight;
     };
 }
 

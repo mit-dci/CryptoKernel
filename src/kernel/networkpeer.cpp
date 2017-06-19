@@ -122,7 +122,7 @@ void CryptoKernel::Network::Peer::requestFunc()
                     {
                         Json::Value response;
                         response["data"]["version"] = version;
-                        response["data"]["tipHeight"] = static_cast<unsigned long long int>(blockchain->getBlockDB("tip").getHeight());
+                        response["data"]["tipHeight"] = static_cast<unsigned long long int>(network->getCurrentHeight());
                         for(const auto& peer : network->getConnectedPeers()) {
                             response["data"]["peers"].append(peer);
                         }
