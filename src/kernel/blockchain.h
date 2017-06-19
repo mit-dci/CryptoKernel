@@ -218,7 +218,7 @@ namespace CryptoKernel
             block getBlock(Storage::Transaction* transaction, const std::string& id);
             block getBlockByHeight(Storage::Transaction* transaction, const uint64_t height);
 
-            dbBlock getBlockDB(Storage::Transaction* transaction, const std::string& id);
+            dbBlock getBlockDB(Storage::Transaction* transaction, const std::string& id, const bool mainChain = false);
             dbBlock getBlockByHeightDB(Storage::Transaction* transaction, const uint64_t height);
 
             dbBlock getBlockDB(const std::string& id);

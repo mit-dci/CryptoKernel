@@ -114,13 +114,13 @@ std::set<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::getUnc
     return returning;
 }
 
-CryptoKernel::Blockchain::dbBlock CryptoKernel::Blockchain::getBlockDB(Storage::Transaction* transaction, const std::string& id) {
+CryptoKernel::Blockchain::dbBlock CryptoKernel::Blockchain::getBlockDB(Storage::Transaction* transaction, const std::string& id, const bool mainChain) {
     std::lock_guard<std::recursive_mutex> lock(chainLock);
     Json::Value jsonBlock = blocks->get(transaction, id);
     if(!jsonBlock.isObject()) {
         // Check if it's an orphan
         jsonBlock = candidates->get(transaction, id);
-        if(!jsonBlock.isObject()) {
+        if(!jsonBlock.isObject() || mainChain) {
             throw NotFoundException("Block " + id);
         } else {
             return dbBlock(block(jsonBlock));
