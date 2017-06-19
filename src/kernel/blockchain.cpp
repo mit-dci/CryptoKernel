@@ -123,7 +123,7 @@ CryptoKernel::Blockchain::dbBlock CryptoKernel::Blockchain::getBlockDB(Storage::
         if(!jsonBlock.isObject()) {
             throw NotFoundException("Block " + id);
         } else {
-            return dbBlock(block(jsonBlock), 0);
+            return dbBlock(block(jsonBlock));
         }
     }
 
@@ -153,7 +153,7 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::buildBlock(Storage::Tr
         transactions.insert(getTransaction(dbTx, txid.toString()));
     }
 
-    return block(transactions, getTransaction(dbTx, dbblock.getCoinbaseTx().toString()), dbblock.getPreviousBlockId(), dbblock.getTimestamp(), dbblock.getConsensusData());
+    return block(transactions, getTransaction(dbTx, dbblock.getCoinbaseTx().toString()), dbblock.getPreviousBlockId(), dbblock.getTimestamp(), dbblock.getConsensusData(), dbblock.getHeight());
 }
 
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlockByHeight(Storage::Transaction* transaction, const uint64_t height)
@@ -392,7 +392,7 @@ bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx, const blo
             }
 
             const block previousBlock = block(previousBlockJson);
-            previousBlockJson = dbBlock(previousBlock, 0).toJson();
+            previousBlockJson = dbBlock(previousBlock).toJson();
         }
 
         const dbBlock previousBlock = dbBlock(previousBlockJson);
@@ -428,6 +428,7 @@ bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx, const blo
             else
             {
                 log->printf(LOG_LEVEL_WARN, "blockchain::submitBlock(): Chain has less verifier backing than current chain");
+                blockHeight = getBlockDB(dbTx, newBlock.getPreviousBlockId().toString()).getHeight() + 1;
                 onlySave = true;
             }
         } else {
@@ -481,7 +482,9 @@ bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx, const blo
     }
 
     if(onlySave) {
-        candidates->put(dbTx, newBlock.getId().toString(), newBlock.toJson());
+        Json::Value jsonBlock = newBlock.toJson();
+        jsonBlock["height"] = static_cast<unsigned long long int>(blockHeight);
+        candidates->put(dbTx, newBlock.getId().toString(), jsonBlock);
     } else {
         const dbBlock toSave = dbBlock(newBlock, blockHeight);
         const Json::Value blockAsJson = toSave.toJson();
@@ -641,7 +644,7 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateVerifyingBlock
         consensusData = consensus->generateConsensusData(dbTx.get(), previousBlockId, publicKey);
     }
 
-    const block returning = block(blockTransactions, coinbaseTx, previousBlockId, now, consensusData);
+    const block returning = block(blockTransactions, coinbaseTx, previousBlockId, now, consensusData, height);
 
     return returning;
 }

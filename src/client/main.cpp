@@ -87,8 +87,7 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* c
                 nonce += 1;
 
                 pow = consensus->calculatePoW(Block, nonce);
-            }
-            while(pow >= target && running);
+            } while(pow >= target && running);
 
             consensusData["nonce"] = static_cast<unsigned long long int>(nonce);
             Block.setConsensusData(consensusData);

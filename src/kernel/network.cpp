@@ -275,7 +275,7 @@ void CryptoKernel::Network::networkFunc()
         if(bestHeight > currentHeight)
         {
             std::lock_guard<std::recursive_mutex> lock(connectedMutex);
-            for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin(); it != connected.end(); it++)
+            for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin(); it != connected.end() && running; it++)
             {
                 if(it->second->info["height"].asUInt64() > currentHeight)
                 {
@@ -306,9 +306,9 @@ void CryptoKernel::Network::networkFunc()
                         }
 
                         break;
-                    } while(true);
+                    } while(running);
 
-                    for(unsigned int i = 0; i < blocks.size(); i++)
+                    for(unsigned int i = 0; i < blocks.size() && running; i++)
                     {
 
                         if(!blockchain->submitBlock(blocks[i]))

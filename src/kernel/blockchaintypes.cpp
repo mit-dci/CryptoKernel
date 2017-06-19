@@ -411,12 +411,13 @@ std::set<CryptoKernel::BigNum> CryptoKernel::Blockchain::dbTransaction::getOutpu
     return outputs;
 }
 
-CryptoKernel::Blockchain::block::block(const std::set<transaction>& transactions, const transaction& coinbaseTx, const BigNum& previousBlockId, const uint64_t timestamp, const Json::Value& consensusData)
+CryptoKernel::Blockchain::block::block(const std::set<transaction>& transactions, const transaction& coinbaseTx, const BigNum& previousBlockId, const uint64_t timestamp, const Json::Value& consensusData, const uint64_t height)
 : coinbaseTx(coinbaseTx.getInputs(), coinbaseTx.getOutputs(), coinbaseTx.getTimestamp(), true) {
     this->transactions = transactions;
     this->previousBlockId = previousBlockId;
     this->timestamp = timestamp;
     this->consensusData = consensusData;
+    this->height = height;
 
     checkRep();
 
@@ -433,6 +434,8 @@ CryptoKernel::Blockchain::block::block(const Json::Value& jsonBlock)
         for(const Json::Value& tx : jsonBlock["transactions"]) {
             transactions.insert(CryptoKernel::Blockchain::transaction(tx));
         }
+
+        height = jsonBlock["height"].asUInt64();
     } catch(const Json::Exception& e) {
         throw InvalidElementException("Block JSON is malformed");
     }
@@ -506,6 +509,7 @@ Json::Value CryptoKernel::Blockchain::block::toJson() const {
     returning["previousBlockId"] = previousBlockId.toString();
     returning["timestamp"] = static_cast<unsigned long long int>(timestamp);
     returning["consensusData"] = consensusData;
+    returning["height"] = static_cast<unsigned long long int>(height);
 
     for(const transaction& tx : transactions) {
         returning["transactions"].append(tx.toJson());
@@ -538,6 +542,10 @@ CryptoKernel::BigNum CryptoKernel::Blockchain::block::getId() const {
     return id;
 }
 
+uint64_t CryptoKernel::Blockchain::block::getHeight() const {
+    return height;
+}
+
 CryptoKernel::Blockchain::dbBlock::dbBlock(const Json::Value& jsonBlock) {
     try {
         coinbaseTx = CryptoKernel::BigNum(jsonBlock["coinbaseTx"].asString());
@@ -551,6 +559,22 @@ CryptoKernel::Blockchain::dbBlock::dbBlock(const Json::Value& jsonBlock) {
         }
     } catch(const Json::Exception& e) {
         throw InvalidElementException("Block JSON is malformed");
+    }
+
+    checkRep();
+
+    id = calculateId();
+}
+
+CryptoKernel::Blockchain::dbBlock::dbBlock(const block& compactBlock) {
+    coinbaseTx = compactBlock.getCoinbaseTx().getId();
+    previousBlockId = compactBlock.getPreviousBlockId();
+    timestamp = compactBlock.getTimestamp();
+    consensusData = compactBlock.getConsensusData();
+    this->height = compactBlock.getHeight();
+
+    for(const transaction& tx : compactBlock.getTransactions()) {
+        transactions.insert(tx.getId());
     }
 
     checkRep();

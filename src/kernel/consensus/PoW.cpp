@@ -106,12 +106,11 @@ CryptoKernel::BigNum CryptoKernel::Consensus::PoW::KGW_SHA256::calculateTarget(S
     consensusData currentBlockData = getConsensusData(currentBlock);
     CryptoKernel::Blockchain::dbBlock lastSolved = currentBlock;
 
-    if(currentBlock.getHeight() < minBlocks && currentBlock.getHeight() != 0)
-    {
+    if(currentBlock.getHeight() < minBlocks) {
         return minDifficulty;
-    }
-    else
-    {
+    } else if(currentBlock.getHeight() % 12 != 0) {
+        return currentBlockData.target;
+    } else {
         uint64_t blocksScanned = 0;
         CryptoKernel::BigNum difficultyAverage = CryptoKernel::BigNum("0");
         CryptoKernel::BigNum previousDifficultyAverage = CryptoKernel::BigNum("0");

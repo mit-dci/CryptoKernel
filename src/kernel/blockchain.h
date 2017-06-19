@@ -145,7 +145,7 @@ namespace CryptoKernel
 
             class block {
                 public:
-                    block(const std::set<transaction>& transactions, const transaction& coinbaseTx, const BigNum& previousBlockId, const uint64_t timestamp, const Json::Value& consensusData);
+                    block(const std::set<transaction>& transactions, const transaction& coinbaseTx, const BigNum& previousBlockId, const uint64_t timestamp, const Json::Value& consensusData, const uint64_t height);
                     block(const Json::Value& jsonBlock);
 
                     Json::Value toJson() const;
@@ -155,6 +155,7 @@ namespace CryptoKernel
                     BigNum getPreviousBlockId() const;
                     uint64_t getTimestamp() const;
                     Json::Value getConsensusData() const;
+                    uint64_t getHeight() const;
 
                     void setConsensusData(const Json::Value& data);
 
@@ -170,12 +171,14 @@ namespace CryptoKernel
                     BigNum previousBlockId;
                     uint64_t timestamp;
                     Json::Value consensusData;
+                    uint64_t height;
 
                     BigNum id;
             };
 
             class dbBlock {
                 public:
+                    dbBlock(const block& compactBlock);
                     dbBlock(const block& compactBlock, const uint64_t height);
                     dbBlock(const Json::Value& jsonBlock);
 
