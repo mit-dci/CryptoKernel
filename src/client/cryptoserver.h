@@ -39,6 +39,8 @@ class CryptoRPCServer : public jsonrpc::AbstractServer<CryptoRPCServer>
             this->bindAndAddMethod(jsonrpc::Procedure("listtransactions", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_OBJECT, NULL), &CryptoRPCServer::listtransactionsI);
             this->bindAndAddMethod(jsonrpc::Procedure("getblockbyheight", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_OBJECT, "height", jsonrpc::JSON_INTEGER, NULL), &CryptoRPCServer::getblockbyheightI);
             this->bindAndAddMethod(jsonrpc::Procedure("stop", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_BOOLEAN, NULL), &CryptoRPCServer::stopI);
+            this->bindAndAddMethod(jsonrpc::Procedure("getblock", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_OBJECT, "id", jsonrpc::JSON_STRING, NULL), &CryptoRPCServer::getblockI);
+            this->bindAndAddMethod(jsonrpc::Procedure("gettransaction", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_OBJECT, "id", jsonrpc::JSON_STRING, NULL), &CryptoRPCServer::getblockI);
         }
 
         inline virtual void getinfoI(const Json::Value &request, Json::Value &response)
@@ -89,6 +91,14 @@ class CryptoRPCServer : public jsonrpc::AbstractServer<CryptoRPCServer>
         {
             response = this->stop();
         }
+        inline virtual void getblockI(const Json::Value &request, Json::Value &response)
+        {
+            response = this->getblock(request["id"].asString());
+        }
+        inline virtual void gettransactionI(const Json::Value &request, Json::Value &response)
+        {
+            response = this->gettransaction(request["id"].asString());
+        }
         virtual Json::Value getinfo() = 0;
         virtual Json::Value account(const std::string& account) = 0;
         virtual std::string sendtoaddress(const std::string& address, double amount) = 0;
@@ -101,6 +111,8 @@ class CryptoRPCServer : public jsonrpc::AbstractServer<CryptoRPCServer>
         virtual Json::Value listtransactions() = 0;
         virtual Json::Value getblockbyheight(const uint64_t height) = 0;
         virtual bool stop() = 0;
+        virtual Json::Value getblock(const std::string& id) = 0;
+        virtual Json::Value gettransaction(const std::string& id) = 0;
 };
 
 class CryptoServer : public CryptoRPCServer
@@ -121,6 +133,8 @@ class CryptoServer : public CryptoRPCServer
         virtual Json::Value listtransactions();
         virtual Json::Value getblockbyheight(const uint64_t height);
         virtual bool stop();
+        virtual Json::Value getblock(const std::string& id);
+        virtual Json::Value gettransaction(const std::string& id);
 
     private:
         CryptoCurrency::Wallet* wallet;

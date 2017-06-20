@@ -163,6 +163,13 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlockByHeight(Stora
     return getBlock(transaction, id);
 }
 
+CryptoKernel::Blockchain::transaction CryptoKernel::Blockchain::getTransaction(const std::string& id)
+{
+    std::lock_guard<std::recursive_mutex> lock(chainLock);
+    std::unique_ptr<Storage::Transaction> tx(blockdb->begin());
+    return getTransaction(tx.get(), id);
+}
+
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlock(const std::string& id)
 {
     std::lock_guard<std::recursive_mutex> lock(chainLock);

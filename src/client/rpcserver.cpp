@@ -234,3 +234,19 @@ bool CryptoServer::stop() {
     *running = false;
     return true;
 }
+
+Json::Value CryptoServer::getblock(const std::string& id) {
+    try {
+        return blockchain->getBlock(id).toJson();
+    } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
+        return Json::Value();
+    }
+}
+
+Json::Value CryptoServer::gettransaction(const std::string& id) {
+    try {
+        return blockchain->getTransaction(id).toJson();
+    } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
+        return Json::Value();
+    }
+}

@@ -240,11 +240,21 @@ namespace CryptoKernel
             /**
             * Retrieves the transaction with the given id
             *
+            * @param transaction the database transaction this query will be performed on
             * @param id the id of the transaction to get
             * @return the confirmed transaction with the given id
             * @throw NotFoundException if the transaction is not found
             */
             transaction getTransaction(Storage::Transaction* transaction, const std::string& id);
+
+            /**
+            * Retrieves the transaction with the given id
+            *
+            * @param id the id of the transaction to get
+            * @return the confirmed transaction with the given id
+            * @throw NotFoundException if the transaction is not found
+            */
+            transaction getTransaction(const std::string& id);
 
             /**
             * Retrieves the output, spent or unspent, that is associated
