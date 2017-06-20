@@ -221,7 +221,10 @@ Json::Value CryptoServer::listtransactions() {
 Json::Value CryptoServer::getblockbyheight(const uint64_t height)
 {
     try {
-        return blockchain->getBlockByHeight(height).toJson();
+        const CryptoKernel::Blockchain::block block = blockchain->getBlockByHeight(height);
+        Json::Value returning = block.toJson();
+        returning["id"] = block.getId().toString();
+        return returning;
     } catch(CryptoKernel::Blockchain::NotFoundException e) {
         return Json::Value();
     }
