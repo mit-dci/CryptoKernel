@@ -40,7 +40,7 @@ class CryptoRPCServer : public jsonrpc::AbstractServer<CryptoRPCServer>
             this->bindAndAddMethod(jsonrpc::Procedure("getblockbyheight", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_OBJECT, "height", jsonrpc::JSON_INTEGER, NULL), &CryptoRPCServer::getblockbyheightI);
             this->bindAndAddMethod(jsonrpc::Procedure("stop", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_BOOLEAN, NULL), &CryptoRPCServer::stopI);
             this->bindAndAddMethod(jsonrpc::Procedure("getblock", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_OBJECT, "id", jsonrpc::JSON_STRING, NULL), &CryptoRPCServer::getblockI);
-            this->bindAndAddMethod(jsonrpc::Procedure("gettransaction", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_OBJECT, "id", jsonrpc::JSON_STRING, NULL), &CryptoRPCServer::getblockI);
+            this->bindAndAddMethod(jsonrpc::Procedure("gettransaction", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_OBJECT, "id", jsonrpc::JSON_STRING, NULL), &CryptoRPCServer::gettransactionI);
         }
 
         inline virtual void getinfoI(const Json::Value &request, Json::Value &response)
