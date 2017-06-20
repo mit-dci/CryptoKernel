@@ -439,10 +439,14 @@ CryptoKernel::Blockchain::block::block(const Json::Value& jsonBlock)
         for(const Json::Value& tx : jsonBlock["transactions"]) {
             transactions.insert(CryptoKernel::Blockchain::transaction(tx));
         }
-
-        height = jsonBlock["height"].asUInt64();
     } catch(const Json::Exception& e) {
         throw InvalidElementException("Block JSON is malformed");
+    }
+
+    try {
+        height = jsonBlock["height"].asUInt64();
+    } catch(const Json::Exception& e) {
+        height = 0;
     }
 
     checkRep();
