@@ -81,7 +81,13 @@ void CryptoKernel::Wallet::watchFunc() {
                 }
 
                 if(rewind) {
-                    rewindBlock(dbTx.get(), bchainTx.get());
+                    try {
+                        rewindBlock(dbTx.get(), bchainTx.get());
+                    } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
+                        dbTx->abort();
+                        clearDB();
+                        dbTx.reset(walletdb->begin());
+                    }
                 }
             }
         } while(rewind);
@@ -150,6 +156,53 @@ void CryptoKernel::Wallet::rewindBlock(CryptoKernel::Storage::Transaction* walle
 
     params->put(walletTx, "tipId", Json::Value(newTip.getId().toString()));
     params->put(walletTx, "height", Json::Value(static_cast<unsigned long long int>(newTip.getHeight())));
+}
+
+void CryptoKernel::Wallet::clearDB() {
+    std::lock_guard<std::recursive_mutex> lock(walletLock);
+
+    std::set<std::string> transactionIds;
+    std::set<std::string> utxoIds;
+    std::set<std::string> accountNames;
+
+    CryptoKernel::Storage::Table::Iterator* it = new CryptoKernel::Storage::Table::Iterator(transactions.get(), walletdb.get());
+    for(it->SeekToFirst(); it->Valid(); it->Next()) {
+        transactionIds.insert(it->key());
+    }
+    delete it;
+
+    it = new CryptoKernel::Storage::Table::Iterator(utxos.get(), walletdb.get());
+    for(it->SeekToFirst(); it->Valid(); it->Next()) {
+        utxoIds.insert(it->key());
+    }
+    delete it;
+
+    it = new CryptoKernel::Storage::Table::Iterator(accounts.get(), walletdb.get());
+    for(it->SeekToFirst(); it->Valid(); it->Next()) {
+        accountNames.insert(it->key());
+    }
+    delete it;
+
+    std::unique_ptr<CryptoKernel::Storage::Transaction> dbTx(walletdb->begin());
+
+    for(const auto& tx : transactionIds) {
+        transactions->erase(dbTx.get(), tx);
+    }
+
+    for(const auto& utxo : utxoIds) {
+        utxos->erase(dbTx.get(), utxo);
+    }
+
+    for(const auto& acc : accountNames) {
+        Account account = Account(accounts->get(dbTx.get(), acc));
+        account.setBalance(0);
+        accounts->put(dbTx.get(), acc, account.toJson());
+    }
+
+    params->put(dbTx.get(), "height", Json::Value(0));
+    params->put(dbTx.get(), "tipId", Json::Value(""));
+
+    dbTx->commit();
 }
 
 void CryptoKernel::Wallet::digestBlock(CryptoKernel::Storage::Transaction* walletTx, CryptoKernel::Storage::Transaction* bchainTx, const CryptoKernel::Blockchain::block& block) {

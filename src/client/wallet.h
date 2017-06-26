@@ -136,6 +136,8 @@ namespace CryptoKernel
             std::recursive_mutex walletLock;
 
             Account getAccountByKey(CryptoKernel::Storage::Transaction* dbTx, const std::string& pubKey);
+
+            void clearDB();
     };
 }
 
