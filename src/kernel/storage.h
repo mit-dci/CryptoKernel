@@ -53,6 +53,7 @@ namespace CryptoKernel
             class Transaction {
                 public:
                     Transaction(Storage* db);
+                    Transaction(Storage* db, std::recursive_mutex& mut);
 
                     ~Transaction();
 
@@ -73,9 +74,12 @@ namespace CryptoKernel
                     std::map<std::string, dbObject> dbStateCache;
                     Storage* db;
                     bool finished;
+                    std::recursive_mutex* mut;
             };
 
             Transaction* begin();
+
+            Transaction* begin(std::recursive_mutex& mut);
 
             class Table {
                 public:
@@ -87,7 +91,7 @@ namespace CryptoKernel
 
                     class Iterator {
                         public:
-                            Iterator(Table* table, Storage* db);
+                            Iterator(Table* table, Storage* db, const bool lock = true);
 
                             ~Iterator();
 

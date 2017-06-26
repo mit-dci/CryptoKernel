@@ -21,48 +21,121 @@
 #include <random>
 
 #include "storage.h"
-#include "log.h"
 #include "blockchain.h"
 #include "network.h"
 
-namespace CryptoCurrency
+namespace CryptoKernel
 {
     class Wallet
     {
         public:
-            Wallet(CryptoKernel::Blockchain* Blockchain, CryptoKernel::Network* network);
-            ~Wallet();
-            struct address
-            {
-                std::string name;
-                std::string publicKey;
-                std::string privateKey;
-                uint64_t balance;
-            };
-            address newAddress(std::string name);
-            address getAddressByName(std::string name);
-            address getAddressByKey(std::string publicKey);
-            std::string sendToAddress(const std::string& publicKey, const uint64_t amount);
-            double getTotalBalance();
-            void rescan();
+            Wallet(CryptoKernel::Blockchain* blockchain, CryptoKernel::Network* network, CryptoKernel::Log* log);
 
-            std::vector<address> listAddresses();
-            Json::Value addressToJson(address Address);
-            address jsonToAddress(Json::Value Address);
+            ~Wallet();
+
+            class WalletException : public std::exception {
+                public:
+                    WalletException(const std::string& message) {
+                        this->message = message;
+                    }
+
+                    virtual const char* what() const noexcept {
+                        return message.c_str();
+                    }
+
+                private:
+                    std::string message;
+            };
+
+            class Account {
+                public:
+                    Account(const std::string& name);
+                    Account(const Json::Value& accountJson);
+
+                    Json::Value toJson() const;
+
+                    struct keyPair {
+                        std::string pubKey;
+                        std::string privKey;
+                        bool operator<(const keyPair& rhs) const {
+                            return pubKey < rhs.pubKey;
+                        }
+                    };
+
+                    std::string getName() const;
+
+                    std::set<keyPair> getKeys() const;
+
+                    keyPair newAddress();
+
+                    bool operator<(const Account& rhs) const;
+
+                    void setBalance(const uint64_t newBalance);
+
+                    uint64_t getBalance() const;
+
+                private:
+                    std::set<keyPair> keys;
+                    std::string name;
+                    uint64_t balance;
+            };
+
+            class Txo {
+                public:
+                    Txo(const std::string& id, const uint64_t value);
+                    Txo(const Json::Value& txoJson);
+
+                    Json::Value toJson() const;
+
+                    bool isSpent() const;
+                    void spend();
+
+                    uint64_t getValue() const;
+
+                private:
+                    std::string id;
+                    bool spent;
+                    uint64_t value;
+            };
+
+            Account getAccountByName(const std::string& name);
+            Account getAccountByKey(const std::string& pubKey);
+            Account newAccount(const std::string& name);
+
+            std::string sendToAddress(const std::string& pubKey, const uint64_t amount);
+
+            uint64_t getTotalBalance();
+
+            std::set<Account> listAccounts();
+
             std::set<CryptoKernel::Blockchain::transaction> listTransactions();
 
-            CryptoKernel::Blockchain::transaction signTransaction(const CryptoKernel::Blockchain::transaction tx);
+            CryptoKernel::Blockchain::transaction signTransaction(const CryptoKernel::Blockchain::transaction& tx);
 
         private:
             std::unique_ptr<CryptoKernel::Storage> walletdb;
-            std::unique_ptr<CryptoKernel::Storage::Table> addresses;
-
-            bool updateAddressBalance(CryptoKernel::Storage::Transaction* dbTx, std::string name, uint64_t amount);
+            std::unique_ptr<CryptoKernel::Storage::Table> accounts;
+            std::unique_ptr<CryptoKernel::Storage::Table> utxos;
+            std::unique_ptr<CryptoKernel::Storage::Table> transactions;
+            std::unique_ptr<CryptoKernel::Storage::Table> params;
 
             CryptoKernel::Blockchain* blockchain;
             CryptoKernel::Network* network;
+            CryptoKernel::Log* log;
 
             std::default_random_engine generator;
+
+            std::unique_ptr<std::thread> watchThread;
+
+            void watchFunc();
+            bool running;
+
+            void rewindBlock(CryptoKernel::Storage::Transaction* walletTx, CryptoKernel::Storage::Transaction* bchainTx);
+            void digestBlock(CryptoKernel::Storage::Transaction* walletTx, CryptoKernel::Storage::Transaction* bchainTx, const CryptoKernel::Blockchain::block& block);
+
+            std::recursive_mutex walletLock;
+
+            Account getAccountByKey(CryptoKernel::Storage::Transaction* dbTx, const std::string& pubKey);
     };
 }
 

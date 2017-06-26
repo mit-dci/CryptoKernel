@@ -212,7 +212,6 @@ namespace CryptoKernel
             bool submitTransaction(const transaction& tx);
             bool submitBlock(const block& newBlock, bool genesisBlock = false);
 
-            uint64_t getBalance(const std::string& publicKey);
             block generateVerifyingBlock(const std::string& publicKey);
 
             block getBlock(Storage::Transaction* transaction, const std::string& id);

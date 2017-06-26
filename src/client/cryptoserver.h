@@ -124,7 +124,7 @@ class CryptoServer : public CryptoRPCServer
         virtual Json::Value account(const std::string& account);
         virtual std::string sendtoaddress(const std::string& address, double amount);
         virtual bool sendrawtransaction(const Json::Value tx);
-        void setWallet(CryptoCurrency::Wallet* Wallet, CryptoKernel::Blockchain* Blockchain, CryptoKernel::Network* Network, bool* running);
+        void setWallet(CryptoKernel::Wallet* Wallet, CryptoKernel::Blockchain* Blockchain, CryptoKernel::Network* Network, bool* running);
         virtual Json::Value listaccounts();
         virtual Json::Value listunspentoutputs(const std::string& account);
         virtual std::string compilecontract(const std::string& code);
@@ -137,7 +137,7 @@ class CryptoServer : public CryptoRPCServer
         virtual Json::Value gettransaction(const std::string& id);
 
     private:
-        CryptoCurrency::Wallet* wallet;
+        CryptoKernel::Wallet* wallet;
         CryptoKernel::Blockchain* blockchain;
         CryptoKernel::Network* network;
         bool* running;

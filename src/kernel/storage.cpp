@@ -89,15 +89,31 @@ CryptoKernel::Storage::Transaction* CryptoKernel::Storage::begin() {
     return new Transaction(this);
 }
 
+CryptoKernel::Storage::Transaction* CryptoKernel::Storage::begin(std::recursive_mutex& mut) {
+    return new Transaction(this, mut);
+}
+
 CryptoKernel::Storage::Transaction::Transaction(CryptoKernel::Storage* db) {
     db->dbMutex.lock();
     this->db = db;
+    mut = nullptr;
+    finished = false;
+}
+
+CryptoKernel::Storage::Transaction::Transaction(CryptoKernel::Storage* db, std::recursive_mutex& mut) {
+    db->dbMutex.lock();
+    this->db = db;
+    this->mut = &mut;
     finished = false;
 }
 
 CryptoKernel::Storage::Transaction::~Transaction() {
     if(!finished) {
         abort();
+    }
+
+    if(mut != nullptr) {
+        mut->unlock();
     }
 }
 
@@ -175,7 +191,7 @@ Json::Value CryptoKernel::Storage::Table::get(Transaction* transaction, const st
     return transaction->get(getKey(key, index));
 }
 
-CryptoKernel::Storage::Table::Iterator::Iterator(Table* table, Storage* db) {
+CryptoKernel::Storage::Table::Iterator::Iterator(Table* table, Storage* db, const bool lock) {
     this->table = table;
     this->db = db;
     db->dbMutex.lock();

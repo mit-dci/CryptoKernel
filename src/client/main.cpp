@@ -36,9 +36,13 @@
 
 bool running;
 
-void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* consensus, CryptoCurrency::Wallet* wallet, CryptoKernel::Log* log, CryptoKernel::Network* network)
+void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* consensus, CryptoKernel::Wallet* wallet, CryptoKernel::Log* log, CryptoKernel::Network* network)
 {
-    wallet->newAddress("mining");
+    try {
+        wallet->newAccount("mining");
+    } catch(const CryptoKernel::Wallet::WalletException& e) {
+
+    }
 
     time_t t = std::time(0);
     uint64_t now = static_cast<uint64_t> (t);
@@ -47,7 +51,7 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* c
     {
         if(/*network->getConnections() > 0 &&*/ network->syncProgress() >= 1)
         {
-            CryptoKernel::Blockchain::block Block = blockchain->generateVerifyingBlock(wallet->getAddressByName("mining").publicKey);
+            CryptoKernel::Blockchain::block Block = blockchain->generateVerifyingBlock((*wallet->getAccountByName("mining").getKeys().begin()).pubKey);
             uint64_t nonce = 0;
 
             t = std::time(0);
@@ -73,7 +77,7 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* c
                     std::stringstream message;
                     message << "miner(): Hashrate: " << ((count / (time2 - now)) / 1000.0f) << " kH/s";
                     log->printf(LOG_LEVEL_INFO, message.str());
-                    Block = blockchain->generateVerifyingBlock(wallet->getAddressByName("mining").publicKey);
+                    Block = blockchain->generateVerifyingBlock((*wallet->getAccountByName("mining").getKeys().begin()).pubKey);
                     previousBlock = blockchain->getBlockDB(Block.getPreviousBlockId().toString());
                     target = CryptoKernel::BigNum(Block.getConsensusData()["target"].asString());
                     const CryptoKernel::BigNum inverse = CryptoKernel::BigNum("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff") - target;
@@ -153,7 +157,7 @@ int main(int argc, char* argv[])
         CryptoKernel::Consensus::PoW::KGW_SHA256 consensus(150, &blockchain);
         blockchain.loadChain(&consensus);
         CryptoKernel::Network network(&log, &blockchain);
-        CryptoCurrency::Wallet wallet(&blockchain, &network);
+        CryptoKernel::Wallet wallet(&blockchain, &network, &log);
         std::unique_ptr<std::thread> minerThread;
         if(minerOn) {
             minerThread.reset(new std::thread(miner, &blockchain, &consensus, &wallet, &log, &network));

@@ -27,7 +27,7 @@ CryptoServer::CryptoServer(jsonrpc::AbstractServerConnector &connector) : Crypto
 
 }
 
-void CryptoServer::setWallet(CryptoCurrency::Wallet* Wallet, CryptoKernel::Blockchain* Blockchain, CryptoKernel::Network* Network, bool* running)
+void CryptoServer::setWallet(CryptoKernel::Wallet* Wallet, CryptoKernel::Blockchain* Blockchain, CryptoKernel::Network* Network, bool* running)
 {
     wallet = Wallet;
     blockchain = Blockchain;
@@ -55,17 +55,26 @@ Json::Value CryptoServer::account(const std::string& account)
 {
     Json::Value returning;
 
-    wallet->newAddress(account);
+    try {
+        wallet->newAccount(account);
+    } catch(const CryptoKernel::Wallet::WalletException& e) {
 
-    CryptoCurrency::Wallet::address newAccount = wallet->getAddressByName(account);
+    }
 
-    returning["name"] = newAccount.name;
-    double balance = newAccount.balance / 100000000.0;
+    CryptoKernel::Wallet::Account newAccount = wallet->getAccountByName(account);
+
+    returning["name"] = newAccount.getName();
+    double balance = newAccount.getBalance() / 100000000.0;
     std::stringstream buffer;
     buffer << std::setprecision(8) << balance;
     returning["balance"] = buffer.str();
-    returning["address"] = newAccount.publicKey;
-    returning["privateKey"] = newAccount.privateKey;
+
+    for(const auto& addr : newAccount.getKeys()) {
+        Json::Value keyPair;
+        keyPair["pubKey"] = addr.pubKey;
+        keyPair["privKey"] = addr.privKey;
+        returning["keys"].append(keyPair);
+    }
 
     return returning;
 }
@@ -98,17 +107,25 @@ Json::Value CryptoServer::listaccounts()
 {
     Json::Value returning;
 
-    const std::vector<CryptoCurrency::Wallet::address> accounts = wallet->listAddresses();
+    const std::set<CryptoKernel::Wallet::Account> accounts = wallet->listAccounts();
 
-    for(CryptoCurrency::Wallet::address addr : accounts)
+    returning["accounts"] = Json::Value();
+
+    for(const auto& acc : accounts)
     {
         Json::Value account;
-        account["name"] = addr.name;
-        double balance = addr.balance / 100000000.0;
+        account["name"] = acc.getName();
+        double balance = acc.getBalance() / 100000000.0;
         std::stringstream buffer;
         buffer << std::setprecision(8) << balance;
         account["balance"] = buffer.str();
-        account["address"] = addr.publicKey;
+
+        for(const auto& addr : acc.getKeys()) {
+            Json::Value keyPair;
+            keyPair["pubKey"] = addr.pubKey;
+            keyPair["privKey"] = addr.privKey;
+            account["keys"].append(keyPair);
+        }
 
         returning["accounts"].append(account);
     }
@@ -118,9 +135,14 @@ Json::Value CryptoServer::listaccounts()
 
 Json::Value CryptoServer::listunspentoutputs(const std::string& account)
 {
-    CryptoCurrency::Wallet::address addr = wallet->getAddressByName(account);
+    CryptoKernel::Wallet::Account acc = wallet->getAccountByName(account);
 
-    const std::set<CryptoKernel::Blockchain::output> utxos = blockchain->getUnspentOutputs(addr.publicKey);
+    std::set<CryptoKernel::Blockchain::output> utxos;
+
+    for(const auto& addr : acc.getKeys()) {
+        const auto unspent = blockchain->getUnspentOutputs(addr.pubKey);
+        utxos.insert(unspent.begin(), unspent.end());
+    }
 
     Json::Value returning;
 
@@ -163,57 +185,13 @@ Json::Value CryptoServer::signtransaction(const Json::Value tx)
 Json::Value CryptoServer::listtransactions() {
     Json::Value returning;
 
-    /*const std::set<CryptoKernel::Blockchain::transaction> transactions = wallet->listTransactions();
-    std::set<std::string> pubKeys;
-    for(const auto address : wallet->listAddresses()) {
-        pubKeys.insert(address.publicKey);
+    returning["transactions"] = Json::Value();
+
+    const std::set<CryptoKernel::Blockchain::transaction> transactions = wallet->listTransactions();
+
+    for(const auto& tx : transactions) {
+        returning["transactions"].append(tx.toJson());
     }
-    for(const CryptoKernel::Blockchain::transaction tx : transactions) {
-        Json::Value transaction;
-        transaction["id"] = tx.getId().toString();
-        transaction["timestamp"] = static_cast<unsigned long long int>(tx.getTimestamp());
-
-        std::string toThem = "";
-        std::string toMe = "";
-
-        bool allToMe = true;
-
-        int64_t delta = 0;
-        for(unsigned int i = 0; i < tx.outputs.size(); i++) {
-            const CryptoCurrency::Wallet::address address = wallet->getAddressByKey(tx.outputs[i].publicKey);
-            if(pubKeys.find(tx.outputs[i].publicKey) != pubKeys.end()) {
-                delta += tx.outputs[i].value;
-                toMe = tx.outputs[i].publicKey;
-            } else {
-                toThem = tx.outputs[i].publicKey;
-                allToMe = false;
-            }
-        }
-
-        for(unsigned int i = 0; i < tx.inputs.size(); i++) {
-            const CryptoCurrency::Wallet::address address = wallet->getAddressByKey(tx.inputs[i].publicKey);
-            if(pubKeys.find(tx.inputs[i].publicKey) != pubKeys.end()) {
-                delta -= tx.inputs[i].value;
-            }
-        }
-
-        const double asFloat = delta / 10000000.0;
-        std::stringstream buffer;
-        buffer << std::setprecision(8) << asFloat;
-        transaction["amount"] = buffer.str();
-        if(allToMe) {
-            transaction["type"] = "Payment to self";
-            transaction["address"] = "N/A";
-        } else if(delta < 0) {
-            transaction["type"] = "Sent to";
-            transaction["address"] = toThem;
-        } else if(delta >= 0) {
-            transaction["type"] = "Receive";
-            transaction["address"] = wallet->getAddressByKey(toMe).name + " (" + toMe + ")";
-        }
-
-        returning["transactions"].append(transaction);
-    }*/
 
     return returning;
 }

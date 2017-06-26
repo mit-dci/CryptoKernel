@@ -163,6 +163,13 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlockByHeight(Stora
     return getBlock(transaction, id);
 }
 
+CryptoKernel::Blockchain::dbBlock CryptoKernel::Blockchain::getBlockByHeightDB(Storage::Transaction* transaction, const uint64_t height)
+{
+    std::lock_guard<std::recursive_mutex> lock(chainLock);
+    const std::string id = blocks->get(transaction, std::to_string(height), 0).asString();
+    return getBlockDB(transaction, id);
+}
+
 CryptoKernel::Blockchain::transaction CryptoKernel::Blockchain::getTransaction(const std::string& id)
 {
     std::lock_guard<std::recursive_mutex> lock(chainLock);
@@ -201,31 +208,6 @@ CryptoKernel::Blockchain::output CryptoKernel::Blockchain::getOutput(Storage::Tr
     }
 
     return output(outputJson);
-}
-
-uint64_t CryptoKernel::Blockchain::getBalance(const std::string& publicKey)
-{
-    chainLock.lock();
-    uint64_t total = 0;
-
-    if(status)
-    {
-        CryptoKernel::Storage::Table::Iterator *it = new CryptoKernel::Storage::Table::Iterator(utxos.get(), blockdb.get());
-        for(it->SeekToFirst(); it->Valid(); it->Next())
-        {
-            const dbOutput out = dbOutput(it->value());
-            const Json::Value data = out.getData();
-
-            if(data["publicKey"].asString() == publicKey && data["contract"].empty()) {
-                total += out.getValue();
-            }
-        }
-        delete it;
-    }
-
-    chainLock.unlock();
-
-    return total;
 }
 
 bool CryptoKernel::Blockchain::verifyTransaction(Storage::Transaction* dbTransaction, const transaction& tx, const bool coinbaseTx)
@@ -739,7 +721,6 @@ void CryptoKernel::Blockchain::emptyDB() {
 
 CryptoKernel::Storage::Transaction* CryptoKernel::Blockchain::getTxHandle() {
     chainLock.lock();
-    Storage::Transaction* dbTx = blockdb->begin();
-    chainLock.unlock();
+    Storage::Transaction* dbTx = blockdb->begin(chainLock);
     return dbTx;
 }
