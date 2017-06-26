@@ -416,7 +416,7 @@ std::string CryptoKernel::Wallet::sendToAddress(const std::string& pubKey, const
 
     for(const CryptoKernel::Blockchain::output& out : toSpend) {
         const std::string publicKey = out.getData()["publicKey"].asString();
-        Account acc = getAccountByKey(publicKey);
+        Account acc = getAccountByKey(dbTx.get(), publicKey);
 
         std::string privKey = "";
 
@@ -445,6 +445,8 @@ std::string CryptoKernel::Wallet::sendToAddress(const std::string& pubKey, const
     const uint64_t now = static_cast<uint64_t> (t);
 
     const CryptoKernel::Blockchain::transaction tx = CryptoKernel::Blockchain::transaction(spends, outputs, now);
+
+    bchainTx->abort();
 
     if(!blockchain->submitTransaction(tx)) {
         return "Error submitting transaction";
