@@ -71,8 +71,11 @@ end
 function run_sandbox(sb_env, sb_func, ...)
   if (not sb_func) then return nil end
   setfenv(sb_func, sb_env)
+  collectgarbage("stop")
   debug.sethook(programCounterHook, "", 50)
   local sb_ret={_ENV.pcall(sb_func, ...)}
+  debug.sethook()
+  collectgarbage("restart")
   return _ENV.table.unpack(sb_ret)
 end
 
