@@ -95,7 +95,8 @@ void CryptoKernel::ContractRunner::setupEnvironment(Storage::Transaction* dbTx, 
     (*state.get())["thisInputJson"] = CryptoKernel::Storage::toString(input.toJson());
     (*state.get())["outputSetId"] = tx.getOutputSetId().toString();
     blockchainInterface->setTransaction(dbTx);
-    (*state.get())["Blockchain"].SetObj((*blockchainInterface), "getBlock", &BlockchainInterface::getBlock, "getTransaction", &BlockchainInterface::getTransaction);
+    (*state.get())["Blockchain"].SetObj((*blockchainInterface), "getBlock", &BlockchainInterface::getBlock, "getTransaction", &BlockchainInterface::getTransaction,
+                                                                "getOutput", &BlockchainInterface::getOutput, "getInput", &BlockchainInterface::getInput);
 }
 
 bool CryptoKernel::ContractRunner::evaluateValid(Storage::Transaction* dbTx, const CryptoKernel::Blockchain::transaction& tx)

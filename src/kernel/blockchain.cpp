@@ -210,6 +210,29 @@ CryptoKernel::Blockchain::output CryptoKernel::Blockchain::getOutput(Storage::Tr
     return output(outputJson);
 }
 
+CryptoKernel::Blockchain::dbOutput CryptoKernel::Blockchain::getOutputDB(Storage::Transaction* dbTx, const std::string& id) {
+    std::lock_guard<std::recursive_mutex> lock(chainLock);
+    Json::Value outputJson = utxos->get(dbTx, id);
+    if(!outputJson.isObject()) {
+        outputJson = stxos->get(dbTx, id);
+        if(!outputJson.isObject()) {
+            throw NotFoundException("Output " + id);
+        }
+    }
+
+    return dbOutput(outputJson);
+}
+
+CryptoKernel::Blockchain::input CryptoKernel::Blockchain::getInput(Storage::Transaction* dbTx, const std::string& id) {
+    std::lock_guard<std::recursive_mutex> lock(chainLock);
+    Json::Value inputJson = inputs->get(dbTx, id);
+    if(!inputJson.isObject()) {
+        throw NotFoundException("Input " + id);
+    }
+
+    return input(inputJson);
+}
+
 bool CryptoKernel::Blockchain::verifyTransaction(Storage::Transaction* dbTransaction, const transaction& tx, const bool coinbaseTx)
 {
     if(transactions->get(dbTransaction, tx.getId().toString()).isObject())
@@ -692,8 +715,20 @@ void CryptoKernel::Blockchain::reverseBlock(Storage::Transaction* dbTransaction)
     candidates->put(dbTransaction, tip.getId().toString(), tip.toJson());
 }
 
+CryptoKernel::Blockchain::dbTransaction CryptoKernel::Blockchain::getTransactionDB(Storage::Transaction* transaction, const std::string& id)
+{
+    std::lock_guard<std::recursive_mutex> lock(chainLock);
+    const Json::Value jsonTx = transactions->get(transaction, id);
+    if(!jsonTx.isObject()) {
+        throw NotFoundException("Transaction " + id);
+    }
+
+    return dbTransaction(jsonTx);
+}
+
 CryptoKernel::Blockchain::transaction CryptoKernel::Blockchain::getTransaction(Storage::Transaction* transaction, const std::string& id)
 {
+    std::lock_guard<std::recursive_mutex> lock(chainLock);
     const Json::Value jsonTx = transactions->get(transaction, id);
     if(!jsonTx.isObject()) {
         throw NotFoundException("Transaction " + id);

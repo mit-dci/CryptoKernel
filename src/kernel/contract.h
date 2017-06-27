@@ -64,7 +64,7 @@ namespace CryptoKernel
             {
                 public:
                     BlockchainInterface(CryptoKernel::Blockchain* blockchain) {this->blockchain = blockchain;}
-                    std::string getBlock(const std::string id) {
+                    std::string getBlock(const std::string& id) {
                         try {
                             const Blockchain::dbBlock block = blockchain->getBlockDB(dbTx, id, true);
                             return CryptoKernel::Storage::toString(block.toJson());
@@ -72,10 +72,26 @@ namespace CryptoKernel
                             return "";
                         }
                     }
-                    std::string getTransaction(const std::string id) {
+                    std::string getTransaction(const std::string& id) {
                         try {
-                            const Blockchain::transaction tx = blockchain->getTransaction(dbTx, id);
+                            const Blockchain::dbTransaction tx = blockchain->getTransactionDB(dbTx, id);
                             return CryptoKernel::Storage::toString(tx.toJson());
+                        } catch(const Blockchain::NotFoundException& e) {
+                            return "";
+                        }
+                    }
+                    std::string getOutput(const std::string& id) {
+                        try {
+                            const Blockchain::dbOutput out = blockchain->getOutputDB(dbTx, id);
+                            return CryptoKernel::Storage::toString(out.toJson());
+                        } catch(const Blockchain::NotFoundException& e) {
+                            return "";
+                        }
+                    }
+                    std::string getInput(const std::string& id) {
+                        try {
+                            const Blockchain::input inp = blockchain->getInput(dbTx, id);
+                            return CryptoKernel::Storage::toString(inp.toJson());
                         } catch(const Blockchain::NotFoundException& e) {
                             return "";
                         }

@@ -209,108 +209,6 @@ namespace CryptoKernel
                     BigNum id;
             };
 
-            bool submitTransaction(const transaction& tx);
-            bool submitBlock(const block& newBlock, bool genesisBlock = false);
-
-            block generateVerifyingBlock(const std::string& publicKey);
-
-            block getBlock(Storage::Transaction* transaction, const std::string& id);
-            block getBlockByHeight(Storage::Transaction* transaction, const uint64_t height);
-
-            dbBlock getBlockDB(Storage::Transaction* transaction, const std::string& id, const bool mainChain = false);
-            dbBlock getBlockByHeightDB(Storage::Transaction* transaction, const uint64_t height);
-
-            dbBlock getBlockDB(const std::string& id);
-            dbBlock getBlockByHeightDB(const uint64_t height);
-
-            block buildBlock(Storage::Transaction* transaction, const dbBlock& dbblock);
-
-            block getBlock(const std::string& id);
-
-            /**
-            * Retrieves the block from the current main chain with the given height
-            *
-            * @param height the height of the block to retrieve
-            * @return the block with the given height in the main chain
-            * @throw NotFoundException if the block is not found
-            */
-            block getBlockByHeight(const uint64_t height);
-
-            /**
-            * Retrieves the transaction with the given id
-            *
-            * @param transaction the database transaction this query will be performed on
-            * @param id the id of the transaction to get
-            * @return the confirmed transaction with the given id
-            * @throw NotFoundException if the transaction is not found
-            */
-            transaction getTransaction(Storage::Transaction* transaction, const std::string& id);
-
-            /**
-            * Retrieves the transaction with the given id
-            *
-            * @param id the id of the transaction to get
-            * @return the confirmed transaction with the given id
-            * @throw NotFoundException if the transaction is not found
-            */
-            transaction getTransaction(const std::string& id);
-
-            /**
-            * Retrieves the output, spent or unspent, that is associated
-            * with the given id
-            *
-            * @param id the id of the output to get
-            * @return the output with the given id in the main chain
-            * @throw NotFoundException if the output is not found
-            */
-            output getOutput(const std::string& id);
-
-            output getOutput(Storage::Transaction* dbTx, const std::string& id);
-
-            std::set<output> getUnspentOutputs(const std::string& publicKey);
-
-            std::set<transaction> getUnconfirmedTransactions();
-
-            /**
-            * Loads the chain from disk using the given consensus class
-            *
-            * @param consensus the consensus method to use with this blockchain
-            * @return true iff the chain loaded successfully
-            */
-            bool loadChain(Consensus* consensus);
-
-            Storage::Transaction* getTxHandle();
-
-        private:
-            std::unique_ptr<Storage::Table> blocks;
-            std::unique_ptr<Storage::Table> candidates;
-            std::unique_ptr<Storage::Table> transactions;
-            std::unique_ptr<Storage::Table> utxos;
-            std::unique_ptr<Storage::Table> stxos;
-            std::unique_ptr<Storage::Table> inputs;
-
-            std::unique_ptr<Storage> blockdb;
-            BigNum genesisBlockId;
-            Log *log;
-
-            std::set<transaction> unconfirmedTransactions;
-            bool verifyTransaction(Storage::Transaction* dbTransaction, const transaction& tx, const bool coinbaseTx = false);
-            void confirmTransaction(Storage::Transaction* dbTransaction, const transaction& tx, const BigNum& confirmingBlock, const bool coinbaseTx = false);
-            uint64_t getTransactionFee(const transaction& tx);
-            uint64_t calculateTransactionFee(Storage::Transaction* dbTx, const transaction& tx);
-            bool status;
-            void reverseBlock(Storage::Transaction* dbTransaction);
-            bool reorgChain(Storage::Transaction* dbTransaction, const BigNum& newTipId);
-            std::recursive_mutex chainLock;
-            virtual uint64_t getBlockReward(const uint64_t height) = 0;
-            virtual std::string getCoinbaseOwner(const std::string& publicKey) = 0;
-            Consensus* consensus;
-            void emptyDB();
-            bool submitTransaction(Storage::Transaction* dbTx, const transaction& tx);
-            bool submitBlock(Storage::Transaction* dbTx, const block& newBlock, bool genesisBlock = false);
-            friend class Consensus;
-            friend class ContractRunner;
-
             class dbInput : public input {
                 public:
                     dbInput(const input& compactInput);
@@ -357,6 +255,113 @@ namespace CryptoKernel
                     BigNum id;
             };
 
+            bool submitTransaction(const transaction& tx);
+            bool submitBlock(const block& newBlock, bool genesisBlock = false);
+
+            block generateVerifyingBlock(const std::string& publicKey);
+
+            block getBlock(Storage::Transaction* transaction, const std::string& id);
+            block getBlockByHeight(Storage::Transaction* transaction, const uint64_t height);
+
+            dbBlock getBlockDB(Storage::Transaction* transaction, const std::string& id, const bool mainChain = false);
+            dbBlock getBlockByHeightDB(Storage::Transaction* transaction, const uint64_t height);
+
+            dbBlock getBlockDB(const std::string& id);
+            dbBlock getBlockByHeightDB(const uint64_t height);
+
+            block buildBlock(Storage::Transaction* transaction, const dbBlock& dbblock);
+
+            block getBlock(const std::string& id);
+
+            /**
+            * Retrieves the block from the current main chain with the given height
+            *
+            * @param height the height of the block to retrieve
+            * @return the block with the given height in the main chain
+            * @throw NotFoundException if the block is not found
+            */
+            block getBlockByHeight(const uint64_t height);
+
+            /**
+            * Retrieves the transaction with the given id
+            *
+            * @param transaction the database transaction this query will be performed on
+            * @param id the id of the transaction to get
+            * @return the confirmed transaction with the given id
+            * @throw NotFoundException if the transaction is not found
+            */
+            transaction getTransaction(Storage::Transaction* transaction, const std::string& id);
+
+            /**
+            * Retrieves the transaction with the given id
+            *
+            * @param id the id of the transaction to get
+            * @return the confirmed transaction with the given id
+            * @throw NotFoundException if the transaction is not found
+            */
+            transaction getTransaction(const std::string& id);
+
+            dbTransaction getTransactionDB(Storage::Transaction* transaction, const std::string& id);
+
+            /**
+            * Retrieves the output, spent or unspent, that is associated
+            * with the given id
+            *
+            * @param id the id of the output to get
+            * @return the output with the given id in the main chain
+            * @throw NotFoundException if the output is not found
+            */
+            output getOutput(const std::string& id);
+
+            output getOutput(Storage::Transaction* dbTx, const std::string& id);
+
+            dbOutput getOutputDB(Storage::Transaction* dbTx, const std::string& id);
+
+            input getInput(Storage::Transaction* dbTx, const std::string& id);
+
+            std::set<output> getUnspentOutputs(const std::string& publicKey);
+
+            std::set<transaction> getUnconfirmedTransactions();
+
+            /**
+            * Loads the chain from disk using the given consensus class
+            *
+            * @param consensus the consensus method to use with this blockchain
+            * @return true iff the chain loaded successfully
+            */
+            bool loadChain(Consensus* consensus);
+
+            Storage::Transaction* getTxHandle();
+
+        private:
+            std::unique_ptr<Storage::Table> blocks;
+            std::unique_ptr<Storage::Table> candidates;
+            std::unique_ptr<Storage::Table> transactions;
+            std::unique_ptr<Storage::Table> utxos;
+            std::unique_ptr<Storage::Table> stxos;
+            std::unique_ptr<Storage::Table> inputs;
+
+            std::unique_ptr<Storage> blockdb;
+            BigNum genesisBlockId;
+            Log *log;
+
+            std::set<transaction> unconfirmedTransactions;
+            bool verifyTransaction(Storage::Transaction* dbTransaction, const transaction& tx, const bool coinbaseTx = false);
+            void confirmTransaction(Storage::Transaction* dbTransaction, const transaction& tx, const BigNum& confirmingBlock, const bool coinbaseTx = false);
+            uint64_t getTransactionFee(const transaction& tx);
+            uint64_t calculateTransactionFee(Storage::Transaction* dbTx, const transaction& tx);
+            bool status;
+            void reverseBlock(Storage::Transaction* dbTransaction);
+            bool reorgChain(Storage::Transaction* dbTransaction, const BigNum& newTipId);
+            std::recursive_mutex chainLock;
+            virtual uint64_t getBlockReward(const uint64_t height) = 0;
+            virtual std::string getCoinbaseOwner(const std::string& publicKey) = 0;
+            Consensus* consensus;
+            void emptyDB();
+            bool submitTransaction(Storage::Transaction* dbTx, const transaction& tx);
+            bool submitBlock(Storage::Transaction* dbTx, const block& newBlock, bool genesisBlock = false);
+            friend class Consensus;
+            friend class ContractRunner;
     };
 
     /**
