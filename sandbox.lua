@@ -3,6 +3,32 @@ local json = Json.new()
 thisTransaction = json:decode(txJson)
 thisInput = json:decode(thisInputJson)
 
+function jsonStrToObj(str)
+    if str == "" then return nil end
+    local json = Json.new()
+    return json:decode(str)
+end
+
+function getBlock(id)
+    local res = Blockchain.getBlock(id)
+    return jsonStrToObj(res)
+end
+
+function getTransaction(id)
+    local res = Blockchain.getTransaction(id)
+    return jsonStrToObj(res)
+end
+
+function getOutput(id)
+    local res = Blockchain.getOutput(id)
+    return jsonStrToObj(res)
+end
+
+function getInput(id)
+    local res = Blockchain.getInput(id)
+    return jsonStrToObj(res)
+end
+
 sandbox_env = {Crypto = {new = Crypto.new, getPublicKey = Crypto.getPublicKey, getPrivateKey = Crypto.getPrivateKey,
                         setPublicKey = Crypto.setPublicKey, setPrivateKey = Crypto.setPrivateKey,
                         getStatus = Crypto.getStatus, sign = Crypto.sign, verify = Crypto.verify,},
@@ -10,8 +36,8 @@ sandbox_env = {Crypto = {new = Crypto.new, getPublicKey = Crypto.getPublicKey, g
                thisTransaction = thisTransaction,
                thisInput = thisInput,
                outputSetId = outputSetId,
-               Blockchain = {getBlock = Blockchain.getBlock, getTransaction = Blockchain.getTransaction,
-                             getOutput = Blockchain.getOutput, getInput = Blockchain.getInput,},
+               Blockchain = {getBlock = getBlock, getTransaction = getTransaction,
+                             getOutput = getOutput, getInput = getInput,},
               }
 
 local function setfenv(fn, env)
