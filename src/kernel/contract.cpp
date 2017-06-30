@@ -78,7 +78,7 @@ std::string CryptoKernel::ContractRunner::compile(const std::string contractScri
     return base64_encode((unsigned char*)compressedBytecode.c_str(), compressedBytecode.size());
 }
 
-void CryptoKernel::ContractRunner::setupEnvironment(Storage::Transaction* dbTx, const CryptoKernel::Blockchain::transaction& tx, const CryptoKernel::Blockchain::output& input)
+void CryptoKernel::ContractRunner::setupEnvironment(Storage::Transaction* dbTx, const CryptoKernel::Blockchain::transaction& tx, const CryptoKernel::Blockchain::input& input)
 {
     const int lim = this->pcLimit;
     (*state.get())["pcLimit"] = lim;
@@ -105,7 +105,7 @@ bool CryptoKernel::ContractRunner::evaluateValid(Storage::Transaction* dbTx, con
         const CryptoKernel::Blockchain::output out = CryptoKernel::Blockchain::dbOutput(blockchain->utxos->get(dbTx, inp.getOutputId().toString()));
         const Json::Value data = out.getData();
         if(!data["contract"].empty()) {
-            setupEnvironment(dbTx, tx, out);
+            setupEnvironment(dbTx, tx, inp);
             if(!(*state.get()).Load("./sandbox.lua"))
             {
                 throw std::runtime_error("Failed to load sandbox.lua");

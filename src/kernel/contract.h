@@ -51,7 +51,7 @@ namespace CryptoKernel
             bool evaluateValid(Storage::Transaction* dbTx, const CryptoKernel::Blockchain::transaction& tx);
 
         private:
-            void setupEnvironment(Storage::Transaction* dbTx, const CryptoKernel::Blockchain::transaction& tx, const CryptoKernel::Blockchain::output& input);
+            void setupEnvironment(Storage::Transaction* dbTx, const CryptoKernel::Blockchain::transaction& tx, const CryptoKernel::Blockchain::input& input);
             std::unique_ptr<sel::State> state;
             std::unique_ptr<int> ud;
             lua_State* luaState;
