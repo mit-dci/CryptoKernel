@@ -228,3 +228,11 @@ Json::Value CryptoServer::gettransaction(const std::string& id) {
         return Json::Value();
     }
 }
+
+Json::Value CryptoServer::importprivkey(const std::string& name, const std::string& key) {
+    try {
+        return wallet->importPrivKey(name, key).toJson();
+    } catch(const CryptoKernel::Wallet::WalletException& e) {
+        return Json::Value();
+    }
+}

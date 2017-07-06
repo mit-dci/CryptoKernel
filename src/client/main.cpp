@@ -256,12 +256,19 @@ int main(int argc, char* argv[])
                 }
             } else if(command == "stop") {
                 std::cout << client.stop().toStyledString() << std::endl;
+            } else if(command == "importprivkey") {
+                if(argc == 4) {
+                    std::cout << client.importprivkey(std::string(argv[2]), std::string(argv[3]));
+                } else {
+                    std::cout << "Usage: importprivkey [accountname] [privkey]" << std::endl;
+                }
             } else {
                 std::cout << "CryptoKernel - Blockchain Development Toolkit - v" << version << "\n\n"
                           << "account [accountname]\n"
                           << "compilecontract [code]\n"
                           << "getblockbyheight [height]\n"
                           << "getinfo\n"
+                          << "importprivkey [accountname] [privkey]\n"
                           << "listaccounts\n"
                           << "listtransactions\n"
                           << "listunspentoutputs [accountname]\n"

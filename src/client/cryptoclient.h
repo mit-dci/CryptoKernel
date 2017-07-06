@@ -165,6 +165,17 @@ class CryptoClient : public jsonrpc::Client
                 throw jsonrpc::JsonRpcException(jsonrpc::Errors::ERROR_CLIENT_INVALID_RESPONSE, result.toStyledString());
             }
         }
+        Json::Value importprivkey(const std::string& name, const std::string& key) throw (jsonrpc::JsonRpcException) {
+            Json::Value p;
+            p["name"] = name;
+            p["key"] = key;
+            const Json::Value result = this->CallMethod("importprivkey", p);
+            if (result.isObject()) {
+                return result;
+            } else {
+                throw jsonrpc::JsonRpcException(jsonrpc::Errors::ERROR_CLIENT_INVALID_RESPONSE, result.toStyledString());
+            }
+        }
 };
 
 #endif //JSONRPC_CPP_STUB_CRYPTOCLIENT_H_
