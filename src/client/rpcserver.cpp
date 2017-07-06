@@ -135,25 +135,29 @@ Json::Value CryptoServer::listaccounts()
 
 Json::Value CryptoServer::listunspentoutputs(const std::string& account)
 {
-    CryptoKernel::Wallet::Account acc = wallet->getAccountByName(account);
+    try {
+        CryptoKernel::Wallet::Account acc = wallet->getAccountByName(account);
 
-    std::set<CryptoKernel::Blockchain::output> utxos;
+        std::set<CryptoKernel::Blockchain::output> utxos;
 
-    for(const auto& addr : acc.getKeys()) {
-        const auto unspent = blockchain->getUnspentOutputs(addr.pubKey);
-        utxos.insert(unspent.begin(), unspent.end());
+        for(const auto& addr : acc.getKeys()) {
+            const auto unspent = blockchain->getUnspentOutputs(addr.pubKey);
+            utxos.insert(unspent.begin(), unspent.end());
+        }
+
+        Json::Value returning;
+
+        for(const CryptoKernel::Blockchain::output& output : utxos)
+        {
+            Json::Value out = output.toJson();
+            out["id"] = output.getId().toString();
+            returning["outputs"].append(out);
+        }
+
+        return returning;
+    } catch(const CryptoKernel::Wallet::WalletException& e) {
+        return Json::Value();
     }
-
-    Json::Value returning;
-
-    for(const CryptoKernel::Blockchain::output& output : utxos)
-    {
-        Json::Value out = output.toJson();
-        out["id"] = output.getId().toString();
-        returning["outputs"].append(out);
-    }
-
-    return returning;
 }
 
 std::string CryptoServer::compilecontract(const std::string& code)
