@@ -39,8 +39,8 @@ Json::Value CryptoServer::getinfo()
 {
     Json::Value returning;
 
-    returning["RPC Version"] = "1.2.0-dev";
-    returning["CK Version"] = version;
+    returning["rpc_version"] = "1.2.0-dev";
+    returning["ck_version"] = version;
     double balance = wallet->getTotalBalance() / 100000000.0;
     std::stringstream buffer;
     buffer << std::setprecision(8) << balance;
