@@ -638,6 +638,9 @@ CryptoKernel::Wallet::Account CryptoKernel::Wallet::importPrivKey(const std::str
         accounts->put(dbTx.get(), kp.pubKey, name, 0);
         dbTx->commit();
 
+        // Rescan
+        clearDB();
+
         return acc;
     }
 
