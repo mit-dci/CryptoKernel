@@ -49,7 +49,7 @@ Roadmap
 #### alpha v0.0.1 -- H
 - H -- Transaction Merkle root in block header
 - H -- Rule change signalling in block
-- L -- Wallet tracks unconfirmed transaction
+- L -- Wallet tracks unconfirmed transactions
 - L -- Wallet schema version detection
 - H -- Friedman rule emission schedule
 - H -- (Potentially) BRNDF instead of KGW for difficulty
