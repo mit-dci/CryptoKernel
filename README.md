@@ -54,6 +54,7 @@ Roadmap
 - H -- Friedman rule emission schedule
 - H -- (Potentially) BRNDF instead of KGW for difficulty
 - H -- Lyra2REv2 as PoW function 
+- L -- RPC Server requires password
     
 #### alpha v0.1.0 -- S 
 - S -- Expand Lua contract standard library with more
