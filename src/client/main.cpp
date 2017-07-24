@@ -22,8 +22,8 @@
 #include <cmath>
 #include <csignal>
 
-#include <jsonrpccpp/server/connectors/httpserver.h>
-#include <jsonrpccpp/client/connectors/httpclient.h>
+#include <jsonrpccpp/server/connectors/tcpsocketserver.h>
+#include <jsonrpccpp/client/connectors/tcpsocketclient.h>
 
 #include "ckmath.h"
 #include "crypto.h"
@@ -180,8 +180,10 @@ int main(int argc, char* argv[]) {
                                               &network));
         }
 
-        jsonrpc::HttpServer httpserver(8383, "", "", 1);
-        CryptoServer server(httpserver);
+        jsonrpc::TcpSocketServer tcpserver("127.0.0.1", 8383);
+
+        //jsonrpc::HttpServer httpserver(8383, "", "", 1);
+        CryptoServer server(tcpserver);
         server.setWallet(&wallet, &blockchain, &network, &running);
         server.StartListening();
 
@@ -197,9 +199,10 @@ int main(int argc, char* argv[]) {
         }
     } else {
         std::string command(argv[1]);
-        jsonrpc::HttpClient httpclient("http://localhost:8383");
-        httpclient.SetTimeout(30000);
-        CryptoClient client(httpclient);
+        //jsonrpc::HttpClient httpclient("http://localhost:8383");
+        jsonrpc::TcpSocketClient tcpclient("127.0.0.1", 8383);
+        //tcpclient.SetTimeout(30000);
+        CryptoClient client(tcpclient);
 
         try {
             if(command == "getinfo") {
