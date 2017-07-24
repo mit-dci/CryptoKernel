@@ -35,3 +35,33 @@ Build the documentation with doxyblocks.
 ```
 doxygen .
 ```
+
+Roadmap
+===
+
+## Legend
+
+   - H -- Hard Fork
+   - S -- Soft Fork
+   - L -- Local (No Fork Required)
+
+## Versions
+#### alpha v0.0.1 -- H
+- H -- Transaction Merkle root in block header
+- H -- Rule change signalling in block
+- L -- Wallet tracks unconfirmed transaction
+- L -- Wallet schema version detection
+- H -- Friedman rule emission schedule
+- H -- (Potentially) BRNDF instead of KGW for difficulty
+- H -- Lyra2REv2 as PoW function 
+    
+#### alpha v0.1.0 -- S 
+- S -- Expand Lua contract standard library with more
+digital currency specific functions
+- S -- Load external contract code to avoid duplication
+for propagating contracts
+- S -- Schnorr signatures
+- L -- Seed addresses
+- L -- Standardised address format (not just public keys)
+
+#### alpha v0.2.0
