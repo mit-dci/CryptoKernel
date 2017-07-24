@@ -20,7 +20,8 @@
 #include "wallet.h"
 #include "crypto.h"
 
-CryptoKernel::Wallet::Wallet(CryptoKernel::Blockchain* blockchain, CryptoKernel::Network* network, CryptoKernel::Log* log) {
+CryptoKernel::Wallet::Wallet(CryptoKernel::Blockchain* blockchain,
+                             CryptoKernel::Network* network, CryptoKernel::Log* log) {
     this->blockchain = blockchain;
     this->network = network;
     this->log = log;
@@ -71,7 +72,8 @@ void CryptoKernel::Wallet::watchFunc() {
             const std::string tipId = params->get(dbTx.get(), "tipId").asString();
             if(height > 0) {
                 try {
-                    const CryptoKernel::Blockchain::dbBlock syncBlock = blockchain->getBlockByHeightDB(bchainTx.get(), height);
+                    const CryptoKernel::Blockchain::dbBlock syncBlock = blockchain->getBlockByHeightDB(
+                                bchainTx.get(), height);
                     if(syncBlock.getId().toString() != tipId) {
                         // There was a fork, rewind to fork block
                         rewind = true;
@@ -93,10 +95,12 @@ void CryptoKernel::Wallet::watchFunc() {
         } while(rewind);
 
         // Forks resolved, sync to current tip
-        const CryptoKernel::Blockchain::dbBlock tipBlock = blockchain->getBlockDB(bchainTx.get(), "tip");
+        const CryptoKernel::Blockchain::dbBlock tipBlock = blockchain->getBlockDB(bchainTx.get(),
+                "tip");
         uint64_t height = params->get(dbTx.get(), "height").asUInt64();
         while(height < tipBlock.getHeight()) {
-            const CryptoKernel::Blockchain::block currentBlock = blockchain->getBlockByHeight(bchainTx.get(), height + 1);
+            const CryptoKernel::Blockchain::block currentBlock = blockchain->getBlockByHeight(
+                        bchainTx.get(), height + 1);
             digestBlock(dbTx.get(), bchainTx.get(), currentBlock);
             height = params->get(dbTx.get(), "height").asUInt64();
         }
@@ -106,7 +110,8 @@ void CryptoKernel::Wallet::watchFunc() {
     }
 }
 
-void CryptoKernel::Wallet::rewindBlock(CryptoKernel::Storage::Transaction* walletTx, CryptoKernel::Storage::Transaction* bchainTx) {
+void CryptoKernel::Wallet::rewindBlock(CryptoKernel::Storage::Transaction* walletTx,
+                                       CryptoKernel::Storage::Transaction* bchainTx) {
     /*
         Steps
             - Get current block tip from wallet perspective
@@ -117,7 +122,8 @@ void CryptoKernel::Wallet::rewindBlock(CryptoKernel::Storage::Transaction* walle
     const std::string tipId = params->get(walletTx, "tipId").asString();
     const CryptoKernel::Blockchain::block oldTip = blockchain->getBlock(bchainTx, tipId);
 
-    log->printf(LOG_LEVEL_INFO, "Wallet::rewindBlock(): Rewinding block " + std::to_string(oldTip.getHeight()));
+    log->printf(LOG_LEVEL_INFO,
+                "Wallet::rewindBlock(): Rewinding block " + std::to_string(oldTip.getHeight()));
 
     for(const CryptoKernel::Blockchain::transaction& tx : oldTip.getTransactions()) {
         const Json::Value txJson = transactions->get(walletTx, tx.getId().toString());
@@ -136,7 +142,8 @@ void CryptoKernel::Wallet::rewindBlock(CryptoKernel::Storage::Transaction* walle
             }
 
             for(const CryptoKernel::Blockchain::input& inp : tx.getInputs()) {
-                const CryptoKernel::Blockchain::output out = blockchain->getOutput(bchainTx, inp.getOutputId().toString());
+                const CryptoKernel::Blockchain::output out = blockchain->getOutput(bchainTx,
+                        inp.getOutputId().toString());
                 if(out.getData()["publicKey"].isString()) {
                     try {
                         Account acc = getAccountByKey(walletTx, out.getData()["publicKey"].asString());
@@ -152,10 +159,12 @@ void CryptoKernel::Wallet::rewindBlock(CryptoKernel::Storage::Transaction* walle
         }
     }
 
-    const CryptoKernel::Blockchain::dbBlock newTip = blockchain->getBlockDB(bchainTx, oldTip.getPreviousBlockId().toString());
+    const CryptoKernel::Blockchain::dbBlock newTip = blockchain->getBlockDB(bchainTx,
+            oldTip.getPreviousBlockId().toString());
 
     params->put(walletTx, "tipId", Json::Value(newTip.getId().toString()));
-    params->put(walletTx, "height", Json::Value(static_cast<unsigned long long int>(newTip.getHeight())));
+    params->put(walletTx, "height",
+                Json::Value(static_cast<unsigned long long int>(newTip.getHeight())));
 }
 
 void CryptoKernel::Wallet::clearDB() {
@@ -165,7 +174,8 @@ void CryptoKernel::Wallet::clearDB() {
     std::set<std::string> utxoIds;
     std::set<std::string> accountNames;
 
-    CryptoKernel::Storage::Table::Iterator* it = new CryptoKernel::Storage::Table::Iterator(transactions.get(), walletdb.get());
+    CryptoKernel::Storage::Table::Iterator* it = new CryptoKernel::Storage::Table::Iterator(
+        transactions.get(), walletdb.get());
     for(it->SeekToFirst(); it->Valid(); it->Next()) {
         transactionIds.insert(it->key());
     }
@@ -205,7 +215,9 @@ void CryptoKernel::Wallet::clearDB() {
     dbTx->commit();
 }
 
-void CryptoKernel::Wallet::digestBlock(CryptoKernel::Storage::Transaction* walletTx, CryptoKernel::Storage::Transaction* bchainTx, const CryptoKernel::Blockchain::block& block) {
+void CryptoKernel::Wallet::digestBlock(CryptoKernel::Storage::Transaction* walletTx,
+                                       CryptoKernel::Storage::Transaction* bchainTx,
+                                       const CryptoKernel::Blockchain::block& block) {
     /*
         Steps
             - Scan block for spent outputs that belong to us
@@ -213,7 +225,8 @@ void CryptoKernel::Wallet::digestBlock(CryptoKernel::Storage::Transaction* walle
     */
     std::lock_guard<std::recursive_mutex> lock(walletLock);
 
-    log->printf(LOG_LEVEL_INFO, "Wallet::digestBlock(): Digesting block " + std::to_string(block.getHeight()));
+    log->printf(LOG_LEVEL_INFO,
+                "Wallet::digestBlock(): Digesting block " + std::to_string(block.getHeight()));
 
     for(const CryptoKernel::Blockchain::transaction& tx : block.getTransactions()) {
         bool trackTx = false;
@@ -224,7 +237,8 @@ void CryptoKernel::Wallet::digestBlock(CryptoKernel::Storage::Transaction* walle
                 trackTx = true;
                 utxos->erase(walletTx, inp.getOutputId().toString());
 
-                const CryptoKernel::Blockchain::output out = blockchain->getOutput(bchainTx, inp.getOutputId().toString());
+                const CryptoKernel::Blockchain::output out = blockchain->getOutput(bchainTx,
+                        inp.getOutputId().toString());
                 Account acc = getAccountByKey(walletTx, out.getData()["publicKey"].asString());
                 acc.setBalance(acc.getBalance() - out.getValue());
                 accounts->put(walletTx, acc.getName(), acc.toJson());
@@ -252,7 +266,8 @@ void CryptoKernel::Wallet::digestBlock(CryptoKernel::Storage::Transaction* walle
         }
     }
 
-    params->put(walletTx, "height", Json::Value(static_cast<unsigned long long int>(block.getHeight())));
+    params->put(walletTx, "height",
+                Json::Value(static_cast<unsigned long long int>(block.getHeight())));
     params->put(walletTx, "tipId", Json::Value(block.getId().toString()));
 }
 
@@ -304,7 +319,8 @@ std::string CryptoKernel::Wallet::Account::getName() const {
     return name;
 }
 
-std::set<CryptoKernel::Wallet::Account::keyPair> CryptoKernel::Wallet::Account::getKeys() const {
+std::set<CryptoKernel::Wallet::Account::keyPair> CryptoKernel::Wallet::Account::getKeys()
+const {
     return keys;
 }
 
@@ -320,7 +336,8 @@ CryptoKernel::Wallet::Account::keyPair CryptoKernel::Wallet::Account::newAddress
     return newKey;
 }
 
-bool CryptoKernel::Wallet::Account::operator<(const CryptoKernel::Wallet::Account& rhs) const {
+bool CryptoKernel::Wallet::Account::operator<(const CryptoKernel::Wallet::Account& rhs)
+const {
     return getName() < rhs.getName();
 }
 
@@ -358,7 +375,8 @@ uint64_t CryptoKernel::Wallet::Txo::getValue() const {
     return value;
 }
 
-CryptoKernel::Wallet::Account CryptoKernel::Wallet::getAccountByName(const std::string& name) {
+CryptoKernel::Wallet::Account CryptoKernel::Wallet::getAccountByName(
+    const std::string& name) {
     std::lock_guard<std::recursive_mutex> lock(walletLock);
     std::unique_ptr<CryptoKernel::Storage::Transaction> dbTx(walletdb->begin());
 
@@ -370,14 +388,16 @@ CryptoKernel::Wallet::Account CryptoKernel::Wallet::getAccountByName(const std::
     }
 }
 
-CryptoKernel::Wallet::Account CryptoKernel::Wallet::getAccountByKey(const std::string& pubKey) {
+CryptoKernel::Wallet::Account CryptoKernel::Wallet::getAccountByKey(
+    const std::string& pubKey) {
     std::lock_guard<std::recursive_mutex> lock(walletLock);
     std::unique_ptr<CryptoKernel::Storage::Transaction> dbTx(walletdb->begin());
 
     return getAccountByKey(dbTx.get(), pubKey);
 }
 
-CryptoKernel::Wallet::Account CryptoKernel::Wallet::getAccountByKey(CryptoKernel::Storage::Transaction* dbTx, const std::string& pubKey) {
+CryptoKernel::Wallet::Account CryptoKernel::Wallet::getAccountByKey(
+    CryptoKernel::Storage::Transaction* dbTx, const std::string& pubKey) {
     const Json::Value accName = accounts->get(dbTx, pubKey, 0);
     if(!accName.isNull()) {
         const Account acc = Account(accounts->get(dbTx, accName.asString()));
@@ -403,7 +423,8 @@ CryptoKernel::Wallet::Account CryptoKernel::Wallet::newAccount(const std::string
     throw WalletException("Account already exists");
 }
 
-std::string CryptoKernel::Wallet::sendToAddress(const std::string& pubKey, const uint64_t amount) {
+std::string CryptoKernel::Wallet::sendToAddress(const std::string& pubKey,
+        const uint64_t amount) {
     std::lock_guard<std::recursive_mutex> lock(walletLock);
     std::unique_ptr<CryptoKernel::Storage::Transaction> bchainTx(blockchain->getTxHandle());
 
@@ -420,12 +441,14 @@ std::string CryptoKernel::Wallet::sendToAddress(const std::string& pubKey, const
     uint64_t accumulator = 0;
     uint64_t fee = 15000;
 
-    CryptoKernel::Storage::Table::Iterator* it = new CryptoKernel::Storage::Table::Iterator(utxos.get(), walletdb.get());
+    CryptoKernel::Storage::Table::Iterator* it = new CryptoKernel::Storage::Table::Iterator(
+        utxos.get(), walletdb.get());
     for(it->SeekToFirst(); it->Valid(); it->Next()) {
         const Txo out = Txo(it->value());
         if(accumulator < amount + fee) {
             if(!out.isSpent()) {
-                const CryptoKernel::Blockchain::output fullOut = blockchain->getOutput(bchainTx.get(), it->key());
+                const CryptoKernel::Blockchain::output fullOut = blockchain->getOutput(bchainTx.get(),
+                        it->key());
                 if(fullOut.getData()["contract"].isNull()) {
                     fee += CryptoKernel::Storage::toString(fullOut.getData()).size() * 60;
                     toSpend.insert(fullOut);
@@ -439,14 +462,17 @@ std::string CryptoKernel::Wallet::sendToAddress(const std::string& pubKey, const
     delete it;
 
     if(accumulator < amount + fee) {
-        return "Insufficient funds when " + std::to_string(fee / 100000000.0) + " fee is included";
+        return "Insufficient funds when " + std::to_string(fee / 100000000.0) +
+               " fee is included";
     }
 
-    std::uniform_int_distribution<uint64_t> distribution(0, std::numeric_limits<uint64_t>::max());
+    std::uniform_int_distribution<uint64_t> distribution(0,
+            std::numeric_limits<uint64_t>::max());
     Json::Value data;
     data["publicKey"] = pubKey;
 
-    const CryptoKernel::Blockchain::output toThem = CryptoKernel::Blockchain::output(amount, distribution(generator), data);
+    const CryptoKernel::Blockchain::output toThem = CryptoKernel::Blockchain::output(amount,
+            distribution(generator), data);
 
     std::stringstream buffer;
     buffer << distribution(generator) << "_change";
@@ -455,13 +481,15 @@ std::string CryptoKernel::Wallet::sendToAddress(const std::string& pubKey, const
     data.clear();
     data["publicKey"] = (*(account.getKeys().begin())).pubKey;
 
-    const CryptoKernel::Blockchain::output change = CryptoKernel::Blockchain::output(accumulator - amount - fee, distribution(generator), data);
+    const CryptoKernel::Blockchain::output change = CryptoKernel::Blockchain::output(
+                accumulator - amount - fee, distribution(generator), data);
 
     std::set<CryptoKernel::Blockchain::output> outputs;
     outputs.insert(change);
     outputs.insert(toThem);
 
-    const std::string outputHash = CryptoKernel::Blockchain::transaction::getOutputSetId(outputs).toString();
+    const std::string outputHash = CryptoKernel::Blockchain::transaction::getOutputSetId(
+                                       outputs).toString();
 
     std::set<CryptoKernel::Blockchain::input> spends;
 
@@ -486,7 +514,8 @@ std::string CryptoKernel::Wallet::sendToAddress(const std::string& pubKey, const
         Json::Value spendData;
         spendData["signature"] = signature;
 
-        const CryptoKernel::Blockchain::input inp = CryptoKernel::Blockchain::input(out.getId(), spendData);
+        const CryptoKernel::Blockchain::input inp = CryptoKernel::Blockchain::input(out.getId(),
+                spendData);
         spends.insert(inp);
 
         Txo utxo = Txo(utxos->get(dbTx.get(), out.getId().toString()));
@@ -497,7 +526,8 @@ std::string CryptoKernel::Wallet::sendToAddress(const std::string& pubKey, const
     const time_t t = std::time(0);
     const uint64_t now = static_cast<uint64_t> (t);
 
-    const CryptoKernel::Blockchain::transaction tx = CryptoKernel::Blockchain::transaction(spends, outputs, now);
+    const CryptoKernel::Blockchain::transaction tx = CryptoKernel::Blockchain::transaction(
+                spends, outputs, now);
 
     bchainTx->abort();
 
@@ -516,7 +546,8 @@ std::string CryptoKernel::Wallet::sendToAddress(const std::string& pubKey, const
 
 uint64_t CryptoKernel::Wallet::getTotalBalance() {
     std::lock_guard<std::recursive_mutex> lock(walletLock);
-    std::unique_ptr<CryptoKernel::Storage::Table::Iterator> it(new CryptoKernel::Storage::Table::Iterator(utxos.get(), walletdb.get()));
+    std::unique_ptr<CryptoKernel::Storage::Table::Iterator> it(new
+            CryptoKernel::Storage::Table::Iterator(utxos.get(), walletdb.get()));
 
     uint64_t total = 0;
 
@@ -532,7 +563,8 @@ uint64_t CryptoKernel::Wallet::getTotalBalance() {
 
 std::set<CryptoKernel::Wallet::Account> CryptoKernel::Wallet::listAccounts() {
     std::lock_guard<std::recursive_mutex> lock(walletLock);
-    std::unique_ptr<CryptoKernel::Storage::Table::Iterator> it(new CryptoKernel::Storage::Table::Iterator(accounts.get(), walletdb.get()));
+    std::unique_ptr<CryptoKernel::Storage::Table::Iterator> it(new
+            CryptoKernel::Storage::Table::Iterator(accounts.get(), walletdb.get()));
 
     std::set<CryptoKernel::Wallet::Account> returning;
 
@@ -546,7 +578,8 @@ std::set<CryptoKernel::Wallet::Account> CryptoKernel::Wallet::listAccounts() {
 
 std::set<CryptoKernel::Blockchain::transaction> CryptoKernel::Wallet::listTransactions() {
     std::lock_guard<std::recursive_mutex> lock(walletLock);
-    std::unique_ptr<CryptoKernel::Storage::Table::Iterator> it(new CryptoKernel::Storage::Table::Iterator(transactions.get(), walletdb.get()));
+    std::unique_ptr<CryptoKernel::Storage::Table::Iterator> it(new
+            CryptoKernel::Storage::Table::Iterator(transactions.get(), walletdb.get()));
 
     std::set<CryptoKernel::Blockchain::transaction> returning;
 
@@ -558,7 +591,8 @@ std::set<CryptoKernel::Blockchain::transaction> CryptoKernel::Wallet::listTransa
     return returning;
 }
 
-CryptoKernel::Blockchain::transaction CryptoKernel::Wallet::signTransaction(const CryptoKernel::Blockchain::transaction& tx) {
+CryptoKernel::Blockchain::transaction CryptoKernel::Wallet::signTransaction(
+    const CryptoKernel::Blockchain::transaction& tx) {
     std::lock_guard<std::recursive_mutex> lock(walletLock);
     const std::string outputHash = tx.getOutputSetId().toString();
 

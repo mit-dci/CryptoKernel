@@ -132,7 +132,8 @@ void StorageTest::testIterator() {
 
     transaction->commit();
 
-    std::unique_ptr<CryptoKernel::Storage::Table::Iterator> it(new CryptoKernel::Storage::Table::Iterator(&myTable, &database));
+    std::unique_ptr<CryptoKernel::Storage::Table::Iterator> it(new
+            CryptoKernel::Storage::Table::Iterator(&myTable, &database));
 
     it->SeekToFirst();
 

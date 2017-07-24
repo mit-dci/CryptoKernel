@@ -36,8 +36,8 @@
 
 bool running;
 
-void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* consensus, CryptoKernel::Wallet* wallet, CryptoKernel::Log* log, CryptoKernel::Network* network)
-{
+void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* consensus,
+           CryptoKernel::Wallet* wallet, CryptoKernel::Log* log, CryptoKernel::Network* network) {
     try {
         wallet->newAccount("mining");
     } catch(const CryptoKernel::Wallet::WalletException& e) {
@@ -47,11 +47,10 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* c
     time_t t = std::time(0);
     uint64_t now = static_cast<uint64_t> (t);
 
-    while(running)
-    {
-        if(/*network->getConnections() > 0 &&*/ network->syncProgress() >= 1)
-        {
-            CryptoKernel::Blockchain::block Block = blockchain->generateVerifyingBlock((*wallet->getAccountByName("mining").getKeys().begin()).pubKey);
+    while(running) {
+        if(/*network->getConnections() > 0 &&*/ network->syncProgress() >= 1) {
+            CryptoKernel::Blockchain::block Block = blockchain->generateVerifyingBlock((
+                    *wallet->getAccountByName("mining").getKeys().begin()).pubKey);
             uint64_t nonce = 0;
 
             t = std::time(0);
@@ -61,28 +60,35 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* c
             uint64_t count = 0;
             CryptoKernel::BigNum pow;
 
-            CryptoKernel::BigNum target = CryptoKernel::BigNum(Block.getConsensusData()["target"].asString());
-            CryptoKernel::Blockchain::dbBlock previousBlock = blockchain->getBlockDB(Block.getPreviousBlockId().toString());
-            const CryptoKernel::BigNum inverse = CryptoKernel::BigNum("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff") - target;
+            CryptoKernel::BigNum target = CryptoKernel::BigNum(
+                                              Block.getConsensusData()["target"].asString());
+            CryptoKernel::Blockchain::dbBlock previousBlock = blockchain->getBlockDB(
+                        Block.getPreviousBlockId().toString());
+            const CryptoKernel::BigNum inverse =
+                CryptoKernel::BigNum("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff") -
+                target;
             Json::Value consensusData = Block.getConsensusData();
-            consensusData["totalWork"] = (inverse + CryptoKernel::BigNum(previousBlock.getConsensusData()["totalWork"].asString())).toString();
+            consensusData["totalWork"] = (inverse + CryptoKernel::BigNum(
+                                              previousBlock.getConsensusData()["totalWork"].asString())).toString();
             consensusData["nonce"] = static_cast<unsigned long long int>(nonce);
 
-            do
-            {
+            do {
                 t = std::time(0);
                 time2 = static_cast<uint64_t> (t);
-                if((time2 - now) % 20 == 0 && (time2 - now) > 0)
-                {
+                if((time2 - now) % 20 == 0 && (time2 - now) > 0) {
                     std::stringstream message;
                     message << "miner(): Hashrate: " << ((count / (time2 - now)) / 1000.0f) << " kH/s";
                     log->printf(LOG_LEVEL_INFO, message.str());
-                    Block = blockchain->generateVerifyingBlock((*wallet->getAccountByName("mining").getKeys().begin()).pubKey);
+                    Block = blockchain->generateVerifyingBlock((
+                                *wallet->getAccountByName("mining").getKeys().begin()).pubKey);
                     previousBlock = blockchain->getBlockDB(Block.getPreviousBlockId().toString());
                     target = CryptoKernel::BigNum(Block.getConsensusData()["target"].asString());
-                    const CryptoKernel::BigNum inverse = CryptoKernel::BigNum("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff") - target;
+                    const CryptoKernel::BigNum inverse =
+                        CryptoKernel::BigNum("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff") -
+                        target;
                     consensusData = Block.getConsensusData();
-                    consensusData["totalWork"] = (inverse + CryptoKernel::BigNum(previousBlock.getConsensusData()["totalWork"].asString())).toString();
+                    consensusData["totalWork"] = (inverse + CryptoKernel::BigNum(
+                                                      previousBlock.getConsensusData()["totalWork"].asString())).toString();
                     now = time2;
                     count = 0;
                 }
@@ -100,45 +106,39 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* c
                 if(blockchain->submitBlock(Block)) {
                     network->broadcastBlock(Block);
                 } else {
-                    log->printf(LOG_LEVEL_WARN, "miner(): Produced invalid block! Block: " + Block.toJson().toStyledString() + "\ntarget: " + Block.getConsensusData()["target"].asString() + "\npow: " + consensus->calculatePoW(Block, nonce).toString());
+                    log->printf(LOG_LEVEL_WARN,
+                                "miner(): Produced invalid block! Block: " + Block.toJson().toStyledString() +
+                                "\ntarget: " + Block.getConsensusData()["target"].asString() + "\npow: " +
+                                consensus->calculatePoW(Block, nonce).toString());
                 }
             }
-        }
-        else
-        {
+        } else {
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
     }
 }
 
-class MyBlockchain : public CryptoKernel::Blockchain
-{
-    public:
-        MyBlockchain(CryptoKernel::Log* GlobalLog) : CryptoKernel::Blockchain(GlobalLog)
-        {
+class MyBlockchain : public CryptoKernel::Blockchain {
+public:
+    MyBlockchain(CryptoKernel::Log* GlobalLog) : CryptoKernel::Blockchain(GlobalLog) {
 
-        }
+    }
 
-    private:
-        uint64_t getBlockReward(const uint64_t height)
-        {
-            if(height > 2)
-            {
-                return 100000000 / std::log(height);
-            }
-            else
-            {
-                return 100000000;
-            }
+private:
+    uint64_t getBlockReward(const uint64_t height) {
+        if(height > 2) {
+            return 100000000 / std::log(height);
+        } else {
+            return 100000000;
         }
+    }
 
-        std::string getCoinbaseOwner(const std::string& publicKey) {
-            return publicKey;
-        }
+    std::string getCoinbaseOwner(const std::string& publicKey) {
+        return publicKey;
+    }
 };
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
     bool minerOn = true;
     if(argc == 2) {
         if(std::string(argv[1]) == "-nominer") {
@@ -146,12 +146,11 @@ int main(int argc, char* argv[])
         }
     }
 
-    if(argc < 2 || !minerOn)
-    {
+    if(argc < 2 || !minerOn) {
         CryptoKernel::Log log("CryptoKernel.log", true);
 
         running = true;
-        std::signal(SIGINT, [](int signal){ running = false; });
+        std::signal(SIGINT, [](int signal) { running = false; });
 
         MyBlockchain blockchain(&log);
         CryptoKernel::Consensus::PoW::KGW_SHA256 consensus(150, &blockchain);
@@ -160,7 +159,8 @@ int main(int argc, char* argv[])
         CryptoKernel::Wallet wallet(&blockchain, &network, &log);
         std::unique_ptr<std::thread> minerThread;
         if(minerOn) {
-            minerThread.reset(new std::thread(miner, &blockchain, &consensus, &wallet, &log, &network));
+            minerThread.reset(new std::thread(miner, &blockchain, &consensus, &wallet, &log,
+                                              &network));
         }
 
         jsonrpc::HttpServer httpserver(8383, "", "", 1);
@@ -168,8 +168,7 @@ int main(int argc, char* argv[])
         server.setWallet(&wallet, &blockchain, &network, &running);
         server.StartListening();
 
-        while(running)
-        {
+        while(running) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
 
@@ -179,78 +178,52 @@ int main(int argc, char* argv[])
         if(minerOn) {
             minerThread->join();
         }
-    }
-    else
-    {
+    } else {
         std::string command(argv[1]);
         jsonrpc::HttpClient httpclient("http://localhost:8383");
         httpclient.SetTimeout(30000);
         CryptoClient client(httpclient);
 
-        try
-        {
-            if(command == "getinfo")
-            {
+        try {
+            if(command == "getinfo") {
                 std::cout << client.getinfo().toStyledString() << std::endl;
-            }
-            else if(command == "account")
-            {
-                if(argc == 3)
-                {
+            } else if(command == "account") {
+                if(argc == 3) {
                     std::string name(argv[2]);
                     std::cout << client.account(name).toStyledString() << std::endl;
-                }
-                else
-                {
+                } else {
                     std::cout << "Usage: account [accountname]" << std::endl;
                 }
-            }
-            else if(command == "sendtoaddress")
-            {
-                if(argc == 4)
-                {
+            } else if(command == "sendtoaddress") {
+                if(argc == 4) {
                     std::string address(argv[2]);
                     double amount(std::strtod(argv[3], NULL));
                     std::cout << client.sendtoaddress(address, amount) << std::endl;
-                }
-                else
-                {
+                } else {
                     std::cout << "Usage: sendtoaddress [address] [amount]" << std::endl;
                 }
-            }
-            else if(command == "listaccounts")
-            {
+            } else if(command == "listaccounts") {
                 std::cout << client.listaccounts().toStyledString() << std::endl;
-            }
-            else if(command == "listunspentoutputs")
-            {
-                if(argc == 3)
-                {
+            } else if(command == "listunspentoutputs") {
+                if(argc == 3) {
                     std::string name(argv[2]);
                     std::cout << client.listunspentoutputs(name).toStyledString() << std::endl;
-                }
-                else
-                {
+                } else {
                     std::cout << "Usage: listunspentoutputs [accountname]" << std::endl;
                 }
-            }
-            else if(command == "compilecontract")
-            {
-                if(argc == 3)
-                {
+            } else if(command == "compilecontract") {
+                if(argc == 3) {
                     std::string code(argv[2]);
                     std::cout << client.compilecontract(code) << std::endl;
-                }
-                else
-                {
+                } else {
                     std::cout << "Usage: compilecontract [code]" << std::endl;
                 }
-            }
-            else if(command == "listtransactions") {
+            } else if(command == "listtransactions") {
                 std::cout << client.listtransactions().toStyledString() << std::endl;
             } else if(command == "getblockbyheight") {
                 if(argc == 3) {
-                    std::cout << client.getblockbyheight(std::strtoull(argv[2], nullptr, 0)).toStyledString() << std::endl;
+                    std::cout << client.getblockbyheight(std::strtoull(argv[2], nullptr,
+                                                         0)).toStyledString() << std::endl;
                 } else {
                     std::cout << "Usage: getblockbyheight [height]" << std::endl;
                 }
@@ -268,9 +241,7 @@ int main(int argc, char* argv[])
                           << "sendtoaddress [address] [amount]\n"
                           << "stop\n";
             }
-        }
-        catch(jsonrpc::JsonRpcException e)
-        {
+        } catch(jsonrpc::JsonRpcException e) {
             std::cout << e.what() << std::endl;
         }
     }

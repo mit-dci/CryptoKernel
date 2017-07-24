@@ -1,5 +1,5 @@
 #ifndef CRYPTOTEST_H
-#define	CRYPTOTEST_H
+#define CRYPTOTEST_H
 
 #include <cppunit/extensions/HelperMacros.h>
 

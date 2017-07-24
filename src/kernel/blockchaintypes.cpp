@@ -17,7 +17,8 @@ CryptoKernel::Blockchain::output::output(const Json::Value& jsonOutput) {
     id = calculateId();
 }
 
-CryptoKernel::Blockchain::output::output(const uint64_t value, const uint64_t nonce, const Json::Value& data) {
+CryptoKernel::Blockchain::output::output(const uint64_t value, const uint64_t nonce,
+        const Json::Value& data) {
     this->value = value;
     this->nonce = nonce;
     this->data = data;
@@ -82,7 +83,8 @@ bool CryptoKernel::Blockchain::output::operator<(const output& rhs) const {
     return getId() < rhs.getId();
 }
 
-CryptoKernel::Blockchain::dbOutput::dbOutput(const Json::Value& jsonOutput) : output(jsonOutput) {
+CryptoKernel::Blockchain::dbOutput::dbOutput(const Json::Value& jsonOutput) : output(
+        jsonOutput) {
     try {
         creationTx = CryptoKernel::BigNum(jsonOutput["creationTx"].asString());
     } catch(const Json::Exception& e) {
@@ -90,7 +92,9 @@ CryptoKernel::Blockchain::dbOutput::dbOutput(const Json::Value& jsonOutput) : ou
     }
 }
 
-CryptoKernel::Blockchain::dbOutput::dbOutput(const output& compactOutput, const BigNum& creationTx) : output(compactOutput.getValue(), compactOutput.getNonce(), compactOutput.getData()) {
+CryptoKernel::Blockchain::dbOutput::dbOutput(const output& compactOutput,
+        const BigNum& creationTx) : output(compactOutput.getValue(), compactOutput.getNonce(),
+                    compactOutput.getData()) {
     this->creationTx = creationTx;
 }
 
@@ -142,7 +146,7 @@ Json::Value CryptoKernel::Blockchain::input::toJson() const {
     return returning;
 }
 
- Json::Value CryptoKernel::Blockchain::input::getData() const {
+Json::Value CryptoKernel::Blockchain::input::getData() const {
     return data;
 }
 
@@ -162,11 +166,13 @@ CryptoKernel::BigNum CryptoKernel::Blockchain::input::calculateId() {
     return CryptoKernel::BigNum(crypto.sha256(buffer.str()));
 }
 
-CryptoKernel::Blockchain::dbInput::dbInput(const Json::Value& inputJson) : input(inputJson) {
+CryptoKernel::Blockchain::dbInput::dbInput(const Json::Value& inputJson) : input(
+        inputJson) {
 
 }
 
-CryptoKernel::Blockchain::dbInput::dbInput(const input& compactInput) : input(compactInput.getOutputId(), compactInput.getData()) {
+CryptoKernel::Blockchain::dbInput::dbInput(const input& compactInput) : input(
+        compactInput.getOutputId(), compactInput.getData()) {
 
 }
 
@@ -174,7 +180,8 @@ Json::Value CryptoKernel::Blockchain::dbInput::toJson() const {
     return this->input::toJson();
 }
 
-CryptoKernel::Blockchain::transaction::transaction(const std::set<input>& inputs, const std::set<output>& outputs, const uint64_t timestamp, const bool coinbaseTx) {
+CryptoKernel::Blockchain::transaction::transaction(const std::set<input>& inputs,
+        const std::set<output>& outputs, const uint64_t timestamp, const bool coinbaseTx) {
     this->inputs = inputs;
     this->outputs = outputs;
     this->timestamp = timestamp;
@@ -184,7 +191,8 @@ CryptoKernel::Blockchain::transaction::transaction(const std::set<input>& inputs
     id = calculateId();
 }
 
-CryptoKernel::Blockchain::transaction::transaction(const Json::Value& jsonTransaction, const bool coinbaseTx) {
+CryptoKernel::Blockchain::transaction::transaction(const Json::Value& jsonTransaction,
+        const bool coinbaseTx) {
     for(const Json::Value& inp : jsonTransaction["inputs"]) {
         inputs.insert(CryptoKernel::Blockchain::input(inp));
     }
@@ -266,7 +274,8 @@ CryptoKernel::BigNum CryptoKernel::Blockchain::transaction::getOutputSetId() con
     return getOutputSetId(outputs);
 }
 
-CryptoKernel::BigNum CryptoKernel::Blockchain::transaction::getOutputSetId(const std::set<output>& outputs) {
+CryptoKernel::BigNum CryptoKernel::Blockchain::transaction::getOutputSetId(
+    const std::set<output>& outputs) {
     std::stringstream buffer;
 
     for(const output& out : outputs) {
@@ -281,11 +290,13 @@ uint64_t CryptoKernel::Blockchain::transaction::getTimestamp() const {
     return timestamp;
 }
 
-std::set<CryptoKernel::Blockchain::input> CryptoKernel::Blockchain::transaction::getInputs() const {
+std::set<CryptoKernel::Blockchain::input>
+CryptoKernel::Blockchain::transaction::getInputs() const {
     return inputs;
 }
 
-std::set<CryptoKernel::Blockchain::output> CryptoKernel::Blockchain::transaction::getOutputs() const {
+std::set<CryptoKernel::Blockchain::output>
+CryptoKernel::Blockchain::transaction::getOutputs() const {
     return outputs;
 }
 
@@ -305,9 +316,11 @@ Json::Value CryptoKernel::Blockchain::transaction::toJson() const {
     return returning;
 }
 
-CryptoKernel::Blockchain::dbTransaction::dbTransaction(const Json::Value& jsonTransaction) {
+CryptoKernel::Blockchain::dbTransaction::dbTransaction(const Json::Value&
+        jsonTransaction) {
     try {
-        this->confirmingBlock = CryptoKernel::BigNum(jsonTransaction["confirmingBlock"].asString());
+        this->confirmingBlock = CryptoKernel::BigNum(
+                                    jsonTransaction["confirmingBlock"].asString());
         this->coinbaseTx = jsonTransaction["coinbaseTx"].asBool();
 
         for(const Json::Value& inp : jsonTransaction["inputs"]) {
@@ -328,7 +341,8 @@ CryptoKernel::Blockchain::dbTransaction::dbTransaction(const Json::Value& jsonTr
     id = calculateId();
 }
 
-CryptoKernel::Blockchain::dbTransaction::dbTransaction(const transaction& compactTransaction, const BigNum& confirmingBlock, const bool coinbaseTx) {
+CryptoKernel::Blockchain::dbTransaction::dbTransaction(const transaction&
+        compactTransaction, const BigNum& confirmingBlock, const bool coinbaseTx) {
     this->confirmingBlock = confirmingBlock;
     this->coinbaseTx = coinbaseTx;
 
@@ -408,16 +422,21 @@ bool CryptoKernel::Blockchain::dbTransaction::isCoinbaseTx() const {
     return coinbaseTx;
 }
 
-std::set<CryptoKernel::BigNum> CryptoKernel::Blockchain::dbTransaction::getInputs() const {
+std::set<CryptoKernel::BigNum> CryptoKernel::Blockchain::dbTransaction::getInputs()
+const {
     return inputs;
 }
 
-std::set<CryptoKernel::BigNum> CryptoKernel::Blockchain::dbTransaction::getOutputs() const {
+std::set<CryptoKernel::BigNum> CryptoKernel::Blockchain::dbTransaction::getOutputs()
+const {
     return outputs;
 }
 
-CryptoKernel::Blockchain::block::block(const std::set<transaction>& transactions, const transaction& coinbaseTx, const BigNum& previousBlockId, const uint64_t timestamp, const Json::Value& consensusData, const uint64_t height)
-: coinbaseTx(coinbaseTx.getInputs(), coinbaseTx.getOutputs(), coinbaseTx.getTimestamp(), true) {
+CryptoKernel::Blockchain::block::block(const std::set<transaction>& transactions,
+                                       const transaction& coinbaseTx, const BigNum& previousBlockId, const uint64_t timestamp,
+                                       const Json::Value& consensusData, const uint64_t height)
+    : coinbaseTx(coinbaseTx.getInputs(), coinbaseTx.getOutputs(), coinbaseTx.getTimestamp(),
+                 true) {
     this->transactions = transactions;
     this->previousBlockId = previousBlockId;
     this->timestamp = timestamp;
@@ -430,7 +449,7 @@ CryptoKernel::Blockchain::block::block(const std::set<transaction>& transactions
 }
 
 CryptoKernel::Blockchain::block::block(const Json::Value& jsonBlock)
-: coinbaseTx(jsonBlock["coinbaseTx"], true) {
+    : coinbaseTx(jsonBlock["coinbaseTx"], true) {
     try {
         timestamp = jsonBlock["timestamp"].asUInt64();
         previousBlockId = CryptoKernel::BigNum(jsonBlock["previousBlockId"].asString());
@@ -532,11 +551,13 @@ Json::Value CryptoKernel::Blockchain::block::toJson() const {
     return returning;
 }
 
-std::set<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::block::getTransactions() const {
+std::set<CryptoKernel::Blockchain::transaction>
+CryptoKernel::Blockchain::block::getTransactions() const {
     return transactions;
 }
 
-CryptoKernel::Blockchain::transaction CryptoKernel::Blockchain::block::getCoinbaseTx() const {
+CryptoKernel::Blockchain::transaction CryptoKernel::Blockchain::block::getCoinbaseTx()
+const {
     return coinbaseTx;
 }
 
@@ -596,7 +617,8 @@ CryptoKernel::Blockchain::dbBlock::dbBlock(const block& compactBlock) {
     id = calculateId();
 }
 
-CryptoKernel::Blockchain::dbBlock::dbBlock(const block& compactBlock, const uint64_t height) {
+CryptoKernel::Blockchain::dbBlock::dbBlock(const block& compactBlock,
+        const uint64_t height) {
     coinbaseTx = compactBlock.getCoinbaseTx().getId();
     previousBlockId = compactBlock.getPreviousBlockId();
     timestamp = compactBlock.getTimestamp();
@@ -645,7 +667,8 @@ Json::Value CryptoKernel::Blockchain::dbBlock::toJson() const {
     return returning;
 }
 
-std::set<CryptoKernel::BigNum> CryptoKernel::Blockchain::dbBlock::getTransactions() const {
+std::set<CryptoKernel::BigNum> CryptoKernel::Blockchain::dbBlock::getTransactions()
+const {
     return transactions;
 }
 
