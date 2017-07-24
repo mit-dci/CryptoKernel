@@ -4,23 +4,18 @@
 #include "PoW.h"
 #include "../crypto.h"
 
-CryptoKernel::Consensus::PoW::PoW(const uint64_t blockTarget,
-                                  CryptoKernel::Blockchain* blockchain) {
+CryptoKernel::Consensus::PoW::PoW(const uint64_t blockTarget, CryptoKernel::Blockchain* blockchain) {
     this->blockTarget = blockTarget;
     this->blockchain = blockchain;
 }
 
-bool CryptoKernel::Consensus::PoW::isBlockBetter(Storage::Transaction* transaction,
-        const CryptoKernel::Blockchain::block& block,
-        const CryptoKernel::Blockchain::dbBlock& tip) {
+bool CryptoKernel::Consensus::PoW::isBlockBetter(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block& block, const CryptoKernel::Blockchain::dbBlock& tip) {
     const consensusData blockData = getConsensusData(block);
     const consensusData tipData = getConsensusData(tip);
     return blockData.totalWork > tipData.totalWork;
 }
 
-CryptoKernel::Consensus::PoW::consensusData
-CryptoKernel::Consensus::PoW::getConsensusData(const CryptoKernel::Blockchain::block&
-        block) {
+CryptoKernel::Consensus::PoW::consensusData CryptoKernel::Consensus::PoW::getConsensusData(const CryptoKernel::Blockchain::block& block) {
     consensusData data;
     const Json::Value consensusJson = block.getConsensusData();
     try {
@@ -33,9 +28,7 @@ CryptoKernel::Consensus::PoW::getConsensusData(const CryptoKernel::Blockchain::b
     return data;
 }
 
-CryptoKernel::Consensus::PoW::consensusData
-CryptoKernel::Consensus::PoW::getConsensusData(const CryptoKernel::Blockchain::dbBlock&
-        block) {
+CryptoKernel::Consensus::PoW::consensusData CryptoKernel::Consensus::PoW::getConsensusData(const CryptoKernel::Blockchain::dbBlock& block) {
     consensusData data;
     const Json::Value consensusJson = block.getConsensusData();
     try {
@@ -48,8 +41,7 @@ CryptoKernel::Consensus::PoW::getConsensusData(const CryptoKernel::Blockchain::d
     return data;
 }
 
-Json::Value CryptoKernel::Consensus::PoW::consensusDataToJson(const
-        CryptoKernel::Consensus::PoW::consensusData& data) {
+Json::Value CryptoKernel::Consensus::PoW::consensusDataToJson(const CryptoKernel::Consensus::PoW::consensusData& data) {
     Json::Value returning;
     returning["target"] = data.target.toString();
     returning["totalWork"] = data.totalWork.toString();
@@ -57,9 +49,7 @@ Json::Value CryptoKernel::Consensus::PoW::consensusDataToJson(const
     return returning;
 }
 
-bool CryptoKernel::Consensus::PoW::checkConsensusRules(Storage::Transaction* transaction,
-        const CryptoKernel::Blockchain::block& block,
-        const CryptoKernel::Blockchain::dbBlock& previousBlock) {
+bool CryptoKernel::Consensus::PoW::checkConsensusRules(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block& block, const CryptoKernel::Blockchain::dbBlock& previousBlock) {
     //Check target
     try {
         const consensusData blockData = getConsensusData(block);
@@ -74,9 +64,7 @@ bool CryptoKernel::Consensus::PoW::checkConsensusRules(Storage::Transaction* tra
 
         //Check total work
         const consensusData tipData = getConsensusData(previousBlock);
-        const BigNum inverse =
-            CryptoKernel::BigNum("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff") -
-            blockData.target;
+        const BigNum inverse = CryptoKernel::BigNum("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff") - blockData.target;
         if(blockData.totalWork != inverse + tipData.totalWork) {
             return false;
         }
@@ -87,43 +75,34 @@ bool CryptoKernel::Consensus::PoW::checkConsensusRules(Storage::Transaction* tra
     }
 }
 
-CryptoKernel::BigNum CryptoKernel::Consensus::PoW::calculatePoW(
-    const CryptoKernel::Blockchain::block& block, const uint64_t nonce) {
+CryptoKernel::BigNum CryptoKernel::Consensus::PoW::calculatePoW(const CryptoKernel::Blockchain::block& block, const uint64_t nonce) {
     std::stringstream buffer;
     buffer << block.getId().toString() << nonce;
     return powFunction(buffer.str());
 }
 
-Json::Value CryptoKernel::Consensus::PoW::generateConsensusData(
-    Storage::Transaction* transaction, const CryptoKernel::BigNum& previousBlockId,
-    const std::string& publicKey) {
+Json::Value CryptoKernel::Consensus::PoW::generateConsensusData(Storage::Transaction* transaction, const CryptoKernel::BigNum& previousBlockId, const std::string& publicKey) {
     consensusData data;
     data.target = calculateTarget(transaction, previousBlockId);
 
     return consensusDataToJson(data);
 }
 
-CryptoKernel::Consensus::PoW::KGW_SHA256::KGW_SHA256(const uint64_t blockTarget,
-        CryptoKernel::Blockchain* blockchain) : CryptoKernel::Consensus::PoW(blockTarget,
-                    blockchain) {
+CryptoKernel::Consensus::PoW::KGW_SHA256::KGW_SHA256(const uint64_t blockTarget, CryptoKernel::Blockchain* blockchain) : CryptoKernel::Consensus::PoW(blockTarget, blockchain) {
 
 }
 
-CryptoKernel::BigNum CryptoKernel::Consensus::PoW::KGW_SHA256::powFunction(
-    const std::string& inputString) {
+CryptoKernel::BigNum CryptoKernel::Consensus::PoW::KGW_SHA256::powFunction(const std::string& inputString) {
     CryptoKernel::Crypto crypto;
     return CryptoKernel::BigNum(crypto.sha256(inputString));
 }
 
-CryptoKernel::BigNum CryptoKernel::Consensus::PoW::KGW_SHA256::calculateTarget(
-    Storage::Transaction* transaction, const CryptoKernel::BigNum& previousBlockId) {
+CryptoKernel::BigNum CryptoKernel::Consensus::PoW::KGW_SHA256::calculateTarget(Storage::Transaction* transaction, const CryptoKernel::BigNum& previousBlockId) {
     const uint64_t minBlocks = 144;
     const uint64_t maxBlocks = 4032;
-    const CryptoKernel::BigNum minDifficulty =
-        CryptoKernel::BigNum("fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+    const CryptoKernel::BigNum minDifficulty = CryptoKernel::BigNum("fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
-    CryptoKernel::Blockchain::dbBlock currentBlock = blockchain->getBlockDB(transaction,
-            previousBlockId.toString());
+    CryptoKernel::Blockchain::dbBlock currentBlock = blockchain->getBlockDB(transaction, previousBlockId.toString());
     consensusData currentBlockData = getConsensusData(currentBlock);
     CryptoKernel::Blockchain::dbBlock lastSolved = currentBlock;
 
@@ -142,20 +121,24 @@ CryptoKernel::BigNum CryptoKernel::Consensus::PoW::KGW_SHA256::calculateTarget(
         double eventHorizonDeviationFast = 0.0;
         double eventHorizonDeviationSlow = 0.0;
 
-        for(unsigned int i = 1; currentBlock.getHeight() != 1; i++) {
-            if(i > maxBlocks) {
+        for(unsigned int i = 1; currentBlock.getHeight() != 1; i++)
+        {
+            if(i > maxBlocks)
+            {
                 break;
             }
 
             blocksScanned++;
 
-            if(i == 1) {
+            if(i == 1)
+            {
                 difficultyAverage = currentBlockData.target;
-            } else {
+            }
+            else
+            {
                 std::stringstream buffer;
                 buffer << std::hex << i;
-                difficultyAverage = ((currentBlockData.target - previousDifficultyAverage) /
-                                     CryptoKernel::BigNum(buffer.str())) + previousDifficultyAverage;
+                difficultyAverage = ((currentBlockData.target - previousDifficultyAverage) / CryptoKernel::BigNum(buffer.str())) + previousDifficultyAverage;
             }
 
             previousDifficultyAverage = difficultyAverage;
@@ -164,36 +147,39 @@ CryptoKernel::BigNum CryptoKernel::Consensus::PoW::KGW_SHA256::calculateTarget(
             targetRate = blockTarget * blocksScanned;
             rateAdjustmentRatio = 1.0;
 
-            if(actualRate < 0) {
+            if(actualRate < 0)
+            {
                 actualRate = 0;
             }
 
-            if(actualRate != 0 && targetRate != 0) {
+            if(actualRate != 0 && targetRate != 0)
+            {
                 rateAdjustmentRatio = double(targetRate) / double(actualRate);
             }
 
-            eventHorizonDeviation = 1 + (0.7084 * pow((double(blocksScanned)/double(minBlocks)),
-                                         -1.228));
+            eventHorizonDeviation = 1 + (0.7084 * pow((double(blocksScanned)/double(minBlocks)), -1.228));
             eventHorizonDeviationFast = eventHorizonDeviation;
             eventHorizonDeviationSlow = 1 / eventHorizonDeviation;
 
-            if(blocksScanned >= minBlocks) {
-                if((rateAdjustmentRatio <= eventHorizonDeviationSlow) ||
-                        (rateAdjustmentRatio >= eventHorizonDeviationFast)) {
+            if(blocksScanned >= minBlocks)
+            {
+                if((rateAdjustmentRatio <= eventHorizonDeviationSlow) || (rateAdjustmentRatio >= eventHorizonDeviationFast))
+                {
                     break;
                 }
             }
 
-            if(currentBlock.getHeight() == 1) {
+            if(currentBlock.getHeight() == 1)
+            {
                 break;
             }
-            currentBlock = blockchain->getBlockDB(transaction,
-                                                  currentBlock.getPreviousBlockId().toString());
+            currentBlock = blockchain->getBlockDB(transaction, currentBlock.getPreviousBlockId().toString());
             currentBlockData = getConsensusData(currentBlock);
         }
 
         CryptoKernel::BigNum newTarget = difficultyAverage;
-        if(actualRate != 0 && targetRate != 0) {
+        if(actualRate != 0 && targetRate != 0)
+        {
             std::stringstream buffer;
             buffer << std::hex << actualRate;
             newTarget = newTarget * CryptoKernel::BigNum(buffer.str());
@@ -203,7 +189,8 @@ CryptoKernel::BigNum CryptoKernel::Consensus::PoW::KGW_SHA256::calculateTarget(
             newTarget = newTarget / CryptoKernel::BigNum(buffer.str());
         }
 
-        if(newTarget > minDifficulty) {
+        if(newTarget > minDifficulty)
+        {
             newTarget = minDifficulty;
         }
 
@@ -211,22 +198,18 @@ CryptoKernel::BigNum CryptoKernel::Consensus::PoW::KGW_SHA256::calculateTarget(
     }
 }
 
-bool CryptoKernel::Consensus::PoW::KGW_SHA256::verifyTransaction(
-    Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction& tx) {
+bool CryptoKernel::Consensus::PoW::KGW_SHA256::verifyTransaction(Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction& tx) {
     return true;
 }
 
-bool CryptoKernel::Consensus::PoW::KGW_SHA256::confirmTransaction(
-    Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction& tx) {
+bool CryptoKernel::Consensus::PoW::KGW_SHA256::confirmTransaction(Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction& tx) {
     return true;
 }
 
-bool CryptoKernel::Consensus::PoW::KGW_SHA256::submitTransaction(
-    Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction& tx) {
+bool CryptoKernel::Consensus::PoW::KGW_SHA256::submitTransaction(Storage::Transaction* transaction, const CryptoKernel::Blockchain::transaction& tx) {
     return true;
 }
 
-bool CryptoKernel::Consensus::PoW::KGW_SHA256::submitBlock(Storage::Transaction*
-        transaction, const CryptoKernel::Blockchain::block& block) {
+bool CryptoKernel::Consensus::PoW::KGW_SHA256::submitBlock(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block& block) {
     return true;
 }

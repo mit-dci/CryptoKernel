@@ -1,5 +1,5 @@
 #ifndef CONTRACTTEST_H
-#define CONTRACTTEST_H
+#define	CONTRACTTEST_H
 
 #include <memory>
 #include <cmath>
@@ -10,28 +10,35 @@
 #include "crypto.h"
 #include "consensus/PoW.h"
 
-class MyBlockchain : public CryptoKernel::Blockchain {
-public:
-    MyBlockchain(CryptoKernel::Log* GlobalLog) : CryptoKernel::Blockchain(GlobalLog) {
+class MyBlockchain : public CryptoKernel::Blockchain
+{
+    public:
+        MyBlockchain(CryptoKernel::Log* GlobalLog) : CryptoKernel::Blockchain(GlobalLog)
+        {
 
-    }
-
-    virtual ~MyBlockchain() {
-
-    }
-
-private:
-    uint64_t getBlockReward(const uint64_t height) {
-        if(height > 2) {
-            return 100000000 / std::log(height);
-        } else {
-            return 100000000;
         }
-    }
 
-    std::string getCoinbaseOwner(const std::string& publicKey) {
-        return publicKey;
-    }
+        virtual ~MyBlockchain()
+        {
+
+        }
+
+    private:
+        uint64_t getBlockReward(const uint64_t height)
+        {
+            if(height > 2)
+            {
+                return 100000000 / std::log(height);
+            }
+            else
+            {
+                return 100000000;
+            }
+        }
+
+        std::string getCoinbaseOwner(const std::string& publicKey) {
+            return publicKey;
+        }
 };
 
 

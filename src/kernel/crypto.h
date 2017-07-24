@@ -23,13 +23,15 @@
 #include <openssl/obj_mac.h>
 #include <string>
 
-namespace CryptoKernel {
+namespace CryptoKernel
+{
 
 /**
 * A mutable class which performs cryptography operations on ECDSA (secp256k1) keypairs. It provides funtions to
 * generate keys, signing and verifying. It also provides a static function for generating SHA256 hashes.
 */
-class Crypto {
+class Crypto
+{
 public:
 
     /**

@@ -24,21 +24,33 @@
 #include "crypto.h"
 #include "base64.h"
 
-CryptoKernel::Crypto::Crypto(const bool fGenerate) {
+CryptoKernel::Crypto::Crypto(const bool fGenerate)
+{
     eckey = EC_KEY_new();
-    if(eckey == NULL) {
+    if(eckey == NULL)
+    {
         status = false;
-    } else {
+    }
+    else
+    {
         ecgroup = EC_GROUP_new_by_curve_name(NID_secp256k1);
-        if(ecgroup == NULL) {
+        if(ecgroup == NULL)
+        {
             status = false;
-        } else {
-            if(!EC_KEY_set_group(eckey, ecgroup)) {
+        }
+        else
+        {
+            if(!EC_KEY_set_group(eckey, ecgroup))
+            {
                 status = false;
-            } else {
+            }
+            else
+            {
                 status = true;
-                if(fGenerate) {
-                    if(!EC_KEY_generate_key(eckey)) {
+                if(fGenerate)
+                {
+                    if(!EC_KEY_generate_key(eckey))
+                    {
                         status = false;
                     }
                 }
@@ -47,26 +59,32 @@ CryptoKernel::Crypto::Crypto(const bool fGenerate) {
     }
 }
 
-CryptoKernel::Crypto::~Crypto() {
-    if(ecgroup != NULL) {
+CryptoKernel::Crypto::~Crypto()
+{
+    if(ecgroup != NULL)
+    {
         EC_GROUP_free(ecgroup);
     }
 
-    if(eckey != NULL) {
+    if(eckey != NULL)
+    {
         EC_KEY_free(eckey);
     }
 }
 
-bool CryptoKernel::Crypto::verify(const std::string& message,
-                                  const std::string& signature) {
-    if(!status || signature == "" || message == "") {
+bool CryptoKernel::Crypto::verify(const std::string& message, const std::string& signature)
+{
+    if(!status || signature == "" || message == "")
+    {
         return false;
-    } else {
+    }
+    else
+    {
         std::string messageHash = sha256(message);
         std::string decodedSignature = base64_decode(signature);
 
-        if(!ECDSA_verify(0, (unsigned char*)messageHash.c_str(), (int)messageHash.size(),
-                         (unsigned char*)decodedSignature.c_str(), (int)decodedSignature.size(), eckey)) {
+        if(!ECDSA_verify(0, (unsigned char*)messageHash.c_str(), (int)messageHash.size(), (unsigned char*)decodedSignature.c_str(), (int)decodedSignature.size(), eckey))
+        {
             return false;
         }
 
@@ -74,10 +92,14 @@ bool CryptoKernel::Crypto::verify(const std::string& message,
     }
 }
 
-std::string CryptoKernel::Crypto::sign(const std::string& message) {
-    if(!status || message == "") {
+std::string CryptoKernel::Crypto::sign(const std::string& message)
+{
+    if(!status || message == "")
+    {
         return "";
-    } else {
+    }
+    else
+    {
         std::string messageHash = sha256(message);
 
         unsigned char *buffer, *pp;
@@ -86,11 +108,13 @@ std::string CryptoKernel::Crypto::sign(const std::string& message) {
         buffer = new unsigned char[buf_len];
         pp = buffer;
 
-        if(!ECDSA_sign(0, (unsigned char*)messageHash.c_str(), (int)messageHash.size(), pp,
-                       &buf_len, eckey)) {
+        if(!ECDSA_sign(0, (unsigned char*)messageHash.c_str(), (int)messageHash.size(), pp, &buf_len, eckey))
+        {
             delete[] buffer;
             return "";
-        } else {
+        }
+        else
+        {
             std::string returning = base64_encode(buffer, buf_len);
             delete[] buffer;
             return returning;
@@ -98,10 +122,14 @@ std::string CryptoKernel::Crypto::sign(const std::string& message) {
     }
 }
 
-std::string CryptoKernel::Crypto::getPublicKey() {
-    if(!status) {
+std::string CryptoKernel::Crypto::getPublicKey()
+{
+    if(!status)
+    {
         return "";
-    } else {
+    }
+    else
+    {
         unsigned char* publicKey;
         unsigned int keyLen = 0;
 
@@ -114,10 +142,14 @@ std::string CryptoKernel::Crypto::getPublicKey() {
     }
 }
 
-std::string CryptoKernel::Crypto::getPrivateKey() {
-    if(!status) {
+std::string CryptoKernel::Crypto::getPrivateKey()
+{
+    if(!status)
+    {
         return "";
-    } else {
+    }
+    else
+    {
         unsigned char* privateKey;
         unsigned int keyLen = 0;
 
@@ -130,73 +162,95 @@ std::string CryptoKernel::Crypto::getPrivateKey() {
     }
 }
 
-bool CryptoKernel::Crypto::setPublicKey(const std::string& publicKey) {
-    if(!status || publicKey == "") {
+bool CryptoKernel::Crypto::setPublicKey(const std::string& publicKey)
+{
+    if(!status || publicKey == "")
+    {
         return false;
-    } else {
+    }
+    else
+    {
         std::string decodedKey = base64_decode(publicKey);
 
-        if(!EC_KEY_oct2key(eckey, (unsigned char*)decodedKey.c_str(),
-                           (unsigned int)decodedKey.size(), NULL)) {
+        if(!EC_KEY_oct2key(eckey, (unsigned char*)decodedKey.c_str(), (unsigned int)decodedKey.size(), NULL))
+        {
             status = false;
             return false;
-        } else {
+        }
+        else
+        {
             status = true;
             return true;
         }
     }
 }
 
-bool CryptoKernel::Crypto::setPrivateKey(const std::string& privateKey) {
-    if(!status || privateKey == "") {
+bool CryptoKernel::Crypto::setPrivateKey(const std::string& privateKey)
+{
+    if(!status || privateKey == "")
+    {
         return false;
-    } else {
+    }
+    else
+    {
         std::string decodedKey = base64_decode(privateKey);
 
-        if(!EC_KEY_oct2priv(eckey, (unsigned char*)decodedKey.c_str(),
-                            (unsigned int)decodedKey.size())) {
+        if(!EC_KEY_oct2priv(eckey, (unsigned char*)decodedKey.c_str(), (unsigned int)decodedKey.size()))
+        {
             status = false;
             return false;
-        } else {
+        }
+        else
+        {
             status = true;
             return true;
         }
     }
 }
 
-std::string CryptoKernel::Crypto::sha256(const std::string& message) {
-    if(message != "") {
+std::string CryptoKernel::Crypto::sha256(const std::string& message)
+{
+    if(message != "")
+    {
         unsigned char hash[SHA256_DIGEST_LENGTH];
 
         SHA256_CTX sha256CTX;
 
-        if(!SHA256_Init(&sha256CTX)) {
+        if(!SHA256_Init(&sha256CTX))
+        {
             return "";
         }
 
-        if(!SHA256_Update(&sha256CTX, (unsigned char*)message.c_str(), message.size())) {
+        if(!SHA256_Update(&sha256CTX, (unsigned char*)message.c_str(), message.size()))
+        {
             return "";
         }
 
-        if(!SHA256_Final(hash, &sha256CTX)) {
+        if(!SHA256_Final(hash, &sha256CTX))
+        {
             return "";
         }
 
         std::string returning = base16_encode(hash, SHA256_DIGEST_LENGTH);
 
         return returning;
-    } else {
+    }
+    else
+    {
         return "";
     }
 }
 
-bool CryptoKernel::Crypto::getStatus() {
+bool CryptoKernel::Crypto::getStatus()
+{
     return status;
 }
 
-std::string base16_encode(unsigned char const* bytes_to_encode, unsigned int in_len) {
+std::string base16_encode(unsigned char const* bytes_to_encode, unsigned int in_len)
+{
     std::stringstream ss;
-    for(unsigned int i = 0; i < in_len; i++) {
+    for(unsigned int i = 0; i < in_len; i++)
+    {
         ss << std::setfill('0') << std::setw(2) << std::hex << (unsigned int)bytes_to_encode[i];
     }
     return ss.str();

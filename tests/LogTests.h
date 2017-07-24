@@ -1,5 +1,5 @@
 #ifndef LOGTEST_H
-#define LOGTEST_H
+#define	LOGTEST_H
 
 #include <cppunit/extensions/HelperMacros.h>
 

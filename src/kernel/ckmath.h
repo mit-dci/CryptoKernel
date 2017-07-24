@@ -22,39 +22,40 @@
 
 #include <openssl/bn.h>
 
-namespace CryptoKernel {
-class BigNum {
-public:
-    BigNum(const std::string& hexString);
+namespace CryptoKernel
+{
+    class BigNum {
+        public:
+            BigNum(const std::string& hexString);
 
-    BigNum();
+            BigNum();
 
-    BigNum(const BigNum& other);
+            BigNum(const BigNum& other);
 
-    ~BigNum();
+            ~BigNum();
 
-    std::string toString() const;
+            std::string toString() const;
 
-    void operator=(const BigNum& other);
+            void operator=(const BigNum& other);
 
-    BigNum operator+(const BigNum& rhs) const;
-    BigNum operator-(const BigNum& rhs) const;
-    BigNum operator*(const BigNum& rhs) const;
-    BigNum operator/(const BigNum& rhs) const;
+            BigNum operator+(const BigNum& rhs) const;
+            BigNum operator-(const BigNum& rhs) const;
+            BigNum operator*(const BigNum& rhs) const;
+            BigNum operator/(const BigNum& rhs) const;
 
-    bool operator!=(const BigNum& rhs) const;
-    bool operator==(const BigNum& rhs) const;
+            bool operator!=(const BigNum& rhs) const;
+            bool operator==(const BigNum& rhs) const;
 
-    bool operator>(const BigNum& rhs) const;
-    bool operator<(const BigNum& rhs) const;
-    bool operator>=(const BigNum& rhs) const;
-    bool operator<=(const BigNum& rhs) const;
+            bool operator>(const BigNum& rhs) const;
+            bool operator<(const BigNum& rhs) const;
+            bool operator>=(const BigNum& rhs) const;
+            bool operator<=(const BigNum& rhs) const;
 
-private:
-    BIGNUM* bn;
+        private:
+            BIGNUM* bn;
 
-    int compare(const BigNum& lhs, const BigNum& rhs) const;
-};
+            int compare(const BigNum& lhs, const BigNum& rhs) const;
+    };
 }
 
 #endif // MATH_H_INCLUDED

@@ -24,149 +24,150 @@
 #include <jsoncpp/json/reader.h>
 #include <leveldb/db.h>
 
-namespace CryptoKernel {
-/**
-* The storage class provide a key-value json storage database
-* interface. This particular implementation uses LevelDB as the
-* underlying storage. It provides functions for saving, retrieving,
-* deleting and iterating over the database.
-*/
-class Storage {
-public:
+namespace CryptoKernel
+{
     /**
-    * Constructs a storage database in the given directory. If no database
-    * is found in the given directory then it is created. Otherwise open
-    * the existing database.
-    *
-    * @param filename the directory of the LevelDB database to use
-    * @throw std::runtime_error if there is a failure
+    * The storage class provide a key-value json storage database
+    * interface. This particular implementation uses LevelDB as the
+    * underlying storage. It provides functions for saving, retrieving,
+    * deleting and iterating over the database.
     */
-    Storage(const std::string& filename);
-
-    /**
-    * Default destructor, saves and closes the database
-    */
-    ~Storage();
-
-    class Transaction {
-    public:
-        Transaction(Storage* db);
-        Transaction(Storage* db, std::recursive_mutex& mut);
-
-        ~Transaction();
-
-        void commit();
-        void abort();
-
-        void put(const std::string& key, const Json::Value& data);
-        void erase(const std::string& key);
-        Json::Value get(const std::string& key);
-
-        bool ended();
-
-    private:
-        struct dbObject {
-            Json::Value data;
-            bool erased;
-        };
-        std::map<std::string, dbObject> dbStateCache;
-        Storage* db;
-        bool finished;
-        std::recursive_mutex* mut;
-    };
-
-    Transaction* begin();
-
-    Transaction* begin(std::recursive_mutex& mut);
-
-    class Table {
-    public:
-        Table(const std::string& name);
-
-        void put(Transaction* transaction, const std::string& key, const Json::Value& data,
-                 const int index = -1);
-        void erase(Transaction* transaction, const std::string& key, const int index = -1);
-        Json::Value get(Transaction* transaction, const std::string& key, const int index = -1);
-
-        class Iterator {
+    class Storage
+    {
         public:
-            Iterator(Table* table, Storage* db, const bool lock = true);
-
-            ~Iterator();
-
             /**
-            * Sets the iterator to the first key in the database
-            */
-            void SeekToFirst();
-
-            /**
-            * Determines whether there are additional keys still in the database
+            * Constructs a storage database in the given directory. If no database
+            * is found in the given directory then it is created. Otherwise open
+            * the existing database.
             *
-            * @return true if there are keys after the current iterator, false otherwise
+            * @param filename the directory of the LevelDB database to use
+            * @throw std::runtime_error if there is a failure
             */
-            bool Valid();
+            Storage(const std::string& filename);
 
             /**
-            * Shifts the iterator to the next key in the database
+            * Default destructor, saves and closes the database
             */
-            void Next();
+            ~Storage();
+
+            class Transaction {
+                public:
+                    Transaction(Storage* db);
+                    Transaction(Storage* db, std::recursive_mutex& mut);
+
+                    ~Transaction();
+
+                    void commit();
+                    void abort();
+
+                    void put(const std::string& key, const Json::Value& data);
+                    void erase(const std::string& key);
+                    Json::Value get(const std::string& key);
+
+                    bool ended();
+
+                private:
+                    struct dbObject {
+                        Json::Value data;
+                        bool erased;
+                    };
+                    std::map<std::string, dbObject> dbStateCache;
+                    Storage* db;
+                    bool finished;
+                    std::recursive_mutex* mut;
+            };
+
+            Transaction* begin();
+
+            Transaction* begin(std::recursive_mutex& mut);
+
+            class Table {
+                public:
+                    Table(const std::string& name);
+
+                    void put(Transaction* transaction, const std::string& key, const Json::Value& data, const int index = -1);
+                    void erase(Transaction* transaction, const std::string& key, const int index = -1);
+                    Json::Value get(Transaction* transaction, const std::string& key, const int index = -1);
+
+                    class Iterator {
+                        public:
+                            Iterator(Table* table, Storage* db, const bool lock = true);
+
+                            ~Iterator();
+
+                            /**
+                            * Sets the iterator to the first key in the database
+                            */
+                            void SeekToFirst();
+
+                            /**
+                            * Determines whether there are additional keys still in the database
+                            *
+                            * @return true if there are keys after the current iterator, false otherwise
+                            */
+                            bool Valid();
+
+                            /**
+                            * Shifts the iterator to the next key in the database
+                            */
+                            void Next();
+
+                            /**
+                            * Returns the current key the iterator points to
+                            *
+                            * @return the key the iterator points to
+                            */
+                            std::string key();
+
+                            /**
+                            * Returns the current json value the iterator points to
+                            *
+                            * @return the json value the iterator points to
+                            */
+                            Json::Value value();
+                        private:
+                            leveldb::Iterator* it;
+                            Table* table;
+                            Storage* db;
+                            std::string prefix;
+                    };
+
+                    std::string getKey(const std::string& key, const int index = -1);
+                private:
+                    std::string tableName;
+            };
+
 
             /**
-            * Returns the current key the iterator points to
+            * Deletes the LevelDB database in the given directory
             *
-            * @return the key the iterator points to
+            * @param filename the directory of the database to delete
+            * @return true if the database was deleted successfully, false otherwise
             */
-            std::string key();
+            static bool destroy(const std::string& filename);
 
             /**
-            * Returns the current json value the iterator points to
+            * Converts a string to a Json::Value
             *
-            * @return the json value the iterator points to
+            * @param json a valid json string to be converted
+            * @return a Json::Value representation of the given string
             */
-            Json::Value value();
+            static Json::Value toJson(const std::string& json);
+
+            /**
+            * Converts a Json::Value to a json string representation
+            *
+            * @param json a Json::Value to convert to a string
+            * @param pretty when true insert tabs and newlines to format the string,
+                     optional and defaults to false
+            * @return a string representation of the given json value
+            */
+            static std::string toString(const Json::Value& json, const bool pretty = false);
+
         private:
-            leveldb::Iterator* it;
-            Table* table;
-            Storage* db;
-            std::string prefix;
-        };
-
-        std::string getKey(const std::string& key, const int index = -1);
-    private:
-        std::string tableName;
+            leveldb::DB* db;
+            std::mutex dbMutex;
     };
-
-
-    /**
-    * Deletes the LevelDB database in the given directory
-    *
-    * @param filename the directory of the database to delete
-    * @return true if the database was deleted successfully, false otherwise
-    */
-    static bool destroy(const std::string& filename);
-
-    /**
-    * Converts a string to a Json::Value
-    *
-    * @param json a valid json string to be converted
-    * @return a Json::Value representation of the given string
-    */
-    static Json::Value toJson(const std::string& json);
-
-    /**
-    * Converts a Json::Value to a json string representation
-    *
-    * @param json a Json::Value to convert to a string
-    * @param pretty when true insert tabs and newlines to format the string,
-             optional and defaults to false
-    * @return a string representation of the given json value
-    */
-    static std::string toString(const Json::Value& json, const bool pretty = false);
-
-private:
-    leveldb::DB* db;
-    std::mutex dbMutex;
-};
 }
 
 #endif // STORAGE_H_INCLUDED

@@ -31,7 +31,7 @@ void CryptoTest::testKeygen() {
     const std::string publicKey = crypto->getPublicKey();
 
     CPPUNIT_ASSERT(privateKey.size() > 0);
-    CPPUNIT_ASSERT(publicKey.size() > 0);
+    CPPUNIT_ASSERT(publicKey.size() > 0);   
 }
 
 /**
@@ -58,7 +58,7 @@ void CryptoTest::testPassingKeys() {
 
     CPPUNIT_ASSERT(crypto->setPublicKey(tempCrypto->getPublicKey()));
     CPPUNIT_ASSERT(crypto->verify(plainText, signature));
-
+    
     delete tempCrypto;
 }
 
@@ -66,7 +66,6 @@ void CryptoTest::testPassingKeys() {
 * Tests hashing with SHA256
 */
 void CryptoTest::testSHA256Hash() {
-    const std::string hash =
-        "b6dc933311bc2357cc5fc636a4dbe41a01b7a33b583d043a7f870f3440697e27";
-    CPPUNIT_ASSERT_EQUAL(hash, CryptoKernel::Crypto::sha256("wow"));
+    const std::string hash = "b6dc933311bc2357cc5fc636a4dbe41a01b7a33b583d043a7f870f3440697e27";
+    CPPUNIT_ASSERT_EQUAL(hash, CryptoKernel::Crypto::sha256("wow"));    
 }

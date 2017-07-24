@@ -22,20 +22,21 @@
 #include "version.h"
 #include "contract.h"
 
-CryptoServer::CryptoServer(jsonrpc::AbstractServerConnector &connector) : CryptoRPCServer(
-        connector) {
+CryptoServer::CryptoServer(jsonrpc::AbstractServerConnector &connector) : CryptoRPCServer(connector)
+{
 
 }
 
-void CryptoServer::setWallet(CryptoKernel::Wallet* Wallet,
-                             CryptoKernel::Blockchain* Blockchain, CryptoKernel::Network* Network, bool* running) {
+void CryptoServer::setWallet(CryptoKernel::Wallet* Wallet, CryptoKernel::Blockchain* Blockchain, CryptoKernel::Network* Network, bool* running)
+{
     wallet = Wallet;
     blockchain = Blockchain;
     network = Network;
     this->running = running;
 }
 
-Json::Value CryptoServer::getinfo() {
+Json::Value CryptoServer::getinfo()
+{
     Json::Value returning;
 
     returning["RPC Version"] = "1.2.0-dev";
@@ -44,14 +45,14 @@ Json::Value CryptoServer::getinfo() {
     std::stringstream buffer;
     buffer << std::setprecision(8) << balance;
     returning["balance"] = buffer.str();
-    returning["height"] = static_cast<unsigned long long int>
-                          (blockchain->getBlockDB("tip").getHeight());
+    returning["height"] = static_cast<unsigned long long int>(blockchain->getBlockDB("tip").getHeight());
     returning["connections"] = network->getConnections();
 
     return returning;
 }
 
-Json::Value CryptoServer::account(const std::string& account) {
+Json::Value CryptoServer::account(const std::string& account)
+{
     Json::Value returning;
 
     try {
@@ -78,16 +79,18 @@ Json::Value CryptoServer::account(const std::string& account) {
     return returning;
 }
 
-std::string CryptoServer::sendtoaddress(const std::string& address, double amount) {
+std::string CryptoServer::sendtoaddress(const std::string& address, double amount)
+{
     uint64_t Amount = amount * 100000000;
     return wallet->sendToAddress(address, Amount);
 }
 
-bool CryptoServer::sendrawtransaction(const Json::Value tx) {
+bool CryptoServer::sendrawtransaction(const Json::Value tx)
+{
     try {
-        const CryptoKernel::Blockchain::transaction transaction =
-            CryptoKernel::Blockchain::transaction(tx);
-        if(blockchain->submitTransaction(transaction)) {
+        const CryptoKernel::Blockchain::transaction transaction = CryptoKernel::Blockchain::transaction(tx);
+        if(blockchain->submitTransaction(transaction))
+        {
             std::vector<CryptoKernel::Blockchain::transaction> txs;
             txs.push_back(transaction);
             network->broadcastTransactions(txs);
@@ -100,14 +103,16 @@ bool CryptoServer::sendrawtransaction(const Json::Value tx) {
     return false;
 }
 
-Json::Value CryptoServer::listaccounts() {
+Json::Value CryptoServer::listaccounts()
+{
     Json::Value returning;
 
     const std::set<CryptoKernel::Wallet::Account> accounts = wallet->listAccounts();
 
     returning["accounts"] = Json::Value();
 
-    for(const auto& acc : accounts) {
+    for(const auto& acc : accounts)
+    {
         Json::Value account;
         account["name"] = acc.getName();
         double balance = acc.getBalance() / 100000000.0;
@@ -128,7 +133,8 @@ Json::Value CryptoServer::listaccounts() {
     return returning;
 }
 
-Json::Value CryptoServer::listunspentoutputs(const std::string& account) {
+Json::Value CryptoServer::listunspentoutputs(const std::string& account)
+{
     CryptoKernel::Wallet::Account acc = wallet->getAccountByName(account);
 
     std::set<CryptoKernel::Blockchain::output> utxos;
@@ -140,7 +146,8 @@ Json::Value CryptoServer::listunspentoutputs(const std::string& account) {
 
     Json::Value returning;
 
-    for(const CryptoKernel::Blockchain::output& output : utxos) {
+    for(const CryptoKernel::Blockchain::output& output : utxos)
+    {
         Json::Value out = output.toJson();
         out["id"] = output.getId().toString();
         returning["outputs"].append(out);
@@ -149,11 +156,13 @@ Json::Value CryptoServer::listunspentoutputs(const std::string& account) {
     return returning;
 }
 
-std::string CryptoServer::compilecontract(const std::string& code) {
+std::string CryptoServer::compilecontract(const std::string& code)
+{
     return CryptoKernel::ContractRunner::compile(code);
 }
 
-std::string CryptoServer::calculateoutputid(const Json::Value output) {
+std::string CryptoServer::calculateoutputid(const Json::Value output)
+{
     try {
         const CryptoKernel::Blockchain::output out = CryptoKernel::Blockchain::output(output);
         return out.getId().toString();
@@ -162,10 +171,10 @@ std::string CryptoServer::calculateoutputid(const Json::Value output) {
     }
 }
 
-Json::Value CryptoServer::signtransaction(const Json::Value tx) {
+Json::Value CryptoServer::signtransaction(const Json::Value tx)
+{
     try {
-        const CryptoKernel::Blockchain::transaction transaction =
-            CryptoKernel::Blockchain::transaction(tx);
+        const CryptoKernel::Blockchain::transaction transaction = CryptoKernel::Blockchain::transaction(tx);
 
         return wallet->signTransaction(transaction).toJson();
     } catch(CryptoKernel::Blockchain::InvalidElementException e) {
@@ -178,8 +187,7 @@ Json::Value CryptoServer::listtransactions() {
 
     returning["transactions"] = Json::Value();
 
-    const std::set<CryptoKernel::Blockchain::transaction> transactions =
-        wallet->listTransactions();
+    const std::set<CryptoKernel::Blockchain::transaction> transactions = wallet->listTransactions();
 
     for(const auto& tx : transactions) {
         returning["transactions"].append(tx.toJson());
@@ -188,7 +196,8 @@ Json::Value CryptoServer::listtransactions() {
     return returning;
 }
 
-Json::Value CryptoServer::getblockbyheight(const uint64_t height) {
+Json::Value CryptoServer::getblockbyheight(const uint64_t height)
+{
     try {
         const CryptoKernel::Blockchain::block block = blockchain->getBlockByHeight(height);
         Json::Value returning = block.toJson();
