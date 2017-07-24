@@ -41,6 +41,7 @@ class CryptoRPCServer : public jsonrpc::AbstractServer<CryptoRPCServer>
             this->bindAndAddMethod(jsonrpc::Procedure("stop", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_BOOLEAN, NULL), &CryptoRPCServer::stopI);
             this->bindAndAddMethod(jsonrpc::Procedure("getblock", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_OBJECT, "id", jsonrpc::JSON_STRING, NULL), &CryptoRPCServer::getblockI);
             this->bindAndAddMethod(jsonrpc::Procedure("gettransaction", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_OBJECT, "id", jsonrpc::JSON_STRING, NULL), &CryptoRPCServer::gettransactionI);
+            this->bindAndAddMethod(jsonrpc::Procedure("importprivkey", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_OBJECT, "key", jsonrpc::JSON_STRING, "name", jsonrpc::JSON_STRING, NULL), &CryptoRPCServer::importprivkeyI);
         }
 
         inline virtual void getinfoI(const Json::Value &request, Json::Value &response)
@@ -99,6 +100,10 @@ class CryptoRPCServer : public jsonrpc::AbstractServer<CryptoRPCServer>
         {
             response = this->gettransaction(request["id"].asString());
         }
+        inline virtual void importprivkeyI(const Json::Value &request, Json::Value &response)
+        {
+            response = this->importprivkey(request["name"].asString(), request["key"].asString());
+        }
         virtual Json::Value getinfo() = 0;
         virtual Json::Value account(const std::string& account) = 0;
         virtual std::string sendtoaddress(const std::string& address, double amount) = 0;
@@ -113,6 +118,7 @@ class CryptoRPCServer : public jsonrpc::AbstractServer<CryptoRPCServer>
         virtual bool stop() = 0;
         virtual Json::Value getblock(const std::string& id) = 0;
         virtual Json::Value gettransaction(const std::string& id) = 0;
+        virtual Json::Value importprivkey(const std::string& name, const std::string& key) = 0;
 };
 
 class CryptoServer : public CryptoRPCServer
@@ -135,6 +141,7 @@ class CryptoServer : public CryptoRPCServer
         virtual bool stop();
         virtual Json::Value getblock(const std::string& id);
         virtual Json::Value gettransaction(const std::string& id);
+        virtual Json::Value importprivkey(const std::string& name, const std::string& key);
 
     private:
         CryptoKernel::Wallet* wallet;

@@ -72,6 +72,8 @@ namespace CryptoKernel
 
                     void setBalance(const uint64_t newBalance);
 
+                    void addKeyPair(const keyPair& kp);
+
                     uint64_t getBalance() const;
 
                 private:
@@ -101,6 +103,8 @@ namespace CryptoKernel
             Account getAccountByName(const std::string& name);
             Account getAccountByKey(const std::string& pubKey);
             Account newAccount(const std::string& name);
+
+            Account importPrivKey(const std::string& name, const std::string& privKey);
 
             std::string sendToAddress(const std::string& pubKey, const uint64_t amount);
 

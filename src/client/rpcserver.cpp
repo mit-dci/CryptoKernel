@@ -39,8 +39,8 @@ Json::Value CryptoServer::getinfo()
 {
     Json::Value returning;
 
-    returning["RPC Version"] = "1.2.0-dev";
-    returning["CK Version"] = version;
+    returning["rpc_version"] = "1.2.0-dev";
+    returning["ck_version"] = version;
     double balance = wallet->getTotalBalance() / 100000000.0;
     std::stringstream buffer;
     buffer << std::setprecision(8) << balance;
@@ -135,25 +135,29 @@ Json::Value CryptoServer::listaccounts()
 
 Json::Value CryptoServer::listunspentoutputs(const std::string& account)
 {
-    CryptoKernel::Wallet::Account acc = wallet->getAccountByName(account);
+    try {
+        CryptoKernel::Wallet::Account acc = wallet->getAccountByName(account);
 
-    std::set<CryptoKernel::Blockchain::output> utxos;
+        std::set<CryptoKernel::Blockchain::output> utxos;
 
-    for(const auto& addr : acc.getKeys()) {
-        const auto unspent = blockchain->getUnspentOutputs(addr.pubKey);
-        utxos.insert(unspent.begin(), unspent.end());
+        for(const auto& addr : acc.getKeys()) {
+            const auto unspent = blockchain->getUnspentOutputs(addr.pubKey);
+            utxos.insert(unspent.begin(), unspent.end());
+        }
+
+        Json::Value returning;
+
+        for(const CryptoKernel::Blockchain::output& output : utxos)
+        {
+            Json::Value out = output.toJson();
+            out["id"] = output.getId().toString();
+            returning["outputs"].append(out);
+        }
+
+        return returning;
+    } catch(const CryptoKernel::Wallet::WalletException& e) {
+        return Json::Value();
     }
-
-    Json::Value returning;
-
-    for(const CryptoKernel::Blockchain::output& output : utxos)
-    {
-        Json::Value out = output.toJson();
-        out["id"] = output.getId().toString();
-        returning["outputs"].append(out);
-    }
-
-    return returning;
 }
 
 std::string CryptoServer::compilecontract(const std::string& code)
@@ -225,6 +229,14 @@ Json::Value CryptoServer::gettransaction(const std::string& id) {
     try {
         return blockchain->getTransaction(id).toJson();
     } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
+        return Json::Value();
+    }
+}
+
+Json::Value CryptoServer::importprivkey(const std::string& name, const std::string& key) {
+    try {
+        return wallet->importPrivKey(name, key).toJson();
+    } catch(const CryptoKernel::Wallet::WalletException& e) {
         return Json::Value();
     }
 }

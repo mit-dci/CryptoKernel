@@ -300,6 +300,10 @@ void CryptoKernel::Wallet::Account::setBalance(const uint64_t newBalance) {
     balance = newBalance;
 }
 
+void CryptoKernel::Wallet::Account::addKeyPair(const keyPair& kp) {
+    keys.insert(kp);
+}
+
 std::string CryptoKernel::Wallet::Account::getName() const {
     return name;
 }
@@ -598,4 +602,47 @@ CryptoKernel::Blockchain::transaction CryptoKernel::Wallet::signTransaction(cons
     const uint64_t now = static_cast<uint64_t> (t);
 
     return CryptoKernel::Blockchain::transaction(newInputs, tx.getOutputs(), now);
+}
+
+CryptoKernel::Wallet::Account CryptoKernel::Wallet::importPrivKey(const std::string& name, const std::string& privKey) {
+    std::lock_guard<std::recursive_mutex> lock(walletLock);
+
+    bool accountExists = false;
+
+    try {
+        const Account acc = getAccountByName(name);
+        accountExists = true;
+    } catch(const WalletException& e) {}
+
+    CryptoKernel::Crypto crypto(true);
+    if(!crypto.setPrivateKey(privKey)) {
+        throw WalletException("Invalid private key");
+    }
+
+    try {
+        const Account acc = getAccountByKey(crypto.getPublicKey());
+    } catch(const WalletException& e) {
+        Account::keyPair kp;
+        kp.privKey = crypto.getPrivateKey();
+        kp.pubKey = crypto.getPublicKey();
+
+        if(!accountExists) {
+            newAccount(name);
+        }
+
+        Account acc = getAccountByName(name);
+        acc.addKeyPair(kp);
+
+        std::unique_ptr<CryptoKernel::Storage::Transaction> dbTx(walletdb->begin());
+        accounts->put(dbTx.get(), name, acc.toJson());
+        accounts->put(dbTx.get(), kp.pubKey, name, 0);
+        dbTx->commit();
+
+        // Rescan
+        clearDB();
+
+        return acc;
+    }
+
+    throw WalletException("Private key already in wallet");
 }
