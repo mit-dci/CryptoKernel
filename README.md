@@ -65,3 +65,5 @@ for propagating contracts
 - L -- Standardised address format (not just public keys)
 
 #### alpha v0.2.0
+- L -- HD key generation and recovery with seed
+- L -- LN integrated with wallet
