@@ -1,5 +1,5 @@
 #ifndef STORAGETEST_H
-#define	STORAGETEST_H
+#define STORAGETEST_H
 
 #include <cppunit/extensions/HelperMacros.h>
 

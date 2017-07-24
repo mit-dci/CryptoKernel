@@ -1,5 +1,5 @@
 #ifndef MATHTEST_H
-#define	MATHTEST_H
+#define MATHTEST_H
 
 #include <cppunit/extensions/HelperMacros.h>
 

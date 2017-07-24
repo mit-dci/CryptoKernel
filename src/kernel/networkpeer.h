@@ -7,44 +7,44 @@
 
 #include "network.h"
 
-class CryptoKernel::Network::Peer
-{
+class CryptoKernel::Network::Peer {
+public:
+    Peer(sf::TcpSocket* client, CryptoKernel::Blockchain* blockchain,
+         CryptoKernel::Network* network);
+    ~Peer();
+
+    Json::Value getInfo();
+    void sendTransactions(const std::vector<CryptoKernel::Blockchain::transaction>&
+                          transactions);
+    void sendBlock(const CryptoKernel::Blockchain::block& block);
+    std::vector<CryptoKernel::Blockchain::transaction> getUnconfirmedTransactions();
+    CryptoKernel::Blockchain::block getBlock(const uint64_t height, const std::string& id);
+    std::vector<CryptoKernel::Blockchain::block> getBlocks(const uint64_t start,
+            const uint64_t end);
+
+    class NetworkError : std::exception {
     public:
-        Peer(sf::TcpSocket* client, CryptoKernel::Blockchain* blockchain, CryptoKernel::Network* network);
-        ~Peer();
+        virtual const char* what() const throw() {
+            return "Error contacting peer";
+        }
+    };
 
-        Json::Value getInfo();
-        void sendTransactions(const std::vector<CryptoKernel::Blockchain::transaction>& transactions);
-        void sendBlock(const CryptoKernel::Blockchain::block& block);
-        std::vector<CryptoKernel::Blockchain::transaction> getUnconfirmedTransactions();
-        CryptoKernel::Blockchain::block getBlock(const uint64_t height, const std::string& id);
-        std::vector<CryptoKernel::Blockchain::block> getBlocks(const uint64_t start, const uint64_t end);
+private:
+    sf::TcpSocket* client;
+    CryptoKernel::Blockchain* blockchain;
+    CryptoKernel::Network* network;
+    std::mutex clientMutex;
+    Json::Value sendRecv(const Json::Value& request);
+    void send(const Json::Value& response);
+    void requestFunc();
+    bool running;
+    std::unique_ptr<std::thread> requestThread;
 
-        class NetworkError : std::exception
-        {
-            public:
-                virtual const char* what() const throw()
-                {
-                    return "Error contacting peer";
-                }
-        };
+    std::map<uint64_t, Json::Value> responses;
 
-    private:
-        sf::TcpSocket* client;
-        CryptoKernel::Blockchain* blockchain;
-        CryptoKernel::Network* network;
-        std::mutex clientMutex;
-        Json::Value sendRecv(const Json::Value& request);
-        void send(const Json::Value& response);
-        void requestFunc();
-        bool running;
-        std::unique_ptr<std::thread> requestThread;
+    std::map<uint64_t, bool> requests;
 
-        std::map<uint64_t, Json::Value> responses;
-
-        std::map<uint64_t, bool> requests;
-
-        std::default_random_engine generator;
+    std::default_random_engine generator;
 };
 
 #endif // NETWORKPEER_H_INCLUDED
