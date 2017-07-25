@@ -5,7 +5,6 @@ thisInput = json:decode(thisInputJson)
 
 function jsonStrToObj(str)
     if str == "" then return nil end
-    local json = Json.new()
     return json:decode(str)
 end
 
