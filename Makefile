@@ -40,7 +40,7 @@ KERNELCXXFLAGS += -g -Wall -std=c++14 -O2 -Wl,-E -Isrc/kernel
 KERNELSRC = src/kernel/blockchain.cpp src/kernel/blockchaintypes.cpp src/kernel/math.cpp src/kernel/storage.cpp src/kernel/network.cpp src/kernel/networkpeer.cpp src/kernel/base64.cpp src/kernel/crypto.cpp src/kernel/log.cpp src/kernel/contract.cpp src/kernel/consensus/AVRR.cpp src/kernel/consensus/PoW.cpp
 KERNELOBJS = $(KERNELSRC:.cpp=.o)
 
-CLIENTSRC = src/client/main.cpp src/client/rpcserver.cpp src/client/wallet.cpp
+CLIENTSRC = src/client/main.cpp src/client/rpcserver.cpp src/client/wallet.cpp src/client/httpserver.cpp
 CLIENTOBJS = $(CLIENTSRC:.cpp=.o)
 
 TESTSRC = tests/CryptoKernelTestRunner.cpp tests/CryptoTests.cpp tests/MathTests.cpp tests/StorageTests.cpp tests/LogTests.cpp tests/ContractTests.cpp

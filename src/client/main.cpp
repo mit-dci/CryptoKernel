@@ -22,8 +22,7 @@
 #include <cmath>
 #include <csignal>
 
-#include <jsonrpccpp/server/connectors/tcpsocketserver.h>
-#include <jsonrpccpp/client/connectors/tcpsocketclient.h>
+#include <jsonrpccpp/client/connectors/httpclient.h>
 
 #include "ckmath.h"
 #include "crypto.h"
@@ -33,6 +32,7 @@
 #include "cryptoclient.h"
 #include "version.h"
 #include "consensus/PoW.h"
+#include "httpserver.h"
 
 bool running;
 
@@ -179,11 +179,9 @@ int main(int argc, char* argv[]) {
             minerThread.reset(new std::thread(miner, &blockchain, &consensus, &wallet, &log,
                                               &network));
         }
-
-        jsonrpc::TcpSocketServer tcpserver("127.0.0.1", 8383);
-
-        //jsonrpc::HttpServer httpserver(8383, "", "", 1);
-        CryptoServer server(tcpserver);
+        
+        jsonrpc::HttpServerLocal httpserver(8383, "", "", 1);
+        CryptoServer server(httpserver);
         server.setWallet(&wallet, &blockchain, &network, &running);
         server.StartListening();
 
@@ -199,10 +197,9 @@ int main(int argc, char* argv[]) {
         }
     } else {
         std::string command(argv[1]);
-        //jsonrpc::HttpClient httpclient("http://localhost:8383");
-        jsonrpc::TcpSocketClient tcpclient("127.0.0.1", 8383);
-        //tcpclient.SetTimeout(30000);
-        CryptoClient client(tcpclient);
+        jsonrpc::HttpClient httpclient("http://127.0.0.1:8383");
+        httpclient.SetTimeout(30000);
+        CryptoClient client(httpclient);
 
         try {
             if(command == "getinfo") {
