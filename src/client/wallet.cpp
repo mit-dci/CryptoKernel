@@ -125,7 +125,10 @@ void CryptoKernel::Wallet::rewindBlock(CryptoKernel::Storage::Transaction* walle
     log->printf(LOG_LEVEL_INFO,
                 "Wallet::rewindBlock(): Rewinding block " + std::to_string(oldTip.getHeight()));
 
-    for(const CryptoKernel::Blockchain::transaction& tx : oldTip.getTransactions()) {
+    std::set<CryptoKernel::Blockchain::transaction> txs = oldTip.getTransactions();
+    txs.insert(oldTip.getCoinbaseTx());
+
+    for(const CryptoKernel::Blockchain::transaction& tx : txs) {
         const Json::Value txJson = transactions->get(walletTx, tx.getId().toString());
         if(!txJson.isNull()) {
             transactions->erase(walletTx, tx.getId().toString());
@@ -228,7 +231,10 @@ void CryptoKernel::Wallet::digestBlock(CryptoKernel::Storage::Transaction* walle
     log->printf(LOG_LEVEL_INFO,
                 "Wallet::digestBlock(): Digesting block " + std::to_string(block.getHeight()));
 
-    for(const CryptoKernel::Blockchain::transaction& tx : block.getTransactions()) {
+    std::set<CryptoKernel::Blockchain::transaction> txs = block.getTransactions();
+    txs.insert(block.getCoinbaseTx());
+
+    for(const CryptoKernel::Blockchain::transaction& tx : txs) {
         bool trackTx = false;
 
         for(const CryptoKernel::Blockchain::input& inp : tx.getInputs()) {
