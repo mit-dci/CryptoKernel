@@ -35,7 +35,7 @@ TESTBIN ?= test-ck
 CC = clang++
 endif
 
-KERNELCXXFLAGS += -g -Wall -std=c++14 -O2 -Wl,-E -Isrc/kernel
+KERNELCXXFLAGS += -g -Wall -std=c++17 -O2 -Wl,-E -Isrc/kernel
 
 KERNELSRC = src/kernel/blockchain.cpp src/kernel/blockchaintypes.cpp src/kernel/math.cpp src/kernel/storage.cpp src/kernel/network.cpp src/kernel/networkpeer.cpp src/kernel/base64.cpp src/kernel/crypto.cpp src/kernel/log.cpp src/kernel/contract.cpp src/kernel/consensus/AVRR.cpp src/kernel/consensus/PoW.cpp
 KERNELOBJS = $(KERNELSRC:.cpp=.o)
