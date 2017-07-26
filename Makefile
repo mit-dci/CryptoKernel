@@ -10,6 +10,7 @@ CKLIB ?= libck.so
 CKBIN ?= ckd
 TESTBIN ?= test-ck
 CC = g++
+C = gcc
 endif
 ifeq ($(UNAME), MINGW32_NT-6.2)
 LUA_INCDIR ?= /usr/local/include
@@ -21,6 +22,7 @@ CKLIB ?= libck.dll
 CKBIN ?= ckd.exe
 TESTBIN ?= test-ck.exe
 CC = g++
+C = gcc
 endif
 ifeq ($(UNAME), Darwin)
 LUA_INCDIR ?= /opt/local/include
@@ -33,18 +35,22 @@ CKLIB ?= libck.dylib
 CKBIN ?= ckd
 TESTBIN ?= test-ck
 CC = clang++
+C = clang
 endif
 
 KERNELCXXFLAGS += -g -Wall -std=c++17 -O2 -Wl,-E -Isrc/kernel
 
 KERNELSRC = src/kernel/blockchain.cpp src/kernel/blockchaintypes.cpp src/kernel/math.cpp src/kernel/storage.cpp src/kernel/network.cpp src/kernel/networkpeer.cpp src/kernel/base64.cpp src/kernel/crypto.cpp src/kernel/log.cpp src/kernel/contract.cpp src/kernel/consensus/AVRR.cpp src/kernel/consensus/PoW.cpp
-KERNELOBJS = $(KERNELSRC:.cpp=.o)
+KERNELOBJS = $(KERNELSRC:.cpp=.cpp.o)
+
+LYRASRC = src/kernel/consensus/Lyra2REv2/Lyra2RE.c src/kernel/consensus/Lyra2REv2/Lyra2.c src/kernel/consensus/Lyra2REv2/Sponge.c src/kernel/consensus/Lyra2REv2/sha3/blake.c src/kernel/consensus/Lyra2REv2/sha3/cubehash.c src/kernel/consensus/Lyra2REv2/sha3/keccak.c src/kernel/consensus/Lyra2REv2/sha3/skein.c src/kernel/consensus/Lyra2REv2/sha3/bmw.c
+LYRAOBJS = $(LYRASRC:.c=.c.o)
 
 CLIENTSRC = src/client/main.cpp src/client/rpcserver.cpp src/client/wallet.cpp src/client/httpserver.cpp
-CLIENTOBJS = $(CLIENTSRC:.cpp=.o)
+CLIENTOBJS = $(CLIENTSRC:.cpp=.cpp.o)
 
 TESTSRC = tests/CryptoKernelTestRunner.cpp tests/CryptoTests.cpp tests/MathTests.cpp tests/StorageTests.cpp tests/LogTests.cpp tests/ContractTests.cpp
-TESTOBJS = $(TESTSRC:.cpp=.o)
+TESTOBJS = $(TESTSRC:.cpp=.cpp.o)
 
 CXXFLAGS = $(KERNELCXXFLAGS) $(PLATFORMCXXFLAGS) -I$(LUA_INCDIR)
 KERNELLDFLAGS = $(LIBFLAGS) -L$(LUA_LIBDIR)
@@ -53,7 +59,7 @@ TESTLDFLAGS = $(CLIENTLDFLAGS) -lcppunit
 
 all: daemon
 
-lib: $(KERNELSRC) $(CKLIB)
+lib: $(KERNELSRC) $(LYRASRC) $(CKLIB)
 
 daemon: $(CKLIB) $(CLIENTSRC) $(CKBIN)
 
@@ -67,13 +73,17 @@ $(TESTBIN): $(TESTOBJS)
 	$(CC) $(TESTOBJS) -o $@ $(TESTLDFLAGS)
 
 clean:
-	$(RM) -r  $(CLIENTOBJS) $(KERNELOBJS) $(TESTOBJS) $(CKLIB) $(CKBIN) $(TESTBIN) html latex
+	$(RM) -r  $(CLIENTOBJS) $(KERNELOBJS) $(LYRAOBJS) $(TESTOBJS) $(CKLIB) $(CKBIN) html latex
 
-$(CKBIN): $(CLIENTOBJS)
+$(CKBIN): $(CLIENTOBJS) $(CKLIB)
 	$(CC) $(CLIENTOBJS) -o $@ $(CLIENTLDFLAGS)
 
-$(CKLIB): $(KERNELOBJS)
-	$(CC) $(KERNELLDFLAGS) $(KERNELOBJS) -o $@ $(KERNELLIBS)
+$(CKLIB): $(KERNELOBJS) $(LYRAOBJS)
+	$(CC) $(KERNELLDFLAGS) $(KERNELOBJS) $(LYRAOBJS) -o $@ $(KERNELLIBS)
 
-.o:
-	$(CC) $(CXXFLAGS) $< -o $@
+%.c.o: %.c
+	$(C) $(PLATFORMCXXFLAGS) -O3 -c $< -o $@
+
+%.cpp.o: %.cpp
+	$(CC) $(CXXFLAGS) -c $< -o $@
+

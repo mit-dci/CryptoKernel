@@ -69,6 +69,12 @@ public:
     * and SHA256 as its Proof of Work function.
     */
     class KGW_SHA256;
+    
+    /**
+     * This class uses Kimoto Gravity Well for difficulty adjustment
+    *  and Lyra2REv2 as its Proof of Work function.
+     */
+    class KGW_LYRA2REV2;
 
     /**
     * Calculate the PoW for a given block
@@ -99,12 +105,12 @@ public:
     /**
     * Uses SHA256 to calculate the hash
     */
-    CryptoKernel::BigNum powFunction(const std::string& inputString);
+    virtual CryptoKernel::BigNum powFunction(const std::string& inputString);
 
     /**
     * Uses Kimoto Gravity Well to retarget the difficulty
     */
-    CryptoKernel::BigNum calculateTarget(Storage::Transaction* transaction,
+    virtual CryptoKernel::BigNum calculateTarget(Storage::Transaction* transaction,
                                          const BigNum& previousBlockId);
 
     /**
@@ -131,6 +137,17 @@ public:
     bool submitBlock(Storage::Transaction* transaction,
                      const CryptoKernel::Blockchain::block& block);
 };
+
+class Consensus::PoW::KGW_LYRA2REV2 : public Consensus::PoW::KGW_SHA256 {
+    public:
+        KGW_LYRA2REV2(const uint64_t blockTarget, CryptoKernel::Blockchain* blockchain);
+    
+        /**
+        * Uses Lyra2REv2 to calculate the hash
+        */
+        virtual CryptoKernel::BigNum powFunction(const std::string& inputString);
+};
+
 }
 
 #endif // POW_H_INCLUDED

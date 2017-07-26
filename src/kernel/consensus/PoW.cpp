@@ -2,6 +2,7 @@
 #include <math.h>
 
 #include "PoW.h"
+#include "Lyra2REv2/Lyra2RE.h"
 #include "../crypto.h"
 
 CryptoKernel::Consensus::PoW::PoW(const uint64_t blockTarget,
@@ -229,4 +230,19 @@ bool CryptoKernel::Consensus::PoW::KGW_SHA256::submitTransaction(
 bool CryptoKernel::Consensus::PoW::KGW_SHA256::submitBlock(Storage::Transaction*
         transaction, const CryptoKernel::Blockchain::block& block) {
     return true;
+}
+
+CryptoKernel::Consensus::PoW::KGW_LYRA2REV2::KGW_LYRA2REV2(const uint64_t blockTarget, CryptoKernel::Blockchain* blockchain)
+: KGW_SHA256(blockTarget, blockchain) {}
+
+CryptoKernel::BigNum CryptoKernel::Consensus::PoW::KGW_LYRA2REV2::powFunction(const std::string& inputString) {
+    char* output = new char[32];
+    
+    lyra2re2_hash(inputString.c_str(), inputString.size(), output);
+    
+    CryptoKernel::BigNum returning(base16_encode((unsigned char*)output, 32));
+    
+    delete[] output;
+    
+    return returning;
 }

@@ -170,7 +170,7 @@ int main(int argc, char* argv[]) {
         std::signal(SIGINT, [](int signal) { running = false; });
 
         MyBlockchain blockchain(&log);
-        CryptoKernel::Consensus::PoW::KGW_SHA256 consensus(150, &blockchain);
+        CryptoKernel::Consensus::PoW::KGW_LYRA2REV2 consensus(150, &blockchain);
         blockchain.loadChain(&consensus);
         CryptoKernel::Network network(&log, &blockchain);
         CryptoKernel::Wallet wallet(&blockchain, &network, &log);
