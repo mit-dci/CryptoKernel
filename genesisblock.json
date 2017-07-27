@@ -4,15 +4,16 @@
          {
             "data" : {
                "contract" : null,
-               "publicKey" : "BNWaHb2UVALNtXfMTYstbWezTxVgqdW4X9pNlhHgEwTfr8gDXmB9MqNdFwaOMvfj7yxreW5Jw9YY8iTpr6Haa2k="
+               "publicKey" : "BLJPZk5OSYzrYMy+LTSnTtgk5+vVKsmAziAqoNBn8XUCOMNe8ffWU+8D7jyY5acsUIXuVEC+c91HxKVH1k95fcg="
             },
-            "nonce" : 3361528818,
-            "value" : 100000000
+            "nonce" : 2289668208,
+            "value" : 9999993919
          }
       ],
-      "timestamp" : 1493617008
+      "timestamp" : 1501042786
    },
    "consensusData" : null,
+   "height" : 1,
    "previousBlockId" : "0",
-   "timestamp" : 1493617008
+   "timestamp" : 1501042786
 }

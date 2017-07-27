@@ -180,7 +180,7 @@ void CryptoKernel::Network::Peer::requestFunc() {
                     } else if(request["command"] == "getblocks") {
                         const uint64_t start = request["data"]["start"].asUInt64();
                         const uint64_t end = request["data"]["end"].asUInt64();
-                        if(end > start && (end - start) <= 500) {
+                        if(end > start && (end - start) <= 20) {
                             Json::Value returning;
                             for(unsigned int i = start; i < end; i++) {
                                 try {
@@ -247,7 +247,7 @@ void CryptoKernel::Network::Peer::requestFunc() {
         }
 
         const uint64_t timeElapsed = static_cast<uint64_t>(std::time(nullptr)) - startTime;
-        if(timeElapsed >= 30 && (double)nRequests/(double)timeElapsed > 1.0) {
+        if(timeElapsed >= 30 && (double)nRequests/(double)timeElapsed > 50.0) {
             network->changeScore(client->getRemoteAddress().toString(), 20);
             nRequests = 0;
             startTime += timeElapsed;
