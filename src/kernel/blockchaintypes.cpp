@@ -2,6 +2,7 @@
 
 #include "blockchain.h"
 #include "crypto.h"
+#include "merkletree.h"
 
 CryptoKernel::Blockchain::output::output(const Json::Value& jsonOutput) {
     try {
@@ -480,10 +481,17 @@ void CryptoKernel::Blockchain::block::setConsensusData(const Json::Value& data) 
 CryptoKernel::BigNum CryptoKernel::Blockchain::block::calculateId() {
     std::stringstream buffer;
 
-    for(const transaction& tx : transactions) {
-        buffer << tx.getId().toString();
-    }
+    if(!transactions.empty()) {
+        std::set<BigNum> transactionIds;
+        for(const transaction& tx : transactions) {
+            transactionIds.insert(tx.getId());
+        }
+        
+        auto merkleTree = MerkleNode::makeMerkleTree(transactionIds);
 
+        buffer << merkleTree->getMerkleRoot().toString();
+    }
+    
     buffer << coinbaseTx.getId().toString() << previousBlockId.toString() << timestamp;
 
     CryptoKernel::Crypto crypto;
@@ -641,8 +649,10 @@ void CryptoKernel::Blockchain::dbBlock::checkRep() {
 CryptoKernel::BigNum CryptoKernel::Blockchain::dbBlock::calculateId() {
     std::stringstream buffer;
 
-    for(const BigNum& tx : transactions) {
-        buffer << tx.toString();
+    if(!transactions.empty()) {
+        auto merkleTree = MerkleNode::makeMerkleTree(transactions);
+
+        buffer << merkleTree->getMerkleRoot().toString();
     }
 
     buffer << coinbaseTx.toString() << previousBlockId.toString() << timestamp;
