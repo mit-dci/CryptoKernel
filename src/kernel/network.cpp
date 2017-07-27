@@ -281,7 +281,6 @@ void CryptoKernel::Network::networkFunc() {
                             log->printf(LOG_LEVEL_WARN,
                                         "Network(): Failed to contact " + it->first + " " + e.what() +
                                         " while downloading blocks");
-                            it = connected.erase(it);
                             break;
                         }
 
