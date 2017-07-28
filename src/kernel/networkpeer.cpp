@@ -49,7 +49,7 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request) {
 
     clientMutex.unlock();
 
-    for(unsigned int t = 0; t < 500; t++) {
+    for(unsigned int t = 0; t < 1500; t++) {
         clientMutex.lock();
         std::map<uint64_t, Json::Value>::iterator it = responses.find(nonce);
         if(it != responses.end()) {
