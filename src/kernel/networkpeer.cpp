@@ -127,19 +127,10 @@ void CryptoKernel::Network::Peer::requestFunc() {
 						for(unsigned int i = 0; i < request["data"].size(); i++) {
 							const CryptoKernel::Blockchain::transaction tx = CryptoKernel::Blockchain::transaction(
 										request["data"][i]);
-							const std::set<CryptoKernel::Blockchain::transaction> unconfirmedTransactions =
-								blockchain->getUnconfirmedTransactions();
-							bool found = false;
-							for(const CryptoKernel::Blockchain::transaction& utx : unconfirmedTransactions) {
-								if(utx.getId() == tx.getId()) {
-									found = true;
-									break;
-								}
-							}
 							
 							const auto txResult = blockchain->submitTransaction(tx);
 							
-							if(std::get<0>(txResult) && !found) {
+							if(std::get<0>(txResult)) {
 								txs.push_back(tx);
 							} else if(std::get<1>(txResult)) {
 								network->changeScore(client->getRemoteAddress().toString(), 50);

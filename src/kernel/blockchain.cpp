@@ -348,7 +348,7 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::submitTransaction(Storage::Tran
 							"blockchain::submitTransaction(): Received transaction " + tx.getId().toString());
 				return std::make_tuple(true, false);
 			} else {
-				log->printf(LOG_LEVEL_WARN,
+				log->printf(LOG_LEVEL_INFO,
 							"blockchain::submitTransaction(): " + tx.getId().toString() + " has a mempool conflict");
 				return std::make_tuple(false, false);
 			}
@@ -761,6 +761,10 @@ CryptoKernel::Blockchain::Mempool::Mempool() {
 
 bool CryptoKernel::Blockchain::Mempool::insert(const transaction& tx) {
 	// Check if any inputs or outputs conflict
+	if(txs.find(tx.getId()) != txs.end()) {
+		return false;
+	}
+	
 	for(const input& inp : tx.getInputs()) {
 		if(inputs.find(inp.getId()) != inputs.end()) {
 			return false;
