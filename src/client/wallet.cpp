@@ -541,7 +541,7 @@ std::string CryptoKernel::Wallet::sendToAddress(const std::string& pubKey,
 
     bchainTx->abort();
 
-    if(!blockchain->submitTransaction(tx)) {
+    if(!std::get<0>(blockchain->submitTransaction(tx))) {
         return "Error submitting transaction";
     }
 

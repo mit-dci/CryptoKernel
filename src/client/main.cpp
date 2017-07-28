@@ -103,7 +103,7 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* c
             Block.setConsensusData(consensusData);
 
             if(running) {
-                if(blockchain->submitBlock(Block)) {
+                if(std::get<0>(blockchain->submitBlock(Block))) {
                     network->broadcastBlock(Block);
                 } else {
                     log->printf(LOG_LEVEL_WARN,

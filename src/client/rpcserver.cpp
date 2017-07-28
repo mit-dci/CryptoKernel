@@ -87,7 +87,7 @@ bool CryptoServer::sendrawtransaction(const Json::Value tx) {
     try {
         const CryptoKernel::Blockchain::transaction transaction =
             CryptoKernel::Blockchain::transaction(tx);
-        if(blockchain->submitTransaction(transaction)) {
+        if(std::get<0>(blockchain->submitTransaction(transaction))) {
             std::vector<CryptoKernel::Blockchain::transaction> txs;
             txs.push_back(transaction);
             network->broadcastTransactions(txs);

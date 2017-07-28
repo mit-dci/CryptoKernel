@@ -261,8 +261,8 @@ public:
         BigNum id;
     };
 
-    bool submitTransaction(const transaction& tx);
-    bool submitBlock(const block& newBlock, bool genesisBlock = false);
+    std::tuple<bool, bool> submitTransaction(const transaction& tx);
+    std::tuple<bool, bool> submitBlock(const block& newBlock, bool genesisBlock = false);
 
     block generateVerifyingBlock(const std::string& publicKey);
 
@@ -353,7 +353,7 @@ private:
     Log *log;
 
     std::set<transaction> unconfirmedTransactions;
-    bool verifyTransaction(Storage::Transaction* dbTransaction, const transaction& tx,
+    std::tuple<bool, bool> verifyTransaction(Storage::Transaction* dbTransaction, const transaction& tx,
                            const bool coinbaseTx = false);
     void confirmTransaction(Storage::Transaction* dbTransaction, const transaction& tx,
                             const BigNum& confirmingBlock, const bool coinbaseTx = false);
@@ -367,8 +367,8 @@ private:
     virtual std::string getCoinbaseOwner(const std::string& publicKey) = 0;
     Consensus* consensus;
     void emptyDB();
-    bool submitTransaction(Storage::Transaction* dbTx, const transaction& tx);
-    bool submitBlock(Storage::Transaction* dbTx, const block& newBlock,
+    std::tuple<bool, bool> submitTransaction(Storage::Transaction* dbTx, const transaction& tx);
+    std::tuple<bool, bool> submitBlock(Storage::Transaction* dbTx, const block& newBlock,
                      bool genesisBlock = false);
     friend class Consensus;
     friend class ContractRunner;

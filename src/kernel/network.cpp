@@ -288,6 +288,8 @@ void CryptoKernel::Network::networkFunc() {
                             blockchain->getBlockDB(blocks[0].getPreviousBlockId().toString());
                         } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
                             if(currentHeight == 1) {
+								// This peer has a different genesis block to us
+								changeScore(it->first, 250);
                                 break;
                             } else {
                                 currentHeight = std::max(1, (int)currentHeight - 5);
@@ -299,11 +301,15 @@ void CryptoKernel::Network::networkFunc() {
                     } while(running);
 
                     for(unsigned int i = 0; i < blocks.size() && running; i++) {
-
-                        if(!blockchain->submitBlock(blocks[i])) {
+						const auto blockResult = blockchain->submitBlock(blocks[i]);
+						
+                        if(std::get<1>(blockResult)) {
                             changeScore(it->first, 50);
-                            break;
                         }
+						
+						if(std::get<0>(blockResult)) {
+							break;
+						}
                     }
 
                     currentHeight = blockchain->getBlockDB("tip").getHeight();

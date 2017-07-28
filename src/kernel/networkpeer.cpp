@@ -49,7 +49,7 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request) {
 
     clientMutex.unlock();
 
-    for(unsigned int t = 0; t < 1500; t++) {
+    for(unsigned int t = 0; t < 1500 && running; t++) {
         clientMutex.lock();
         std::map<uint64_t, Json::Value>::iterator it = responses.find(nonce);
         if(it != responses.end()) {
@@ -112,7 +112,6 @@ void CryptoKernel::Network::Peer::requestFunc() {
 
             try {
                 if(!request["command"].empty()) {
-                    const double syncProgress = network->syncProgress();
                     if(request["command"] == "info") {
                         Json::Value response;
                         response["data"]["version"] = version;
@@ -124,46 +123,46 @@ void CryptoKernel::Network::Peer::requestFunc() {
                         response["nonce"] = request["nonce"].asUInt64();
                         send(response);
                     } else if(request["command"] == "transactions") {
-                        if(syncProgress >= 0.99) {
-                            std::vector<CryptoKernel::Blockchain::transaction> txs;
-                            for(unsigned int i = 0; i < request["data"].size(); i++) {
-                                const CryptoKernel::Blockchain::transaction tx = CryptoKernel::Blockchain::transaction(
-                                            request["data"][i]);
-                                const std::set<CryptoKernel::Blockchain::transaction> unconfirmedTransactions =
-                                    blockchain->getUnconfirmedTransactions();
-                                bool found = false;
-                                for(const CryptoKernel::Blockchain::transaction& utx : unconfirmedTransactions) {
-                                    if(utx.getId() == tx.getId()) {
-                                        found = true;
-                                        break;
-                                    }
-                                }
-                                if(blockchain->submitTransaction(tx) && !found) {
-                                    txs.push_back(tx);
-                                } else if(!found) {
-                                    network->changeScore(client->getRemoteAddress().toString(), 50);
-                                }
-                            }
+						std::vector<CryptoKernel::Blockchain::transaction> txs;
+						for(unsigned int i = 0; i < request["data"].size(); i++) {
+							const CryptoKernel::Blockchain::transaction tx = CryptoKernel::Blockchain::transaction(
+										request["data"][i]);
+							const std::set<CryptoKernel::Blockchain::transaction> unconfirmedTransactions =
+								blockchain->getUnconfirmedTransactions();
+							bool found = false;
+							for(const CryptoKernel::Blockchain::transaction& utx : unconfirmedTransactions) {
+								if(utx.getId() == tx.getId()) {
+									found = true;
+									break;
+								}
+							}
+							
+							const auto txResult = blockchain->submitTransaction(tx);
+							
+							if(std::get<0>(txResult) && !found) {
+								txs.push_back(tx);
+							} else if(std::get<1>(txResult)) {
+								network->changeScore(client->getRemoteAddress().toString(), 50);
+							}
+						}
 
-                            if(txs.size() > 0) {
-                                network->broadcastTransactions(txs);
-                            }
-                        }
+						if(txs.size() > 0) {
+							network->broadcastTransactions(txs);
+						}
                     } else if(request["command"] == "block") {
-                        if(syncProgress >= 0.99) {
-                            const CryptoKernel::Blockchain::block block = CryptoKernel::Blockchain::block(
-                                        request["data"]);
+						const CryptoKernel::Blockchain::block block = CryptoKernel::Blockchain::block(
+									request["data"]);
 
-                            try {
-                                blockchain->getBlockDB(block.getId().toString());
-                            } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
-                                if(blockchain->submitBlock(block, false)) {
-                                    network->broadcastBlock(block);
-                                } else {
-                                    network->changeScore(client->getRemoteAddress().toString(), 50);
-                                }
-                            }
-                        }
+						try {
+							blockchain->getBlockDB(block.getId().toString());
+						} catch(const CryptoKernel::Blockchain::NotFoundException& e) {
+							const auto blockResult = blockchain->submitBlock(block, false);
+							if(std::get<0>(blockResult)) {
+								network->broadcastBlock(block);
+							} else if(std::get<1>(blockResult)) {
+								network->changeScore(client->getRemoteAddress().toString(), 50);
+							}
+						}
                     } else if(request["command"] == "getunconfirmed") {
                         const std::set<CryptoKernel::Blockchain::transaction> unconfirmedTransactions =
                             blockchain->getUnconfirmedTransactions();

@@ -59,7 +59,7 @@ bool CryptoKernel::Blockchain::loadChain(CryptoKernel::Consensus* consensus) {
 
             block genesisBlock(CryptoKernel::Storage::toJson(buffer));
 
-            if(submitBlock(genesisBlock, true)) {
+            if(std::get<0>(submitBlock(genesisBlock, true))) {
                 log->printf(LOG_LEVEL_INFO, "blockchain(): Successfully imported genesis block");
             } else {
                 log->printf(LOG_LEVEL_WARN, "blockchain(): Failed to import genesis block");
@@ -74,7 +74,7 @@ bool CryptoKernel::Blockchain::loadChain(CryptoKernel::Consensus* consensus) {
             CryptoKernel::Crypto crypto(true);
             const block Block = generateVerifyingBlock(crypto.getPublicKey());
 
-            if(!submitBlock(Block, true)) {
+            if(!std::get<0>(submitBlock(Block, true))) {
                 log->printf(LOG_LEVEL_ERR, "blockchain(): Failed to import new genesis block");
             }
 
@@ -234,11 +234,11 @@ CryptoKernel::Blockchain::input CryptoKernel::Blockchain::getInput(
     return input(inputJson);
 }
 
-bool CryptoKernel::Blockchain::verifyTransaction(Storage::Transaction* dbTransaction,
+std::tuple<bool, bool> CryptoKernel::Blockchain::verifyTransaction(Storage::Transaction* dbTransaction,
         const transaction& tx, const bool coinbaseTx) {
     if(transactions->get(dbTransaction, tx.getId().toString()).isObject()) {
         log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): tx already exists");
-        return false;
+        return std::make_tuple(false, false);
     }
 
     uint64_t inputTotal = 0;
@@ -249,7 +249,7 @@ bool CryptoKernel::Blockchain::verifyTransaction(Storage::Transaction* dbTransac
                 stxos->get(dbTransaction, out.getId().toString()).isObject()) {
             log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Output already exists");
             //Duplicate output
-            return false;
+            return std::make_tuple(false, false);
         }
 
         outputTotal += out.getValue();
@@ -262,7 +262,7 @@ bool CryptoKernel::Blockchain::verifyTransaction(Storage::Transaction* dbTransac
         if(!outJson.isObject()) {
             log->printf(LOG_LEVEL_INFO,
                         "blockchain::verifyTransaction(): Output has already been spent");
-            return false;
+            return std::make_tuple(false, false);
         }
 
         const dbOutput out = dbOutput(outJson);
@@ -274,7 +274,7 @@ bool CryptoKernel::Blockchain::verifyTransaction(Storage::Transaction* dbTransac
             if(spendData["signature"].empty()) {
                 log->printf(LOG_LEVEL_INFO,
                             "blockchain::verifyTransaction(): Could not verify input signature");
-                return false;
+                return std::make_tuple(false, true);
             }
 
             CryptoKernel::Crypto crypto;
@@ -283,7 +283,7 @@ bool CryptoKernel::Blockchain::verifyTransaction(Storage::Transaction* dbTransac
                               spendData["signature"].asString())) {
                 log->printf(LOG_LEVEL_INFO,
                             "blockchain::verifyTransaction(): Could not verify input signature");
-                return false;
+                return std::make_tuple(false, true);
             }
         }
     }
@@ -292,55 +292,56 @@ bool CryptoKernel::Blockchain::verifyTransaction(Storage::Transaction* dbTransac
         if(outputTotal > inputTotal) {
             log->printf(LOG_LEVEL_INFO,
                         "blockchain::verifyTransaction(): The output total is greater than the input total");
-            return false;
+            return std::make_tuple(false, true);
         }
 
         uint64_t fee = inputTotal - outputTotal;
         if(fee < getTransactionFee(tx) * 0.5) {
             log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): tx fee is too low");
-            return false;
+            return std::make_tuple(false, true);
         }
     }
 
     CryptoKernel::ContractRunner lvm(this);
     if(!lvm.evaluateValid(dbTransaction, tx)) {
         log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Script returned false");
-        return false;
+        return std::make_tuple(false, true);
     }
 
     if(!consensus->verifyTransaction(dbTransaction, tx)) {
         log->printf(LOG_LEVEL_INFO,
                     "blockchain::verifyTransaction(): Could not verify custom rules");
-        return false;
+        return std::make_tuple(false, true);
     }
 
-    return true;
+    return std::make_tuple(true, false);
 }
 
-bool CryptoKernel::Blockchain::submitTransaction(const transaction& tx) {
+std::tuple<bool, bool> CryptoKernel::Blockchain::submitTransaction(const transaction& tx) {
     std::lock_guard<std::recursive_mutex> lock(chainLock);
     std::unique_ptr<Storage::Transaction> dbTx(blockdb->begin());
-    const bool result = submitTransaction(dbTx.get(), tx);
-    if(result) {
+    const auto result = submitTransaction(dbTx.get(), tx);
+    if(std::get<0>(result)) {
         dbTx->commit();
     }
     return result;
 }
 
-bool CryptoKernel::Blockchain::submitBlock(const block& newBlock, bool genesisBlock) {
+std::tuple<bool, bool> CryptoKernel::Blockchain::submitBlock(const block& newBlock, bool genesisBlock) {
     std::lock_guard<std::recursive_mutex> lock(chainLock);
     std::unique_ptr<Storage::Transaction> dbTx(blockdb->begin());
-    const bool result = submitBlock(dbTx.get(), newBlock, genesisBlock);
-    if(result) {
+    const auto result = submitBlock(dbTx.get(), newBlock, genesisBlock);
+    if(std::get<0>(result)) {
         dbTx->commit();
     }
     return result;
 }
 
-bool CryptoKernel::Blockchain::submitTransaction(Storage::Transaction* dbTx,
+std::tuple<bool, bool> CryptoKernel::Blockchain::submitTransaction(Storage::Transaction* dbTx,
         const transaction& tx) {
     std::lock_guard<std::recursive_mutex> lock(chainLock);
-    if(verifyTransaction(dbTx, tx)) {
+	const auto verifyResult = verifyTransaction(dbTx, tx); 
+    if(std::get<0>(verifyResult)) {
         if(consensus->submitTransaction(dbTx, tx)) {
             //Transaction has not already been verified
             bool found = false;
@@ -357,26 +358,26 @@ bool CryptoKernel::Blockchain::submitTransaction(Storage::Transaction* dbTx,
                 unconfirmedTransactions.insert(tx);
                 log->printf(LOG_LEVEL_INFO,
                             "blockchain::submitTransaction(): Received transaction we didn't already know about");
-                return true;
+                return std::make_tuple(true, false);
             } else {
                 //Transaction is already in the unconfirmed vector
                 log->printf(LOG_LEVEL_INFO,
                             "blockchain::submitTransaction(): Received transaction we already know about");
-                return true;
+                return std::make_tuple(true, false);
             }
         } else {
             log->printf(LOG_LEVEL_INFO,
                         "blockchain::submitTransaction(): Failed to submit transaction to consensus method");
-            return false;
+            return std::make_tuple(false, true);
         }
     } else {
         log->printf(LOG_LEVEL_INFO,
                     "blockchain::submitTransaction(): Failed to verify transaction");
-        return false;
+        return verifyResult;
     }
 }
 
-bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx,
+std::tuple<bool, bool> CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx,
         const block& newBlock, bool genesisBlock) {
     std::lock_guard<std::recursive_mutex> lock(chainLock);
 
@@ -384,7 +385,7 @@ bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx,
     //Check block does not already exist
     if(blocks->get(dbTx, idAsString).isObject()) {
         log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Block is already in main chain");
-        return true;
+        return std::make_tuple(true, false);
     }
 
     Json::Value previousBlockJson = blocks->get(dbTx,
@@ -398,7 +399,7 @@ bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx,
             previousBlockJson = candidates->get(dbTx, newBlock.getPreviousBlockId().toString());
             if(!previousBlockJson.isObject()) {
                 log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Previous block does not exist");
-                return false;
+                return std::make_tuple(false, false);
             }
 
             const block previousBlock = block(previousBlockJson);
@@ -410,13 +411,13 @@ bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx,
         //Check that the timestamp is realistic
         if(newBlock.getTimestamp() < previousBlock.getTimestamp()) {
             log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Timestamp is unrealistic");
-            return false;
+            return std::make_tuple(false, true);
         }
 
         if(!consensus->checkConsensusRules(dbTx, newBlock, previousBlock)) {
             log->printf(LOG_LEVEL_INFO,
                         "blockchain::submitBlock(): Consensus rules cannot verify this block");
-            return false;
+            return std::make_tuple(false, true);
         }
 
         const dbBlock tip = getBlockDB(dbTx, "tip");
@@ -428,7 +429,7 @@ bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx,
                 log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Forking the chain");
                 if(!reorgChain(dbTx, previousBlock.getId())) {
                     log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Alternative chain is not valid");
-                    return false;
+                    return std::make_tuple(false, true);
                 }
 
                 blockHeight = getBlockDB(dbTx, "tip").getHeight() + 1;
@@ -447,18 +448,18 @@ bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx,
         uint64_t fees = 0;
         //Verify Transactions
         for(const transaction& tx : newBlock.getTransactions()) {
-            if(!verifyTransaction(dbTx, tx)) {
+            if(!std::get<0>(verifyTransaction(dbTx, tx))) {
                 log->printf(LOG_LEVEL_INFO,
                             "blockchain::submitBlock(): Transaction could not be verified");
-                return false;
+                return std::make_tuple(false, true);
             }
             fees += calculateTransactionFee(dbTx, tx);
         }
 
-        if(!verifyTransaction(dbTx, newBlock.getCoinbaseTx(), true)) {
+        if(!std::get<0>(verifyTransaction(dbTx, newBlock.getCoinbaseTx(), true))) {
             log->printf(LOG_LEVEL_INFO,
                         "blockchain::submitBlock(): Coinbase transaction could not be verified");
-            return false;
+            return std::make_tuple(false, true);
         }
 
         uint64_t outputTotal = 0;
@@ -469,13 +470,13 @@ bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx,
         if(outputTotal != fees + getBlockReward(blockHeight)) {
             log->printf(LOG_LEVEL_INFO,
                         "blockchain::submitBlock(): Coinbase output is not the correct value");
-            return false;
+            return std::make_tuple(false, true);
         }
 
         if(!consensus->submitBlock(dbTx, newBlock)) {
             log->printf(LOG_LEVEL_INFO,
                         "blockchain::submitBlock(): Consensus submitBlock callback returned false");
-            return false;
+            return std::make_tuple(false, true);
         }
 
         confirmTransaction(dbTx, newBlock.getCoinbaseTx(), newBlock.getId(), true);
@@ -507,7 +508,7 @@ bool CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx,
                 "blockchain::submitBlock(): successfully submitted block: " +
                 CryptoKernel::Storage::toString(getBlockDB(dbTx, idAsString).toJson(), true));
 
-    return true;
+    return std::make_tuple(true, false);
 }
 
 void CryptoKernel::Blockchain::confirmTransaction(Storage::Transaction* dbTransaction,
@@ -560,7 +561,7 @@ bool CryptoKernel::Blockchain::reorgChain(Storage::Transaction* dbTransaction,
 
     //Submit new blocks
     while(!blockList.empty()) {
-        if(!submitBlock(dbTransaction, blockList.top())) {
+        if(!std::get<0>(submitBlock(dbTransaction, blockList.top()))) {
             //TODO: should probably blacklist this fork if this happens
 
             log->printf(LOG_LEVEL_WARN, "blockchain::reorgChain(): New chain failed to verify");
@@ -697,7 +698,7 @@ void CryptoKernel::Blockchain::reverseBlock(Storage::Transaction* dbTransaction)
 
         transactions->erase(dbTransaction, tx.getId().toString());
 
-        if(!submitTransaction(dbTransaction, tx)) {
+        if(!std::get<0>(submitTransaction(dbTransaction, tx))) {
             log->printf(LOG_LEVEL_ERR,
                         "Blockchain::reverseBlock(): previously moved transaction is now invalid");
         }
