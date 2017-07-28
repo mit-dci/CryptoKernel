@@ -49,12 +49,9 @@ Roadmap
 #### alpha v0.0.1 -- H
 - H -- Transaction Merkle root in block header
 - H -- Rule change signalling in block
-- L -- Wallet tracks unconfirmed transactions
-- L -- Wallet schema version detection
 - H -- Friedman rule emission schedule
 - H -- (Potentially) BRNDF instead of KGW for difficulty
 - H -- Lyra2REv2 as PoW function 
-- L -- RPC Server requires password
     
 #### alpha v0.1.0 -- S 
 - S -- Expand Lua contract standard library with more
@@ -64,6 +61,9 @@ for propagating contracts
 - S -- Schnorr signatures
 - L -- Seed addresses
 - L -- Standardised address format (not just public keys)
+- L -- RPC Server requires password
+- L -- Wallet schema version detection
+- L -- Wallet tracks unconfirmed transactions
 
 #### alpha v0.2.0
 - L -- HD key generation and recovery with seed
