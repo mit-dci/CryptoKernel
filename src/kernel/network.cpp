@@ -274,9 +274,9 @@ void CryptoKernel::Network::networkFunc() {
                     do {
                         log->printf(LOG_LEVEL_INFO,
                                     "Network(): Downloading blocks " + std::to_string(currentHeight + 1) + " to " +
-                                    std::to_string(currentHeight + 21));
+                                    std::to_string(currentHeight + 6));
                         try {
-                            blocks = it->second->peer->getBlocks(currentHeight + 1, currentHeight + 21);
+                            blocks = it->second->peer->getBlocks(currentHeight + 1, currentHeight + 6);
                         } catch(Peer::NetworkError& e) {
                             log->printf(LOG_LEVEL_WARN,
                                         "Network(): Failed to contact " + it->first + " " + e.what() +
@@ -290,7 +290,7 @@ void CryptoKernel::Network::networkFunc() {
                             if(currentHeight == 1) {
                                 break;
                             } else {
-                                currentHeight = std::max(1, (int)currentHeight - 20);
+                                currentHeight = std::max(1, (int)currentHeight - 5);
                                 continue;
                             }
                         }

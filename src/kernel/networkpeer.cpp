@@ -28,41 +28,39 @@ CryptoKernel::Network::Peer::~Peer() {
 Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request) {
     std::uniform_int_distribution<uint64_t> distribution(0,
             std::numeric_limits<uint64_t>::max());
-    for(unsigned int tries = 0; tries < 3; tries++) {
-        const uint64_t nonce = distribution(generator);
+    const uint64_t nonce = distribution(generator);
 
-        Json::Value modifiedRequest = request;
-        modifiedRequest["nonce"] = static_cast<unsigned long long int>(nonce);
-        requests[nonce] = true;
+    Json::Value modifiedRequest = request;
+    modifiedRequest["nonce"] = static_cast<unsigned long long int>(nonce);
+    requests[nonce] = true;
 
-        sf::Packet packet;
-        packet << CryptoKernel::Storage::toString(modifiedRequest, false);
+    sf::Packet packet;
+    packet << CryptoKernel::Storage::toString(modifiedRequest, false);
 
+    clientMutex.lock();
+
+    client->setBlocking(false);
+
+    if(client->send(packet) != sf::Socket::Done) {
+        running = false;
+        clientMutex.unlock();
+        throw NetworkError();
+    }
+
+    clientMutex.unlock();
+
+    for(unsigned int t = 0; t < 500; t++) {
         clientMutex.lock();
-
-        client->setBlocking(true);
-
-        if(client->send(packet) != sf::Socket::Done) {
-            running = false;
+        std::map<uint64_t, Json::Value>::iterator it = responses.find(nonce);
+        if(it != responses.end()) {
+            const Json::Value returning = it->second;
+            it = responses.erase(it);
             clientMutex.unlock();
-            throw NetworkError();
+            return returning;
         }
-
         clientMutex.unlock();
 
-        for(unsigned int t = 0; t < 500; t++) {
-            clientMutex.lock();
-            std::map<uint64_t, Json::Value>::iterator it = responses.find(nonce);
-            if(it != responses.end()) {
-                const Json::Value returning = it->second;
-                it = responses.erase(it);
-                clientMutex.unlock();
-                return returning;
-            }
-            clientMutex.unlock();
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
     running = false;
@@ -180,7 +178,7 @@ void CryptoKernel::Network::Peer::requestFunc() {
                     } else if(request["command"] == "getblocks") {
                         const uint64_t start = request["data"]["start"].asUInt64();
                         const uint64_t end = request["data"]["end"].asUInt64();
-                        if(end > start && (end - start) <= 20) {
+                        if(end > start && (end - start) <= 5) {
                             Json::Value returning;
                             for(unsigned int i = start; i < end; i++) {
                                 try {
