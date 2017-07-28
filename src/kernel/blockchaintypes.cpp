@@ -249,15 +249,16 @@ void CryptoKernel::Blockchain::transaction::checkRep(const bool coinbaseTx) {
 CryptoKernel::BigNum CryptoKernel::Blockchain::transaction::calculateId() {
     std::stringstream buffer;
 
-    for(const input& inp : inputs) {
-        buffer << inp.getId().toString();
-    }
+	if(!inputs.empty()) {
+		std::set<BigNum> inputIds;
+		for(const input& inp : inputs) {
+			inputIds.insert(inp.getId());
+		}
 
-    for(const output& out : outputs) {
-        buffer << out.getId().toString();
-    }
-
-    buffer << timestamp;
+		buffer << CryptoKernel::MerkleNode::makeMerkleTree(inputIds)->getMerkleRoot().toString();
+	}
+	
+	buffer << getOutputSetId().toString() << timestamp;
 
     CryptoKernel::Crypto crypto;
     return CryptoKernel::BigNum(crypto.sha256(buffer.str()));
@@ -277,14 +278,13 @@ CryptoKernel::BigNum CryptoKernel::Blockchain::transaction::getOutputSetId() con
 
 CryptoKernel::BigNum CryptoKernel::Blockchain::transaction::getOutputSetId(
     const std::set<output>& outputs) {
-    std::stringstream buffer;
-
+    
+	std::set<BigNum> outputIds;
     for(const output& out : outputs) {
-        buffer << out.getId().toString();
+        outputIds.insert(out.getId());
     }
 
-    CryptoKernel::Crypto crypto;
-    return CryptoKernel::BigNum(crypto.sha256(buffer.str()));
+    return CryptoKernel::MerkleNode::makeMerkleTree(outputIds)->getMerkleRoot();
 }
 
 uint64_t CryptoKernel::Blockchain::transaction::getTimestamp() const {
@@ -364,14 +364,12 @@ CryptoKernel::Blockchain::dbTransaction::dbTransaction(const transaction&
 
 CryptoKernel::BigNum CryptoKernel::Blockchain::dbTransaction::calculateId() {
     std::stringstream buffer;
+	
+	if(!inputs.empty()) {
+		buffer << CryptoKernel::MerkleNode::makeMerkleTree(inputs)->getMerkleRoot().toString();
+	}
 
-    for(const BigNum& inp : inputs) {
-        buffer << inp.toString();
-    }
-
-    for(const BigNum& out : outputs) {
-        buffer << out.toString();
-    }
+	buffer << CryptoKernel::MerkleNode::makeMerkleTree(outputs)->getMerkleRoot().toString();
 
     buffer << timestamp;
 
