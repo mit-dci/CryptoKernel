@@ -129,9 +129,9 @@ private:
     const uint64_t G = 100 * COIN;
     const uint64_t blocksPerYear = 210240;
     const long double k = 1 + (std::log(1 + 0.032) / blocksPerYear);
-    const long double r = 1 + (std::log(1 - 0.12) / blocksPerYear);
-    const uint64_t supplyAtSwitchover = 132474000 * COIN;
-    const uint64_t switchoverBlock = 2667032;
+    const long double r = 1 + (std::log(1 - 0.24) / blocksPerYear);
+    const uint64_t supplyAtSwitchover = 68720300 * COIN;
+    const uint64_t switchoverBlock = 1741620;
 
     uint64_t calcK(const uint64_t height) {
         const uint64_t supply = supplyAtSwitchover * std::pow(k, height - switchoverBlock);
