@@ -48,7 +48,7 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* c
     uint64_t now = static_cast<uint64_t> (t);
 
     while(running) {
-        if(/*network->getConnections() > 0 &&*/ network->syncProgress() >= 1) {
+        if(network->getConnections() > 0 && network->syncProgress() >= 0.9) {
             CryptoKernel::Blockchain::block Block = blockchain->generateVerifyingBlock((
                     *wallet->getAccountByName("mining").getKeys().begin()).pubKey);
             uint64_t nonce = 0;
