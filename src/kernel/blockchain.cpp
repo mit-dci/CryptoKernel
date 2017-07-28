@@ -100,7 +100,7 @@ CryptoKernel::Blockchain::~Blockchain() {
 std::set<CryptoKernel::Blockchain::transaction>
 CryptoKernel::Blockchain::getUnconfirmedTransactions() {
     chainLock.lock();
-    const std::set<CryptoKernel::Blockchain::transaction> returning = unconfirmedTransactions;
+    const std::set<CryptoKernel::Blockchain::transaction> returning = unconfirmedTransactions.getTransactions();
     chainLock.unlock();
 
     return returning;
@@ -343,28 +343,15 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::submitTransaction(Storage::Tran
 	const auto verifyResult = verifyTransaction(dbTx, tx); 
     if(std::get<0>(verifyResult)) {
         if(consensus->submitTransaction(dbTx, tx)) {
-            //Transaction has not already been verified
-            bool found = false;
-
-            //Check if transaction is already in the unconfirmed vector
-            for(const transaction& utx : unconfirmedTransactions) {
-                found = (utx.getId() == tx.getId());
-                if(found) {
-                    break;
-                }
-            }
-
-            if(!found) {
-                unconfirmedTransactions.insert(tx);
-                log->printf(LOG_LEVEL_INFO,
-                            "blockchain::submitTransaction(): Received transaction we didn't already know about");
-                return std::make_tuple(true, false);
-            } else {
-                //Transaction is already in the unconfirmed vector
-                log->printf(LOG_LEVEL_INFO,
-                            "blockchain::submitTransaction(): Received transaction we already know about");
-                return std::make_tuple(true, false);
-            }
+			if(unconfirmedTransactions.insert(tx)) {
+				log->printf(LOG_LEVEL_INFO,
+							"blockchain::submitTransaction(): Received transaction " + tx.getId().toString());
+				return std::make_tuple(true, false);
+			} else {
+				log->printf(LOG_LEVEL_WARN,
+							"blockchain::submitTransaction(): " + tx.getId().toString() + " has a mempool conflict");
+				return std::make_tuple(false, false);
+			}
         } else {
             log->printf(LOG_LEVEL_INFO,
                         "blockchain::submitTransaction(): Failed to submit transaction to consensus method");
@@ -498,6 +485,7 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::submitBlock(Storage::Transactio
         blocks->put(dbTx, "tip", blockAsJson);
         blocks->put(dbTx, std::to_string(blockHeight), Json::Value(idAsString), 0);
         blocks->put(dbTx, idAsString, blockAsJson);
+		unconfirmedTransactions.rescanMempool(dbTx, this);
     }
 
     if(genesisBlock) {
@@ -538,7 +526,7 @@ void CryptoKernel::Blockchain::confirmTransaction(Storage::Transaction* dbTransa
                       confirmingBlock, coinbaseTx).toJson());
 
     //Remove transaction from unconfirmed transactions vector
-    unconfirmedTransactions.erase(tx);
+    unconfirmedTransactions.remove(tx);
 }
 
 bool CryptoKernel::Blockchain::reorgChain(Storage::Transaction* dbTransaction,
@@ -682,6 +670,8 @@ void CryptoKernel::Blockchain::reverseBlock(Storage::Transaction* dbTransaction)
     }
 
     transactions->erase(dbTransaction, tip.getCoinbaseTx().getId().toString());
+	
+	std::set<transaction> replayTxs;
 
     for(const transaction& tx : tip.getTransactions()) {
         for(const output& out : tx.getOutputs()) {
@@ -698,10 +688,7 @@ void CryptoKernel::Blockchain::reverseBlock(Storage::Transaction* dbTransaction)
 
         transactions->erase(dbTransaction, tx.getId().toString());
 
-        if(!std::get<0>(submitTransaction(dbTransaction, tx))) {
-            log->printf(LOG_LEVEL_ERR,
-                        "Blockchain::reverseBlock(): previously moved transaction is now invalid");
-        }
+		replayTxs.insert(tx);
     }
 
     const dbBlock tipDB = getBlockDB(dbTransaction, "tip");
@@ -711,6 +698,15 @@ void CryptoKernel::Blockchain::reverseBlock(Storage::Transaction* dbTransaction)
                 tip.getPreviousBlockId().toString()).toJson());
 
     candidates->put(dbTransaction, tip.getId().toString(), tip.toJson());
+	
+	unconfirmedTransactions.rescanMempool(dbTransaction, this);
+	
+	for(const auto& tx : replayTxs) {
+		if(!std::get<0>(submitTransaction(dbTransaction, tx))) {
+            log->printf(LOG_LEVEL_ERR,
+                        "Blockchain::reverseBlock(): previously moved transaction is now invalid");
+        }
+	}
 }
 
 CryptoKernel::Blockchain::dbTransaction CryptoKernel::Blockchain::getTransactionDB(
@@ -757,4 +753,81 @@ CryptoKernel::Storage::Transaction* CryptoKernel::Blockchain::getTxHandle() {
     chainLock.lock();
     Storage::Transaction* dbTx = blockdb->begin(chainLock);
     return dbTx;
+}
+
+CryptoKernel::Blockchain::Mempool::Mempool() {
+	
+}
+
+bool CryptoKernel::Blockchain::Mempool::insert(const transaction& tx) {
+	// Check if any inputs or outputs conflict
+	for(const input& inp : tx.getInputs()) {
+		if(inputs.find(inp.getId()) != inputs.end()) {
+			return false;
+		}
+	}
+	
+	for(const output& out : tx.getOutputs()) {
+		if(outputs.find(out.getId()) != outputs.end()) {
+			return false;
+		}
+	}
+	
+	txs.insert(std::pair<BigNum, transaction>(tx.getId(), tx));
+
+	for(const input& inp : tx.getInputs()) {
+		inputs.insert(std::pair<BigNum, BigNum>(inp.getId(), tx.getId()));
+	}
+	
+	for(const output& out : tx.getOutputs()) {
+		outputs.insert(std::pair<BigNum, BigNum>(out.getId(), tx.getId()));
+	}
+
+	return true;
+}
+
+void CryptoKernel::Blockchain::Mempool::remove(const transaction& tx) {
+	if(txs.find(tx.getId()) != txs.end()) {
+		txs.erase(tx.getId());
+		
+		for(const input& inp : tx.getInputs()) {
+			inputs.erase(inp.getId());
+		}
+		
+		for(const output& out : tx.getOutputs()) {
+			outputs.erase(out.getId());
+		}
+	}
+}
+
+void CryptoKernel::Blockchain::Mempool::rescanMempool(Storage::Transaction* dbTx, Blockchain* blockchain) {
+	std::set<transaction> removals;
+	
+	for(const auto& it : txs) {
+		if(!std::get<0>(blockchain->verifyTransaction(dbTx, it.second))) {
+			removals.insert(it.second);
+		}
+	}
+	
+	for(const auto& tx : removals) {
+		remove(tx);
+	}
+}
+
+std::set<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::Mempool::getTransactions() const {
+	uint64_t totalSize = 0;
+	std::set<transaction> returning;
+	
+	for(const auto& it : txs) {
+		const uint64_t size = CryptoKernel::Storage::toString(it.second.toJson()).size();
+		if(totalSize + size < 3.9 * 1024 * 1024) {
+			returning.insert(it.second);
+			totalSize += size;
+			continue;
+		} 
+		
+		break;
+	}
+	
+	return returning;
 }

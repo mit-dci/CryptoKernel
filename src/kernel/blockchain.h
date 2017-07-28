@@ -21,6 +21,7 @@
 #include <vector>
 #include <set>
 #include <memory>
+#include <map>
 
 #include "storage.h"
 #include "log.h"
@@ -351,8 +352,23 @@ private:
     std::unique_ptr<Storage> blockdb;
     BigNum genesisBlockId;
     Log *log;
+	
+	class Mempool {
+		public:
+			Mempool();
+			
+			bool insert(const transaction& tx);
+			void remove(const transaction& tx);
+			std::set<transaction> getTransactions() const;
+			void rescanMempool(Storage::Transaction* dbTx, Blockchain* blockchain);
+	
+		private:
+			std::map<BigNum, transaction> txs;
+			std::map<BigNum, BigNum> outputs;
+			std::map<BigNum, BigNum> inputs;
+	};
 
-    std::set<transaction> unconfirmedTransactions;
+    Mempool unconfirmedTransactions;
     std::tuple<bool, bool> verifyTransaction(Storage::Transaction* dbTransaction, const transaction& tx,
                            const bool coinbaseTx = false);
     void confirmTransaction(Storage::Transaction* dbTransaction, const transaction& tx,
