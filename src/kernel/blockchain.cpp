@@ -395,11 +395,11 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::submitBlock(Storage::Transactio
 
         const dbBlock previousBlock = dbBlock(previousBlockJson);
 
-        //Check that the timestamp is realistic
+        /*//Check that the timestamp is realistic
         if(newBlock.getTimestamp() < previousBlock.getTimestamp()) {
             log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Timestamp is unrealistic");
             return std::make_tuple(false, true);
-        }
+        }*/
 
         if(!consensus->checkConsensusRules(dbTx, newBlock, previousBlock)) {
             log->printf(LOG_LEVEL_INFO,
