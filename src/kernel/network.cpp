@@ -307,7 +307,7 @@ void CryptoKernel::Network::networkFunc() {
                             changeScore(it->first, 50);
                         }
 						
-						if(std::get<0>(blockResult)) {
+					    if(!std::get<0>(blockResult)) {
 							break;
 						}
                     }
