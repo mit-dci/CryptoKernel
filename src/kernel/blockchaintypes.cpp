@@ -433,7 +433,7 @@ const {
 
 CryptoKernel::Blockchain::block::block(const std::set<transaction>& transactions,
                                        const transaction& coinbaseTx, const BigNum& previousBlockId, const uint64_t timestamp,
-                                       const Json::Value& consensusData, const uint64_t height)
+                                       const Json::Value& consensusData, const uint64_t height, const Json::Value data)
     : coinbaseTx(coinbaseTx.getInputs(), coinbaseTx.getOutputs(), coinbaseTx.getTimestamp(),
                  true) {
     this->transactions = transactions;
@@ -441,6 +441,7 @@ CryptoKernel::Blockchain::block::block(const std::set<transaction>& transactions
     this->timestamp = timestamp;
     this->consensusData = consensusData;
     this->height = height;
+	this->data = data;
 	
 	if(!this->transactions.empty()) {
 		std::set<BigNum> txIds;
@@ -462,6 +463,7 @@ CryptoKernel::Blockchain::block::block(const Json::Value& jsonBlock)
         timestamp = jsonBlock["timestamp"].asUInt64();
         previousBlockId = CryptoKernel::BigNum(jsonBlock["previousBlockId"].asString());
         consensusData = jsonBlock["consensusData"];
+		data = jsonBlock["data"];
 		
 		if(!jsonBlock["transactions"].empty()) {
 			transactionMerkleRoot = CryptoKernel::BigNum(jsonBlock["transactionMerkleRoot"].asString());
@@ -496,7 +498,8 @@ CryptoKernel::BigNum CryptoKernel::Blockchain::block::calculateId() {
         buffer << transactionMerkleRoot.toString();
     }
     
-    buffer << coinbaseTx.getId().toString() << previousBlockId.toString() << timestamp;
+    buffer << coinbaseTx.getId().toString() << previousBlockId.toString() << timestamp 
+		   << CryptoKernel::Storage::toString(data);
 
     CryptoKernel::Crypto crypto;
     return CryptoKernel::BigNum(crypto.sha256(buffer.str()));
@@ -507,6 +510,14 @@ void CryptoKernel::Blockchain::block::checkRep() {
     if(CryptoKernel::Storage::toString(toJson()).size() > 4 * 1024 * 1024) {
         throw InvalidElementException("Block is too large");
     }
+	
+	if(CryptoKernel::Storage::toString(data).size() > 100 * 1024) {
+		throw InvalidElementException("Data field is too large");
+	}
+	
+	if(!data.isObject() && !data.isNull()) {
+		throw InvalidElementException("Data field is neither an object or null");
+	}
 
     // Check for input/output conflicts
     unsigned int totalPuts = 0;
@@ -566,6 +577,7 @@ Json::Value CryptoKernel::Blockchain::block::toJson() const {
     returning["timestamp"] = static_cast<unsigned long long int>(timestamp);
     returning["consensusData"] = consensusData;
     returning["height"] = static_cast<unsigned long long int>(height);
+	returning["data"] = data;
 
     for(const transaction& tx : transactions) {
         returning["transactions"].append(tx.toJson());
@@ -576,6 +588,10 @@ Json::Value CryptoKernel::Blockchain::block::toJson() const {
 	}
 
     return returning;
+}
+
+Json::Value CryptoKernel::Blockchain::block::getData() const {
+	return data;
 }
 
 CryptoKernel::BigNum CryptoKernel::Blockchain::block::getTransactionMerkleRoot() const {
@@ -619,6 +635,7 @@ CryptoKernel::Blockchain::dbBlock::dbBlock(const Json::Value& jsonBlock) {
         timestamp = jsonBlock["timestamp"].asUInt64();
         height = jsonBlock["height"].asUInt64();
         consensusData = jsonBlock["consensusData"];
+		data = jsonBlock["data"];
 		
 		if(!jsonBlock["transactions"].empty()) {
 			transactionMerkleRoot = CryptoKernel::BigNum(jsonBlock["transactionMerkleRoot"].asString());
@@ -642,6 +659,7 @@ CryptoKernel::Blockchain::dbBlock::dbBlock(const block& compactBlock) {
     timestamp = compactBlock.getTimestamp();
     consensusData = compactBlock.getConsensusData();
     height = compactBlock.getHeight();
+	data = compactBlock.getData();
 
     for(const transaction& tx : compactBlock.getTransactions()) {
         transactions.insert(tx.getId());
@@ -663,6 +681,7 @@ CryptoKernel::Blockchain::dbBlock::dbBlock(const block& compactBlock,
     timestamp = compactBlock.getTimestamp();
     consensusData = compactBlock.getConsensusData();
     this->height = height;
+	data = compactBlock.getData();
 
     for(const transaction& tx : compactBlock.getTransactions()) {
         transactions.insert(tx.getId());
@@ -683,6 +702,14 @@ void CryptoKernel::Blockchain::dbBlock::checkRep() {
 			throw InvalidElementException("Transaction merkle root is incorrect");
 		}
 	}
+	
+	if(CryptoKernel::Storage::toString(data).size() > 100 * 1024) {
+		throw InvalidElementException("Data field is too large");
+	}
+	
+	if(!data.isObject() && !data.isNull()) {
+		throw InvalidElementException("Data field is neither an object or null");
+	}
 }
 
 CryptoKernel::BigNum CryptoKernel::Blockchain::dbBlock::calculateId() {
@@ -692,7 +719,8 @@ CryptoKernel::BigNum CryptoKernel::Blockchain::dbBlock::calculateId() {
         buffer << transactionMerkleRoot.toString();
     }
 
-    buffer << coinbaseTx.toString() << previousBlockId.toString() << timestamp;
+    buffer << coinbaseTx.toString() << previousBlockId.toString() << timestamp
+		   << CryptoKernel::Storage::toString(data);
 
     CryptoKernel::Crypto crypto;
     return CryptoKernel::BigNum(crypto.sha256(buffer.str()));
@@ -706,6 +734,7 @@ Json::Value CryptoKernel::Blockchain::dbBlock::toJson() const {
     returning["timestamp"] = static_cast<unsigned long long int>(timestamp);
     returning["consensusData"] = consensusData;
     returning["height"] = static_cast<unsigned long long int>(height);
+	returning["data"] = data;
 
     for(const BigNum& tx : transactions) {
         returning["transactions"].append(tx.toString());
@@ -716,6 +745,10 @@ Json::Value CryptoKernel::Blockchain::dbBlock::toJson() const {
 	}
 
     return returning;
+}
+
+Json::Value CryptoKernel::Blockchain::dbBlock::getData() const {
+	return data;
 }
 
 CryptoKernel::BigNum CryptoKernel::Blockchain::dbBlock::getTransactionMerkleRoot() const {

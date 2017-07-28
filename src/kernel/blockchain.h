@@ -147,7 +147,7 @@ public:
     public:
         block(const std::set<transaction>& transactions, const transaction& coinbaseTx,
               const BigNum& previousBlockId, const uint64_t timestamp, const Json::Value& consensusData,
-              const uint64_t height);
+              const uint64_t height, const Json::Value data = Json::nullValue);
         block(const Json::Value& jsonBlock);
 
         Json::Value toJson() const;
@@ -157,6 +157,7 @@ public:
         BigNum getPreviousBlockId() const;
         uint64_t getTimestamp() const;
         Json::Value getConsensusData() const;
+		Json::Value getData() const;
         uint64_t getHeight() const;
 		BigNum getTransactionMerkleRoot() const;
 
@@ -174,6 +175,7 @@ public:
         BigNum previousBlockId;
         uint64_t timestamp;
         Json::Value consensusData;
+		Json::Value data;
         uint64_t height;
 		BigNum transactionMerkleRoot;
 
@@ -193,6 +195,7 @@ public:
         BigNum getPreviousBlockId() const;
         uint64_t getTimestamp() const;
         Json::Value getConsensusData() const;
+		Json::Value getData() const;
 		BigNum getTransactionMerkleRoot() const;
 
         uint64_t getHeight() const;
@@ -209,6 +212,7 @@ public:
         BigNum previousBlockId;
         uint64_t timestamp;
         Json::Value consensusData;
+		Json::Value data;
         uint64_t height;
 		BigNum transactionMerkleRoot;
 
