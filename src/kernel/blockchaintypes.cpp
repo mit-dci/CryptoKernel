@@ -443,7 +443,16 @@ CryptoKernel::Blockchain::block::block(const std::set<transaction>& transactions
     this->timestamp = timestamp;
     this->consensusData = consensusData;
     this->height = height;
-
+	
+	if(!this->transactions.empty()) {
+		std::set<BigNum> txIds;
+		for(const auto& tx : transactions) {
+			txIds.insert(tx.getId());
+		}
+		
+		transactionMerkleRoot = CryptoKernel::MerkleNode::makeMerkleTree(txIds)->getMerkleRoot();
+	}
+	
     checkRep();
 
     id = calculateId();
@@ -455,7 +464,11 @@ CryptoKernel::Blockchain::block::block(const Json::Value& jsonBlock)
         timestamp = jsonBlock["timestamp"].asUInt64();
         previousBlockId = CryptoKernel::BigNum(jsonBlock["previousBlockId"].asString());
         consensusData = jsonBlock["consensusData"];
-
+		
+		if(!jsonBlock["transactions"].empty()) {
+			transactionMerkleRoot = CryptoKernel::BigNum(jsonBlock["transactionMerkleRoot"].asString());
+		}
+		
         for(const Json::Value& tx : jsonBlock["transactions"]) {
             transactions.insert(CryptoKernel::Blockchain::transaction(tx));
         }
@@ -482,14 +495,7 @@ CryptoKernel::BigNum CryptoKernel::Blockchain::block::calculateId() {
     std::stringstream buffer;
 
     if(!transactions.empty()) {
-        std::set<BigNum> transactionIds;
-        for(const transaction& tx : transactions) {
-            transactionIds.insert(tx.getId());
-        }
-        
-        auto merkleTree = MerkleNode::makeMerkleTree(transactionIds);
-
-        buffer << merkleTree->getMerkleRoot().toString();
+        buffer << transactionMerkleRoot.toString();
     }
     
     buffer << coinbaseTx.getId().toString() << previousBlockId.toString() << timestamp;
@@ -542,6 +548,17 @@ void CryptoKernel::Blockchain::block::checkRep() {
     if(totalInputs != inputIds.size()) {
         throw InvalidElementException("Block contains duplicate inputs");
     }
+	
+	if(!transactions.empty()) {
+		std::set<BigNum> txIds;
+		for(const auto& tx : transactions) {
+			txIds.insert(tx.getId());
+		}
+		
+		if(CryptoKernel::MerkleNode::makeMerkleTree(txIds)->getMerkleRoot() != transactionMerkleRoot) {
+			throw InvalidElementException("Transaction merkle root is incorrect");
+		}
+	}
 }
 
 Json::Value CryptoKernel::Blockchain::block::toJson() const {
@@ -555,8 +572,16 @@ Json::Value CryptoKernel::Blockchain::block::toJson() const {
     for(const transaction& tx : transactions) {
         returning["transactions"].append(tx.toJson());
     }
+	
+	if(!transactions.empty()) {
+		returning["transactionMerkleRoot"] = transactionMerkleRoot.toString();
+	}
 
     return returning;
+}
+
+CryptoKernel::BigNum CryptoKernel::Blockchain::block::getTransactionMerkleRoot() const {
+	return transactionMerkleRoot;
 }
 
 std::set<CryptoKernel::Blockchain::transaction>
@@ -596,6 +621,10 @@ CryptoKernel::Blockchain::dbBlock::dbBlock(const Json::Value& jsonBlock) {
         timestamp = jsonBlock["timestamp"].asUInt64();
         height = jsonBlock["height"].asUInt64();
         consensusData = jsonBlock["consensusData"];
+		
+		if(!jsonBlock["transactions"].empty()) {
+			transactionMerkleRoot = CryptoKernel::BigNum(jsonBlock["transactionMerkleRoot"].asString());
+		}
 
         for(const Json::Value& tx : jsonBlock["transactions"]) {
             transactions.insert(CryptoKernel::BigNum(tx.asString()));
@@ -614,11 +643,15 @@ CryptoKernel::Blockchain::dbBlock::dbBlock(const block& compactBlock) {
     previousBlockId = compactBlock.getPreviousBlockId();
     timestamp = compactBlock.getTimestamp();
     consensusData = compactBlock.getConsensusData();
-    this->height = compactBlock.getHeight();
+    height = compactBlock.getHeight();
 
     for(const transaction& tx : compactBlock.getTransactions()) {
         transactions.insert(tx.getId());
     }
+	
+	if(!transactions.empty()) {
+		transactionMerkleRoot = CryptoKernel::MerkleNode::makeMerkleTree(transactions)->getMerkleRoot();
+	}
 
     checkRep();
 
@@ -636,6 +669,10 @@ CryptoKernel::Blockchain::dbBlock::dbBlock(const block& compactBlock,
     for(const transaction& tx : compactBlock.getTransactions()) {
         transactions.insert(tx.getId());
     }
+	
+	if(!transactions.empty()) {
+		transactionMerkleRoot = CryptoKernel::MerkleNode::makeMerkleTree(transactions)->getMerkleRoot();
+	}
 
     checkRep();
 
@@ -643,16 +680,18 @@ CryptoKernel::Blockchain::dbBlock::dbBlock(const block& compactBlock,
 }
 
 void CryptoKernel::Blockchain::dbBlock::checkRep() {
-
+	if(!transactions.empty()) {
+		if(CryptoKernel::MerkleNode::makeMerkleTree(transactions)->getMerkleRoot() != transactionMerkleRoot) {
+			throw InvalidElementException("Transaction merkle root is incorrect");
+		}
+	}
 }
 
 CryptoKernel::BigNum CryptoKernel::Blockchain::dbBlock::calculateId() {
     std::stringstream buffer;
 
     if(!transactions.empty()) {
-        auto merkleTree = MerkleNode::makeMerkleTree(transactions);
-
-        buffer << merkleTree->getMerkleRoot().toString();
+        buffer << transactionMerkleRoot.toString();
     }
 
     buffer << coinbaseTx.toString() << previousBlockId.toString() << timestamp;
@@ -673,8 +712,16 @@ Json::Value CryptoKernel::Blockchain::dbBlock::toJson() const {
     for(const BigNum& tx : transactions) {
         returning["transactions"].append(tx.toString());
     }
+	
+	if(!transactions.empty()) {
+		returning["transactionMerkleRoot"] = transactionMerkleRoot.toString();
+	}
 
     return returning;
+}
+
+CryptoKernel::BigNum CryptoKernel::Blockchain::dbBlock::getTransactionMerkleRoot() const {
+	return transactionMerkleRoot;
 }
 
 std::set<CryptoKernel::BigNum> CryptoKernel::Blockchain::dbBlock::getTransactions()

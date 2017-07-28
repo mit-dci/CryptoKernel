@@ -157,6 +157,7 @@ public:
         uint64_t getTimestamp() const;
         Json::Value getConsensusData() const;
         uint64_t getHeight() const;
+		BigNum getTransactionMerkleRoot() const;
 
         void setConsensusData(const Json::Value& data);
 
@@ -173,6 +174,7 @@ public:
         uint64_t timestamp;
         Json::Value consensusData;
         uint64_t height;
+		BigNum transactionMerkleRoot;
 
         BigNum id;
     };
@@ -190,6 +192,7 @@ public:
         BigNum getPreviousBlockId() const;
         uint64_t getTimestamp() const;
         Json::Value getConsensusData() const;
+		BigNum getTransactionMerkleRoot() const;
 
         uint64_t getHeight() const;
 
@@ -206,6 +209,7 @@ public:
         uint64_t timestamp;
         Json::Value consensusData;
         uint64_t height;
+		BigNum transactionMerkleRoot;
 
         BigNum id;
     };
