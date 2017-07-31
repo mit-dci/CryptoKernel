@@ -143,15 +143,21 @@ void CryptoKernel::Network::Peer::requestFunc() {
                     } else if(request["command"] == "block") {
 						const CryptoKernel::Blockchain::block block = CryptoKernel::Blockchain::block(
 									request["data"]);
-
-						try {
-							blockchain->getBlockDB(block.getId().toString());
-						} catch(const CryptoKernel::Blockchain::NotFoundException& e) {
-							const auto blockResult = blockchain->submitBlock(block, false);
-							if(std::get<0>(blockResult)) {
-								network->broadcastBlock(block);
-							} else if(std::get<1>(blockResult)) {
-								network->changeScore(client->getRemoteAddress().toString(), 50);
+							
+						// Don't accept blocks that are more than two hours away from the current time
+						const int64_t now = std::time(nullptr);
+						if(std::abs(now - block.getTimestamp()) > 2 * 60 * 60) {
+							network->changeScore(client->getRemoteAddress().toString(), 50);
+						} else {
+							try {
+								blockchain->getBlockDB(block.getId().toString());
+							} catch(const CryptoKernel::Blockchain::NotFoundException& e) {
+								const auto blockResult = blockchain->submitBlock(block, false);
+								if(std::get<0>(blockResult)) {
+									network->broadcastBlock(block);
+								} else if(std::get<1>(blockResult)) {
+									network->changeScore(client->getRemoteAddress().toString(), 50);
+								}
 							}
 						}
                     } else if(request["command"] == "getunconfirmed") {
