@@ -33,6 +33,7 @@
 #include "version.h"
 #include "consensus/PoW.h"
 #include "httpserver.h"
+#include "base64.h"
 
 bool running;
 
@@ -180,7 +181,7 @@ int main(int argc, char* argv[]) {
                                               &network));
         }
         
-        jsonrpc::HttpServerLocal httpserver(8383, "", "", 1);
+        jsonrpc::HttpServerLocal httpserver(8383, "ckrpc", "password");
         CryptoServer server(httpserver);
         server.setWallet(&wallet, &blockchain, &network, &running);
         server.StartListening();
@@ -197,8 +198,13 @@ int main(int argc, char* argv[]) {
         }
     } else {
         std::string command(argv[1]);
+		
+		const std::string userpass = "ckrpc:password";
+		const std::string auth = base64_encode((unsigned char*)userpass.c_str(), userpass.size());
+		
         jsonrpc::HttpClient httpclient("http://127.0.0.1:8383");
         httpclient.SetTimeout(30000);
+		httpclient.AddHeader("Authorization", "Basic " + auth);
         CryptoClient client(httpclient);
 
         try {

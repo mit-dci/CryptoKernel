@@ -10,6 +10,7 @@
 
 #include "httpserver.h"
 #include <cstdlib>
+#include <cstring>
 #include <sstream>
 #include <iostream>
 #include <netinet/in.h>
@@ -28,13 +29,17 @@ struct mhd_coninfo {
         int code;
 };
 
-HttpServerLocal::HttpServerLocal(int port, const std::string &sslcert, const std::string &sslkey, int threads) :
+HttpServerLocal::HttpServerLocal(int port, const std::string& username, const std::string& password,
+								 const std::string &sslcert, const std::string &sslkey, 
+								 int threads) :
     AbstractServerConnector(),
     port(port),
     threads(threads),
     running(false),
     path_sslcert(sslcert),
     path_sslkey(sslkey),
+	username(username),
+	password(password),
     daemon(NULL)
 {
 }
@@ -100,9 +105,9 @@ bool HttpServerLocal::SendResponse(const string& response, void* addInfo)
 {
     struct mhd_coninfo* client_connection = static_cast<struct mhd_coninfo*>(addInfo);
     struct MHD_Response *result = MHD_create_response_from_buffer(response.size(),(void *) response.c_str(), MHD_RESPMEM_MUST_COPY);
-
-    MHD_add_response_header(result, "Content-Type", "application/json");
-    MHD_add_response_header(result, "Access-Control-Allow-Origin", "*");
+		
+	MHD_add_response_header(result, "Content-Type", "application/json");
+	MHD_add_response_header(result, "Access-Control-Allow-Origin", "*");
 
     int ret = MHD_queue_response(client_connection->connection, client_connection->code, result);
     MHD_destroy_response(result);
@@ -143,40 +148,64 @@ int HttpServerLocal::callback(void *cls, MHD_Connection *connection, const char 
     }
     struct mhd_coninfo* client_connection = static_cast<struct mhd_coninfo*>(*con_cls);
 
-    if (string("POST") == method)
-    {
-        if (*upload_data_size != 0)
-        {
-            client_connection->request.write(upload_data, *upload_data_size);
-            *upload_data_size = 0;
-            return MHD_YES;
-        }
-        else
-        {
-            string response;
-            IClientConnectionHandler* handler = client_connection->server->GetHandler(string(url));
-            if (handler == NULL)
-            {
-                client_connection->code = MHD_HTTP_INTERNAL_SERVER_ERROR;
-                client_connection->server->SendResponse("No client connection handler found", client_connection);
-            }
-            else
-            {
-                client_connection->code = MHD_HTTP_OK;
-                handler->HandleRequest(client_connection->request.str(), response);
-                client_connection->server->SendResponse(response, client_connection);
-            }
-        }
-    }
-	else if (string("OPTIONS") == method) {
-        client_connection->code = MHD_HTTP_OK;
-        client_connection->server->SendOptionsResponse(client_connection);
+	char* password = NULL;
+	char* username = MHD_basic_auth_get_username_password(client_connection->connection,
+														  &password);
+					
+	if(password != NULL && username != NULL) {
+		if(strcmp(password, client_connection->server->password.c_str()) == 0 
+		&& strcmp(username, client_connection->server->username.c_str()) == 0) {
+			if (string("POST") == method)
+			{
+				if (*upload_data_size != 0)
+				{
+					client_connection->request.write(upload_data, *upload_data_size);
+					*upload_data_size = 0;
+					return MHD_YES;
+				}
+				else
+				{
+					string response;
+					IClientConnectionHandler* handler = client_connection->server->GetHandler(string(url));
+					if (handler == NULL)
+					{
+						client_connection->code = MHD_HTTP_INTERNAL_SERVER_ERROR;
+						client_connection->server->SendResponse("No client connection handler found", client_connection);
+					}
+					else
+					{
+						client_connection->code = MHD_HTTP_OK;
+						handler->HandleRequest(client_connection->request.str(), response);
+						client_connection->server->SendResponse(response, client_connection);
+					}
+				}
+			}
+			else if (string("OPTIONS") == method) {
+				client_connection->code = MHD_HTTP_OK;
+				client_connection->server->SendOptionsResponse(client_connection);
+			}
+			else
+			{
+				client_connection->code = MHD_HTTP_METHOD_NOT_ALLOWED;
+				client_connection->server->SendResponse("Not allowed HTTP Method", client_connection);
+			}
+		} else {
+			client_connection->code = MHD_HTTP_UNAUTHORIZED;
+			client_connection->server->SendResponse("Username or password incorrect", client_connection);
+		}
+	} else {
+		client_connection->code = MHD_HTTP_UNAUTHORIZED;
+		client_connection->server->SendResponse("You must authenticate", client_connection);
 	}
-    else
-    {
-        client_connection->code = MHD_HTTP_METHOD_NOT_ALLOWED;
-        client_connection->server->SendResponse("Not allowed HTTP Method", client_connection);
-    }
+	
+	if(username != NULL) {
+		free(username);
+	}
+	
+	if(password != NULL) {
+		free(password);
+	}
+	
     delete client_connection;
     *con_cls = NULL;
 
