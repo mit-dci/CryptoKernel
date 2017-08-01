@@ -756,7 +756,7 @@ CryptoKernel::Storage::Transaction* CryptoKernel::Blockchain::getTxHandle() {
 }
 
 CryptoKernel::Blockchain::Mempool::Mempool() {
-	
+	bytes = 0;
 }
 
 bool CryptoKernel::Blockchain::Mempool::insert(const transaction& tx) {
@@ -778,6 +778,8 @@ bool CryptoKernel::Blockchain::Mempool::insert(const transaction& tx) {
 	}
 	
 	txs.insert(std::pair<BigNum, transaction>(tx.getId(), tx));
+    
+    bytes += tx.size();
 
 	for(const input& inp : tx.getInputs()) {
 		inputs.insert(std::pair<BigNum, BigNum>(inp.getId(), tx.getId()));
@@ -793,6 +795,8 @@ bool CryptoKernel::Blockchain::Mempool::insert(const transaction& tx) {
 void CryptoKernel::Blockchain::Mempool::remove(const transaction& tx) {
 	if(txs.find(tx.getId()) != txs.end()) {
 		txs.erase(tx.getId());
+        
+        bytes -= tx.size();
 		
 		for(const input& inp : tx.getInputs()) {
 			inputs.erase(inp.getId());
@@ -823,10 +827,9 @@ std::set<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::Mempoo
 	std::set<transaction> returning;
 	
 	for(const auto& it : txs) {
-		const uint64_t size = CryptoKernel::Storage::toString(it.second.toJson()).size();
-		if(totalSize + size < 3.9 * 1024 * 1024) {
+		if(totalSize + it.second.size() < 3.9 * 1024 * 1024) {
 			returning.insert(it.second);
-			totalSize += size;
+			totalSize += it.second.size();
 			continue;
 		} 
 		
@@ -834,4 +837,20 @@ std::set<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::Mempoo
 	}
 	
 	return returning;
+}
+
+unsigned int CryptoKernel::Blockchain::Mempool::count() const {
+    return txs.size();
+}
+
+unsigned int CryptoKernel::Blockchain::Mempool::size() const {
+    return bytes;
+}
+
+unsigned int CryptoKernel::Blockchain::mempoolCount() const {
+    return unconfirmedTransactions.count();
+}
+
+unsigned int CryptoKernel::Blockchain::mempoolSize() const {
+    return unconfirmedTransactions.size();
 }

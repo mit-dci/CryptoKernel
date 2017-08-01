@@ -186,6 +186,8 @@ CryptoKernel::Blockchain::transaction::transaction(const std::set<input>& inputs
     this->inputs = inputs;
     this->outputs = outputs;
     this->timestamp = timestamp;
+    
+    bytes = CryptoKernel::Storage::toString(toJson()).size();
 
     checkRep(coinbaseTx);
 
@@ -208,14 +210,20 @@ CryptoKernel::Blockchain::transaction::transaction(const Json::Value& jsonTransa
         throw InvalidElementException("Transaction JSON is malformed");
     }
 
+    bytes = CryptoKernel::Storage::toString(toJson()).size();
+
     checkRep(coinbaseTx);
 
     id = calculateId();
 }
 
+unsigned int CryptoKernel::Blockchain::transaction::size() const {
+    return bytes;
+}
+
 void CryptoKernel::Blockchain::transaction::checkRep(const bool coinbaseTx) {
     // Check for transaction size
-    if(CryptoKernel::Storage::toString(toJson()).size() > 100 * 1024) {
+    if(size() > 100 * 1024) {
         throw InvalidElementException("Transaction is too large");
     }
 

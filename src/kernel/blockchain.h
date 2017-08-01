@@ -130,6 +130,8 @@ public:
         static BigNum getOutputSetId(const std::set<output>& outputs);
 
         bool operator<(const transaction& rhs) const;
+        
+        unsigned int size() const;
 
     private:
         void checkRep(const bool coinbaseTx);
@@ -141,6 +143,8 @@ public:
         uint64_t timestamp;
 
         BigNum id;
+        
+        unsigned int bytes;
     };
 
     class block {
@@ -344,6 +348,9 @@ public:
     bool loadChain(Consensus* consensus);
 
     Storage::Transaction* getTxHandle();
+    
+    unsigned int mempoolCount() const;
+    unsigned int mempoolSize() const;
 
 private:
     std::unique_ptr<Storage::Table> blocks;
@@ -365,14 +372,20 @@ private:
 			void remove(const transaction& tx);
 			std::set<transaction> getTransactions() const;
 			void rescanMempool(Storage::Transaction* dbTx, Blockchain* blockchain);
+            
+            unsigned int count() const;
+            unsigned int size() const;
 	
 		private:
 			std::map<BigNum, transaction> txs;
 			std::map<BigNum, BigNum> outputs;
 			std::map<BigNum, BigNum> inputs;
+            
+            unsigned int bytes;
 	};
-
+    
     Mempool unconfirmedTransactions;
+    
     std::tuple<bool, bool> verifyTransaction(Storage::Transaction* dbTransaction, const transaction& tx,
                            const bool coinbaseTx = false);
     void confirmTransaction(Storage::Transaction* dbTransaction, const transaction& tx,

@@ -47,6 +47,14 @@ Json::Value CryptoServer::getinfo() {
     returning["height"] = static_cast<unsigned long long int>
                           (blockchain->getBlockDB("tip").getHeight());
     returning["connections"] = network->getConnections();
+    returning["mempool"]["count"] = blockchain->mempoolCount();
+    
+    buffer.str("");
+    buffer << std::setprecision(3) 
+           << (blockchain->mempoolSize() / double(1024 * 1024)) 
+           << " MB";
+    
+    returning["mempool"]["size"] = buffer.str();
 
     return returning;
 }
