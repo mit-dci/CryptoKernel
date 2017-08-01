@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <algorithm>
 #include <cmath>
+#include <fstream>
 #include <csignal>
 
 #include <jsonrpccpp/client/connectors/httpclient.h>
@@ -157,6 +158,15 @@ private:
 };
 
 int main(int argc, char* argv[]) {
+    std::ifstream t("config.json");
+    if(!t.is_open()) {
+        throw std::runtime_error("Could not open config file");
+    }
+    
+    std::string buffer((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
+    const Json::Value config = CryptoKernel::Storage::toJson(buffer);
+    t.close();
+    
     bool minerOn = true;
     if(argc == 2) {
         if(std::string(argv[1]) == "-nominer") {
@@ -181,7 +191,11 @@ int main(int argc, char* argv[]) {
                                               &network));
         }
         
-        jsonrpc::HttpServerLocal httpserver(8383, "ckrpc", "password");
+        jsonrpc::HttpServerLocal httpserver(8383, 
+                                            config["rpcuser"].asString(),
+                                            config["rpcpassword"].asString(),
+                                            config["sslcert"].asString(),
+                                            config["sslkey"].asString());
         CryptoServer server(httpserver);
         server.setWallet(&wallet, &blockchain, &network, &running);
         server.StartListening();
@@ -199,7 +213,9 @@ int main(int argc, char* argv[]) {
     } else {
         std::string command(argv[1]);
 		
-		const std::string userpass = "ckrpc:password";
+		const std::string userpass = config["rpcuser"].asString() 
+                                   + ":" 
+                                   + config["rpcpassword"].asString();
 		const std::string auth = base64_encode((unsigned char*)userpass.c_str(), userpass.size());
 		
         jsonrpc::HttpClient httpclient("http://127.0.0.1:8383");
