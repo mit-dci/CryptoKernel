@@ -18,8 +18,11 @@
 #include <sstream>
 #include <algorithm>
 #include <iomanip>
+#include <cstring>
 
 #include <openssl/sha.h>
+#include <openssl/evp.h>
+#include <openssl/rand.h>
 
 #include "crypto.h"
 #include "base64.h"
@@ -200,4 +203,125 @@ std::string base16_encode(unsigned char const* bytes_to_encode, unsigned int in_
         ss << std::setfill('0') << std::setw(2) << std::hex << (unsigned int)bytes_to_encode[i];
     }
     return ss.str();
+}
+
+CryptoKernel::AES256::AES256(const Json::Value& objJson) {
+    cipherText = objJson["cipherText"].asString();
+    
+    const std::string decodedIv = base64_decode(objJson["iv"].asString());
+    memcpy(&iv, decodedIv.c_str(), decodedIv.size());
+    
+    const std::string decodedSalt = base64_decode(objJson["salt"].asString());
+    memcpy(&salt, decodedSalt.c_str(), decodedSalt.size());
+}
+
+CryptoKernel::AES256::AES256(const std::string& password, const std::string& plainText) {
+    // Generate salt
+    if(!RAND_bytes(salt, sizeof(salt))) {
+        throw std::runtime_error("Could not generate random salt");
+    }
+    
+    unsigned char key[32];
+    
+    // Derive key from password
+    if(!PKCS5_PBKDF2_HMAC(password.c_str(), password.size(),
+                      (unsigned char*)&salt, sizeof(salt),
+                      2000,
+                      EVP_sha256(),
+                      sizeof(key), (unsigned char*)&key)) {
+        throw std::runtime_error("Failed to generate key from password");
+    }
+                      
+    
+    // Generate IV
+    if(!RAND_bytes(iv, sizeof(iv))) {
+        throw std::runtime_error("Could not generate random IV");
+    }
+    
+    // Encrypt plaintext
+    EVP_CIPHER_CTX* ctx;
+    if(!(ctx = EVP_CIPHER_CTX_new())) {
+        throw std::runtime_error("Could not create cipher context");
+    }
+    
+    if(!EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), nullptr,
+                           (unsigned char*)&key, (unsigned char*)&iv)) {
+        throw std::runtime_error("Could not start cipher");
+    }
+    
+    unsigned char cipherText[plainText.size() + 
+                             (sizeof(iv) - plainText.size() % sizeof(iv))];
+    int len;
+    int totalLen;
+    
+    if(!EVP_EncryptUpdate(ctx, (unsigned char*)&cipherText, &len, 
+                          (unsigned char*)plainText.c_str(), plainText.size())) {
+        throw std::runtime_error("Could not encrypt data");
+    }
+    totalLen = len;
+    
+    if(!EVP_EncryptFinal_ex(ctx, (unsigned char*)&cipherText + len, &len)) {
+        throw std::runtime_error("Could not finalise encryption");
+    }
+    totalLen += len;
+    
+    EVP_CIPHER_CTX_free(ctx);
+    
+    this->cipherText = base64_encode((unsigned char*)&cipherText, totalLen);
+}
+
+Json::Value CryptoKernel::AES256::toJson() const {
+    Json::Value returning;
+    
+    returning["iv"] = base64_encode((unsigned char*)&iv, sizeof(iv));
+    returning["salt"] = base64_encode((unsigned char*)&salt, sizeof(salt));
+    returning["cipherText"] = cipherText;
+    
+    return returning;
+}
+
+std::string CryptoKernel::AES256::decrypt(const std::string& password) const {
+    unsigned char key[32];
+    
+    // Derive key from password
+    if(!PKCS5_PBKDF2_HMAC(password.c_str(), password.size(),
+                      (unsigned char*)&salt, sizeof(salt),
+                      2000,
+                      EVP_sha256(),
+                      sizeof(key), (unsigned char*)&key)) {
+        throw std::runtime_error("Failed to generate key from password");
+    }
+                      
+    // Encrypt plaintext
+    EVP_CIPHER_CTX* ctx;
+    if(!(ctx = EVP_CIPHER_CTX_new())) {
+        throw std::runtime_error("Could not create cipher context");
+    }
+    
+    if(!EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), nullptr,
+                           (unsigned char*)&key, (unsigned char*)&iv)) {
+        throw std::runtime_error("Could not start cipher");
+    }
+    
+    unsigned char plainText[cipherText.size()];
+    int len;
+    int totalLen;
+    
+    const std::string decodedCipherText = base64_decode(cipherText);
+    
+    if(!EVP_DecryptUpdate(ctx, (unsigned char*)&plainText, &len, 
+                          (unsigned char*)decodedCipherText.c_str(), 
+                          decodedCipherText.size())) {
+        throw std::runtime_error("Could not decrypt data");
+    }
+    totalLen = len;
+    
+    if(!EVP_DecryptFinal_ex(ctx, (unsigned char*)&plainText + len, &len)) {
+        throw std::runtime_error("Could not finalise decryption");
+    }
+    totalLen += len;
+    
+    EVP_CIPHER_CTX_free(ctx);
+    
+    return std::string((char*)&plainText, totalLen);
 }
