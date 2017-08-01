@@ -12,6 +12,11 @@
 #include <cstdlib>
 #include <cstring>
 #include <sstream>
+
+#ifdef __unix__
+#include <netinet/in.h>
+#endif
+
 #include <jsonrpccpp/common/specificationparser.h>
 
 using namespace jsonrpc;
