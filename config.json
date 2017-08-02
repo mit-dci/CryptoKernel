@@ -1,5 +1,5 @@
 {
     "rpcuser": "ckrpc",
     "rpcpassword": "password",
-    "verbose":  true
+    "verbose":  false
 }
