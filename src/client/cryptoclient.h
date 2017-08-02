@@ -35,9 +35,11 @@ public:
         else
         { throw jsonrpc::JsonRpcException(jsonrpc::Errors::ERROR_CLIENT_INVALID_RESPONSE, result.toStyledString()); }
     }
-    Json::Value account(const std::string& account) throw (jsonrpc::JsonRpcException) {
+    Json::Value account(const std::string& account,
+                        const std::string& password) throw (jsonrpc::JsonRpcException) {
         Json::Value p;
         p["account"] = account;
+        p["password"] = password;
         Json::Value result = this->CallMethod("account",p);
         if (result.isObject())
         { return result; }
@@ -55,10 +57,12 @@ public:
         { throw jsonrpc::JsonRpcException(jsonrpc::Errors::ERROR_CLIENT_INVALID_RESPONSE, result.toStyledString()); }
     }
     std::string sendtoaddress(const std::string& address,
-                              double amount) throw (jsonrpc::JsonRpcException) {
+                              double amount,
+                              const std::string& password) throw (jsonrpc::JsonRpcException) {
         Json::Value p;
         p["address"] = address;
         p["amount"] = amount;
+        p["password"] = password;
         Json::Value result = this->CallMethod("sendtoaddress",p);
         if (result.isString())
         { return result.asString(); }
@@ -102,9 +106,11 @@ public:
         else
         { throw jsonrpc::JsonRpcException(jsonrpc::Errors::ERROR_CLIENT_INVALID_RESPONSE, result.toStyledString()); }
     }
-    Json::Value signtransaction(const Json::Value tx) throw (jsonrpc::JsonRpcException) {
+    Json::Value signtransaction(const Json::Value& tx,
+                                const std::string& password) throw (jsonrpc::JsonRpcException) {
         Json::Value p;
         p["transaction"] = tx;
+        p["password"] = password;
         Json::Value result = this->CallMethod("signtransaction",p);
         if (result.isObject())
         { return result; }
@@ -163,10 +169,12 @@ public:
         }
     }
     Json::Value importprivkey(const std::string& name,
-                              const std::string& key) throw (jsonrpc::JsonRpcException) {
+                              const std::string& key,
+                              const std::string& password) throw (jsonrpc::JsonRpcException) {
         Json::Value p;
         p["name"] = name;
         p["key"] = key;
+        p["password"] = password;
         const Json::Value result = this->CallMethod("importprivkey", p);
         if (result.isObject()) {
             return result;

@@ -40,12 +40,6 @@ bool running;
 
 void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* consensus,
            CryptoKernel::Wallet* wallet, CryptoKernel::Log* log, CryptoKernel::Network* network) {
-    try {
-        wallet->newAccount("mining");
-    } catch(const CryptoKernel::Wallet::WalletException& e) {
-
-    }
-
     time_t t = std::time(0);
     uint64_t now = static_cast<uint64_t> (t);
 
@@ -175,7 +169,7 @@ int main(int argc, char* argv[]) {
     }
 
     if(argc < 2 || !minerOn) {
-        CryptoKernel::Log log("CryptoKernel.log", true);
+        CryptoKernel::Log log("CryptoKernel.log", config["verbose"].asBool());
 
         running = true;
         std::signal(SIGINT, [](int signal) { running = false; });
@@ -227,19 +221,27 @@ int main(int argc, char* argv[]) {
             if(command == "getinfo") {
                 std::cout << client.getinfo().toStyledString() << std::endl;
             } else if(command == "account") {
-                if(argc == 3) {
+                if(argc >= 3) {
                     std::string name(argv[2]);
-                    std::cout << client.account(name).toStyledString() << std::endl;
+                    std::string password;
+                    if(argc == 4) {
+                        password = std::string(argv[3]);
+                    }
+                    std::cout << client.account(name, password).toStyledString() << std::endl;
                 } else {
-                    std::cout << "Usage: account [accountname]" << std::endl;
+                    std::cout << "Usage: account [accountname] [password]" << std::endl;
                 }
             } else if(command == "sendtoaddress") {
-                if(argc == 4) {
+                if(argc >= 4) {
                     std::string address(argv[2]);
                     double amount(std::strtod(argv[3], NULL));
-                    std::cout << client.sendtoaddress(address, amount) << std::endl;
+                    std::string password;
+                    if(argc == 5) {
+                        password = std::string(argv[4]);
+                    }
+                    std::cout << client.sendtoaddress(address, amount, password) << std::endl;
                 } else {
-                    std::cout << "Usage: sendtoaddress [address] [amount]" << std::endl;
+                    std::cout << "Usage: sendtoaddress [address] [amount] [password]" << std::endl;
                 }
             } else if(command == "listaccounts") {
                 std::cout << client.listaccounts().toStyledString() << std::endl;
@@ -269,22 +271,27 @@ int main(int argc, char* argv[]) {
             } else if(command == "stop") {
                 std::cout << client.stop().toStyledString() << std::endl;
             } else if(command == "importprivkey") {
-                if(argc == 4) {
-                    std::cout << client.importprivkey(std::string(argv[2]), std::string(argv[3]));
+                if(argc >= 4) {
+                    std::string password;
+                    if(argc == 5) {
+                        password = std::string(argv[4]);
+                    }
+                    std::cout << client.importprivkey(std::string(argv[2]), std::string(argv[3]),
+                                                      password);
                 } else {
-                    std::cout << "Usage: importprivkey [accountname] [privkey]" << std::endl;
+                    std::cout << "Usage: importprivkey [accountname] [privkey] [password]" << std::endl;
                 }
             } else {
                 std::cout << "CryptoKernel - Blockchain Development Toolkit - v" << version << "\n\n"
-                          << "account [accountname]\n"
+                          << "account [accountname] [password]\n"
                           << "compilecontract [code]\n"
                           << "getblockbyheight [height]\n"
                           << "getinfo\n"
-                          << "importprivkey [accountname] [privkey]\n"
+                          << "importprivkey [accountname] [privkey] [password]\n"
                           << "listaccounts\n"
                           << "listtransactions\n"
                           << "listunspentoutputs [accountname]\n"
-                          << "sendtoaddress [address] [amount]\n"
+                          << "sendtoaddress [address] [amount] [password]\n"
                           << "stop\n";
             }
         } catch(jsonrpc::JsonRpcException e) {

@@ -221,18 +221,8 @@ CryptoKernel::AES256::AES256(const std::string& password, const std::string& pla
         throw std::runtime_error("Could not generate random salt");
     }
     
-    unsigned char key[32];
-    
-    // Derive key from password
-    if(!PKCS5_PBKDF2_HMAC(password.c_str(), password.size(),
-                      (unsigned char*)&salt, sizeof(salt),
-                      2000,
-                      EVP_sha256(),
-                      sizeof(key), (unsigned char*)&key)) {
-        throw std::runtime_error("Failed to generate key from password");
-    }
+    const auto key = genKey(password);
                       
-    
     // Generate IV
     if(!RAND_bytes(iv, sizeof(iv))) {
         throw std::runtime_error("Could not generate random IV");
@@ -245,7 +235,7 @@ CryptoKernel::AES256::AES256(const std::string& password, const std::string& pla
     }
     
     if(!EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), nullptr,
-                           (unsigned char*)&key, (unsigned char*)&iv)) {
+                           key.get(), (unsigned char*)&iv)) {
         throw std::runtime_error("Could not start cipher");
     }
     
@@ -280,17 +270,8 @@ Json::Value CryptoKernel::AES256::toJson() const {
     return returning;
 }
 
-std::string CryptoKernel::AES256::decrypt(const std::string& password) const {
-    unsigned char key[32];
-    
-    // Derive key from password
-    if(!PKCS5_PBKDF2_HMAC(password.c_str(), password.size(),
-                      (unsigned char*)&salt, sizeof(salt),
-                      2000,
-                      EVP_sha256(),
-                      sizeof(key), (unsigned char*)&key)) {
-        throw std::runtime_error("Failed to generate key from password");
-    }
+std::string CryptoKernel::AES256::decrypt(const std::string& password) const {  
+    const auto key = genKey(password);
                       
     // Encrypt plaintext
     EVP_CIPHER_CTX* ctx;
@@ -299,7 +280,7 @@ std::string CryptoKernel::AES256::decrypt(const std::string& password) const {
     }
     
     if(!EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), nullptr,
-                           (unsigned char*)&key, (unsigned char*)&iv)) {
+                           key.get(), (unsigned char*)&iv)) {
         throw std::runtime_error("Could not start cipher");
     }
     
@@ -324,4 +305,19 @@ std::string CryptoKernel::AES256::decrypt(const std::string& password) const {
     EVP_CIPHER_CTX_free(ctx);
     
     return std::string((char*)&plainText, totalLen);
+}
+
+std::shared_ptr<unsigned char> CryptoKernel::AES256::genKey(const std::string& password) const {
+    std::shared_ptr<unsigned char> key(new unsigned char[32]);
+    
+    // Derive key from password
+    if(!PKCS5_PBKDF2_HMAC(password.c_str(), password.size(),
+                          (unsigned char*)&salt, sizeof(salt),
+                          100000,
+                          EVP_sha256(),
+                          32, key.get())) {
+        throw std::runtime_error("Failed to generate key from password");
+    }
+    
+    return key;
 }

@@ -38,7 +38,7 @@ void CryptoServer::setWallet(CryptoKernel::Wallet* Wallet,
 Json::Value CryptoServer::getinfo() {
     Json::Value returning;
 
-    returning["rpc_version"] = "1.2.0-dev";
+    returning["rpc_version"] = "2.0.0-dev";
     returning["ck_version"] = version;
     double balance = wallet->getTotalBalance() / 100000000.0;
     std::stringstream buffer;
@@ -59,16 +59,18 @@ Json::Value CryptoServer::getinfo() {
     return returning;
 }
 
-Json::Value CryptoServer::account(const std::string& account) {
+Json::Value CryptoServer::account(const std::string& account,
+                                  const std::string& password) {
     Json::Value returning;
+    Json::Value accJson;
 
     try {
-        wallet->newAccount(account);
+        accJson = wallet->getAccountByName(account).toJson();
     } catch(const CryptoKernel::Wallet::WalletException& e) {
-
-    }
-
-    CryptoKernel::Wallet::Account newAccount = wallet->getAccountByName(account);
+        accJson = wallet->newAccount(account, password).toJson();
+    }   
+    
+    const auto newAccount = CryptoKernel::Wallet::Account(accJson);
 
     returning["name"] = newAccount.getName();
     double balance = newAccount.getBalance() / 100000000.0;
@@ -79,16 +81,17 @@ Json::Value CryptoServer::account(const std::string& account) {
     for(const auto& addr : newAccount.getKeys()) {
         Json::Value keyPair;
         keyPair["pubKey"] = addr.pubKey;
-        keyPair["privKey"] = addr.privKey;
+        keyPair["privKey"] = addr.privKey->toJson();
         returning["keys"].append(keyPair);
     }
 
     return returning;
 }
 
-std::string CryptoServer::sendtoaddress(const std::string& address, double amount) {
+std::string CryptoServer::sendtoaddress(const std::string& address, double amount, 
+                                        const std::string& password) {
     uint64_t Amount = amount * 100000000;
-    return wallet->sendToAddress(address, Amount);
+    return wallet->sendToAddress(address, Amount, password);
 }
 
 bool CryptoServer::sendrawtransaction(const Json::Value tx) {
@@ -126,7 +129,7 @@ Json::Value CryptoServer::listaccounts() {
         for(const auto& addr : acc.getKeys()) {
             Json::Value keyPair;
             keyPair["pubKey"] = addr.pubKey;
-            keyPair["privKey"] = addr.privKey;
+            keyPair["privKey"] = addr.privKey->toJson();
             account["keys"].append(keyPair);
         }
 
@@ -174,12 +177,12 @@ std::string CryptoServer::calculateoutputid(const Json::Value output) {
     }
 }
 
-Json::Value CryptoServer::signtransaction(const Json::Value tx) {
+Json::Value CryptoServer::signtransaction(const Json::Value& tx, const std::string& password) {
     try {
         const CryptoKernel::Blockchain::transaction transaction =
             CryptoKernel::Blockchain::transaction(tx);
 
-        return wallet->signTransaction(transaction).toJson();
+        return wallet->signTransaction(transaction, password).toJson();
     } catch(CryptoKernel::Blockchain::InvalidElementException e) {
         return Json::Value();
     }
@@ -232,9 +235,10 @@ Json::Value CryptoServer::gettransaction(const std::string& id) {
     }
 }
 
-Json::Value CryptoServer::importprivkey(const std::string& name, const std::string& key) {
+Json::Value CryptoServer::importprivkey(const std::string& name, const std::string& key,
+                                        const std::string& password) {
     try {
-        return wallet->importPrivKey(name, key).toJson();
+        return wallet->importPrivKey(name, key, password).toJson();
     } catch(const CryptoKernel::Wallet::WalletException& e) {
         return Json::Value();
     }

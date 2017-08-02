@@ -18,11 +18,13 @@
 #ifndef CRYPTO_H_INCLUDED
 #define CRYPTO_H_INCLUDED
 
+#include <string>
+#include <memory>
+
 #include <openssl/ec.h>
 #include <openssl/ecdsa.h>
 #include <openssl/obj_mac.h>
 #include <jsoncpp/json/value.h>
-#include <string>
 
 namespace CryptoKernel {
 
@@ -127,6 +129,8 @@ class AES256 {
         unsigned char salt[32];
         unsigned char iv[16];
         std::string cipherText;
+        
+        std::shared_ptr<unsigned char> genKey(const std::string& password) const;
 };
 
 }

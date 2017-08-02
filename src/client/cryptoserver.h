@@ -30,9 +30,11 @@ public:
         this->bindAndAddMethod(jsonrpc::Procedure("getinfo", jsonrpc::PARAMS_BY_NAME,
                                jsonrpc::JSON_OBJECT,  NULL), &CryptoRPCServer::getinfoI);
         this->bindAndAddMethod(jsonrpc::Procedure("account", jsonrpc::PARAMS_BY_NAME,
-                               jsonrpc::JSON_OBJECT, "account",jsonrpc::JSON_STRING, NULL), &CryptoRPCServer::accountI);
+                               jsonrpc::JSON_OBJECT, "account",jsonrpc::JSON_STRING,
+                               "password", jsonrpc::JSON_STRING, NULL), &CryptoRPCServer::accountI);
         this->bindAndAddMethod(jsonrpc::Procedure("sendtoaddress", jsonrpc::PARAMS_BY_NAME,
-                               jsonrpc::JSON_STRING, "address",jsonrpc::JSON_STRING,"amount",jsonrpc::JSON_REAL, NULL),
+                               jsonrpc::JSON_STRING, "address",jsonrpc::JSON_STRING,"amount",
+                               jsonrpc::JSON_REAL, "password", jsonrpc::JSON_STRING, NULL),
                                &CryptoRPCServer::sendtoaddressI);
         this->bindAndAddMethod(jsonrpc::Procedure("sendrawtransaction", jsonrpc::PARAMS_BY_NAME,
                                jsonrpc::JSON_BOOLEAN, "transaction",jsonrpc::JSON_OBJECT, NULL),
@@ -49,8 +51,9 @@ public:
                                jsonrpc::JSON_STRING, "output",jsonrpc::JSON_OBJECT, NULL),
                                &CryptoRPCServer::calculateoutputidI);
         this->bindAndAddMethod(jsonrpc::Procedure("signtransaction", jsonrpc::PARAMS_BY_NAME,
-                               jsonrpc::JSON_OBJECT, "transaction",jsonrpc::JSON_OBJECT, NULL),
-                               &CryptoRPCServer::signtransactionI);
+                               jsonrpc::JSON_OBJECT, "transaction",jsonrpc::JSON_OBJECT, 
+                                                  "password", jsonrpc::JSON_STRING, NULL),
+                                                  &CryptoRPCServer::signtransactionI);
         this->bindAndAddMethod(jsonrpc::Procedure("listtransactions", jsonrpc::PARAMS_BY_NAME,
                                jsonrpc::JSON_OBJECT, NULL), &CryptoRPCServer::listtransactionsI);
         this->bindAndAddMethod(jsonrpc::Procedure("getblockbyheight", jsonrpc::PARAMS_BY_NAME,
@@ -64,7 +67,8 @@ public:
                                jsonrpc::JSON_OBJECT, "id", jsonrpc::JSON_STRING, NULL),
                                &CryptoRPCServer::gettransactionI);
         this->bindAndAddMethod(jsonrpc::Procedure("importprivkey", jsonrpc::PARAMS_BY_NAME,
-                               jsonrpc::JSON_OBJECT, "key", jsonrpc::JSON_STRING, "name", jsonrpc::JSON_STRING, NULL),
+                               jsonrpc::JSON_OBJECT, "key", jsonrpc::JSON_STRING, "name", 
+                               jsonrpc::JSON_STRING, "password", jsonrpc::JSON_STRING, NULL),
                                &CryptoRPCServer::importprivkeyI);
     }
 
@@ -72,11 +76,12 @@ public:
         response = this->getinfo();
     }
     inline virtual void accountI(const Json::Value &request, Json::Value &response) {
-        response = this->account(request["account"].asString());
+        response = this->account(request["account"].asString(), request["password"].asString());
     }
     inline virtual void sendtoaddressI(const Json::Value &request, Json::Value &response) {
         response = this->sendtoaddress(request["address"].asString(),
-                                       request["amount"].asDouble());
+                                       request["amount"].asDouble(),
+                                       request["password"].asString());
     }
     inline virtual void sendrawtransactionI(const Json::Value &request,
                                             Json::Value &response) {
@@ -97,7 +102,7 @@ public:
         response = this->calculateoutputid(request["output"]);
     }
     inline virtual void signtransactionI(const Json::Value &request, Json::Value &response) {
-        response = this->signtransaction(request["transaction"]);
+        response = this->signtransaction(request["transaction"], request["password"].asString());
     }
     inline virtual void listtransactionsI(const Json::Value &request, Json::Value &response) {
         response = this->listtransactions();
@@ -115,23 +120,26 @@ public:
         response = this->gettransaction(request["id"].asString());
     }
     inline virtual void importprivkeyI(const Json::Value &request, Json::Value &response) {
-        response = this->importprivkey(request["name"].asString(), request["key"].asString());
+        response = this->importprivkey(request["name"].asString(), request["key"].asString(),
+                                       request["password"].asString());
     }
     virtual Json::Value getinfo() = 0;
-    virtual Json::Value account(const std::string& account) = 0;
-    virtual std::string sendtoaddress(const std::string& address, double amount) = 0;
+    virtual Json::Value account(const std::string& account, const std::string& password) = 0;
+    virtual std::string sendtoaddress(const std::string& address, double amount,
+                                      const std::string& password) = 0;
     virtual bool sendrawtransaction(const Json::Value tx) = 0;
     virtual Json::Value listaccounts() = 0;
     virtual Json::Value listunspentoutputs(const std::string& account) = 0;
     virtual std::string compilecontract(const std::string& code) = 0;
     virtual std::string calculateoutputid(const Json::Value output) = 0;
-    virtual Json::Value signtransaction(const Json::Value tx) = 0;
+    virtual Json::Value signtransaction(const Json::Value& tx, const std::string& password) = 0;
     virtual Json::Value listtransactions() = 0;
     virtual Json::Value getblockbyheight(const uint64_t height) = 0;
     virtual bool stop() = 0;
     virtual Json::Value getblock(const std::string& id) = 0;
     virtual Json::Value gettransaction(const std::string& id) = 0;
-    virtual Json::Value importprivkey(const std::string& name, const std::string& key) = 0;
+    virtual Json::Value importprivkey(const std::string& name, const std::string& key,
+                                      const std::string& password) = 0;
 };
 
 class CryptoServer : public CryptoRPCServer {
@@ -139,8 +147,9 @@ public:
     CryptoServer(jsonrpc::AbstractServerConnector &connector);
 
     virtual Json::Value getinfo();
-    virtual Json::Value account(const std::string& account);
-    virtual std::string sendtoaddress(const std::string& address, double amount);
+    virtual Json::Value account(const std::string& account, const std::string& password);
+    virtual std::string sendtoaddress(const std::string& address, double amount,
+                                      const std::string& password);
     virtual bool sendrawtransaction(const Json::Value tx);
     void setWallet(CryptoKernel::Wallet* Wallet, CryptoKernel::Blockchain* Blockchain,
                    CryptoKernel::Network* Network, bool* running);
@@ -148,13 +157,14 @@ public:
     virtual Json::Value listunspentoutputs(const std::string& account);
     virtual std::string compilecontract(const std::string& code);
     virtual std::string calculateoutputid(const Json::Value output);
-    virtual Json::Value signtransaction(const Json::Value tx);
+    virtual Json::Value signtransaction(const Json::Value& tx, const std::string& password);
     virtual Json::Value listtransactions();
     virtual Json::Value getblockbyheight(const uint64_t height);
     virtual bool stop();
     virtual Json::Value getblock(const std::string& id);
     virtual Json::Value gettransaction(const std::string& id);
-    virtual Json::Value importprivkey(const std::string& name, const std::string& key);
+    virtual Json::Value importprivkey(const std::string& name, const std::string& key,
+                                      const std::string& password);
 
 private:
     CryptoKernel::Wallet* wallet;

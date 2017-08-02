@@ -16,6 +16,7 @@
 */
 
 #include <sstream>
+#include <iostream>
 
 #include "wallet.h"
 #include "crypto.h"
@@ -34,10 +35,19 @@ CryptoKernel::Wallet::Wallet(CryptoKernel::Blockchain* blockchain,
 
     std::unique_ptr<CryptoKernel::Storage::Transaction> dbTx(walletdb->begin());
     const Json::Value height = params->get(dbTx.get(), "height");
+    const Json::Value schemaV = params->get(dbTx.get(), "schemaVersion");
+    schemaVersion = schemaV.asUInt64();
     if(height.isNull()) {
         params->put(dbTx.get(), "height", Json::Value(0));
         params->put(dbTx.get(), "tipId", Json::Value(""));
+        params->put(dbTx.get(), "schemaVersion", Json::Value(LATEST_WALLET_SCHEMA));
         dbTx->commit();
+    } else if(schemaVersion < LATEST_WALLET_SCHEMA) {
+        // Upgrade required
+        dbTx->abort();
+        upgradeWallet();
+    } else if(schemaVersion > LATEST_WALLET_SCHEMA) {
+        throw std::runtime_error("Wallet schema version is newer than this software");
     }
 
     const time_t t = std::time(0);
@@ -50,6 +60,79 @@ CryptoKernel::Wallet::Wallet(CryptoKernel::Blockchain* blockchain,
 CryptoKernel::Wallet::~Wallet() {
     running = false;
     watchThread->join();
+}
+
+void CryptoKernel::Wallet::upgradeWallet() {
+    log->printf(LOG_LEVEL_INFO, "Wallet(): Wallet upgrade started " + std::to_string(schemaVersion) 
+                                + " -> " + std::to_string(LATEST_WALLET_SCHEMA));
+    if(schemaVersion == 0) {
+        // Ask for wallet passphrase
+        std::string password;
+        std::string passwordConfirm;
+        
+        while(password != passwordConfirm || password.size() < 8) {
+            password.clear();
+            passwordConfirm.clear();
+            
+            std::cout << "Enter new wallet passphrase (min 8 chars): ";
+            std::cin >> password;
+            
+            std::cout << "Confirm passphrase: ";
+            std::cin >> passwordConfirm;
+        }
+        
+        std::vector<Json::Value> accountsJson;
+        
+        // Encrypt private keys
+        auto it = new CryptoKernel::Storage::Table::Iterator(accounts.get(), walletdb.get());
+        for(it->SeekToFirst(); it->Valid(); it->Next()) {
+            accountsJson.push_back(it->value());
+        }
+        delete it;
+        
+        std::unique_ptr<CryptoKernel::Storage::Transaction> dbTx(walletdb->begin());
+        
+        AES256 pwCheck(password, "CORRECT");
+        params->put(dbTx.get(), "pwcheck", pwCheck.toJson());
+        
+        for(auto& acc : accountsJson) {
+            for(auto& key : acc["keys"]) {
+                AES256 crypt(password, key["privKey"].asString());
+                key["privKey"] = crypt.toJson();
+            }
+            
+            accounts->put(dbTx.get(), acc["name"].asString(), acc);
+        }
+        
+        params->put(dbTx.get(), "schemaVersion", Json::Value(1));
+        
+        dbTx->commit();
+        
+        std::cout << "Wallet successfully encrypted" << std::endl;
+        
+        try {
+            newAccount("mining", password);
+        } catch(const WalletException& e) {}
+    }
+    
+    schemaVersion = LATEST_WALLET_SCHEMA;
+    
+    log->printf(LOG_LEVEL_INFO, "Wallet(): Wallet upgrade complete");
+}
+
+bool CryptoKernel::Wallet::checkPassword(const std::string& password) {
+    std::unique_ptr<CryptoKernel::Storage::Transaction> dbTx(walletdb->begin());
+    
+    AES256 pwCheck(params->get(dbTx.get(), "pwcheck"));
+    try {
+        if(pwCheck.decrypt(password) == "CORRECT") {
+            return true;
+        }
+    } catch(const std::runtime_error& e) {
+        return false;
+    }
+    
+    return false;
 }
 
 void CryptoKernel::Wallet::watchFunc() {
@@ -277,11 +360,11 @@ void CryptoKernel::Wallet::digestBlock(CryptoKernel::Storage::Transaction* walle
     params->put(walletTx, "tipId", Json::Value(block.getId().toString()));
 }
 
-CryptoKernel::Wallet::Account::Account(const std::string& name) {
+CryptoKernel::Wallet::Account::Account(const std::string& name, const std::string& password) {
     this->name = name;
     balance = 0;
 
-    const keyPair newKey = newAddress();
+    const keyPair newKey = newAddress(password);
     keys.insert(newKey);
 }
 
@@ -294,7 +377,7 @@ Json::Value CryptoKernel::Wallet::Account::toJson() const {
     for(const keyPair& key : keys) {
         Json::Value jsonKeyPair;
         jsonKeyPair["pubKey"] = key.pubKey;
-        jsonKeyPair["privKey"] = key.privKey;
+        jsonKeyPair["privKey"] = key.privKey->toJson();
         returning["keys"].append(jsonKeyPair);
     }
 
@@ -308,7 +391,7 @@ CryptoKernel::Wallet::Account::Account(const Json::Value& accountJson) {
     for(const Json::Value& key : accountJson["keys"]) {
         keyPair newKeys;
         newKeys.pubKey = key["pubKey"].asString();
-        newKeys.privKey = key["privKey"].asString();
+        newKeys.privKey.reset(new AES256(key["privKey"]));
         keys.insert(newKeys);
     }
 }
@@ -334,12 +417,13 @@ const {
     return keys;
 }
 
-CryptoKernel::Wallet::Account::keyPair CryptoKernel::Wallet::Account::newAddress() {
+CryptoKernel::Wallet::Account::keyPair 
+CryptoKernel::Wallet::Account::newAddress(const std::string& password) {
     CryptoKernel::Crypto crypto(true);
 
     keyPair newKey;
     newKey.pubKey = crypto.getPublicKey();
-    newKey.privKey = crypto.getPrivateKey();
+    newKey.privKey.reset(new AES256(password, crypto.getPrivateKey()));
 
     keys.insert(newKey);
 
@@ -417,12 +501,17 @@ CryptoKernel::Wallet::Account CryptoKernel::Wallet::getAccountByKey(
     throw WalletException("Account not found for given pubKey");
 }
 
-CryptoKernel::Wallet::Account CryptoKernel::Wallet::newAccount(const std::string& name) {
+CryptoKernel::Wallet::Account CryptoKernel::Wallet::newAccount(const std::string& name, 
+                                                               const std::string& password) {
     std::lock_guard<std::recursive_mutex> lock(walletLock);
     try {
         getAccountByName(name);
     } catch(const WalletException& e) {
-        const Account acc = Account(name);
+        if(!checkPassword(password)) {
+            throw WalletException("Incorrect wallet password");
+        }
+        
+        const Account acc = Account(name, password);
         std::unique_ptr<CryptoKernel::Storage::Transaction> dbTx(walletdb->begin());
         accounts->put(dbTx.get(), name, acc.toJson());
         accounts->put(dbTx.get(), (*acc.getKeys().begin()).pubKey, name, 0);
@@ -434,9 +523,13 @@ CryptoKernel::Wallet::Account CryptoKernel::Wallet::newAccount(const std::string
 }
 
 std::string CryptoKernel::Wallet::sendToAddress(const std::string& pubKey,
-        const uint64_t amount) {
+        const uint64_t amount, const std::string& password) {
     std::lock_guard<std::recursive_mutex> lock(walletLock);
     std::unique_ptr<CryptoKernel::Storage::Transaction> bchainTx(blockchain->getTxHandle());
+    
+    if(!checkPassword(password)) {
+        return "Incorrect wallet password";
+    }
 
     if(getTotalBalance() * 100000000 < amount) {
         return "Insufficient funds";
@@ -486,7 +579,7 @@ std::string CryptoKernel::Wallet::sendToAddress(const std::string& pubKey,
 
     std::stringstream buffer;
     buffer << distribution(generator) << "_change";
-    const Account account = newAccount(buffer.str());
+    const Account account = newAccount(buffer.str(), password);
 
     data.clear();
     data["publicKey"] = (*(account.getKeys().begin())).pubKey;
@@ -513,7 +606,7 @@ std::string CryptoKernel::Wallet::sendToAddress(const std::string& pubKey,
 
         for(const auto& key : acc.getKeys()) {
             if(key.pubKey == publicKey) {
-                privKey = key.privKey;
+                privKey = key.privKey->decrypt(password);
                 break;
             }
         }
@@ -601,9 +694,15 @@ std::set<CryptoKernel::Blockchain::transaction> CryptoKernel::Wallet::listTransa
     return returning;
 }
 
-CryptoKernel::Blockchain::transaction CryptoKernel::Wallet::signTransaction(
-    const CryptoKernel::Blockchain::transaction& tx) {
+CryptoKernel::Blockchain::transaction 
+CryptoKernel::Wallet::signTransaction(const CryptoKernel::Blockchain::transaction& tx,
+                                      const std::string& password) {
     std::lock_guard<std::recursive_mutex> lock(walletLock);
+    
+    if(!checkPassword(password)) {
+        throw WalletException("Incorrect wallet password");
+    }
+    
     const std::string outputHash = tx.getOutputSetId().toString();
 
     CryptoKernel::Crypto crypto;
@@ -626,7 +725,7 @@ CryptoKernel::Blockchain::transaction CryptoKernel::Wallet::signTransaction(
 
         for(const auto& key : acc.getKeys()) {
             if(key.pubKey == outputData["publicKey"].asString()) {
-                privKey = key.privKey;
+                privKey = key.privKey->decrypt(password);
                 break;
             }
         }
@@ -644,9 +743,14 @@ CryptoKernel::Blockchain::transaction CryptoKernel::Wallet::signTransaction(
     return CryptoKernel::Blockchain::transaction(newInputs, tx.getOutputs(), now);
 }
 
-CryptoKernel::Wallet::Account CryptoKernel::Wallet::importPrivKey(const std::string& name,
-        const std::string& privKey) {
+CryptoKernel::Wallet::Account 
+CryptoKernel::Wallet::importPrivKey(const std::string& name, const std::string& privKey, 
+                                    const std::string& password) {
     std::lock_guard<std::recursive_mutex> lock(walletLock);
+    
+    if(!checkPassword(password)) {
+        throw WalletException("Incorrect wallet password");
+    }
 
     bool accountExists = false;
 
@@ -664,11 +768,11 @@ CryptoKernel::Wallet::Account CryptoKernel::Wallet::importPrivKey(const std::str
         const Account acc = getAccountByKey(crypto.getPublicKey());
     } catch(const WalletException& e) {
         Account::keyPair kp;
-        kp.privKey = crypto.getPrivateKey();
+        kp.privKey.reset(new AES256(password, crypto.getPrivateKey()));
         kp.pubKey = crypto.getPublicKey();
 
         if(!accountExists) {
-            newAccount(name);
+            newAccount(name, password);
         }
 
         Account acc = getAccountByName(name);

@@ -23,6 +23,9 @@
 #include "storage.h"
 #include "blockchain.h"
 #include "network.h"
+#include "crypto.h"
+
+#define LATEST_WALLET_SCHEMA 1
 
 namespace CryptoKernel {
 class Wallet {
@@ -48,14 +51,14 @@ public:
 
     class Account {
     public:
-        Account(const std::string& name);
+        Account(const std::string& name, const std::string& password);
         Account(const Json::Value& accountJson);
 
         Json::Value toJson() const;
 
         struct keyPair {
             std::string pubKey;
-            std::string privKey;
+            std::shared_ptr<AES256> privKey;
             bool operator<(const keyPair& rhs) const {
                 return pubKey < rhs.pubKey;
             }
@@ -65,7 +68,7 @@ public:
 
         std::set<keyPair> getKeys() const;
 
-        keyPair newAddress();
+        keyPair newAddress(const std::string& password);
 
         bool operator<(const Account& rhs) const;
 
@@ -101,11 +104,14 @@ public:
 
     Account getAccountByName(const std::string& name);
     Account getAccountByKey(const std::string& pubKey);
-    Account newAccount(const std::string& name);
+    Account newAccount(const std::string& name, const std::string& password);
 
-    Account importPrivKey(const std::string& name, const std::string& privKey);
+    Account importPrivKey(const std::string& name, const std::string& privKey,
+                          const std::string& password);
 
-    std::string sendToAddress(const std::string& pubKey, const uint64_t amount);
+    std::string sendToAddress(const std::string& pubKey, 
+                              const uint64_t amount, 
+                              const std::string& password);
 
     uint64_t getTotalBalance();
 
@@ -114,7 +120,7 @@ public:
     std::set<CryptoKernel::Blockchain::transaction> listTransactions();
 
     CryptoKernel::Blockchain::transaction signTransaction(const
-            CryptoKernel::Blockchain::transaction& tx);
+            CryptoKernel::Blockchain::transaction& tx, const std::string& password);
 
 private:
     std::unique_ptr<CryptoKernel::Storage> walletdb;
@@ -146,6 +152,12 @@ private:
                             const std::string& pubKey);
 
     void clearDB();
+    
+    uint64_t schemaVersion;
+    
+    void upgradeWallet();
+    
+    bool checkPassword(const std::string& password);
 };
 }
 
