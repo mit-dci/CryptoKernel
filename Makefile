@@ -38,7 +38,7 @@ CC = clang++
 C = clang
 endif
 
-KERNELCXXFLAGS += -g -Wall -std=c++17 -O2 -Wl,-E -Isrc/kernel
+KERNELCXXFLAGS += -g -Wall -std=c++14 -O2 -Wl,-E -Isrc/kernel
 
 KERNELSRC = src/kernel/blockchain.cpp src/kernel/blockchaintypes.cpp src/kernel/math.cpp src/kernel/storage.cpp src/kernel/network.cpp src/kernel/networkpeer.cpp src/kernel/base64.cpp src/kernel/crypto.cpp src/kernel/log.cpp src/kernel/contract.cpp src/kernel/consensus/AVRR.cpp src/kernel/consensus/PoW.cpp src/kernel/merkletree.cpp
 KERNELOBJS = $(KERNELSRC:.cpp=.cpp.o)
@@ -64,7 +64,7 @@ lib: $(KERNELSRC) $(LYRASRC) $(CKLIB)
 daemon: $(CKLIB) $(CLIENTSRC) $(CKBIN)
 
 doc:
-	doxygen .
+	doxygen ./doxyfile
 
 test: $(CKLIB) $(TESTSRC) $(TESTBIN)
 	./$(TESTBIN)
@@ -73,7 +73,7 @@ $(TESTBIN): $(TESTOBJS)
 	$(CC) $(TESTOBJS) -o $@ $(TESTLDFLAGS)
 
 clean:
-	$(RM) -r  $(CLIENTOBJS) $(KERNELOBJS) $(LYRAOBJS) $(TESTOBJS) $(CKLIB) $(CKBIN) html latex
+	$(RM) -r  $(CLIENTOBJS) $(KERNELOBJS) $(LYRAOBJS) $(TESTOBJS) $(CKLIB) $(CKBIN) docs
 
 $(CKBIN): $(CLIENTOBJS) $(CKLIB)
 	$(CC) $(CLIENTOBJS) -o $@ $(CLIENTLDFLAGS)
