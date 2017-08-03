@@ -42,6 +42,7 @@ CryptoKernel::Wallet::Wallet(CryptoKernel::Blockchain* blockchain,
         params->put(dbTx.get(), "tipId", Json::Value(""));
         params->put(dbTx.get(), "schemaVersion", Json::Value(LATEST_WALLET_SCHEMA));
         dbTx->commit();
+        upgradeWallet();
     } else if(schemaVersion < LATEST_WALLET_SCHEMA) {
         // Upgrade required
         dbTx->abort();
