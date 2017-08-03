@@ -28,7 +28,9 @@ CryptoServer::CryptoServer(jsonrpc::AbstractServerConnector &connector) : Crypto
 }
 
 void CryptoServer::setWallet(CryptoKernel::Wallet* Wallet,
-                             CryptoKernel::Blockchain* Blockchain, CryptoKernel::Network* Network, bool* running) {
+                             CryptoKernel::Blockchain* Blockchain, 
+                             CryptoKernel::Network* Network, 
+                             bool* running) {
     wallet = Wallet;
     blockchain = Blockchain;
     network = Network;
@@ -67,7 +69,11 @@ Json::Value CryptoServer::account(const std::string& account,
     try {
         accJson = wallet->getAccountByName(account).toJson();
     } catch(const CryptoKernel::Wallet::WalletException& e) {
-        accJson = wallet->newAccount(account, password).toJson();
+        try {
+            accJson = wallet->newAccount(account, password).toJson();
+        } catch(const std::runtime_error& e) {
+            return Json::nullValue;
+        }
     }   
     
     const auto newAccount = CryptoKernel::Wallet::Account(accJson);
@@ -183,7 +189,9 @@ Json::Value CryptoServer::signtransaction(const Json::Value& tx, const std::stri
             CryptoKernel::Blockchain::transaction(tx);
 
         return wallet->signTransaction(transaction, password).toJson();
-    } catch(CryptoKernel::Blockchain::InvalidElementException e) {
+    } catch(const CryptoKernel::Blockchain::InvalidElementException& e) {
+        return Json::Value();
+    } catch(const std::runtime_error& e) {
         return Json::Value();
     }
 }
@@ -240,6 +248,8 @@ Json::Value CryptoServer::importprivkey(const std::string& name, const std::stri
     try {
         return wallet->importPrivKey(name, key, password).toJson();
     } catch(const CryptoKernel::Wallet::WalletException& e) {
+        return Json::Value();
+    } catch(const std::runtime_error& e) {
         return Json::Value();
     }
 }
