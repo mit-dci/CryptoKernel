@@ -161,14 +161,9 @@ int main(int argc, char* argv[]) {
     const Json::Value config = CryptoKernel::Storage::toJson(buffer);
     t.close();
     
-    bool minerOn = true;
-    if(argc == 2) {
-        if(std::string(argv[1]) == "-nominer") {
-            minerOn = false;
-        }
-    }
+    const bool minerOn = config["miner"].asBool();
 
-    if(argc < 2 || !minerOn) {
+    if(argc < 2) {
         CryptoKernel::Log log("CryptoKernel.log", config["verbose"].asBool());
 
         running = true;

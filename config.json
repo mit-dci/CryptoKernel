@@ -1,5 +1,6 @@
 {
     "rpcuser": "ckrpc",
     "rpcpassword": "password",
-    "verbose":  false
+    "verbose":  false,
+    "miner": true
 }
