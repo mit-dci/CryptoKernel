@@ -25,6 +25,8 @@
 
 #include <jsonrpccpp/client/connectors/httpclient.h>
 
+#include <openssl/rand.h>
+
 #include "ckmath.h"
 #include "crypto.h"
 #include "wallet.h"
@@ -158,8 +160,24 @@ int main(int argc, char* argv[]) {
     }
     
     std::string buffer((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
-    const Json::Value config = CryptoKernel::Storage::toJson(buffer);
+    Json::Value config = CryptoKernel::Storage::toJson(buffer);
+    
     t.close();
+    
+    if(config["rpcpassword"] == "password") {
+        unsigned char bytes[32];
+        if(!RAND_bytes((unsigned char*)&bytes, 32)) {
+            throw std::runtime_error("Couldn't generate random rpc password");
+        }
+        
+        config["rpcpassword"] = base64_encode((unsigned char*)&bytes, 32);
+        
+        std::ofstream ofs("config.json", std::ofstream::out | std::ofstream::trunc);
+        
+        ofs << config.toStyledString();
+        
+        ofs.close();
+    }
     
     const bool minerOn = config["miner"].asBool();
 
