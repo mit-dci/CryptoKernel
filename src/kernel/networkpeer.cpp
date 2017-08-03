@@ -146,7 +146,7 @@ void CryptoKernel::Network::Peer::requestFunc() {
 							
 						// Don't accept blocks that are more than two hours away from the current time
 						const int64_t now = std::time(nullptr);
-						if(std::abs(now - block.getTimestamp()) > 2 * 60 * 60) {
+						if(std::abs((int)(now - block.getTimestamp())) > 2 * 60 * 60) {
 							network->changeScore(client->getRemoteAddress().toString(), 50);
 						} else {
 							try {

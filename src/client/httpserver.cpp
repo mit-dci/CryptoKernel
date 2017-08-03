@@ -13,9 +13,12 @@
 #include <cstring>
 #include <sstream>
 
-#ifdef __unix__
+#ifdef __APPLE__
+#include <netinet/in.h>
+#elif __unix__
 #include <netinet/in.h>
 #endif
+
 
 #include <jsonrpccpp/common/specificationparser.h>
 
