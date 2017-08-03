@@ -71,8 +71,8 @@ Json::Value CryptoServer::account(const std::string& account,
     } catch(const CryptoKernel::Wallet::WalletException& e) {
         try {
             accJson = wallet->newAccount(account, password).toJson();
-        } catch(const std::runtime_error& e) {
-            return Json::nullValue;
+        } catch(const CryptoKernel::Wallet::WalletException& e) {
+            return Json::Value(e.what());
         }
     }   
     
@@ -191,8 +191,8 @@ Json::Value CryptoServer::signtransaction(const Json::Value& tx, const std::stri
         return wallet->signTransaction(transaction, password).toJson();
     } catch(const CryptoKernel::Blockchain::InvalidElementException& e) {
         return Json::Value();
-    } catch(const std::runtime_error& e) {
-        return Json::Value();
+    } catch(const CryptoKernel::Wallet::WalletException& e) {
+        return Json::Value(e.what());
     }
 }
 
@@ -248,8 +248,6 @@ Json::Value CryptoServer::importprivkey(const std::string& name, const std::stri
     try {
         return wallet->importPrivKey(name, key, password).toJson();
     } catch(const CryptoKernel::Wallet::WalletException& e) {
-        return Json::Value();
-    } catch(const std::runtime_error& e) {
-        return Json::Value();
-    }
+        return Json::Value(e.what());
+    } 
 }
