@@ -33,7 +33,7 @@ API Reference
 
 Build the documentation with doxyblocks.
 ```
-doxygen .
+make doc
 ```
 
 Roadmap
@@ -52,6 +52,8 @@ Roadmap
 - H -- Friedman rule emission schedule
 - H -- (Potentially) BRNDF instead of KGW for difficulty
 - H -- Lyra2REv2 as PoW function 
+- L -- Wallet schema version detection
+- L -- RPC Server requires password
     
 #### alpha v0.1.0 -- S 
 - S -- Expand Lua contract standard library with more
@@ -61,8 +63,6 @@ for propagating contracts
 - S -- Schnorr signatures
 - L -- Seed addresses
 - L -- Standardised address format (not just public keys)
-- L -- RPC Server requires password
-- L -- Wallet schema version detection
 - L -- Wallet tracks unconfirmed transactions
 
 #### alpha v0.2.0

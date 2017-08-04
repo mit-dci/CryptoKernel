@@ -77,7 +77,7 @@ lib: $(KERNELSRC) $(LYRASRC) $(CKLIB)
 daemon: $(CKLIB) $(CLIENTSRC) $(CKBIN)
 
 doc:
-	doxygen .
+	doxygen ./doxyfile
 
 test: $(CKLIB) $(TESTSRC) $(TESTBIN)
 	./$(TESTBIN)
@@ -86,7 +86,7 @@ $(TESTBIN): $(TESTOBJS)
 	$(CC) $(TESTOBJS) -o $@ $(TESTLDFLAGS)
 
 clean:
-	$(RM) -r  $(CLIENTOBJS) $(KERNELOBJS) $(LYRAOBJS) $(TESTOBJS) $(CKLIB) $(CKBIN) html latex
+	$(RM) -r  $(CLIENTOBJS) $(KERNELOBJS) $(LYRAOBJS) $(TESTOBJS) $(CKLIB) $(CKBIN) docs
 
 $(CKBIN): $(CLIENTOBJS) $(CKLIB)
 	$(CC) $(CLIENTOBJS) -o $@ $(CLIENTLDFLAGS)
