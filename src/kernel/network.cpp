@@ -168,7 +168,9 @@ void CryptoKernel::Network::peerFunc() {
             std::lock_guard<std::recursive_mutex> lock(connectedMutex);
             std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
 
-            for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin();
+	    std::set<std::string> removals;
+            
+	    for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin();
                     it != connected.end(); it++) {
                 try {
                     const Json::Value info = it->second->peer->getInfo();
@@ -208,12 +210,16 @@ void CryptoKernel::Network::peerFunc() {
                 } catch(const Peer::NetworkError& e) {
                     log->printf(LOG_LEVEL_WARN,
                                 "Network(): Failed to contact " + it->first + ", disconnecting it");
-                    it = connected.erase(it);
-                    if(connected.size() < 1) {
-                        break;
-                    }
+                    removals.insert(it->first);
                 }
             }
+
+	    for(const auto& peer : removals) {
+		const auto it = connected.find(peer);
+		if(it != connected.end()) {
+		    connected.erase(it);
+		}
+	    }
 
             for(const auto& peer : peerInfos) {
                 peers->put(dbTx.get(), peer.first, peer.second);
