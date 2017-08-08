@@ -821,7 +821,7 @@ std::string getPass(const char *prompt, bool show_asterisk) {
         } else {
             password += ch;
             if(show_asterisk) {
-                cout <<'*';
+                std::cout <<'*';
             }
         }
     }

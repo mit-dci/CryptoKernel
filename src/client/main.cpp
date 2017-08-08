@@ -232,7 +232,11 @@ int main(int argc, char* argv[]) {
 
         try {
             if(command == "-daemon") {
+                #ifdef _WIN32
+                if(std::system("start /B .\\ckd") == 0) {
+                #else 
                 if(std::system("./ckd &") == 0) {
+                #endif
                     std::cout << "ck daemon started" << std::endl;
                 } else {
                     std::cout << "Failed to start ckd" << std::endl;
