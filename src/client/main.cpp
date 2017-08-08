@@ -245,26 +245,20 @@ int main(int argc, char* argv[]) {
                 std::cout << client.getinfo().toStyledString() << std::endl;
             } else if(command == "account") {
                 if(argc >= 3) {
-                    std::string name(argv[2]);
-                    std::string password;
-                    if(argc == 4) {
-                        password = std::string(argv[3]);
-                    }
+                    const std::string name(argv[2]);
+                    const std::string password = getPass("Please enter your wallet passphrase: ");
                     std::cout << client.account(name, password).toStyledString() << std::endl;
                 } else {
-                    std::cout << "Usage: account [accountname] [password]" << std::endl;
+                    std::cout << "Usage: account [accountname]" << std::endl;
                 }
             } else if(command == "sendtoaddress") {
                 if(argc >= 4) {
-                    std::string address(argv[2]);
-                    double amount(std::strtod(argv[3], NULL));
-                    std::string password;
-                    if(argc == 5) {
-                        password = std::string(argv[4]);
-                    }
+                    const std::string address(argv[2]);
+                    const double amount(std::strtod(argv[3], NULL));
+                    const std::string password = getPass("Please enter your wallet passphrase: ");
                     std::cout << client.sendtoaddress(address, amount, password) << std::endl;
                 } else {
-                    std::cout << "Usage: sendtoaddress [address] [amount] [password]" << std::endl;
+                    std::cout << "Usage: sendtoaddress [address] [amount]" << std::endl;
                 }
             } else if(command == "listaccounts") {
                 std::cout << client.listaccounts().toStyledString() << std::endl;
@@ -295,26 +289,23 @@ int main(int argc, char* argv[]) {
                 std::cout << client.stop().toStyledString() << std::endl;
             } else if(command == "importprivkey") {
                 if(argc >= 4) {
-                    std::string password;
-                    if(argc == 5) {
-                        password = std::string(argv[4]);
-                    }
+                    const std::string password = getPass("Please enter your wallet passphrase: ");
                     std::cout << client.importprivkey(std::string(argv[2]), std::string(argv[3]),
                                                       password);
                 } else {
-                    std::cout << "Usage: importprivkey [accountname] [privkey] [password]" << std::endl;
+                    std::cout << "Usage: importprivkey [accountname] [privkey]" << std::endl;
                 }
             } else {
                 std::cout << "CryptoKernel - Blockchain Development Toolkit - v" << version << "\n\n"
-                          << "account [accountname] [password]\n"
+                          << "account [accountname]\n"
                           << "compilecontract [code]\n"
                           << "getblockbyheight [height]\n"
                           << "getinfo\n"
-                          << "importprivkey [accountname] [privkey] [password]\n"
+                          << "importprivkey [accountname] [privkey]\n"
                           << "listaccounts\n"
                           << "listtransactions\n"
                           << "listunspentoutputs [accountname]\n"
-                          << "sendtoaddress [address] [amount] [password]\n"
+                          << "sendtoaddress [address] [amount]\n"
                           << "stop\n";
             }
         } catch(jsonrpc::JsonRpcException e) {
