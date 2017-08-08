@@ -454,7 +454,7 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::submitBlock(Storage::Transactio
             outputTotal += out.getValue();
         }
 
-        if(outputTotal != fees + getBlockReward(blockHeight)) {
+        if(outputTotal > fees + getBlockReward(blockHeight)) {
             log->printf(LOG_LEVEL_INFO,
                         "blockchain::submitBlock(): Coinbase output is not the correct value");
             return std::make_tuple(false, true);
