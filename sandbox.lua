@@ -32,6 +32,7 @@ sandbox_env = {Crypto = {new = Crypto.new, getPublicKey = Crypto.getPublicKey, g
                         setPublicKey = Crypto.setPublicKey, setPrivateKey = Crypto.setPrivateKey,
                         getStatus = Crypto.getStatus, sign = Crypto.sign, verify = Crypto.verify,},
                Json = {new = Json.new, decode = Json.decode,},
+               sha256 = sha256,
                thisTransaction = thisTransaction,
                thisInput = thisInput,
                outputSetId = outputSetId,
