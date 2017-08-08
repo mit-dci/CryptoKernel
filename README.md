@@ -50,7 +50,6 @@ Roadmap
 - H -- Transaction Merkle root in block header
 - H -- Rule change signalling in block
 - H -- Friedman rule emission schedule
-- H -- (Potentially) BRNDF instead of KGW for difficulty
 - H -- Lyra2REv2 as PoW function 
 - L -- Wallet schema version detection
 - L -- RPC Server requires password
