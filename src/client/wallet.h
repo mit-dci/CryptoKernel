@@ -18,7 +18,15 @@
 #ifndef WALLET_H_INCLUDED
 #define WALLET_H_INCLUDED
 
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <termios.h>
+#include <unistd.h>
+#endif
+
 #include <random>
+#include <iostream>
 
 #include "storage.h"
 #include "blockchain.h"
@@ -160,5 +168,11 @@ private:
     bool checkPassword(const std::string& password);
 };
 }
+
+std::string getPass(const char *prompt, bool show_asterisk = true);
+
+#ifdef __unix__
+int getch();
+#endif
 
 #endif // WALLET_H_INCLUDED

@@ -75,11 +75,9 @@ void CryptoKernel::Wallet::upgradeWallet() {
             password.clear();
             passwordConfirm.clear();
             
-            std::cout << "Enter new wallet passphrase (min 8 chars): ";
-            std::cin >> password;
+            password = getPass("Enter new wallet passphrase (min 8 chars): ");
             
-            std::cout << "Confirm passphrase: ";
-            std::cin >> passwordConfirm;
+            passwordConfirm = getPass("Confirm passphrase: ");
         }
         
         std::vector<Json::Value> accountsJson;
@@ -792,3 +790,89 @@ CryptoKernel::Wallet::importPrivKey(const std::string& name, const std::string& 
 
     throw WalletException("Private key already in wallet");
 }
+
+// This portion of code is from the following article: http://www.cplusplus.com/articles/E6vU7k9E/
+#ifdef _WIN32
+std::string getPass(const char *prompt, bool show_asterisk) {
+    const char BACKSPACE = 8;
+    const char RETURN = 13;
+
+    std::string password;
+    unsigned char ch = 0;
+
+    std::cout << prompt;
+
+    DWORD con_mode;
+    DWORD dwRead;
+
+    HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
+
+    GetConsoleMode(hIn, &con_mode);
+    SetConsoleMode(hIn, con_mode & ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT));
+
+    while(ReadConsoleA(hIn, &ch, 1, &dwRead, NULL) && ch != RETURN) {
+        if(ch == BACKSPACE) {
+            if(password.length()!=0) {
+                if(show_asterisk) {
+                    std::cout << "\b \b";
+                }
+                password.resize(password.length()-1);
+            }
+        } else {
+            password += ch;
+            if(show_asterisk) {
+                cout <<'*';
+            }
+        }
+    }
+    
+    std::cout << std::endl;
+    
+    return password;
+}
+#else
+int getch() {
+    int ch;
+    struct termios t_old, t_new;
+
+    tcgetattr(STDIN_FILENO, &t_old);
+    t_new = t_old;
+    t_new.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &t_new);
+
+    ch = getchar();
+
+    tcsetattr(STDIN_FILENO, TCSANOW, &t_old);
+    return ch;
+}
+
+std::string getPass(const char *prompt, bool show_asterisk) {
+    const char BACKSPACE = 127;
+    const char RETURN = 10;
+
+    std:: string password;
+    unsigned char ch = 0;
+
+    std::cout << prompt;
+
+    while((ch=getch()) != RETURN) {
+       if(ch == BACKSPACE) {
+            if(password.length()!=0) {
+                 if(show_asterisk) {
+                     std::cout << "\b \b";
+                 }
+                 password.resize(password.length()-1);
+            }
+         } else {
+             password += ch;
+             if(show_asterisk) {
+                 std::cout << '*';
+             }
+         }
+    }
+    
+    std::cout << std::endl;
+    
+    return password;
+}
+#endif

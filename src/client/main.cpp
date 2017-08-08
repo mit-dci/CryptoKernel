@@ -233,9 +233,9 @@ int main(int argc, char* argv[]) {
         try {
             if(command == "-daemon") {
                 if(std::system("./ckd &") == 0) {
-                    std::cout << "ck daemon started";
+                    std::cout << "ck daemon started" << std::endl;
                 } else {
-                    std::cout << "Failed to start ckd";
+                    std::cout << "Failed to start ckd" << std::endl;
                 }
             } else if(command == "getinfo") {
                 std::cout << client.getinfo().toStyledString() << std::endl;
