@@ -231,7 +231,13 @@ int main(int argc, char* argv[]) {
         CryptoClient client(httpclient);
 
         try {
-            if(command == "getinfo") {
+            if(command == "-daemon") {
+                if(std::system("./ckd &") == 0) {
+                    std::cout << "ck daemon started";
+                } else {
+                    std::cout << "Failed to start ckd";
+                }
+            } else if(command == "getinfo") {
                 std::cout << client.getinfo().toStyledString() << std::endl;
             } else if(command == "account") {
                 if(argc >= 3) {
