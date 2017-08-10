@@ -42,9 +42,9 @@ Json::Value CryptoServer::getinfo() {
 
     returning["rpc_version"] = "2.0.0-dev";
     returning["ck_version"] = version;
-    double balance = wallet->getTotalBalance() / 100000000.0;
+    const long double balance = wallet->getTotalBalance() / 100000000.0;
     std::stringstream buffer;
-    buffer << std::setprecision(8) << balance;
+    buffer << std::setprecision(8) << std::fixed << balance;
     returning["balance"] = buffer.str();
     returning["height"] = static_cast<unsigned long long int>
                           (blockchain->getBlockDB("tip").getHeight());
@@ -250,4 +250,23 @@ Json::Value CryptoServer::importprivkey(const std::string& name, const std::stri
     } catch(const CryptoKernel::Wallet::WalletException& e) {
         return Json::Value(e.what());
     } 
+}
+
+Json::Value CryptoServer::getpeerinfo() {
+    Json::Value returning;
+
+    for(const auto& stats : network->getPeerStats()) {
+        Json::Value stat;
+        stat["ping"] = stats.second.ping;
+        stat["incoming"] = stats.second.incoming;
+        stat["connectedSince"] = static_cast<unsigned long long int>
+                                 (stats.second.connectedSince);
+        stat["transferUp"] = static_cast<unsigned long long int>
+                             (stats.second.transferUp);
+        stat["transferDown"] = static_cast<unsigned long long int>
+                               (stats.second.transferDown);
+        returning[stats.first] = stat;
+    }
+
+    return returning;
 }

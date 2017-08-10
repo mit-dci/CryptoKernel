@@ -10,17 +10,19 @@
 class CryptoKernel::Network::Peer {
 public:
     Peer(sf::TcpSocket* client, CryptoKernel::Blockchain* blockchain,
-         CryptoKernel::Network* network);
+         CryptoKernel::Network* network, const bool incoming);
     ~Peer();
 
     Json::Value getInfo();
-    void sendTransactions(const std::vector<CryptoKernel::Blockchain::transaction>&
+    void sendTransactions(const std::vector<CryptoKernel::Blockchain::transaction>& 
                           transactions);
     void sendBlock(const CryptoKernel::Blockchain::block& block);
     std::vector<CryptoKernel::Blockchain::transaction> getUnconfirmedTransactions();
     CryptoKernel::Blockchain::block getBlock(const uint64_t height, const std::string& id);
     std::vector<CryptoKernel::Blockchain::block> getBlocks(const uint64_t start,
-            const uint64_t end);
+                                                           const uint64_t end);
+    
+    Network::peerStats getPeerStats() const;
 
     class NetworkError : std::exception {
     public:
@@ -45,6 +47,8 @@ private:
     std::map<uint64_t, bool> requests;
 
     std::default_random_engine generator;
+    
+    Network::peerStats stats;
 };
 
 #endif // NETWORKPEER_H_INCLUDED

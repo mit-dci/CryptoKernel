@@ -295,12 +295,15 @@ int main(int argc, char* argv[]) {
                 } else {
                     std::cout << "Usage: importprivkey [accountname] [privkey]" << std::endl;
                 }
+            } else if(command == "getpeerinfo") {
+                std::cout << client.getpeerinfo() << std::endl;
             } else {
                 std::cout << "CryptoKernel - Blockchain Development Toolkit - v" << version << "\n\n"
                           << "account [accountname]\n"
                           << "compilecontract [code]\n"
                           << "getblockbyheight [height]\n"
                           << "getinfo\n"
+                          << "getpeerinfo\n"
                           << "importprivkey [accountname] [privkey]\n"
                           << "listaccounts\n"
                           << "listtransactions\n"

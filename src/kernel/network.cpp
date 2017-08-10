@@ -121,7 +121,7 @@ void CryptoKernel::Network::peerFunc() {
                 }
 
                 PeerInfo* peerInfo = new PeerInfo;
-                peerInfo->peer.reset(new Peer(socket, blockchain, this));
+                peerInfo->peer.reset(new Peer(socket, blockchain, this, false));
 
                 // Get height
                 Json::Value info;
@@ -380,7 +380,7 @@ void CryptoKernel::Network::connectionFunc() {
                         "Network(): Peer connected from " + client->getRemoteAddress().toString() + ":" +
                         std::to_string(client->getRemotePort()));
             PeerInfo* peerInfo = new PeerInfo();
-            peerInfo->peer.reset(new Peer(client, blockchain, this));
+            peerInfo->peer.reset(new Peer(client, blockchain, this, true));
 
             Json::Value info;
 
@@ -472,4 +472,17 @@ std::set<std::string> CryptoKernel::Network::getConnectedPeers() {
 
 uint64_t CryptoKernel::Network::getCurrentHeight() {
     return currentHeight;
+}
+
+std::map<std::string, CryptoKernel::Network::peerStats> 
+CryptoKernel::Network::getPeerStats() {
+    std::lock_guard<std::recursive_mutex> lock(connectedMutex);
+
+    std::map<std::string, peerStats> returning;
+
+    for(const auto& peer : connected) {
+        returning.insert(std::make_pair(peer.first, peer.second->peer->getPeerStats()));
+    }
+    
+    return returning;
 }

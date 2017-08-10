@@ -71,6 +71,22 @@ public:
     * @return the current height of the main chain of the blockchain
     */
     uint64_t getCurrentHeight();
+    
+    struct peerStats {
+        unsigned int ping;
+        bool incoming;
+        uint64_t connectedSince;
+        uint64_t transferUp;
+        uint64_t transferDown;
+    };
+    
+    /**
+     * Returns a map of peers and their related stats
+     * 
+     * @return a map where the keys are the peer IP address and the values
+     * are peerStats structs containing information about the peer
+     */
+     std::map<std::string, peerStats> getPeerStats();
 
 private:
     class Peer;

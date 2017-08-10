@@ -3,15 +3,21 @@
 #include "version.h"
 #include "networkpeer.h"
 
-CryptoKernel::Network::Peer::Peer(sf::TcpSocket* client,
-                                  CryptoKernel::Blockchain* blockchain, CryptoKernel::Network* network) {
+CryptoKernel::Network::Peer::Peer(sf::TcpSocket* client, CryptoKernel::Blockchain* blockchain,
+                                  CryptoKernel::Network* network, const bool incoming) {
     this->client = client;
     this->blockchain = blockchain;
     this->network = network;
     running = true;
 
-    time_t t = std::time(0);
+    const time_t t = std::time(0);
     generator.seed(static_cast<uint64_t> (t));
+    
+    stats.connectedSince = t;
+    stats.ping = 0;
+    stats.transferUp = 0;
+    stats.transferDown = 0;
+    stats.incoming = incoming;
 
     requestThread.reset(new std::thread(&CryptoKernel::Network::Peer::requestFunc, this));
 }
@@ -41,11 +47,15 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request) {
 
     client->setBlocking(false);
 
+    const uint64_t startTime = std::chrono::duration_cast<std::chrono::milliseconds>
+                               (std::chrono::system_clock::now().time_since_epoch()).count();
     if(client->send(packet) != sf::Socket::Done) {
         running = false;
         clientMutex.unlock();
         throw NetworkError();
     }
+
+    stats.transferUp += packet.getDataSize();
 
     clientMutex.unlock();
 
@@ -53,6 +63,9 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request) {
         clientMutex.lock();
         std::map<uint64_t, Json::Value>::iterator it = responses.find(nonce);
         if(it != responses.end()) {
+            const uint64_t endTime = std::chrono::duration_cast<std::chrono::milliseconds>
+                                    (std::chrono::system_clock::now().time_since_epoch()).count();
+            stats.ping = (stats.ping * 0.8) + ((endTime - startTime) * 0.2);
             const Json::Value returning = it->second;
             it = responses.erase(it);
             clientMutex.unlock();
@@ -79,6 +92,9 @@ void CryptoKernel::Network::Peer::send(const Json::Value& response) {
         clientMutex.unlock();
         throw NetworkError();
     }
+    
+    stats.transferUp += packet.getDataSize();
+    
     clientMutex.unlock();
 }
 
@@ -94,6 +110,7 @@ void CryptoKernel::Network::Peer::requestFunc() {
 
         if(client->receive(packet) == sf::Socket::Done) {
             nRequests++;
+            stats.transferDown += packet.getDataSize();
 
             clientMutex.unlock();
 
@@ -335,4 +352,8 @@ std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Peer::getBlo
     }
 
     return returning;
+}
+
+CryptoKernel::Network::peerStats CryptoKernel::Network::Peer::getPeerStats() const {
+    return stats;
 }
