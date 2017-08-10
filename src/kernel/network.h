@@ -78,6 +78,8 @@ public:
         uint64_t connectedSince;
         uint64_t transferUp;
         uint64_t transferDown;
+        std::string version;
+        uint64_t blockHeight;
     };
     
     /**
