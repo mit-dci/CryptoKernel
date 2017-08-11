@@ -139,6 +139,7 @@ void CryptoKernel::Network::peerFunc() {
                 // Update info
                 try {
                     peer["height"] = info["tipHeight"].asUInt64();
+                    peer["version"] = info["version"].asString();
                 } catch(const Json::Exception& e) {
                     log->printf(LOG_LEVEL_WARN, "Network(): " + it->key() + " sent a malformed info message");
                     delete peerInfo;
@@ -394,6 +395,7 @@ void CryptoKernel::Network::connectionFunc() {
 
             try {
                 peerInfo->info["height"] = info["tipHeight"].asUInt64();
+                peerInfo->info["version"] = info["version"].asString();
             } catch(const Json::Exception& e) {
                 log->printf(LOG_LEVEL_WARN, "Network(): Incoming peer sent invalid info message");
                 delete peerInfo;
@@ -481,7 +483,10 @@ CryptoKernel::Network::getPeerStats() {
     std::map<std::string, peerStats> returning;
 
     for(const auto& peer : connected) {
-        returning.insert(std::make_pair(peer.first, peer.second->peer->getPeerStats()));
+        peerStats stats = peer.second->peer->getPeerStats();
+        stats.version = peer.second->info["version"].asString();
+        stats.blockHeight = peer.second->info["height"].asUInt64();
+        returning.insert(std::make_pair(peer.first, stats));
     }
     
     return returning;

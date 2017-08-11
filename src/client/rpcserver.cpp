@@ -265,6 +265,9 @@ Json::Value CryptoServer::getpeerinfo() {
                              (stats.second.transferUp);
         stat["transferDown"] = static_cast<unsigned long long int>
                                (stats.second.transferDown);
+        stat["version"] = stats.second.version;
+        stat["height"] = static_cast<unsigned long long int>
+                         (stats.second.blockHeight);
         returning[stats.first] = stat;
     }
 
