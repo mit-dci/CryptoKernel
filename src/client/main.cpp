@@ -297,10 +297,19 @@ int main(int argc, char* argv[]) {
                 }
             } else if(command == "getpeerinfo") {
                 std::cout << client.getpeerinfo() << std::endl;
+            } else if(command == "dumpprivkeys") {
+                if(argc >= 3) {
+                    const std::string name(argv[2]);
+                    const std::string password = getPass("Please enter your wallet passphrase: ");
+                    std::cout << client.dumpprivkeys(name, password).toStyledString() << std::endl;
+                } else {
+                    std::cout << "Usage: dumpprivkeys [accountname]" << std::endl;
+                }
             } else {
                 std::cout << "CryptoKernel - Blockchain Development Toolkit - v" << version << "\n\n"
                           << "account [accountname]\n"
                           << "compilecontract [code]\n"
+                          << "dumpprivkeys [accountname]\n"
                           << "getblockbyheight [height]\n"
                           << "getinfo\n"
                           << "getpeerinfo\n"

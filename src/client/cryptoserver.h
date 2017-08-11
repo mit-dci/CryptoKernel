@@ -73,6 +73,9 @@ public:
         this->bindAndAddMethod(jsonrpc::Procedure("getpeerinfo", jsonrpc::PARAMS_BY_NAME,
                                jsonrpc::JSON_OBJECT, NULL),
                                &CryptoRPCServer::getpeerinfoI);
+        this->bindAndAddMethod(jsonrpc::Procedure("dumpprivkeys", jsonrpc::PARAMS_BY_NAME,
+                               jsonrpc::JSON_OBJECT, "account",jsonrpc::JSON_STRING,
+                               "password", jsonrpc::JSON_STRING, NULL), &CryptoRPCServer::dumpprivkeysI);
     }
 
     inline virtual void getinfoI(const Json::Value &request, Json::Value &response) {
@@ -129,6 +132,9 @@ public:
     inline virtual void getpeerinfoI(const Json::Value &request, Json::Value &response) {
         response = this->getpeerinfo();
     }
+    inline virtual void dumpprivkeysI(const Json::Value &request, Json::Value &response) {
+        response = this->dumpprivkeys(request["account"].asString(), request["password"].asString());
+    }
     virtual Json::Value getinfo() = 0;
     virtual Json::Value account(const std::string& account, const std::string& password) = 0;
     virtual std::string sendtoaddress(const std::string& address, double amount,
@@ -147,6 +153,7 @@ public:
     virtual Json::Value importprivkey(const std::string& name, const std::string& key,
                                       const std::string& password) = 0;
     virtual Json::Value getpeerinfo() = 0;
+    virtual Json::Value dumpprivkeys(const std::string& account, const std::string& password) = 0;
 };
 
 class CryptoServer : public CryptoRPCServer {
@@ -173,6 +180,7 @@ public:
     virtual Json::Value importprivkey(const std::string& name, const std::string& key,
                                       const std::string& password);
     virtual Json::Value getpeerinfo();
+    virtual Json::Value dumpprivkeys(const std::string& account, const std::string& password);
 
 private:
     CryptoKernel::Wallet* wallet;

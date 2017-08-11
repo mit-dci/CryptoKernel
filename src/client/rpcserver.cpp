@@ -273,3 +273,22 @@ Json::Value CryptoServer::getpeerinfo() {
 
     return returning;
 }
+
+Json::Value CryptoServer::dumpprivkeys(const std::string& account,
+                                       const std::string& password) {
+    try {
+        const auto acc = wallet->getAccountByName(account);
+        Json::Value returning;
+        for(const auto& addr : acc.getKeys()) {
+            try {
+                returning[addr.pubKey] = addr.privKey->decrypt(password);
+            } catch(const std::runtime_error& e) {
+                return Json::Value(e.what());
+            }
+        }
+        
+        return returning;
+    } catch(const CryptoKernel::Wallet::WalletException& e) {
+        return Json::Value(e.what());
+    }
+}
