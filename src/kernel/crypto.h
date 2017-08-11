@@ -48,9 +48,9 @@ public:
     ~Crypto();
 
     /**
-    * Returns the status of the crypto module
+    * DEPRECATED: Returns the status of the crypto module
     *
-    * @return the status of the crypto module. True if no errors have occured, False otherwise.
+    * @return the status of the crypto module. Always true.
     */
     bool getStatus();
 
@@ -110,7 +110,6 @@ public:
     static std::string sha256(const std::string& message);
 
 private:
-    bool status;
     EC_KEY *eckey;
     EC_GROUP *ecgroup;
 };

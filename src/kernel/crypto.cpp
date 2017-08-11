@@ -30,19 +30,18 @@
 CryptoKernel::Crypto::Crypto(const bool fGenerate) {
     eckey = EC_KEY_new();
     if(eckey == NULL) {
-        status = false;
+        throw std::runtime_error("Could not generate key pair");
     } else {
         ecgroup = EC_GROUP_new_by_curve_name(NID_secp256k1);
         if(ecgroup == NULL) {
-            status = false;
+            throw std::runtime_error("Could not generate key pair");
         } else {
             if(!EC_KEY_set_group(eckey, ecgroup)) {
-                status = false;
+                throw std::runtime_error("Could not generate key pair");
             } else {
-                status = true;
                 if(fGenerate) {
                     if(!EC_KEY_generate_key(eckey)) {
-                        status = false;
+                        throw std::runtime_error("Could not generate key pair");
                     }
                 }
             }
@@ -62,26 +61,20 @@ CryptoKernel::Crypto::~Crypto() {
 
 bool CryptoKernel::Crypto::verify(const std::string& message,
                                   const std::string& signature) {
-    if(!status || signature == "" || message == "") {
+    const std::string messageHash = sha256(message);
+    const std::string decodedSignature = base64_decode(signature);
+
+    if(!ECDSA_verify(0, (unsigned char*)messageHash.c_str(), (int)messageHash.size(),
+                     (unsigned char*)decodedSignature.c_str(), (int)decodedSignature.size(), eckey)) {
         return false;
-    } else {
-        std::string messageHash = sha256(message);
-        std::string decodedSignature = base64_decode(signature);
-
-        if(!ECDSA_verify(0, (unsigned char*)messageHash.c_str(), (int)messageHash.size(),
-                         (unsigned char*)decodedSignature.c_str(), (int)decodedSignature.size(), eckey)) {
-            return false;
-        }
-
-        return true;
     }
+
+    return true;
 }
 
 std::string CryptoKernel::Crypto::sign(const std::string& message) {
-    if(!status || message == "") {
-        return "";
-    } else {
-        std::string messageHash = sha256(message);
+    if(EC_KEY_check_key(eckey)) {
+        const std::string messageHash = sha256(message);
 
         unsigned char *buffer, *pp;
         unsigned int buf_len;
@@ -92,100 +85,42 @@ std::string CryptoKernel::Crypto::sign(const std::string& message) {
         if(!ECDSA_sign(0, (unsigned char*)messageHash.c_str(), (int)messageHash.size(), pp,
                        &buf_len, eckey)) {
             delete[] buffer;
-            return "";
+            throw std::runtime_error("Could not sign message");
         } else {
-            std::string returning = base64_encode(buffer, buf_len);
+            const std::string returning = base64_encode(buffer, buf_len);
             delete[] buffer;
             return returning;
         }
+    } else {
+        return "";
     }
 }
 
 std::string CryptoKernel::Crypto::getPublicKey() {
-    if(!status) {
-        return "";
-    } else {
+    if(EC_KEY_check_key(eckey)) {    
         unsigned char* publicKey;
         unsigned int keyLen = 0;
 
         keyLen = EC_KEY_key2buf(eckey, EC_KEY_get_conv_form(eckey), &publicKey, NULL);
 
-        std::string returning = base64_encode(publicKey, keyLen);
+        const std::string returning = base64_encode(publicKey, keyLen);
         delete[] publicKey;
 
         return returning;
+    } else {
+        return "";
     }
 }
 
 std::string CryptoKernel::Crypto::getPrivateKey() {
-    if(!status) {
-        return "";
-    } else {
+    if(EC_KEY_check_key(eckey)) {
         unsigned char* privateKey;
         unsigned int keyLen = 0;
 
         keyLen = EC_KEY_priv2buf(eckey, &privateKey);
 
-        std::string returning = base64_encode(privateKey, keyLen);
+        const std::string returning = base64_encode(privateKey, keyLen);
         delete[] privateKey;
-
-        return returning;
-    }
-}
-
-bool CryptoKernel::Crypto::setPublicKey(const std::string& publicKey) {
-    if(!status || publicKey == "") {
-        return false;
-    } else {
-        std::string decodedKey = base64_decode(publicKey);
-
-        if(!EC_KEY_oct2key(eckey, (unsigned char*)decodedKey.c_str(),
-                           (unsigned int)decodedKey.size(), NULL)) {
-            status = false;
-            return false;
-        } else {
-            status = true;
-            return true;
-        }
-    }
-}
-
-bool CryptoKernel::Crypto::setPrivateKey(const std::string& privateKey) {
-    if(!status || privateKey == "") {
-        return false;
-    } else {
-        std::string decodedKey = base64_decode(privateKey);
-
-        if(!EC_KEY_oct2priv(eckey, (unsigned char*)decodedKey.c_str(),
-                            (unsigned int)decodedKey.size())) {
-            status = false;
-            return false;
-        } else {
-            status = true;
-            return true;
-        }
-    }
-}
-
-std::string CryptoKernel::Crypto::sha256(const std::string& message) {
-    if(message != "") {
-        unsigned char hash[SHA256_DIGEST_LENGTH];
-
-        SHA256_CTX sha256CTX;
-
-        if(!SHA256_Init(&sha256CTX)) {
-            return "";
-        }
-
-        if(!SHA256_Update(&sha256CTX, (unsigned char*)message.c_str(), message.size())) {
-            return "";
-        }
-
-        if(!SHA256_Final(hash, &sha256CTX)) {
-            return "";
-        }
-
-        std::string returning = base16_encode(hash, SHA256_DIGEST_LENGTH);
 
         return returning;
     } else {
@@ -193,8 +128,67 @@ std::string CryptoKernel::Crypto::sha256(const std::string& message) {
     }
 }
 
+bool CryptoKernel::Crypto::setPublicKey(const std::string& publicKey) {
+    const std::string decodedKey = base64_decode(publicKey);
+
+    if(!EC_KEY_oct2key(eckey, (unsigned char*)decodedKey.c_str(),
+                       (unsigned int)decodedKey.size(), NULL)) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+bool CryptoKernel::Crypto::setPrivateKey(const std::string& privateKey) {
+    const std::string decodedKey = base64_decode(privateKey);
+
+    if(!EC_KEY_oct2priv(eckey, (unsigned char*)decodedKey.c_str(),
+                        (unsigned int)decodedKey.size())) {
+        throw std::runtime_error("Could not copy private key");
+    } else {
+        BN_CTX* ctx = BN_CTX_new();
+        
+        EC_POINT* pub_key = EC_POINT_new(ecgroup);
+        if(!EC_POINT_mul(ecgroup, pub_key, 
+                     EC_KEY_get0_private_key(eckey), nullptr,
+                     nullptr, ctx)) {
+            BN_CTX_free(ctx);
+            return false;
+        }
+        
+        BN_CTX_free(ctx);
+        
+        if(!EC_KEY_set_public_key(eckey, pub_key)) {
+            EC_POINT_free(pub_key);
+            return false;
+        }
+        
+        return EC_KEY_check_key(eckey);
+    }
+}
+
+std::string CryptoKernel::Crypto::sha256(const std::string& message) {
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+
+    SHA256_CTX sha256CTX;
+
+    if(!SHA256_Init(&sha256CTX)) {
+        throw std::runtime_error("Failed to initialise SHA256 context");
+    }
+
+    if(!SHA256_Update(&sha256CTX, (unsigned char*)message.c_str(), message.size())) {
+        throw std::runtime_error("Failed to calculate SHA256 hash");
+    }
+
+    if(!SHA256_Final(hash, &sha256CTX)) {
+        throw std::runtime_error("Failed to calculate SHA256 hash");
+    }
+
+    return base16_encode(hash, SHA256_DIGEST_LENGTH);
+}
+
 bool CryptoKernel::Crypto::getStatus() {
-    return status;
+    return true;
 }
 
 std::string base16_encode(unsigned char const* bytes_to_encode, unsigned int in_len) {

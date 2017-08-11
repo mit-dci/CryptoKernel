@@ -758,7 +758,7 @@ CryptoKernel::Wallet::importPrivKey(const std::string& name, const std::string& 
         accountExists = true;
     } catch(const WalletException& e) {}
 
-    CryptoKernel::Crypto crypto(true);
+    CryptoKernel::Crypto crypto;
     if(!crypto.setPrivateKey(privKey)) {
         throw WalletException("Invalid private key");
     }
