@@ -13,9 +13,9 @@ make
 
 Usage
 -----
-See the source files in src/client/ for example usage. CryptoKernel ships with a Proof of Work consensus method built in that works out of the box. For more information about the API check the documentation.
+See the source files in src/client/ for example usage. CryptoKernel ships with a Proof of Work coin built-in called K320 that works out of the box. For more information about the API check the documentation.
 
-To launch CryptoKernel as a currency with its default setup, simply write:
+To launch CryptoKernel as K320 with its default setup, simply write:
 
 ```
 ./ckd
@@ -24,6 +24,11 @@ To launch CryptoKernel as a currency with its default setup, simply write:
 To get a list of command line RPC commands use:
 ```
 ./ckd help
+```
+
+To make ckd run in daemon mode use:
+```
+./ckd -daemon
 ```
 
 There is also a GUI for CryptoKernel that runs client-side in a web browser available here: https://github.com/metalicjames/ckui
