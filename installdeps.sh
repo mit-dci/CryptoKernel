@@ -7,6 +7,7 @@ cd openssl-1.1.0f
 ./config
 make
 sudo make install
+sudo ldconfig
 cd ../
 
 wget http://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-latest.tar.gz
