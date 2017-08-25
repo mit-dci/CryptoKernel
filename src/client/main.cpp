@@ -206,13 +206,17 @@ int main(int argc, char* argv[]) {
         CryptoServer server(httpserver);
         server.setWallet(&wallet, &blockchain, &network, &running);
         server.StartListening();
+        
+        if(!config["verbose"].asBool()) {
+            std::cout << "ck daemon started" << std::endl;
+        }
 
         while(running) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
 
         log.printf(LOG_LEVEL_INFO, "Shutting down...");
-
+        
         server.StopListening();
         if(minerOn) {
             minerThread->join();
@@ -233,12 +237,10 @@ int main(int argc, char* argv[]) {
         try {
             if(command == "-daemon") {
                 #ifdef _WIN32
-                if(std::system("start /B .\\ckd") == 0) {
+                if(std::system("start /B .\\ckd") != 0) {
                 #else 
-                if(std::system("./ckd &") == 0) {
+                if(std::system("./ckd &") != 0) {
                 #endif
-                    std::cout << "ck daemon started" << std::endl;
-                } else {
                     std::cout << "Failed to start ckd" << std::endl;
                 }
             } else if(command == "getinfo") {
