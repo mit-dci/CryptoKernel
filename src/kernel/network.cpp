@@ -216,10 +216,10 @@ void CryptoKernel::Network::peerFunc() {
             }
 
 	    for(const auto& peer : removals) {
-		const auto it = connected.find(peer);
-		if(it != connected.end()) {
-		    connected.erase(it);
-		}
+            const auto it = connected.find(peer);
+            if(it != connected.end()) {
+                connected.erase(it);
+            }
 	    }
 
             for(const auto& peer : peerInfos) {
@@ -283,7 +283,8 @@ void CryptoKernel::Network::networkFunc() {
                                     "Network(): Downloading blocks " + std::to_string(currentHeight + 1) + " to " +
                                     std::to_string(currentHeight + 6));
                         try {
-                            blocks = it->second->peer->getBlocks(currentHeight + 1, currentHeight + 6);
+                            const auto newBlocks = it->second->peer->getBlocks(currentHeight + 1, currentHeight + 6);
+                            blocks.insert(blocks.end(), newBlocks.rbegin(), newBlocks.rend());
                         } catch(Peer::NetworkError& e) {
                             log->printf(LOG_LEVEL_WARN,
                                         "Network(): Failed to contact " + it->first + " " + e.what() +
@@ -292,7 +293,7 @@ void CryptoKernel::Network::networkFunc() {
                         }
 
                         try {
-                            blockchain->getBlockDB(blocks[0].getPreviousBlockId().toString());
+                            blockchain->getBlockDB(blocks[blocks.size() - 1].getPreviousBlockId().toString());
                         } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
                             if(currentHeight == 1) {
 								// This peer has a different genesis block to us
@@ -307,7 +308,7 @@ void CryptoKernel::Network::networkFunc() {
                         break;
                     } while(running);
 
-                    for(unsigned int i = 0; i < blocks.size() && running; i++) {
+                    for(int i = blocks.size() - 1; i >= 0 && running; i--) {
 						const auto blockResult = blockchain->submitBlock(blocks[i]);
 						
                         if(std::get<1>(blockResult)) {
@@ -315,6 +316,7 @@ void CryptoKernel::Network::networkFunc() {
                         }
 						
 					    if(!std::get<0>(blockResult)) {
+                            blocks.clear();
 							break;
 						}
                     }
