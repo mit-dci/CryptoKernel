@@ -189,8 +189,7 @@ Json::Value CryptoKernel::Storage::Table::get(Transaction* transaction,
     return transaction->get(getKey(key, index));
 }
 
-CryptoKernel::Storage::Table::Iterator::Iterator(Table* table, Storage* db,
-        const bool lock) {
+CryptoKernel::Storage::Table::Iterator::Iterator(Table* table, Storage* db) {
     this->table = table;
     this->db = db;
     db->dbMutex.lock();

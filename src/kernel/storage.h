@@ -90,7 +90,7 @@ public:
 
         class Iterator {
         public:
-            Iterator(Table* table, Storage* db, const bool lock = true);
+            Iterator(Table* table, Storage* db);
 
             ~Iterator();
 
