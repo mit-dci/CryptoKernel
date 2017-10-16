@@ -44,6 +44,9 @@ public:
         this->bindAndAddMethod(jsonrpc::Procedure("listunspentoutputs", jsonrpc::PARAMS_BY_NAME,
                                jsonrpc::JSON_OBJECT, "account",jsonrpc::JSON_STRING, NULL),
                                &CryptoRPCServer::listunspentoutputsI);
+        this->bindAndAddMethod(jsonrpc::Procedure("getpubkeyoutputs", jsonrpc::PARAMS_BY_NAME,
+                               jsonrpc::JSON_OBJECT, "publickey",jsonrpc::JSON_STRING, NULL),
+                               &CryptoRPCServer::getpubkeyoutputsI);
         this->bindAndAddMethod(jsonrpc::Procedure("compilecontract", jsonrpc::PARAMS_BY_NAME,
                                jsonrpc::JSON_STRING, "code",jsonrpc::JSON_STRING, NULL),
                                &CryptoRPCServer::compilecontractI);
@@ -100,6 +103,10 @@ public:
                                             Json::Value &response) {
         response = this->listunspentoutputs(request["account"].asString());
     }
+    inline virtual void getpubkeyoutputsI(const Json::Value &request,
+                                            Json::Value &response) {
+        response = this->getpubkeyoutputs(request["publickey"].asString());
+    }
     inline virtual void compilecontractI(const Json::Value &request, Json::Value &response) {
         response = this->compilecontract(request["code"].asString());
     }
@@ -142,6 +149,7 @@ public:
     virtual bool sendrawtransaction(const Json::Value tx) = 0;
     virtual Json::Value listaccounts() = 0;
     virtual Json::Value listunspentoutputs(const std::string& account) = 0;
+    virtual Json::Value getpubkeyoutputs(const std::string& publickey) = 0;
     virtual std::string compilecontract(const std::string& code) = 0;
     virtual std::string calculateoutputid(const Json::Value output) = 0;
     virtual Json::Value signtransaction(const Json::Value& tx, const std::string& password) = 0;
@@ -169,6 +177,7 @@ public:
                    CryptoKernel::Network* Network, bool* running);
     virtual Json::Value listaccounts();
     virtual Json::Value listunspentoutputs(const std::string& account);
+    virtual Json::Value getpubkeyoutputs(const std::string& publickey);
     virtual std::string compilecontract(const std::string& code);
     virtual std::string calculateoutputid(const Json::Value output);
     virtual Json::Value signtransaction(const Json::Value& tx, const std::string& password);

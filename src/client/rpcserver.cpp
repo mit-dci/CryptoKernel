@@ -170,6 +170,30 @@ Json::Value CryptoServer::listunspentoutputs(const std::string& account) {
     }
 }
 
+Json::Value CryptoServer::getpubkeyoutputs(const std::string& publickey) {
+    const auto unspent = blockchain->getUnspentOutputs(publickey);
+    
+    Json::Value returning;
+    for(const auto& utxo : unspent) {
+        Json::Value out = utxo.toJson();
+        out["spent"] = false;
+        out["id"] = utxo.getId().toString();
+        
+        returning.append(out);
+    }
+    
+    const auto spent = blockchain->getSpentOutputs(publickey);
+    for(const auto& stxo : spent) {
+        Json::Value out = stxo.toJson();
+        out["spent"] = true;
+        out["id"] = stxo.getId().toString();
+        
+        returning.append(out);
+    }
+    
+    return returning;
+}
+
 std::string CryptoServer::compilecontract(const std::string& code) {
     return CryptoKernel::ContractRunner::compile(code);
 }
