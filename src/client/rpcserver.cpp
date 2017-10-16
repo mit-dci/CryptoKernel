@@ -21,6 +21,7 @@
 #include "cryptoserver.h"
 #include "version.h"
 #include "contract.h"
+#include "merkletree.h"
 
 CryptoServer::CryptoServer(jsonrpc::AbstractServerConnector &connector) : CryptoRPCServer(
         connector) {
@@ -315,4 +316,14 @@ Json::Value CryptoServer::dumpprivkeys(const std::string& account,
     } catch(const CryptoKernel::Wallet::WalletException& e) {
         return Json::Value(e.what());
     }
+}
+
+std::string CryptoServer::getoutputsetid(const Json::Value& outputs) {
+    std::set<CryptoKernel::BigNum> outputIds;
+    for(const auto& out : outputs) {
+        outputIds.insert(CryptoKernel::Blockchain::output(out).getId());
+    }
+
+    return CryptoKernel::MerkleNode::makeMerkleTree(outputIds)->getMerkleRoot()
+           .toString();
 }
