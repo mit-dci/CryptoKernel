@@ -51,24 +51,29 @@ Roadmap
    - L -- Local (No Fork Required)
 
 ## Versions
-#### alpha v0.0.1 -- H
-- H -- Transaction Merkle root in block header
-- H -- Rule change signalling in block
-- H -- Friedman rule emission schedule
-- H -- Lyra2REv2 as PoW function 
-- L -- Wallet schema version detection
-- L -- RPC Server requires password
+#### ~~alpha v0.0.1 -- H~~ - Released
+- ~~H -- Transaction Merkle root in block header~~
+- ~~H -- Rule change signalling in block~~
+- ~~H -- Friedman rule emission schedule~~
+- ~~H -- Lyra2REv2 as PoW function~~
+- ~~L -- Wallet schema version detection~~
+- ~~L -- RPC Server requires password~~
     
-#### alpha v0.1.0 -- S 
+#### alpha v0.1.0 -- S
+- L -- Improved synchronisation performance
+- L -- Expanded RPC interface for contracts 
+- L -- Other various bug fixes, especially around error handling
+- L -- Wallet tracks unconfirmed transactions
+
+#### alpha v0.2.0 -- S 
 - S -- Expand Lua contract standard library with more
 digital currency specific functions
 - S -- Load external contract code to avoid duplication
 for propagating contracts
-- S -- Schnorr signatures
-- L -- Seed addresses
 - L -- Standardised address format (not just public keys)
-- L -- Wallet tracks unconfirmed transactions
 
-#### alpha v0.2.0
+#### alpha v0.3.0
 - L -- HD key generation and recovery with seed
 - L -- LN integrated with wallet
+- S -- Schnorr signatures
+- L -- Seed addresses
