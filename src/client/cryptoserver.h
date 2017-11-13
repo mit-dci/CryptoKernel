@@ -118,7 +118,8 @@ public:
         response = this->calculateoutputid(request["output"]);
     }
     inline virtual void signtransactionI(const Json::Value &request, Json::Value &response) {
-        response = this->signtransaction(request["transaction"], request["password"].asString());
+        response = this->signtransaction(request["transaction"],  
+                                         request["password"].asString());
     }
     inline virtual void listtransactionsI(const Json::Value &request, Json::Value &response) {
         response = this->listtransactions();
@@ -158,7 +159,8 @@ public:
     virtual Json::Value getpubkeyoutputs(const std::string& publickey) = 0;
     virtual std::string compilecontract(const std::string& code) = 0;
     virtual std::string calculateoutputid(const Json::Value output) = 0;
-    virtual Json::Value signtransaction(const Json::Value& tx, const std::string& password) = 0;
+    virtual Json::Value signtransaction(const Json::Value& tx, 
+                                        const std::string& password) = 0;
     virtual Json::Value listtransactions() = 0;
     virtual Json::Value getblockbyheight(const uint64_t height) = 0;
     virtual bool stop() = 0;
@@ -187,7 +189,8 @@ public:
     virtual Json::Value getpubkeyoutputs(const std::string& publickey);
     virtual std::string compilecontract(const std::string& code);
     virtual std::string calculateoutputid(const Json::Value output);
-    virtual Json::Value signtransaction(const Json::Value& tx, const std::string& password);
+    virtual Json::Value signtransaction(const Json::Value& tx, 
+                                        const std::string& password);
     virtual Json::Value listtransactions();
     virtual Json::Value getblockbyheight(const uint64_t height);
     virtual bool stop();

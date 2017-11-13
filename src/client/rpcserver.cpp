@@ -208,7 +208,8 @@ std::string CryptoServer::calculateoutputid(const Json::Value output) {
     }
 }
 
-Json::Value CryptoServer::signtransaction(const Json::Value& tx, const std::string& password) {
+Json::Value CryptoServer::signtransaction(const Json::Value& tx, 
+                                          const std::string& password) {
     try {
         const CryptoKernel::Blockchain::transaction transaction =
             CryptoKernel::Blockchain::transaction(tx);
@@ -230,7 +231,12 @@ Json::Value CryptoServer::listtransactions() {
         wallet->listTransactions();
 
     for(const auto& tx : transactions) {
-        returning["transactions"].append(tx.toJson());
+        auto jsonTx = tx.toJson();
+        for(auto& output : jsonTx["outputs"]) {
+            CryptoKernel::Blockchain::output out(output);
+            output["id"] = out.getId().toString();
+        }
+        returning["transactions"].append(jsonTx);
     }
 
     return returning;
