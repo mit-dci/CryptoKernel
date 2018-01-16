@@ -24,7 +24,7 @@
 #include <openssl/ec.h>
 #include <openssl/ecdsa.h>
 #include <openssl/obj_mac.h>
-#include <jsoncpp/json/value.h>
+#include <json/value.h>
 
 namespace CryptoKernel {
 
@@ -119,16 +119,16 @@ class AES256 {
     public:
         AES256(const Json::Value& objJson);
         AES256(const std::string& password, const std::string& plainText);
-        
+
         Json::Value toJson() const;
-        
+
         std::string decrypt(const std::string& password) const;
-    
+
     private:
         unsigned char salt[32];
         unsigned char iv[16];
         std::string cipherText;
-        
+
         std::shared_ptr<unsigned char> genKey(const std::string& password) const;
 };
 

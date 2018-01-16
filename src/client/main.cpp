@@ -68,7 +68,7 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* c
             Json::Value consensusData = Block.getConsensusData();
             consensusData["totalWork"] = (inverse + CryptoKernel::BigNum(
                                               previousBlock.getConsensusData()["totalWork"].asString())).toString();
-            consensusData["nonce"] = static_cast<unsigned long long int>(nonce);
+            consensusData["nonce"] = nonce;
 
             do {
                 t = std::time(0);
@@ -97,7 +97,7 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* c
                 pow = consensus->calculatePoW(Block, nonce);
             } while(pow >= target && running);
 
-            consensusData["nonce"] = static_cast<unsigned long long int>(nonce);
+            consensusData["nonce"] = nonce;
             Block.setConsensusData(consensusData);
 
             if(running) {
@@ -158,27 +158,27 @@ int main(int argc, char* argv[]) {
     if(!t.is_open()) {
         throw std::runtime_error("Could not open config file");
     }
-    
+
     std::string buffer((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
     Json::Value config = CryptoKernel::Storage::toJson(buffer);
-    
+
     t.close();
-    
+
     if(config["rpcpassword"] == "password") {
         unsigned char bytes[32];
         if(!RAND_bytes((unsigned char*)&bytes, 32)) {
             throw std::runtime_error("Couldn't generate random rpc password");
         }
-        
+
         config["rpcpassword"] = base64_encode((unsigned char*)&bytes, 32);
-        
+
         std::ofstream ofs("config.json", std::ofstream::out | std::ofstream::trunc);
-        
+
         ofs << config.toStyledString();
-        
+
         ofs.close();
     }
-    
+
     const bool minerOn = config["miner"].asBool();
 
     if(argc < 2) {
@@ -197,8 +197,8 @@ int main(int argc, char* argv[]) {
             minerThread.reset(new std::thread(miner, &blockchain, &consensus, &wallet, &log,
                                               &network));
         }
-        
-        jsonrpc::HttpServerLocal httpserver(8383, 
+
+        jsonrpc::HttpServerLocal httpserver(8383,
                                             config["rpcuser"].asString(),
                                             config["rpcpassword"].asString(),
                                             config["sslcert"].asString(),
@@ -206,7 +206,7 @@ int main(int argc, char* argv[]) {
         CryptoServer server(httpserver);
         server.setWallet(&wallet, &blockchain, &network, &running);
         server.StartListening();
-        
+
         if(!config["verbose"].asBool()) {
             std::cout << "ck daemon started" << std::endl;
         }
@@ -216,19 +216,19 @@ int main(int argc, char* argv[]) {
         }
 
         log.printf(LOG_LEVEL_INFO, "Shutting down...");
-        
+
         server.StopListening();
         if(minerOn) {
             minerThread->join();
         }
     } else {
         std::string command(argv[1]);
-		
-		const std::string userpass = config["rpcuser"].asString() 
-                                   + ":" 
+
+		const std::string userpass = config["rpcuser"].asString()
+                                   + ":"
                                    + config["rpcpassword"].asString();
 		const std::string auth = base64_encode((unsigned char*)userpass.c_str(), userpass.size());
-		
+
         jsonrpc::HttpClient httpclient("http://127.0.0.1:8383");
         httpclient.SetTimeout(30000);
 		httpclient.AddHeader("Authorization", "Basic " + auth);
@@ -238,7 +238,7 @@ int main(int argc, char* argv[]) {
             if(command == "-daemon") {
                 #ifdef _WIN32
                 if(std::system("start /B .\\ckd") != 0) {
-                #else 
+                #else
                 if(std::system("./ckd &") != 0) {
                 #endif
                     std::cout << "Failed to start ckd" << std::endl;

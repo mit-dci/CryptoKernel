@@ -12,7 +12,7 @@ CryptoKernel::Network::Peer::Peer(sf::TcpSocket* client, CryptoKernel::Blockchai
 
     const time_t t = std::time(0);
     generator.seed(static_cast<uint64_t> (t));
-    
+
     stats.connectedSince = t;
     stats.ping = 0;
     stats.transferUp = 0;
@@ -37,7 +37,7 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request) {
     const uint64_t nonce = distribution(generator);
 
     Json::Value modifiedRequest = request;
-    modifiedRequest["nonce"] = static_cast<unsigned long long int>(nonce);
+    modifiedRequest["nonce"] = nonce;
     requests[nonce] = true;
 
     sf::Packet packet;
@@ -92,9 +92,9 @@ void CryptoKernel::Network::Peer::send(const Json::Value& response) {
         clientMutex.unlock();
         throw NetworkError();
     }
-    
+
     stats.transferUp += packet.getDataSize();
-    
+
     clientMutex.unlock();
 }
 
@@ -132,8 +132,7 @@ void CryptoKernel::Network::Peer::requestFunc() {
                     if(request["command"] == "info") {
                         Json::Value response;
                         response["data"]["version"] = version;
-                        response["data"]["tipHeight"] = static_cast<unsigned long long int>
-                                                        (network->getCurrentHeight());
+                        response["data"]["tipHeight"] = network->getCurrentHeight();
                         for(const auto& peer : network->getConnectedPeers()) {
                             response["data"]["peers"].append(peer);
                         }
@@ -144,9 +143,9 @@ void CryptoKernel::Network::Peer::requestFunc() {
 						for(unsigned int i = 0; i < request["data"].size(); i++) {
 							const CryptoKernel::Blockchain::transaction tx = CryptoKernel::Blockchain::transaction(
 										request["data"][i]);
-							
+
 							const auto txResult = blockchain->submitTransaction(tx);
-							
+
 							if(std::get<0>(txResult)) {
 								txs.push_back(tx);
 							} else if(std::get<1>(txResult)) {
@@ -160,7 +159,7 @@ void CryptoKernel::Network::Peer::requestFunc() {
                     } else if(request["command"] == "block") {
 						const CryptoKernel::Blockchain::block block = CryptoKernel::Blockchain::block(
 									request["data"]);
-							
+
 						// Don't accept blocks that are more than two hours away from the current time
 						const int64_t now = std::time(nullptr);
 						if(std::abs((int)(now - block.getTimestamp())) > 2 * 60 * 60) {
@@ -321,7 +320,7 @@ CryptoKernel::Blockchain::block CryptoKernel::Network::Peer::getBlock(
         request["data"]["id"] = id;
         block = sendRecv(request);
     } else {
-        request["data"]["height"] = static_cast<unsigned long long int>(height);
+        request["data"]["height"] = height;
         block = sendRecv(request);
     }
 
@@ -337,8 +336,8 @@ std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Peer::getBlo
     const uint64_t start, const uint64_t end) {
     Json::Value request;
     request["command"] = "getblocks";
-    request["data"]["start"] = static_cast<unsigned long long int>(start);
-    request["data"]["end"] = static_cast<unsigned long long int>(end);
+    request["data"]["start"] = start;
+    request["data"]["end"] = end;
     Json::Value blocks = sendRecv(request);
 
     std::vector<CryptoKernel::Blockchain::block> returning;

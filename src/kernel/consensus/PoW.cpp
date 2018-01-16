@@ -54,7 +54,7 @@ Json::Value CryptoKernel::Consensus::PoW::consensusDataToJson(const
     Json::Value returning;
     returning["target"] = data.target.toString();
     returning["totalWork"] = data.totalWork.toString();
-    returning["nonce"] = static_cast<unsigned long long int>(data.nonce);
+    returning["nonce"] = data.nonce;
     return returning;
 }
 
@@ -237,12 +237,12 @@ CryptoKernel::Consensus::PoW::KGW_LYRA2REV2::KGW_LYRA2REV2(const uint64_t blockT
 
 CryptoKernel::BigNum CryptoKernel::Consensus::PoW::KGW_LYRA2REV2::powFunction(const std::string& inputString) {
     char* output = new char[32];
-    
+
     lyra2re2_hash(inputString.c_str(), inputString.size(), output);
-    
+
     CryptoKernel::BigNum returning(base16_encode((unsigned char*)output, 32));
-    
+
     delete[] output;
-    
+
     return returning;
 }
