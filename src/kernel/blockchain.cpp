@@ -23,6 +23,7 @@
 #include <fstream>
 #include <math.h>
 #include <random>
+#include <thread>
 
 #include "blockchain.h"
 #include "crypto.h"
@@ -340,7 +341,7 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::submitBlock(const block& newBlo
 std::tuple<bool, bool> CryptoKernel::Blockchain::submitTransaction(Storage::Transaction* dbTx,
         const transaction& tx) {
     std::lock_guard<std::recursive_mutex> lock(chainLock);
-	const auto verifyResult = verifyTransaction(dbTx, tx); 
+	const auto verifyResult = verifyTransaction(dbTx, tx);
     if(std::get<0>(verifyResult)) {
         if(consensus->submitTransaction(dbTx, tx)) {
 			if(unconfirmedTransactions.insert(tx)) {
@@ -433,13 +434,38 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::submitBlock(Storage::Transactio
 
     if(!onlySave) {
         uint64_t fees = 0;
+
+        const unsigned int threads = std::thread::hardware_concurrency();
+        const auto& txs = newBlock.getTransactions();
+        bool failure = false;
+        unsigned int nTx = 0;
+        std::vector<std::thread> threadsVec;
+
+        for(const auto& tx : txs) {
+            threadsVec.push_back(std::thread([&]{
+                if(!std::get<0>(verifyTransaction(dbTx, tx))) {
+                    failure = true;
+                }
+            }));
+            nTx++;
+
+            if(nTx % threads == 0 || nTx >= txs.size()) {
+                for(auto& thread : threadsVec) {
+                    thread.join();
+                }
+                threadsVec.clear();
+
+                if(failure) {
+                    log->printf(LOG_LEVEL_INFO,
+                            "blockchain::submitBlock(): Transaction could not be verified");
+                    return std::make_tuple(false, true);
+                }
+            }
+        }
+
+
         //Verify Transactions
         for(const transaction& tx : newBlock.getTransactions()) {
-            if(!std::get<0>(verifyTransaction(dbTx, tx))) {
-                log->printf(LOG_LEVEL_INFO,
-                            "blockchain::submitBlock(): Transaction could not be verified");
-                return std::make_tuple(false, true);
-            }
             fees += calculateTransactionFee(dbTx, tx);
         }
 
@@ -476,7 +502,7 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::submitBlock(Storage::Transactio
 
     if(onlySave) {
         Json::Value jsonBlock = newBlock.toJson();
-        jsonBlock["height"] = static_cast<unsigned long long int>(blockHeight);
+        jsonBlock["height"] = blockHeight;
         candidates->put(dbTx, newBlock.getId().toString(), jsonBlock);
     } else {
         const dbBlock toSave = dbBlock(newBlock, blockHeight);
@@ -752,7 +778,7 @@ void CryptoKernel::Blockchain::reverseBlock(Storage::Transaction* dbTransaction)
     }
 
     transactions->erase(dbTransaction, tip.getCoinbaseTx().getId().toString());
-	
+
 	std::set<transaction> replayTxs;
 
     for(const transaction& tx : tip.getTransactions()) {
@@ -794,9 +820,9 @@ void CryptoKernel::Blockchain::reverseBlock(Storage::Transaction* dbTransaction)
                 tip.getPreviousBlockId().toString()).toJson());
 
     candidates->put(dbTransaction, tip.getId().toString(), tip.toJson());
-	
+
 	unconfirmedTransactions.rescanMempool(dbTransaction, this);
-	
+
 	for(const auto& tx : replayTxs) {
 		if(!std::get<0>(submitTransaction(dbTransaction, tx))) {
             log->printf(LOG_LEVEL_ERR,
@@ -860,27 +886,27 @@ bool CryptoKernel::Blockchain::Mempool::insert(const transaction& tx) {
 	if(txs.find(tx.getId()) != txs.end()) {
 		return false;
 	}
-	
+
 	for(const input& inp : tx.getInputs()) {
 		if(inputs.find(inp.getId()) != inputs.end()) {
 			return false;
 		}
 	}
-	
+
 	for(const output& out : tx.getOutputs()) {
 		if(outputs.find(out.getId()) != outputs.end()) {
 			return false;
 		}
 	}
-	
+
 	txs.insert(std::pair<BigNum, transaction>(tx.getId(), tx));
-    
+
     bytes += tx.size();
 
 	for(const input& inp : tx.getInputs()) {
 		inputs.insert(std::pair<BigNum, BigNum>(inp.getId(), tx.getId()));
 	}
-	
+
 	for(const output& out : tx.getOutputs()) {
 		outputs.insert(std::pair<BigNum, BigNum>(out.getId(), tx.getId()));
 	}
@@ -891,13 +917,13 @@ bool CryptoKernel::Blockchain::Mempool::insert(const transaction& tx) {
 void CryptoKernel::Blockchain::Mempool::remove(const transaction& tx) {
 	if(txs.find(tx.getId()) != txs.end()) {
 		txs.erase(tx.getId());
-        
+
         bytes -= tx.size();
-		
+
 		for(const input& inp : tx.getInputs()) {
 			inputs.erase(inp.getId());
 		}
-		
+
 		for(const output& out : tx.getOutputs()) {
 			outputs.erase(out.getId());
 		}
@@ -906,13 +932,13 @@ void CryptoKernel::Blockchain::Mempool::remove(const transaction& tx) {
 
 void CryptoKernel::Blockchain::Mempool::rescanMempool(Storage::Transaction* dbTx, Blockchain* blockchain) {
 	std::set<transaction> removals;
-	
+
 	for(const auto& it : txs) {
 		if(!std::get<0>(blockchain->verifyTransaction(dbTx, it.second))) {
 			removals.insert(it.second);
 		}
 	}
-	
+
 	for(const auto& tx : removals) {
 		remove(tx);
 	}
@@ -921,17 +947,17 @@ void CryptoKernel::Blockchain::Mempool::rescanMempool(Storage::Transaction* dbTx
 std::set<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::Mempool::getTransactions() const {
 	uint64_t totalSize = 0;
 	std::set<transaction> returning;
-	
+
 	for(const auto& it : txs) {
 		if(totalSize + it.second.size() < 3.9 * 1024 * 1024) {
 			returning.insert(it.second);
 			totalSize += it.second.size();
 			continue;
-		} 
-		
+		}
+
 		break;
 	}
-	
+
 	return returning;
 }
 

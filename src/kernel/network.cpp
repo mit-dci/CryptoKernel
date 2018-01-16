@@ -109,7 +109,7 @@ void CryptoKernel::Network::peerFunc() {
 
                 log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + it->key());
 
-                peer["lastattempt"] = static_cast<unsigned long long int> (result);
+                peer["lastattempt"] = result;
 
                 // Attempt to connect to peer
                 sf::TcpSocket* socket = new sf::TcpSocket();
@@ -147,7 +147,7 @@ void CryptoKernel::Network::peerFunc() {
                     break;
                 }
 
-                peer["lastseen"] = static_cast<unsigned long long int> (result);
+                peer["lastseen"] = result;
 
                 peer["score"] = 0;
 
@@ -170,7 +170,7 @@ void CryptoKernel::Network::peerFunc() {
             std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
 
 	    std::set<std::string> removals;
-            
+
 	    for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin();
                     it != connected.end(); it++) {
                 try {
@@ -207,7 +207,7 @@ void CryptoKernel::Network::peerFunc() {
                     }
 
                     const std::time_t result = std::time(nullptr);
-                    it->second->info["lastseen"] = static_cast<unsigned long long int> (result);
+                    it->second->info["lastseen"] = result;
                 } catch(const Peer::NetworkError& e) {
                     log->printf(LOG_LEVEL_WARN,
                                 "Network(): Failed to contact " + it->first + ", disconnecting it");
@@ -310,11 +310,11 @@ void CryptoKernel::Network::networkFunc() {
 
                     for(int i = blocks.size() - 1; i >= 0 && running; i--) {
 						const auto blockResult = blockchain->submitBlock(blocks[i]);
-						
+
                         if(std::get<1>(blockResult)) {
                             changeScore(it->first, 50);
                         }
-						
+
 					    if(!std::get<0>(blockResult)) {
                             blocks.clear();
 							break;
@@ -405,7 +405,7 @@ void CryptoKernel::Network::connectionFunc() {
             }
 
             const std::time_t result = std::time(nullptr);
-            peerInfo->info["lastseen"] = static_cast<unsigned long long int> (result);
+            peerInfo->info["lastseen"] = result;
 
             peerInfo->info["score"] = 0;
 
@@ -478,7 +478,7 @@ uint64_t CryptoKernel::Network::getCurrentHeight() {
     return currentHeight;
 }
 
-std::map<std::string, CryptoKernel::Network::peerStats> 
+std::map<std::string, CryptoKernel::Network::peerStats>
 CryptoKernel::Network::getPeerStats() {
     std::lock_guard<std::recursive_mutex> lock(connectedMutex);
 
@@ -490,6 +490,6 @@ CryptoKernel::Network::getPeerStats() {
         stats.blockHeight = peer.second->info["height"].asUInt64();
         returning.insert(std::make_pair(peer.first, stats));
     }
-    
+
     return returning;
 }

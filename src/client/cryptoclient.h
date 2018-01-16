@@ -128,7 +128,7 @@ public:
     }
     Json::Value getblockbyheight(const uint64_t height) throw (jsonrpc::JsonRpcException) {
         Json::Value p;
-        p["height"] = static_cast<unsigned long long int>(height);
+        p["height"] = height;
         const Json::Value result = this->CallMethod("getblockbyheight", p);
         if (result.isObject()) {
             return result;
@@ -190,7 +190,7 @@ public:
         if (result.isObject())
         { return result; }
         else
-        { throw jsonrpc::JsonRpcException(jsonrpc::Errors::ERROR_CLIENT_INVALID_RESPONSE, result.toStyledString()); } 
+        { throw jsonrpc::JsonRpcException(jsonrpc::Errors::ERROR_CLIENT_INVALID_RESPONSE, result.toStyledString()); }
     }
     Json::Value dumpprivkeys(const std::string& account,
                              const std::string& password) throw (jsonrpc::JsonRpcException) {

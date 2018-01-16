@@ -29,8 +29,8 @@ CryptoServer::CryptoServer(jsonrpc::AbstractServerConnector &connector) : Crypto
 }
 
 void CryptoServer::setWallet(CryptoKernel::Wallet* Wallet,
-                             CryptoKernel::Blockchain* Blockchain, 
-                             CryptoKernel::Network* Network, 
+                             CryptoKernel::Blockchain* Blockchain,
+                             CryptoKernel::Network* Network,
                              bool* running) {
     wallet = Wallet;
     blockchain = Blockchain;
@@ -47,16 +47,15 @@ Json::Value CryptoServer::getinfo() {
     std::stringstream buffer;
     buffer << std::setprecision(8) << std::fixed << balance;
     returning["balance"] = buffer.str();
-    returning["height"] = static_cast<unsigned long long int>
-                          (blockchain->getBlockDB("tip").getHeight());
+    returning["height"] = blockchain->getBlockDB("tip").getHeight();
     returning["connections"] = network->getConnections();
     returning["mempool"]["count"] = blockchain->mempoolCount();
-    
+
     buffer.str("");
-    buffer << std::setprecision(3) 
-           << (blockchain->mempoolSize() / double(1024 * 1024)) 
+    buffer << std::setprecision(3)
+           << (blockchain->mempoolSize() / double(1024 * 1024))
            << " MB";
-    
+
     returning["mempool"]["size"] = buffer.str();
 
     return returning;
@@ -75,8 +74,8 @@ Json::Value CryptoServer::account(const std::string& account,
         } catch(const CryptoKernel::Wallet::WalletException& e) {
             return Json::Value(e.what());
         }
-    }   
-    
+    }
+
     const auto newAccount = CryptoKernel::Wallet::Account(accJson);
 
     returning["name"] = newAccount.getName();
@@ -95,7 +94,7 @@ Json::Value CryptoServer::account(const std::string& account,
     return returning;
 }
 
-std::string CryptoServer::sendtoaddress(const std::string& address, double amount, 
+std::string CryptoServer::sendtoaddress(const std::string& address, double amount,
                                         const std::string& password) {
     uint64_t Amount = amount * 100000000;
     return wallet->sendToAddress(address, Amount, password);
@@ -173,25 +172,25 @@ Json::Value CryptoServer::listunspentoutputs(const std::string& account) {
 
 Json::Value CryptoServer::getpubkeyoutputs(const std::string& publickey) {
     const auto unspent = blockchain->getUnspentOutputs(publickey);
-    
+
     Json::Value returning;
     for(const auto& utxo : unspent) {
         Json::Value out = utxo.toJson();
         out["spent"] = false;
         out["id"] = utxo.getId().toString();
-        
+
         returning.append(out);
     }
-    
+
     const auto spent = blockchain->getSpentOutputs(publickey);
     for(const auto& stxo : spent) {
         Json::Value out = stxo.toJson();
         out["spent"] = true;
         out["id"] = stxo.getId().toString();
-        
+
         returning.append(out);
     }
-    
+
     return returning;
 }
 
@@ -208,7 +207,7 @@ std::string CryptoServer::calculateoutputid(const Json::Value output) {
     }
 }
 
-Json::Value CryptoServer::signtransaction(const Json::Value& tx, 
+Json::Value CryptoServer::signtransaction(const Json::Value& tx,
                                           const std::string& password) {
     try {
         const CryptoKernel::Blockchain::transaction transaction =
@@ -280,7 +279,7 @@ Json::Value CryptoServer::importprivkey(const std::string& name, const std::stri
         return wallet->importPrivKey(name, key, password).toJson();
     } catch(const CryptoKernel::Wallet::WalletException& e) {
         return Json::Value(e.what());
-    } 
+    }
 }
 
 Json::Value CryptoServer::getpeerinfo() {
@@ -290,15 +289,11 @@ Json::Value CryptoServer::getpeerinfo() {
         Json::Value stat;
         stat["ping"] = stats.second.ping;
         stat["incoming"] = stats.second.incoming;
-        stat["connectedSince"] = static_cast<unsigned long long int>
-                                 (stats.second.connectedSince);
-        stat["transferUp"] = static_cast<unsigned long long int>
-                             (stats.second.transferUp);
-        stat["transferDown"] = static_cast<unsigned long long int>
-                               (stats.second.transferDown);
+        stat["connectedSince"] = stats.second.connectedSince;
+        stat["transferUp"] = stats.second.transferUp;
+        stat["transferDown"] = stats.second.transferDown;
         stat["version"] = stats.second.version;
-        stat["height"] = static_cast<unsigned long long int>
-                         (stats.second.blockHeight);
+        stat["height"] = stats.second.blockHeight;
         returning[stats.first] = stat;
     }
 
@@ -317,7 +312,7 @@ Json::Value CryptoServer::dumpprivkeys(const std::string& account,
                 return Json::Value(e.what());
             }
         }
-        
+
         return returning;
     } catch(const CryptoKernel::Wallet::WalletException& e) {
         return Json::Value(e.what());

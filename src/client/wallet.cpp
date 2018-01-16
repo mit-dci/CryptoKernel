@@ -64,64 +64,64 @@ CryptoKernel::Wallet::~Wallet() {
 }
 
 void CryptoKernel::Wallet::upgradeWallet() {
-    log->printf(LOG_LEVEL_INFO, "Wallet(): Wallet upgrade started " + std::to_string(schemaVersion) 
+    log->printf(LOG_LEVEL_INFO, "Wallet(): Wallet upgrade started " + std::to_string(schemaVersion)
                                 + " -> " + std::to_string(LATEST_WALLET_SCHEMA));
     if(schemaVersion == 0) {
         // Ask for wallet passphrase
         std::string password;
         std::string passwordConfirm;
-        
+
         while(password != passwordConfirm || password.size() < 8) {
             password.clear();
             passwordConfirm.clear();
-            
+
             password = getPass("Enter new wallet passphrase (min 8 chars): ");
-            
+
             passwordConfirm = getPass("Confirm passphrase: ");
         }
-        
+
         std::vector<Json::Value> accountsJson;
-        
+
         // Encrypt private keys
         auto it = new CryptoKernel::Storage::Table::Iterator(accounts.get(), walletdb.get());
         for(it->SeekToFirst(); it->Valid(); it->Next()) {
             accountsJson.push_back(it->value());
         }
         delete it;
-        
+
         std::unique_ptr<CryptoKernel::Storage::Transaction> dbTx(walletdb->begin());
-        
+
         AES256 pwCheck(password, "CORRECT");
         params->put(dbTx.get(), "pwcheck", pwCheck.toJson());
-        
+
         for(auto& acc : accountsJson) {
             for(auto& key : acc["keys"]) {
                 AES256 crypt(password, key["privKey"].asString());
                 key["privKey"] = crypt.toJson();
             }
-            
+
             accounts->put(dbTx.get(), acc["name"].asString(), acc);
         }
-        
+
         params->put(dbTx.get(), "schemaVersion", Json::Value(1));
-        
+
         dbTx->commit();
-        
+
         std::cout << "Wallet successfully encrypted" << std::endl;
-        
+
         try {
             newAccount("mining", password);
         } catch(const WalletException& e) {}
     }
-    
+
     schemaVersion = LATEST_WALLET_SCHEMA;
-    
+
     log->printf(LOG_LEVEL_INFO, "Wallet(): Wallet upgrade complete");
 }
 
 bool CryptoKernel::Wallet::checkPassword(const std::string& password) {
     std::unique_ptr<CryptoKernel::Storage::Transaction> dbTx(walletdb->begin());
-    
+
     AES256 pwCheck(params->get(dbTx.get(), "pwcheck"));
     try {
         if(pwCheck.decrypt(password) == "CORRECT") {
@@ -130,7 +130,7 @@ bool CryptoKernel::Wallet::checkPassword(const std::string& password) {
     } catch(const std::runtime_error& e) {
         return false;
     }
-    
+
     return false;
 }
 
@@ -249,7 +249,7 @@ void CryptoKernel::Wallet::rewindBlock(CryptoKernel::Storage::Transaction* walle
 
     params->put(walletTx, "tipId", Json::Value(newTip.getId().toString()));
     params->put(walletTx, "height",
-                Json::Value(static_cast<unsigned long long int>(newTip.getHeight())));
+                Json::Value(newTip.getHeight()));
 }
 
 void CryptoKernel::Wallet::clearDB() {
@@ -355,7 +355,7 @@ void CryptoKernel::Wallet::digestBlock(CryptoKernel::Storage::Transaction* walle
     }
 
     params->put(walletTx, "height",
-                Json::Value(static_cast<unsigned long long int>(block.getHeight())));
+                Json::Value(block.getHeight()));
     params->put(walletTx, "tipId", Json::Value(block.getId().toString()));
 }
 
@@ -371,7 +371,7 @@ Json::Value CryptoKernel::Wallet::Account::toJson() const {
     Json::Value returning;
 
     returning["name"] = name;
-    returning["balance"] = static_cast<unsigned long long int>(balance);
+    returning["balance"] = balance;
 
     for(const keyPair& key : keys) {
         Json::Value jsonKeyPair;
@@ -416,7 +416,7 @@ const {
     return keys;
 }
 
-CryptoKernel::Wallet::Account::keyPair 
+CryptoKernel::Wallet::Account::keyPair
 CryptoKernel::Wallet::Account::newAddress(const std::string& password) {
     CryptoKernel::Crypto crypto(true);
 
@@ -451,7 +451,7 @@ Json::Value CryptoKernel::Wallet::Txo::toJson() const {
 
     returning["id"] = id;
     returning["spent"] = spent;
-    returning["value"] = static_cast<unsigned long long int>(value);
+    returning["value"] = value;
 
     return returning;
 }
@@ -500,7 +500,7 @@ CryptoKernel::Wallet::Account CryptoKernel::Wallet::getAccountByKey(
     throw WalletException("Account not found for given pubKey");
 }
 
-CryptoKernel::Wallet::Account CryptoKernel::Wallet::newAccount(const std::string& name, 
+CryptoKernel::Wallet::Account CryptoKernel::Wallet::newAccount(const std::string& name,
                                                                const std::string& password) {
     std::lock_guard<std::recursive_mutex> lock(walletLock);
     try {
@@ -509,7 +509,7 @@ CryptoKernel::Wallet::Account CryptoKernel::Wallet::newAccount(const std::string
         if(!checkPassword(password)) {
             throw WalletException("Incorrect wallet password");
         }
-        
+
         const Account acc = Account(name, password);
         std::unique_ptr<CryptoKernel::Storage::Transaction> dbTx(walletdb->begin());
         accounts->put(dbTx.get(), name, acc.toJson());
@@ -525,7 +525,7 @@ std::string CryptoKernel::Wallet::sendToAddress(const std::string& pubKey,
         const uint64_t amount, const std::string& password) {
     std::lock_guard<std::recursive_mutex> lock(walletLock);
     std::unique_ptr<CryptoKernel::Storage::Transaction> bchainTx(blockchain->getTxHandle());
-    
+
     if(!checkPassword(password)) {
         return "Incorrect wallet password";
     }
@@ -693,15 +693,15 @@ std::set<CryptoKernel::Blockchain::transaction> CryptoKernel::Wallet::listTransa
     return returning;
 }
 
-CryptoKernel::Blockchain::transaction 
+CryptoKernel::Blockchain::transaction
 CryptoKernel::Wallet::signTransaction(const CryptoKernel::Blockchain::transaction& tx,
                                       const std::string& password) {
     std::lock_guard<std::recursive_mutex> lock(walletLock);
-    
+
     if(!checkPassword(password)) {
         throw WalletException("Incorrect wallet password");
     }
-    
+
     const std::string outputHash = tx.getOutputSetId().toString();
 
     CryptoKernel::Crypto crypto;
@@ -742,11 +742,11 @@ CryptoKernel::Wallet::signTransaction(const CryptoKernel::Blockchain::transactio
     return CryptoKernel::Blockchain::transaction(newInputs, tx.getOutputs(), now);
 }
 
-CryptoKernel::Wallet::Account 
-CryptoKernel::Wallet::importPrivKey(const std::string& name, const std::string& privKey, 
+CryptoKernel::Wallet::Account
+CryptoKernel::Wallet::importPrivKey(const std::string& name, const std::string& privKey,
                                     const std::string& password) {
     std::lock_guard<std::recursive_mutex> lock(walletLock);
-    
+
     if(!checkPassword(password)) {
         throw WalletException("Incorrect wallet password");
     }
@@ -825,9 +825,9 @@ std::string getPass(const char *prompt, bool show_asterisk) {
             }
         }
     }
-    
+
     std::cout << std::endl;
-    
+
     return password;
 }
 #else
@@ -870,9 +870,9 @@ std::string getPass(const char *prompt, bool show_asterisk) {
              }
          }
     }
-    
+
     std::cout << std::endl;
-    
+
     return password;
 }
 #endif

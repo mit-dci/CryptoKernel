@@ -82,7 +82,7 @@ Json::Value CryptoKernel::Consensus::AVRR::consensusDataToJson(
     Json::Value returning;
     returning["publicKey"] = data.publicKey;
     returning["signature"] = data.signature;
-    returning["sequenceNumber"] = static_cast<unsigned long long int>(data.sequenceNumber);
+    returning["sequenceNumber"] = data.sequenceNumber;
     return returning;
 }
 

@@ -20,8 +20,8 @@
 
 #include <mutex>
 
-#include <jsoncpp/json/writer.h>
-#include <jsoncpp/json/reader.h>
+#include <json/writer.h>
+#include <json/reader.h>
 #include <leveldb/db.h>
 
 namespace CryptoKernel {

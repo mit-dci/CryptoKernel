@@ -73,8 +73,8 @@ CryptoKernel::BigNum CryptoKernel::Blockchain::output::getId() const {
 Json::Value CryptoKernel::Blockchain::output::toJson() const {
     Json::Value returning;
 
-    returning["value"] = static_cast<unsigned long long int>(value);
-    returning["nonce"] = static_cast<unsigned long long int>(nonce);
+    returning["value"] = value;
+    returning["nonce"] = nonce;
     returning["data"] = data;
 
     return returning;
@@ -186,7 +186,7 @@ CryptoKernel::Blockchain::transaction::transaction(const std::set<input>& inputs
     this->inputs = inputs;
     this->outputs = outputs;
     this->timestamp = timestamp;
-    
+
     bytes = CryptoKernel::Storage::toString(toJson()).size();
 
     checkRep(coinbaseTx);
@@ -265,7 +265,7 @@ CryptoKernel::BigNum CryptoKernel::Blockchain::transaction::calculateId() {
 
 		buffer << CryptoKernel::MerkleNode::makeMerkleTree(inputIds)->getMerkleRoot().toString();
 	}
-	
+
 	buffer << getOutputSetId().toString() << timestamp;
 
     CryptoKernel::Crypto crypto;
@@ -286,7 +286,7 @@ CryptoKernel::BigNum CryptoKernel::Blockchain::transaction::getOutputSetId() con
 
 CryptoKernel::BigNum CryptoKernel::Blockchain::transaction::getOutputSetId(
     const std::set<output>& outputs) {
-    
+
 	std::set<BigNum> outputIds;
     for(const output& out : outputs) {
         outputIds.insert(out.getId());
@@ -312,7 +312,7 @@ CryptoKernel::Blockchain::transaction::getOutputs() const {
 Json::Value CryptoKernel::Blockchain::transaction::toJson() const {
     Json::Value returning;
 
-    returning["timestamp"] = static_cast<unsigned long long int>(timestamp);
+    returning["timestamp"] = timestamp;
 
     for(const input& inp : inputs) {
         returning["inputs"].append(inp.toJson());
@@ -372,7 +372,7 @@ CryptoKernel::Blockchain::dbTransaction::dbTransaction(const transaction&
 
 CryptoKernel::BigNum CryptoKernel::Blockchain::dbTransaction::calculateId() {
     std::stringstream buffer;
-	
+
 	if(!inputs.empty()) {
 		buffer << CryptoKernel::MerkleNode::makeMerkleTree(inputs)->getMerkleRoot().toString();
 	}
@@ -412,7 +412,7 @@ Json::Value CryptoKernel::Blockchain::dbTransaction::toJson() const {
 
     returning["confirmingBlock"] = confirmingBlock.toString();
     returning["coinbaseTx"] = coinbaseTx;
-    returning["timestamp"] = static_cast<unsigned long long int>(timestamp);
+    returning["timestamp"] = timestamp;
 
     return returning;
 }
@@ -450,16 +450,16 @@ CryptoKernel::Blockchain::block::block(const std::set<transaction>& transactions
     this->consensusData = consensusData;
     this->height = height;
 	this->data = data;
-	
+
 	if(!this->transactions.empty()) {
 		std::set<BigNum> txIds;
 		for(const auto& tx : transactions) {
 			txIds.insert(tx.getId());
 		}
-		
+
 		transactionMerkleRoot = CryptoKernel::MerkleNode::makeMerkleTree(txIds)->getMerkleRoot();
 	}
-	
+
     checkRep();
 
     id = calculateId();
@@ -472,11 +472,11 @@ CryptoKernel::Blockchain::block::block(const Json::Value& jsonBlock)
         previousBlockId = CryptoKernel::BigNum(jsonBlock["previousBlockId"].asString());
         consensusData = jsonBlock["consensusData"];
 		data = jsonBlock["data"];
-		
+
 		if(!jsonBlock["transactions"].empty()) {
 			transactionMerkleRoot = CryptoKernel::BigNum(jsonBlock["transactionMerkleRoot"].asString());
 		}
-		
+
         for(const Json::Value& tx : jsonBlock["transactions"]) {
             transactions.insert(CryptoKernel::Blockchain::transaction(tx));
         }
@@ -505,8 +505,8 @@ CryptoKernel::BigNum CryptoKernel::Blockchain::block::calculateId() {
     if(!transactions.empty()) {
         buffer << transactionMerkleRoot.toString();
     }
-    
-    buffer << coinbaseTx.getId().toString() << previousBlockId.toString() << timestamp 
+
+    buffer << coinbaseTx.getId().toString() << previousBlockId.toString() << timestamp
 		   << CryptoKernel::Storage::toString(data);
 
     CryptoKernel::Crypto crypto;
@@ -518,11 +518,11 @@ void CryptoKernel::Blockchain::block::checkRep() {
     if(CryptoKernel::Storage::toString(toJson()).size() > 4 * 1024 * 1024) {
         throw InvalidElementException("Block is too large");
     }
-	
+
 	if(CryptoKernel::Storage::toString(data).size() > 100 * 1024) {
 		throw InvalidElementException("Data field is too large");
 	}
-	
+
 	if(!data.isObject() && !data.isNull()) {
 		throw InvalidElementException("Data field is neither an object or null");
 	}
@@ -565,13 +565,13 @@ void CryptoKernel::Blockchain::block::checkRep() {
     if(totalInputs != inputIds.size()) {
         throw InvalidElementException("Block contains duplicate inputs");
     }
-	
+
 	if(!transactions.empty()) {
 		std::set<BigNum> txIds;
 		for(const auto& tx : transactions) {
 			txIds.insert(tx.getId());
 		}
-		
+
 		if(CryptoKernel::MerkleNode::makeMerkleTree(txIds)->getMerkleRoot() != transactionMerkleRoot) {
 			throw InvalidElementException("Transaction merkle root is incorrect");
 		}
@@ -582,15 +582,15 @@ Json::Value CryptoKernel::Blockchain::block::toJson() const {
     Json::Value returning;
     returning["coinbaseTx"] = coinbaseTx.toJson();
     returning["previousBlockId"] = previousBlockId.toString();
-    returning["timestamp"] = static_cast<unsigned long long int>(timestamp);
+    returning["timestamp"] = timestamp;
     returning["consensusData"] = consensusData;
-    returning["height"] = static_cast<unsigned long long int>(height);
+    returning["height"] = height;
 	returning["data"] = data;
 
     for(const transaction& tx : transactions) {
         returning["transactions"].append(tx.toJson());
     }
-	
+
 	if(!transactions.empty()) {
 		returning["transactionMerkleRoot"] = transactionMerkleRoot.toString();
 	}
@@ -644,7 +644,7 @@ CryptoKernel::Blockchain::dbBlock::dbBlock(const Json::Value& jsonBlock) {
         height = jsonBlock["height"].asUInt64();
         consensusData = jsonBlock["consensusData"];
 		data = jsonBlock["data"];
-		
+
 		if(!jsonBlock["transactions"].empty()) {
 			transactionMerkleRoot = CryptoKernel::BigNum(jsonBlock["transactionMerkleRoot"].asString());
 		}
@@ -672,7 +672,7 @@ CryptoKernel::Blockchain::dbBlock::dbBlock(const block& compactBlock) {
     for(const transaction& tx : compactBlock.getTransactions()) {
         transactions.insert(tx.getId());
     }
-	
+
 	if(!transactions.empty()) {
 		transactionMerkleRoot = CryptoKernel::MerkleNode::makeMerkleTree(transactions)->getMerkleRoot();
 	}
@@ -694,7 +694,7 @@ CryptoKernel::Blockchain::dbBlock::dbBlock(const block& compactBlock,
     for(const transaction& tx : compactBlock.getTransactions()) {
         transactions.insert(tx.getId());
     }
-	
+
 	if(!transactions.empty()) {
 		transactionMerkleRoot = CryptoKernel::MerkleNode::makeMerkleTree(transactions)->getMerkleRoot();
 	}
@@ -710,11 +710,11 @@ void CryptoKernel::Blockchain::dbBlock::checkRep() {
 			throw InvalidElementException("Transaction merkle root is incorrect");
 		}
 	}
-	
+
 	if(CryptoKernel::Storage::toString(data).size() > 100 * 1024) {
 		throw InvalidElementException("Data field is too large");
 	}
-	
+
 	if(!data.isObject() && !data.isNull()) {
 		throw InvalidElementException("Data field is neither an object or null");
 	}
@@ -739,15 +739,15 @@ Json::Value CryptoKernel::Blockchain::dbBlock::toJson() const {
 
     returning["coinbaseTx"] = coinbaseTx.toString();
     returning["previousBlockId"] = previousBlockId.toString();
-    returning["timestamp"] = static_cast<unsigned long long int>(timestamp);
+    returning["timestamp"] = timestamp;
     returning["consensusData"] = consensusData;
-    returning["height"] = static_cast<unsigned long long int>(height);
+    returning["height"] = height;
 	returning["data"] = data;
 
     for(const BigNum& tx : transactions) {
         returning["transactions"].append(tx.toString());
     }
-	
+
 	if(!transactions.empty()) {
 		returning["transactionMerkleRoot"] = transactionMerkleRoot.toString();
 	}
