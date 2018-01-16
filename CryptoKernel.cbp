@@ -179,6 +179,16 @@
 			<Option target="Debug-Client-Windows" />
 			<Option target="Release-Client-Windows" />
 		</Unit>
+		<Unit filename="src/client/httpserver.cpp">
+			<Option target="Debug-Client-Unix" />
+			<Option target="Debug-Client-Windows" />
+			<Option target="Release-Client-Windows" />
+		</Unit>
+		<Unit filename="src/client/httpserver.h">
+			<Option target="Debug-Client-Unix" />
+			<Option target="Debug-Client-Windows" />
+			<Option target="Release-Client-Windows" />
+		</Unit>
 		<Unit filename="src/client/main.cpp">
 			<Option target="Debug-Client-Unix" />
 			<Option target="Debug-Client-Windows" />
@@ -216,6 +226,8 @@
 		<Unit filename="src/kernel/log.cpp" />
 		<Unit filename="src/kernel/log.h" />
 		<Unit filename="src/kernel/math.cpp" />
+		<Unit filename="src/kernel/merkletree.cpp" />
+		<Unit filename="src/kernel/merkletree.h" />
 		<Unit filename="src/kernel/network.cpp" />
 		<Unit filename="src/kernel/network.h" />
 		<Unit filename="src/kernel/networkpeer.cpp" />
