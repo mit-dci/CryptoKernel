@@ -295,6 +295,7 @@ void CryptoKernel::Network::networkFunc() {
                                 log->printf(LOG_LEVEL_WARN,
                                             "Network(): Failed to contact " + it->first + " " + e.what() +
                                             " while downloading blocks");
+                                it++;
                                 break;
                             }
 
@@ -317,7 +318,7 @@ void CryptoKernel::Network::networkFunc() {
                         currentHeight += 5;
                     }
 
-                    while(blocks.size() < 2000 && running) {
+                    while(blocks.size() < 2000 && running && currentHeight < bestHeight) {
                         log->printf(LOG_LEVEL_INFO,
                                     "Network(): Downloading blocks " + std::to_string(currentHeight + 1) + " to " +
                                     std::to_string(currentHeight + 6));
@@ -328,6 +329,7 @@ void CryptoKernel::Network::networkFunc() {
                             log->printf(LOG_LEVEL_WARN,
                                         "Network(): Failed to contact " + it->first + " " + e.what() +
                                         " while downloading blocks");
+                            it++;
                             break;
                         }
 
@@ -340,9 +342,13 @@ void CryptoKernel::Network::networkFunc() {
                             currentHeight = blockchain->getBlockDB("tip").getHeight();
                             break;
                         }
+
+                        if(currentHeight == bestHeight) {
+                            break;
+                        }
                     }
 
-                    blockProcessor.reset(new std::thread([&, blocks, &it]{
+                    blockProcessor.reset(new std::thread([&, blocks]{
                         for(auto rit = blocks.rbegin(); rit != blocks.rend(); ++rit) {
                             const auto blockResult = blockchain->submitBlock(*rit);
 
@@ -357,13 +363,17 @@ void CryptoKernel::Network::networkFunc() {
                             }
                         }
                     }));
+                } else {
+                    break;
                 }
             }
 
-            blockProcessor->join();
-            if(failure) {
-                currentHeight = blockchain->getBlockDB("tip").getHeight();
-                break;
+            if(blockProcessor) {
+                blockProcessor->join();
+                if(failure) {
+                    currentHeight = blockchain->getBlockDB("tip").getHeight();
+                    break;
+                }
             }
         }
 
