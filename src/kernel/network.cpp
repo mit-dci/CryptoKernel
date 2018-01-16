@@ -2,6 +2,8 @@
 #include "networkpeer.h"
 #include "version.h"
 
+#include <list>
+
 CryptoKernel::Network::Network(CryptoKernel::Log* log,
                                CryptoKernel::Blockchain* blockchain) {
     this->log = log;
@@ -271,20 +273,57 @@ void CryptoKernel::Network::networkFunc() {
         //Detect if we are behind
         if(bestHeight > currentHeight) {
             std::lock_guard<std::recursive_mutex> lock(connectedMutex);
-            for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin();
-                    it != connected.end() && running; it++) {
-                if(it->second->info["height"].asUInt64() > currentHeight) {
-                    std::vector<CryptoKernel::Blockchain::block> blocks;
-                    //Try to submit the first block
-                    //If it fails get the 200 block previous until we can submit a block
 
-                    do {
+            std::unique_ptr<std::thread> blockProcessor;
+            bool failure = false;
+            const auto startHeight = currentHeight;
+
+            for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin();
+                    it != connected.end() && running; ) {
+                if(it->second->info["height"].asUInt64() > currentHeight) {
+                    std::list<CryptoKernel::Blockchain::block> blocks;
+
+                    if(currentHeight == startHeight) {
+                        do {
+                            log->printf(LOG_LEVEL_INFO,
+                                        "Network(): Downloading blocks " + std::to_string(currentHeight + 1) + " to " +
+                                        std::to_string(currentHeight + 6));
+                            try {
+                                const auto newBlocks = it->second->peer->getBlocks(currentHeight + 1, currentHeight + 6);
+                                blocks.insert(blocks.end(), newBlocks.rbegin(), newBlocks.rend());
+                            } catch(Peer::NetworkError& e) {
+                                log->printf(LOG_LEVEL_WARN,
+                                            "Network(): Failed to contact " + it->first + " " + e.what() +
+                                            " while downloading blocks");
+                                break;
+                            }
+
+                            try {
+                                blockchain->getBlockDB(blocks.rbegin()->getPreviousBlockId().toString());
+                            } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
+                                if(currentHeight == 1) {
+                                    // This peer has a different genesis block to us
+                                    changeScore(it->first, 250);
+                                    break;
+                                } else {
+                                    currentHeight = std::max(1, (int)currentHeight - 5);
+                                    continue;
+                                }
+                            }
+
+                            break;
+                        } while(running);
+
+                        currentHeight += 5;
+                    }
+
+                    while(blocks.size() < 2000 && running) {
                         log->printf(LOG_LEVEL_INFO,
                                     "Network(): Downloading blocks " + std::to_string(currentHeight + 1) + " to " +
                                     std::to_string(currentHeight + 6));
                         try {
                             const auto newBlocks = it->second->peer->getBlocks(currentHeight + 1, currentHeight + 6);
-                            blocks.insert(blocks.end(), newBlocks.rbegin(), newBlocks.rend());
+                            blocks.insert(blocks.begin(), newBlocks.rbegin(), newBlocks.rend());
                         } catch(Peer::NetworkError& e) {
                             log->printf(LOG_LEVEL_WARN,
                                         "Network(): Failed to contact " + it->first + " " + e.what() +
@@ -292,46 +331,41 @@ void CryptoKernel::Network::networkFunc() {
                             break;
                         }
 
-                        try {
-                            blockchain->getBlockDB(blocks[blocks.size() - 1].getPreviousBlockId().toString());
-                        } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
-                            if(currentHeight == 1) {
-								// This peer has a different genesis block to us
-								changeScore(it->first, 250);
+                        currentHeight = std::min(currentHeight + 5, bestHeight);
+                    }
+
+                    if(blockProcessor) {
+                        blockProcessor->join();
+                        if(failure) {
+                            currentHeight = blockchain->getBlockDB("tip").getHeight();
+                            break;
+                        }
+                    }
+
+                    blockProcessor.reset(new std::thread([&, blocks, &it]{
+                        for(auto rit = blocks.rbegin(); rit != blocks.rend(); ++rit) {
+                            const auto blockResult = blockchain->submitBlock(*rit);
+
+                            if(std::get<1>(blockResult)) {
+                                changeScore(it->first, 50);
+                            }
+
+                            if(!std::get<0>(blockResult)) {
+                                failure = true;
+                                it++;
                                 break;
-                            } else {
-                                currentHeight = std::max(1, (int)currentHeight - 5);
-                                continue;
                             }
                         }
-
-                        break;
-                    } while(running);
-
-                    for(int i = blocks.size() - 1; i >= 0 && running; i--) {
-						const auto blockResult = blockchain->submitBlock(blocks[i]);
-
-                        if(std::get<1>(blockResult)) {
-                            changeScore(it->first, 50);
-                        }
-
-					    if(!std::get<0>(blockResult)) {
-                            blocks.clear();
-							break;
-						}
-                    }
-
-                    currentHeight = blockchain->getBlockDB("tip").getHeight();
-
-                    if(connected.size() < 1) {
-                        break;
-                    }
+                    }));
                 }
             }
-        }
 
-        //Rebroadcast unconfirmed transactions
-        //broadcastTransactions(blockchain->getUnconfirmedTransactions());
+            blockProcessor->join();
+            if(failure) {
+                currentHeight = blockchain->getBlockDB("tip").getHeight();
+                break;
+            }
+        }
 
         if(bestHeight == currentHeight) {
             std::this_thread::sleep_for(std::chrono::milliseconds(20000));
