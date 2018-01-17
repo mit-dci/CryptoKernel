@@ -59,7 +59,7 @@ Roadmap
 - ~~L -- Wallet schema version detection~~
 - ~~L -- RPC Server requires password~~
     
-#### alpha v0.1.0 -- S
+#### alpha v0.1.0 -- L
 - L -- Improved synchronisation performance
 - L -- Expanded RPC interface for contracts 
 - L -- Other various bug fixes, especially around error handling
