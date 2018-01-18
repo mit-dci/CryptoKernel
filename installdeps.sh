@@ -1,5 +1,5 @@
 sudo apt-get update
-sudo apt-get install -y git build-essential libjsoncpp-dev libsfml-dev libleveldb-dev libargtable2-dev libreadline-dev libcurl4-gnutls-dev liblua5.3-dev cmake
+sudo apt-get install -y git build-essential libjsoncpp-dev libsfml-dev libleveldb-dev libargtable2-dev libreadline-dev libcurl4-gnutls-dev liblua5.3-dev cmake libhiredis-dev
 
 wget https://www.openssl.org/source/openssl-1.1.0f.tar.gz
 tar -xvzf openssl-1.1.0f.tar.gz
