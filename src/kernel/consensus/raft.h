@@ -6,7 +6,8 @@
 namespace CryptoKernel {
     class Consensus::Raft : public Consensus {
         public:
-            Raft(const std::set<std::string> verifiers, const uint64_t electionTimeout, const uint64_t heartbeatTimeout);
+            Raft(const std::set<std::string> validators, const uint64_t heartbeatTimeout,
+                 const bool validator, const std::string privKey);
 
             /**
             * In Raft, this should always return false. Blocks are only ever accepted if they are from
@@ -20,22 +21,26 @@ namespace CryptoKernel {
 
             bool submitBlock(const CryptoKernel::Blockchain::block block);
         private:
-            uint64_t electionTimeout;
             uint64_t heartbeatTimeout;
-            std::set<std::string> verifiers;
+            bool validator;
+            std::string privKey;
+
+            std::set<std::string> validators;
+
             enum nodeState {
                 follower,
                 candidate,
                 leader
             };
-            uint64_t electionTerm;
-            std::string currentLeader;
+
             struct consensusData {
-                std::string leader;
-                std::string leaderSignature;
                 std::vector<std::pair<std::string, std::string>> votes;
                 uint64_t term;
             };
+
+            uint64_t electionTerm;
+            bool voted;
+
             nodeState currentState;
             Json::Value consensusDataToJson(const consensusData data);
             consensusData getConsensusData(const CryptoKernel::Blockchain::block block);

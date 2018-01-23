@@ -1,11 +1,16 @@
 #include "raft.h"
 #include "crypto.h"
 
-CryptoKernel::Consensus::Raft::Raft(const std::set<std::string> verifiers, const uint64_t electionTimeout, const uint64_t heartbeatTimeout) {
-    this->verifiers = verifiers;
-    this->electionTimeout = electionTimeout;
+CryptoKernel::Consensus::Raft::Raft(const std::set<std::string> validators,
+                                    const uint64_t heartbeatTimeout,
+                                    const bool validator,
+                                    const std::string privKey) {
+    this->validators = validators;
     this->heartbeatTimeout = heartbeatTimeout;
     currentState = nodeState::follower;
+    voted = false;
+    this->validator = validator;
+    this->privKey = privKey;
 }
 
 bool CryptoKernel::Consensus::Raft::isBlockBetter(const CryptoKernel::Blockchain::block block, const CryptoKernel::Blockchain::block tip) {
@@ -14,14 +19,12 @@ bool CryptoKernel::Consensus::Raft::isBlockBetter(const CryptoKernel::Blockchain
 
 std::string CryptoKernel::Consensus::Raft::serializeConsensusData(const CryptoKernel::Blockchain::block block) {
     const consensusData blockData = getConsensusData(block);
-    return blockData.leader + blockData.leaderSignature + std::to_string(blockData.term);
+    return std::to_string(blockData.term);
 }
 
 Json::Value CryptoKernel::Consensus::Raft::consensusDataToJson(const consensusData data) {
     Json::Value returning;
-    returning["leader"] = data.leader;
-    returning["leaderSignature"] = data.leaderSignature;
-    returning["term"] = static_cast<unsigned long long int>(data.term);
+    returning["term"] = data.term;
     for(std::pair<std::string, std::string> vote : data.votes) {
         Json::Value voteJson;
         voteJson["publicKey"] = vote.first;
@@ -33,23 +36,22 @@ Json::Value CryptoKernel::Consensus::Raft::consensusDataToJson(const consensusDa
 
 CryptoKernel::Consensus::Raft::consensusData CryptoKernel::Consensus::Raft::getConsensusData(const CryptoKernel::Blockchain::block block) {
     consensusData data;
-    data.leader = block.consensusData["leader"].asString();
-    data.leaderSignature = block.consensusData["leaderSignature"].asString();
-    data.term = block.consensusData["term"].asUInt64();
-    for(unsigned int i = 0; i < block.consensusData["votes"].size(); i++) {
-        data.votes.push_back(std::pair<std::string, std::string>(block.consensusData["votes"][i]["publicKey"].asString(), block.consensusData["votes"][i]["signature"].asString()));
+    const auto jsonData = block.getConsensusData();
+    data.term = jsonData["term"].asUInt64();
+    for(unsigned int i = 0; i < jsonData["votes"].size(); i++) {
+        data.votes.push_back(std::pair<std::string, std::string>(jsonData["votes"][i]["publicKey"].asString(), jsonData["votes"][i]["signature"].asString()));
     }
     return data;
 }
 
 bool CryptoKernel::Consensus::Raft::checkConsensusRules(const CryptoKernel::Blockchain::block block, const CryptoKernel::Blockchain::block previousBlock) {
     const consensusData blockData = getConsensusData(block);
-    // Check if block is from current leader
-    if(blockData.leader == currentLeader && electionTerm == blockData.term) {
+    // Check if block is from current term
+    if(electionTerm == blockData.term) {
         // If so, check if block has majority of votes
         std::set<std::string> blockVoters;
         for(const auto vote : blockData.votes) {
-            if(verifiers.find(vote.first) != verifiers.end()) {
+            if(validators.find(vote.first) != validators.end()) {
                 if(blockVoters.find(vote.first) != blockVoters.end()) {
                     return false;
                 } else {
@@ -58,7 +60,7 @@ bool CryptoKernel::Consensus::Raft::checkConsensusRules(const CryptoKernel::Bloc
                         return false;
                     }
 
-                    if(!crypto.verify(block.id, vote.second)) {
+                    if(!crypto.verify(block.getId().toString(), vote.second)) {
                         return false;
                     }
                     blockVoters.insert(vote.first);
@@ -68,7 +70,7 @@ bool CryptoKernel::Consensus::Raft::checkConsensusRules(const CryptoKernel::Bloc
             }
         }
 
-        if(blockVoters.size() > 0.5 * verifiers.size()) {
+        if(blockVoters.size() > 0.5 * validators.size()) {
             return true;
         } else {
             /* The block was otherwise valid but doesn't have enough votes yet
@@ -76,13 +78,33 @@ bool CryptoKernel::Consensus::Raft::checkConsensusRules(const CryptoKernel::Bloc
                If we haven't signed the block yet, sign it and broadcast a block
                sign transaction. Also rebroadcast the block so other verifiers
                can see it.
-
-
             */
+
+            // Only attempt to vote if we haven't already voted this election term
+            // and if we are a validator node
+            if(!voted && validator) {
+                CryptoKernel::Crypto crypto;
+                crypto.setPrivateKey(privKey);
+
+                const auto sig = crypto.sign(block.getId().toString());
+                auto newBlockData = blockData;
+                newBlockData.votes.push_back(std::make_pair(crypto.getPublicKey(), sig));
+
+                auto newBlock = block;
+                newBlock.setConsensusData(consensusDataToJson(newBlockData));
+
+                // TODO: broadcast voted tx
+
+                voted = true;
+
+                if(blockVoters.size() + 1 > 0.5 * validators.size()) {
+                    return true;
+                }
+            }
         }
-    } else {
-        return false;
     }
+
+    return false;
 }
 
 bool CryptoKernel::Consensus::Raft::submitBlock(const CryptoKernel::Blockchain::block block) {

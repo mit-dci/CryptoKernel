@@ -217,8 +217,44 @@
 		<Unit filename="src/kernel/ckmath.h" />
 		<Unit filename="src/kernel/consensus/AVRR.cpp" />
 		<Unit filename="src/kernel/consensus/AVRR.h" />
+		<Unit filename="src/kernel/consensus/Lyra2REv2/Lyra2.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/kernel/consensus/Lyra2REv2/Lyra2.h" />
+		<Unit filename="src/kernel/consensus/Lyra2REv2/Lyra2RE.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/kernel/consensus/Lyra2REv2/Lyra2RE.h" />
+		<Unit filename="src/kernel/consensus/Lyra2REv2/Sponge.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/kernel/consensus/Lyra2REv2/Sponge.h" />
+		<Unit filename="src/kernel/consensus/Lyra2REv2/sha3/blake.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/kernel/consensus/Lyra2REv2/sha3/bmw.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/kernel/consensus/Lyra2REv2/sha3/cubehash.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/kernel/consensus/Lyra2REv2/sha3/hashblock.h" />
+		<Unit filename="src/kernel/consensus/Lyra2REv2/sha3/keccak.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/kernel/consensus/Lyra2REv2/sha3/skein.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/kernel/consensus/Lyra2REv2/sha3/sph_blake.h" />
+		<Unit filename="src/kernel/consensus/Lyra2REv2/sha3/sph_bmw.h" />
+		<Unit filename="src/kernel/consensus/Lyra2REv2/sha3/sph_cubehash.h" />
+		<Unit filename="src/kernel/consensus/Lyra2REv2/sha3/sph_keccak.h" />
+		<Unit filename="src/kernel/consensus/Lyra2REv2/sha3/sph_skein.h" />
+		<Unit filename="src/kernel/consensus/Lyra2REv2/sha3/sph_types.h" />
 		<Unit filename="src/kernel/consensus/PoW.cpp" />
 		<Unit filename="src/kernel/consensus/PoW.h" />
+		<Unit filename="src/kernel/consensus/raft.cpp" />
+		<Unit filename="src/kernel/consensus/raft.h" />
 		<Unit filename="src/kernel/contract.cpp" />
 		<Unit filename="src/kernel/contract.h" />
 		<Unit filename="src/kernel/crypto.cpp" />
