@@ -64,6 +64,7 @@ Roadmap
 - L -- Expanded RPC interface for contracts 
 - L -- Other various bug fixes, especially around error handling
 - L -- Wallet tracks unconfirmed transactions
+- L -- Raft consensus module
 
 #### alpha v0.2.0 -- S 
 - S -- Expand Lua contract standard library with more
@@ -71,6 +72,7 @@ digital currency specific functions
 - S -- Load external contract code to avoid duplication
 for propagating contracts
 - L -- Standardised address format (not just public keys)
+- L -- BFT consensus module
 
 #### alpha v0.3.0
 - L -- HD key generation and recovery with seed
