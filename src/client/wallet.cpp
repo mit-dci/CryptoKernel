@@ -192,6 +192,43 @@ void CryptoKernel::Wallet::watchFunc() {
     }
 }
 
+void rewindTx(CryptoKernel::Blockchain::transaction& tx,
+                     CryptoKernel::Storage::Transaction* walletTx,
+                     CryptoKernel::Storage::Transaction* bchainTx) {
+    const Json::Value txJson = transactions->get(walletTx, tx.getId().toString());
+    if(!txJson.isNull()) {
+        transactions->erase(walletTx, tx.getId().toString());
+
+        for(const CryptoKernel::Blockchain::output& out : tx.getOutputs()) {
+            const Json::Value outJson = utxos->get(walletTx, out.getId().toString());
+            if(outJson.isObject()) {
+                utxos->erase(walletTx, out.getId().toString());
+
+                Account acc = getAccountByKey(walletTx, out.getData()["publicKey"].asString());
+                acc.setBalance(acc.getBalance() - out.getValue());
+                accounts->put(walletTx, acc.getName(), acc.toJson());
+            }
+        }
+
+        for(const CryptoKernel::Blockchain::input& inp : tx.getInputs()) {
+            const CryptoKernel::Blockchain::output out = blockchain->getOutput(bchainTx,
+                    inp.getOutputId().toString());
+            if(out.getData()["publicKey"].isString()) {
+                try {
+                    Account acc = getAccountByKey(walletTx, out.getData()["publicKey"].asString());
+                    acc.setBalance(acc.getBalance() + out.getValue());
+                    accounts->put(walletTx, acc.getName(), acc.toJson());
+                } catch(const WalletException& e) {
+                    continue;
+                }
+            }
+            const Txo newTxo = Txo(out.getId().toString(), out.getValue());
+            utxos->put(walletTx, out.getId().toString(), newTxo.toJson());
+        }
+    }
+
+
+
 void CryptoKernel::Wallet::rewindBlock(CryptoKernel::Storage::Transaction* walletTx,
                                        CryptoKernel::Storage::Transaction* bchainTx) {
     /*
@@ -211,37 +248,9 @@ void CryptoKernel::Wallet::rewindBlock(CryptoKernel::Storage::Transaction* walle
     txs.insert(oldTip.getCoinbaseTx());
 
     for(const CryptoKernel::Blockchain::transaction& tx : txs) {
-        const Json::Value txJson = transactions->get(walletTx, tx.getId().toString());
-        if(!txJson.isNull()) {
-            transactions->erase(walletTx, tx.getId().toString());
-
-            for(const CryptoKernel::Blockchain::output& out : tx.getOutputs()) {
-                const Json::Value outJson = utxos->get(walletTx, out.getId().toString());
-                if(outJson.isObject()) {
-                    utxos->erase(walletTx, out.getId().toString());
-
-                    Account acc = getAccountByKey(walletTx, out.getData()["publicKey"].asString());
-                    acc.setBalance(acc.getBalance() - out.getValue());
-                    accounts->put(walletTx, acc.getName(), acc.toJson());
-                }
-            }
-
-            for(const CryptoKernel::Blockchain::input& inp : tx.getInputs()) {
-                const CryptoKernel::Blockchain::output out = blockchain->getOutput(bchainTx,
-                        inp.getOutputId().toString());
-                if(out.getData()["publicKey"].isString()) {
-                    try {
-                        Account acc = getAccountByKey(walletTx, out.getData()["publicKey"].asString());
-                        acc.setBalance(acc.getBalance() + out.getValue());
-                        accounts->put(walletTx, acc.getName(), acc.toJson());
-                    } catch(const WalletException& e) {
-                        continue;
-                    }
-                }
-                const Txo newTxo = Txo(out.getId().toString(), out.getValue());
-                utxos->put(walletTx, out.getId().toString(), newTxo.toJson());
-            }
-        }
+        rewindTx(CryptoKernel::Blockchain::transaction& tx,
+                     CryptoKernel::Storage::Transaction* walletTx,
+                     CryptoKernel::Storage::Transaction* bchainTx);
     }
 
     const CryptoKernel::Blockchain::dbBlock newTip = blockchain->getBlockDB(bchainTx,
@@ -300,6 +309,48 @@ void CryptoKernel::Wallet::clearDB() {
     dbTx->commit();
 }
 
+
+void digestTx(CryptoKernel::Blockchain::transaction& tx,
+                 CryptoKernel::Storage::Transaction* walletTx,
+                 CryptoKernel::Storage::Transaction* bchainTx,
+                 const CryptoKernel::Blockchain::block& block) {
+    bool trackTx = false;
+
+    for(const CryptoKernel::Blockchain::input& inp : tx.getInputs()) {
+        const Json::Value txo = utxos->get(walletTx, inp.getOutputId().toString());
+        if(txo.isObject()) {
+            trackTx = true;
+            utxos->erase(walletTx, inp.getOutputId().toString());
+
+            const CryptoKernel::Blockchain::output out = blockchain->getOutput(bchainTx,
+                    inp.getOutputId().toString());
+            Account acc = getAccountByKey(walletTx, out.getData()["publicKey"].asString());
+            acc.setBalance(acc.getBalance() - out.getValue());
+            accounts->put(walletTx, acc.getName(), acc.toJson());
+        }
+    }
+
+    for(const CryptoKernel::Blockchain::output& out : tx.getOutputs()) {
+        // Check if there is a publicKey that belongs to you
+        if(out.getData()["publicKey"].isString()) {
+            try {
+                Account acc = getAccountByKey(walletTx, out.getData()["publicKey"].asString());
+                acc.setBalance(acc.getBalance() + out.getValue());
+                accounts->put(walletTx, acc.getName(), acc.toJson());
+            } catch(const WalletException& e) {
+                continue;
+            }
+        }
+        trackTx = true;
+        const Txo newTxo = Txo(out.getId().toString(), out.getValue());
+        utxos->put(walletTx, out.getId().toString(), newTxo.toJson());
+    }
+
+    if(trackTx) {
+        transactions->put(walletTx, tx.getId().toString(), Json::Value(true));
+    }
+}
+
 void CryptoKernel::Wallet::digestBlock(CryptoKernel::Storage::Transaction* walletTx,
                                        CryptoKernel::Storage::Transaction* bchainTx,
                                        const CryptoKernel::Blockchain::block& block) {
@@ -317,41 +368,10 @@ void CryptoKernel::Wallet::digestBlock(CryptoKernel::Storage::Transaction* walle
     txs.insert(block.getCoinbaseTx());
 
     for(const CryptoKernel::Blockchain::transaction& tx : txs) {
-        bool trackTx = false;
-
-        for(const CryptoKernel::Blockchain::input& inp : tx.getInputs()) {
-            const Json::Value txo = utxos->get(walletTx, inp.getOutputId().toString());
-            if(txo.isObject()) {
-                trackTx = true;
-                utxos->erase(walletTx, inp.getOutputId().toString());
-
-                const CryptoKernel::Blockchain::output out = blockchain->getOutput(bchainTx,
-                        inp.getOutputId().toString());
-                Account acc = getAccountByKey(walletTx, out.getData()["publicKey"].asString());
-                acc.setBalance(acc.getBalance() - out.getValue());
-                accounts->put(walletTx, acc.getName(), acc.toJson());
-            }
-        }
-
-        for(const CryptoKernel::Blockchain::output& out : tx.getOutputs()) {
-            // Check if there is a publicKey that belongs to you
-            if(out.getData()["publicKey"].isString()) {
-                try {
-                    Account acc = getAccountByKey(walletTx, out.getData()["publicKey"].asString());
-                    acc.setBalance(acc.getBalance() + out.getValue());
-                    accounts->put(walletTx, acc.getName(), acc.toJson());
-                } catch(const WalletException& e) {
-                    continue;
-                }
-            }
-            trackTx = true;
-            const Txo newTxo = Txo(out.getId().toString(), out.getValue());
-            utxos->put(walletTx, out.getId().toString(), newTxo.toJson());
-        }
-
-        if(trackTx) {
-            transactions->put(walletTx, tx.getId().toString(), Json::Value(true));
-        }
+        digestTx(CryptoKernel::Blockchain::transaction& tx,
+                 CryptoKernel::Storage::Transaction* walletTx,
+                 CryptoKernel::Storage::Transaction* bchainTx,
+                 const CryptoKernel::Blockchain::block& block);
     }
 
     params->put(walletTx, "height",
