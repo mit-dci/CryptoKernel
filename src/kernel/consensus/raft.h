@@ -2,13 +2,14 @@
 #define RAFT_H_INCLUDED
 
 #include "blockchain.h"
+#include "network.h"
 #include "gate.h"
 
 namespace CryptoKernel {
     class Consensus::Raft : public Consensus {
         public:
             Raft(const std::set<std::string> validators, const uint64_t heartbeatTimeout,
-                 const bool validator, const std::string privKey);
+                 const bool validator, const std::string privKey, CryptoKernel::Network* network);
 
             ~Raft();
 
@@ -53,6 +54,8 @@ namespace CryptoKernel {
             std::unique_ptr<std::thread> timeoutThread;
             void bumpTerm();
             void timeoutFunc();
+
+            CryptoKernel::Network* network;
     };
 }
 

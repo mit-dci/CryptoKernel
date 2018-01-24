@@ -6,13 +6,15 @@
 CryptoKernel::Consensus::Raft::Raft(const std::set<std::string> validators,
                                     const uint64_t heartbeatTimeout,
                                     const bool validator,
-                                    const std::string privKey) {
+                                    const std::string privKey,
+                                    CryptoKernel::Network* network) {
     this->validators = validators;
     this->heartbeatTimeout = heartbeatTimeout;
     currentState = nodeState::follower;
     voted = false;
     this->validator = validator;
     this->privKey = privKey;
+    this->network = network;
     timeoutGate.reset(new Gate());
 
     running = true;
@@ -106,10 +108,7 @@ bool CryptoKernel::Consensus::Raft::checkConsensusRules(const CryptoKernel::Bloc
                 newBlock.setConsensusData(consensusDataToJson(newBlockData));
 
                 voted = true;
-
-                // TODO: broadcast voted tx
-
-
+                network->broadcastBlock(newBlock);
             }
         }
     }
