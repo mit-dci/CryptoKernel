@@ -2,12 +2,15 @@
 #define RAFT_H_INCLUDED
 
 #include "blockchain.h"
+#include "gate.h"
 
 namespace CryptoKernel {
     class Consensus::Raft : public Consensus {
         public:
             Raft(const std::set<std::string> validators, const uint64_t heartbeatTimeout,
                  const bool validator, const std::string privKey);
+
+            ~Raft();
 
             /**
             * In Raft, this should always return false. Blocks are only ever accepted if they are from
@@ -40,10 +43,16 @@ namespace CryptoKernel {
 
             uint64_t electionTerm;
             bool voted;
+            bool running;
 
             nodeState currentState;
             Json::Value consensusDataToJson(const consensusData data);
             consensusData getConsensusData(const CryptoKernel::Blockchain::block block);
+
+            std::unique_ptr<Gate> timeoutGate;
+            std::unique_ptr<std::thread> timeoutThread;
+            void bumpTerm();
+            void timeoutFunc();
     };
 }
 

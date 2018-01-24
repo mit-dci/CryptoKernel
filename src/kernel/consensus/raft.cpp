@@ -1,3 +1,5 @@
+#include <future>
+
 #include "raft.h"
 #include "crypto.h"
 
@@ -11,6 +13,16 @@ CryptoKernel::Consensus::Raft::Raft(const std::set<std::string> validators,
     voted = false;
     this->validator = validator;
     this->privKey = privKey;
+    timeoutGate.reset(new Gate());
+
+    running = true;
+    timeoutThread.reset(new std::thread(&CryptoKernel::Consensus::Raft::timeoutFunc, this));
+}
+
+CryptoKernel::Consensus::Raft::~Raft() {
+    running = false;
+    timeoutThread->join();
+
 }
 
 bool CryptoKernel::Consensus::Raft::isBlockBetter(const CryptoKernel::Blockchain::block block, const CryptoKernel::Blockchain::block tip) {
@@ -93,13 +105,11 @@ bool CryptoKernel::Consensus::Raft::checkConsensusRules(const CryptoKernel::Bloc
                 auto newBlock = block;
                 newBlock.setConsensusData(consensusDataToJson(newBlockData));
 
-                // TODO: broadcast voted tx
-
                 voted = true;
 
-                if(blockVoters.size() + 1 > 0.5 * validators.size()) {
-                    return true;
-                }
+                // TODO: broadcast voted tx
+
+
             }
         }
     }
@@ -108,5 +118,24 @@ bool CryptoKernel::Consensus::Raft::checkConsensusRules(const CryptoKernel::Bloc
 }
 
 bool CryptoKernel::Consensus::Raft::submitBlock(const CryptoKernel::Blockchain::block block) {
+    timeoutGate->notify();
+    return true;
+}
 
+void CryptoKernel::Consensus::Raft::bumpTerm() {
+    electionTerm++;
+    voted = false;
+}
+
+void CryptoKernel::Consensus::Raft::timeoutFunc() {
+    while(running) {
+        auto timeoutFuture = std::async(std::launch::async, [this](){
+            timeoutGate->wait();
+        });
+
+        auto status = timeoutFuture.wait_for(std::chrono::milliseconds(heartbeatTimeout));
+        if(status == std::future_status::timeout) {
+            bumpTerm();
+        }
+    }
 }
