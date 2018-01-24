@@ -135,5 +135,6 @@ void CryptoKernel::Consensus::Raft::timeoutFunc() {
 
         timeoutFuture.wait_for(std::chrono::milliseconds(heartbeatTimeout));
         bumpTerm();
+        timeoutGate->reset();
     }
 }
