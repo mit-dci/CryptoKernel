@@ -198,18 +198,22 @@ void CryptoKernel::Wallet::watchFunc() {
         // check to see if they are relevant
         for(const CryptoKernel::Blockchain::transaction& tx : txs) {
             // see if the public addresses match
+            
+            // look at outputs
             CryptoKernel::Blockchain::output& out tx.getOutputs();
             if(out.getData()["publicKey"].isString()) {
-            try {
-                Account acc = getAccountByKey(dbTx.get(), out.getData()["publicKey"].asString());
-                unconfirmedTxs.insert(tx);
-            } catch(const WalletException& e) {
-                continue;
+                try {
+                    Account acc = getAccountByKey(dbTx.get(), out.getData()["publicKey"].asString());
+                    unconfirmedTxs.insert(tx);
+                } catch(const WalletException& e) {
+                    continue;
+                }
             }
+
+            // look at inputs?
 
         }
         // now we have all the unconfirmed txs
-
 
         // process them if they are 
 
