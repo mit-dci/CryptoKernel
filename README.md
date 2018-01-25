@@ -65,6 +65,7 @@ Roadmap
 - L -- Other various bug fixes, especially around error handling
 - L -- Wallet tracks unconfirmed transactions
 - L -- Raft consensus module
+- L -- Multicoin support via config files
 
 #### alpha v0.2.0 -- S 
 - S -- Expand Lua contract standard library with more
