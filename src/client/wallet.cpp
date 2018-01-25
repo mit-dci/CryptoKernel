@@ -189,6 +189,36 @@ void CryptoKernel::Wallet::watchFunc() {
 
         bchainTx->abort();
         dbTx->commit();
+
+
+        // get the unconfirmed transactions
+        std::set<transaction> CryptoKernel::Blockchain::getUnconfirmedTransactions();
+        std::set<transaction> unconfirmedTxs;
+
+        // check to see if they are relevant
+        for(const CryptoKernel::Blockchain::transaction& tx : txs) {
+            // see if the public addresses match
+            CryptoKernel::Blockchain::output& out tx.getOutputs();
+            if(out.getData()["publicKey"].isString()) {
+            try {
+                Account acc = getAccountByKey(dbTx.get(), out.getData()["publicKey"].asString());
+                unconfirmedTxs.insert(tx);
+            } catch(const WalletException& e) {
+                continue;
+            }
+
+        }
+        // now we have all the unconfirmed txs
+
+
+        // process them if they are 
+
+        // flag something?
+
+        // check all the unconfirmed transactions in the account, see if they are confirmed now
+        //      if they are..... do soemthing
+        //      if they aren't   do nothing
+
     }
 }
 
@@ -226,7 +256,7 @@ void rewindTx(CryptoKernel::Blockchain::transaction& tx,
             utxos->put(walletTx, out.getId().toString(), newTxo.toJson());
         }
     }
-
+}
 
 
 void CryptoKernel::Wallet::rewindBlock(CryptoKernel::Storage::Transaction* walletTx,
