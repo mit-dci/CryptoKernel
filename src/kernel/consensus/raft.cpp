@@ -61,7 +61,7 @@ CryptoKernel::Consensus::Raft::consensusData CryptoKernel::Consensus::Raft::getC
 bool CryptoKernel::Consensus::Raft::checkConsensusRules(const CryptoKernel::Blockchain::block block, const CryptoKernel::Blockchain::block previousBlock) {
     const consensusData blockData = getConsensusData(block);
     // Check if block is from current term
-    if(electionTerm == blockData.term) {
+    if(electionTerm >= blockData.term) {
         // If so, check if block has majority of votes
         std::set<std::string> blockVoters;
         for(const auto vote : blockData.votes) {
@@ -86,7 +86,7 @@ bool CryptoKernel::Consensus::Raft::checkConsensusRules(const CryptoKernel::Bloc
 
         if(blockVoters.size() > 0.5 * validators.size()) {
             return true;
-        } else {
+        } else if(electionTerm == blockData.term) {
             /* The block was otherwise valid but doesn't have enough votes yet
 
                If we haven't signed the block yet, sign it and broadcast a block
