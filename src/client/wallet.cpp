@@ -200,24 +200,35 @@ void CryptoKernel::Wallet::watchFunc() {
             // see if the public addresses match
             
             // look at outputs
-            CryptoKernel::Blockchain::output& out tx.getOutputs();
-            if(out.getData()["publicKey"].isString()) {
-                try {
-                    Account acc = getAccountByKey(dbTx.get(), out.getData()["publicKey"].asString());
-                    unconfirmedTxs.insert(tx);
-                } catch(const WalletException& e) {
-                    continue;
+            for(const CryptoKernel::Blockchain::output& out : tx.getOutputs()) {
+                if(out.getData()["publicKey"].isString()) {
+                    try {
+                        Account acc = getAccountByKey(dbTx.get(), out.getData()["publicKey"].asString());
+                        unconfirmedTxs.insert(tx);
+                    } catch(const WalletException& e) {
+                        continue;
+                    }
                 }
             }
-
-            // look at inputs?
-
+            // inputs
+            for(const CryptoKernel::Blockchain::input& inp : tx.getInputs()) {
+                const Json::Value txo = utxos->get(dbTx.get(), inp.getOutputId().toString());
+                if(txo.isObject()) {
+                    unconfirmedTxs.insert(tx);
+                }
+            }
         }
         // now we have all the unconfirmed txs
 
         // process them if they are 
 
         // flag something?
+        for(const CryptoKernel::Blockchain::transaction& tx : unconfirmedTxs) {
+            Json::Value jsonTx = tx.toJson();   
+            jsonTx["unconfirmed"] = true;
+            utxos->put(dbTx.get(), tx.getOutputId().toString(), jsonTx);
+
+        }
 
         // check all the unconfirmed transactions in the account, see if they are confirmed now
         //      if they are..... do soemthing
@@ -379,6 +390,10 @@ void digestTx(CryptoKernel::Blockchain::transaction& tx,
         const Txo newTxo = Txo(out.getId().toString(), out.getValue());
         utxos->put(walletTx, out.getId().toString(), newTxo.toJson());
     }
+
+    json::Value jsonTx = tx.toJson();   
+    jsonTx["unconfirmed"] = false;
+    utxos->put(walletTx, tx.getOutputId().toString(), jsonTx);
 
     if(trackTx) {
         transactions->put(walletTx, tx.getId().toString(), Json::Value(true));
