@@ -192,8 +192,8 @@ void CryptoKernel::Wallet::watchFunc() {
 
 
         // get the unconfirmed transactions
-        std::set<transaction> CryptoKernel::Blockchain::getUnconfirmedTransactions();
-        std::set<transaction> unconfirmedTxs;
+        std::set<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::getUnconfirmedTransactions();
+        std::set<CryptoKernel::Blockchain::transaction> unconfirmedTxs;
 
         // check to see if they are relevant
         for(const CryptoKernel::Blockchain::transaction& tx : txs) {
@@ -220,20 +220,12 @@ void CryptoKernel::Wallet::watchFunc() {
         }
         // now we have all the unconfirmed txs
 
-        // process them if they are 
-
-        // flag something?
         for(const CryptoKernel::Blockchain::transaction& tx : unconfirmedTxs) {
             Json::Value jsonTx = tx.toJson();   
             jsonTx["unconfirmed"] = true;
             utxos->put(dbTx.get(), tx.getOutputId().toString(), jsonTx);
 
         }
-
-        // check all the unconfirmed transactions in the account, see if they are confirmed now
-        //      if they are..... do soemthing
-        //      if they aren't   do nothing
-
     }
 }
 
