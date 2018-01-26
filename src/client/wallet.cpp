@@ -196,7 +196,7 @@ void CryptoKernel::Wallet::watchFunc() {
         std::set<CryptoKernel::Blockchain::transaction> unconfirmedTxs;
 
         // check to see if they are relevant
-        for(const CryptoKernel::Blockchain::transaction& tx : txs) {
+        for(const CryptoKernel::Blockchain::transaction& tx : unconfirmedTxs) {
             // see if the public addresses match
             
             // look at outputs
@@ -221,10 +221,11 @@ void CryptoKernel::Wallet::watchFunc() {
         // now we have all the unconfirmed txs
 
         for(const CryptoKernel::Blockchain::transaction& tx : unconfirmedTxs) {
-            Json::Value jsonTx = tx.toJson();   
-            jsonTx["unconfirmed"] = true;
-            utxos->put(dbTx.get(), tx.getOutputId().toString(), jsonTx);
-
+            for (CryptoKernel::Blockchain::output& out : tx.getOutputs()) {
+                json::Value jsonTx = out.toJson();   
+                jsonTx["unconfirmed"] = true;
+                utxos->put(walletTx, out.getId().toString(), jsonTx);
+            }
         }
     }
 }
@@ -383,9 +384,11 @@ void digestTx(CryptoKernel::Blockchain::transaction& tx,
         utxos->put(walletTx, out.getId().toString(), newTxo.toJson());
     }
 
-    json::Value jsonTx = tx.toJson();   
-    jsonTx["unconfirmed"] = false;
-    utxos->put(walletTx, tx.getOutputId().toString(), jsonTx);
+    for (CryptoKernel::Blockchain::output& out : tx.getOutputs()) {
+        json::Value jsonTx = out.toJson();   
+        jsonTx["unconfirmed"] = false;
+        utxos->put(walletTx, out.getId().toString(), jsonTx);
+    }
 
     if(trackTx) {
         transactions->put(walletTx, tx.getId().toString(), Json::Value(true));
