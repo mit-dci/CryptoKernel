@@ -59,7 +59,7 @@ KERNELOBJS = $(KERNELSRC:.cpp=.cpp.o)
 LYRASRC = src/kernel/consensus/Lyra2REv2/Lyra2RE.c src/kernel/consensus/Lyra2REv2/Lyra2.c src/kernel/consensus/Lyra2REv2/Sponge.c src/kernel/consensus/Lyra2REv2/sha3/blake.c src/kernel/consensus/Lyra2REv2/sha3/cubehash.c src/kernel/consensus/Lyra2REv2/sha3/keccak.c src/kernel/consensus/Lyra2REv2/sha3/skein.c src/kernel/consensus/Lyra2REv2/sha3/bmw.c
 LYRAOBJS = $(LYRASRC:.c=.c.o)
 
-CLIENTSRC = src/client/main.cpp src/client/rpcserver.cpp src/client/wallet.cpp src/client/httpserver.cpp
+CLIENTSRC = src/client/main.cpp src/client/rpcserver.cpp src/client/wallet.cpp src/client/httpserver.cpp src/client/multicoin.cpp
 CLIENTOBJS = $(CLIENTSRC:.cpp=.cpp.o)
 
 TESTSRC = tests/CryptoKernelTestRunner.cpp tests/CryptoTests.cpp tests/MathTests.cpp tests/StorageTests.cpp tests/LogTests.cpp tests/ContractTests.cpp

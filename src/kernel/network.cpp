@@ -5,9 +5,11 @@
 #include <list>
 
 CryptoKernel::Network::Network(CryptoKernel::Log* log,
-                               CryptoKernel::Blockchain* blockchain) {
+                               CryptoKernel::Blockchain* blockchain,
+                               const unsigned int port) {
     this->log = log;
     this->blockchain = blockchain;
+    this->port = port;
     bestHeight = 0;
 
     myAddress = sf::IpAddress::getPublicAddress();
@@ -37,8 +39,8 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
 
     dbTx->commit();
 
-    if(listener.listen(49000) != sf::Socket::Done) {
-        log->printf(LOG_LEVEL_ERR, "Network(): Could not bind to port 49000");
+    if(listener.listen(port) != sf::Socket::Done) {
+        log->printf(LOG_LEVEL_ERR, "Network(): Could not bind to port " + std::to_string(port));
     }
 
     running = true;
@@ -115,7 +117,7 @@ void CryptoKernel::Network::peerFunc() {
 
                 // Attempt to connect to peer
                 sf::TcpSocket* socket = new sf::TcpSocket();
-                if(socket->connect(it->key(), 49000, sf::seconds(3)) != sf::Socket::Done) {
+                if(socket->connect(it->key(), port, sf::seconds(3)) != sf::Socket::Done) {
                     log->printf(LOG_LEVEL_WARN, "Network(): Failed to connect to " + it->key());
                     delete socket;
                     peerInfos[it->key()] = peer;

@@ -194,6 +194,16 @@
 			<Option target="Debug-Client-Windows" />
 			<Option target="Release-Client-Windows" />
 		</Unit>
+		<Unit filename="src/client/multicoin.cpp">
+			<Option target="Debug-Client-Unix" />
+			<Option target="Debug-Client-Windows" />
+			<Option target="Release-Client-Windows" />
+		</Unit>
+		<Unit filename="src/client/multicoin.h">
+			<Option target="Debug-Client-Unix" />
+			<Option target="Debug-Client-Windows" />
+			<Option target="Release-Client-Windows" />
+		</Unit>
 		<Unit filename="src/client/rpcserver.cpp">
 			<Option target="Debug-Client-Unix" />
 			<Option target="Debug-Client-Windows" />
@@ -217,6 +227,40 @@
 		<Unit filename="src/kernel/ckmath.h" />
 		<Unit filename="src/kernel/consensus/AVRR.cpp" />
 		<Unit filename="src/kernel/consensus/AVRR.h" />
+		<Unit filename="src/kernel/consensus/Lyra2REv2/Lyra2.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/kernel/consensus/Lyra2REv2/Lyra2.h" />
+		<Unit filename="src/kernel/consensus/Lyra2REv2/Lyra2RE.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/kernel/consensus/Lyra2REv2/Lyra2RE.h" />
+		<Unit filename="src/kernel/consensus/Lyra2REv2/Sponge.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/kernel/consensus/Lyra2REv2/Sponge.h" />
+		<Unit filename="src/kernel/consensus/Lyra2REv2/sha3/blake.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/kernel/consensus/Lyra2REv2/sha3/bmw.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/kernel/consensus/Lyra2REv2/sha3/cubehash.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/kernel/consensus/Lyra2REv2/sha3/hashblock.h" />
+		<Unit filename="src/kernel/consensus/Lyra2REv2/sha3/keccak.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/kernel/consensus/Lyra2REv2/sha3/skein.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/kernel/consensus/Lyra2REv2/sha3/sph_blake.h" />
+		<Unit filename="src/kernel/consensus/Lyra2REv2/sha3/sph_bmw.h" />
+		<Unit filename="src/kernel/consensus/Lyra2REv2/sha3/sph_cubehash.h" />
+		<Unit filename="src/kernel/consensus/Lyra2REv2/sha3/sph_keccak.h" />
+		<Unit filename="src/kernel/consensus/Lyra2REv2/sha3/sph_skein.h" />
+		<Unit filename="src/kernel/consensus/Lyra2REv2/sha3/sph_types.h" />
 		<Unit filename="src/kernel/consensus/PoW.cpp" />
 		<Unit filename="src/kernel/consensus/PoW.h" />
 		<Unit filename="src/kernel/contract.cpp" />

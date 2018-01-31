@@ -21,8 +21,10 @@ public:
     *
     * @param log a pointer to the CK log to use
     * @param blockchain a pointer to the blockchain to sync
+    * @param port the port to listen on
     */
-    Network(CryptoKernel::Log* log, CryptoKernel::Blockchain* blockchain);
+    Network(CryptoKernel::Log* log, CryptoKernel::Blockchain* blockchain,
+            const unsigned int port);
 
     /**
     * Default destructor
@@ -71,7 +73,7 @@ public:
     * @return the current height of the main chain of the blockchain
     */
     uint64_t getCurrentHeight();
-    
+
     struct peerStats {
         unsigned int ping;
         bool incoming;
@@ -81,10 +83,10 @@ public:
         std::string version;
         uint64_t blockHeight;
     };
-    
+
     /**
      * Returns a map of peers and their related stats
-     * 
+     *
      * @return a map where the keys are the peer IP address and the values
      * are peerStats structs containing information about the peer
      */
@@ -127,6 +129,8 @@ private:
 
     uint64_t bestHeight;
     uint64_t currentHeight;
+
+    unsigned int port;
 };
 }
 

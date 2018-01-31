@@ -189,8 +189,8 @@ int main(int argc, char* argv[]) {
 
         MyBlockchain blockchain(&log);
         CryptoKernel::Consensus::PoW::KGW_LYRA2REV2 consensus(150, &blockchain);
-        blockchain.loadChain(&consensus);
-        CryptoKernel::Network network(&log, &blockchain);
+        blockchain.loadChain(&consensus, "genesisblock.json");
+        CryptoKernel::Network network(&log, &blockchain, 49000);
         CryptoKernel::Wallet wallet(&blockchain, &network, &log);
         std::unique_ptr<std::thread> minerThread;
         if(minerOn) {
