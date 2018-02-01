@@ -26,6 +26,7 @@ CryptoKernel::MulticoinLoader::MulticoinLoader(const std::string& configFile,
                                   };
 
         newCoin->blockchain.reset(new DynamicBlockchain(log,
+                                                        coin["blockdb"].asString(),
                                                         coinbaseOwnerFunc,
                                                         subsidyFunc));
 
@@ -37,10 +38,15 @@ CryptoKernel::MulticoinLoader::MulticoinLoader(const std::string& configFile,
                                       coin["genesisblock"].asString());
 
         newCoin->network.reset(new Network(log, newCoin->blockchain.get(),
-                                          coin["port"].asUInt()));
-        newCoin->wallet.reset(new Wallet(newCoin->blockchain.get(),
-                                        newCoin->network.get(),
-                                        log));
+                                           coin["port"].asUInt(),
+                                           coin["peerdb"].asString()));
+
+        if(!coin["walletdb"].empty()) {
+            newCoin->wallet.reset(new Wallet(newCoin->blockchain.get(),
+                                            newCoin->network.get(),
+                                            log,
+                                            coin["walletdb"].asString()));
+        }
 
         coins.push_back(std::unique_ptr<Coin>(newCoin));
     }
@@ -76,9 +82,10 @@ std::unique_ptr<CryptoKernel::Consensus> CryptoKernel::MulticoinLoader::getConse
 
 CryptoKernel::MulticoinLoader::
 DynamicBlockchain::DynamicBlockchain(Log* GlobalLog,
+                                     const std::string& dbDir,
                                      std::function<std::string(const std::string&)> getCoinbaseOwnerFunc,
                                      std::function<uint64_t(const uint64_t)> getBlockRewardFunc) :
-CryptoKernel::Blockchain(GlobalLog) {
+CryptoKernel::Blockchain(GlobalLog, dbDir) {
     this->getCoinbaseOwnerFunc = getCoinbaseOwnerFunc;
     this->getBlockRewardFunc = getBlockRewardFunc;
 }

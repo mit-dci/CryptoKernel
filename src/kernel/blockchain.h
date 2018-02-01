@@ -31,7 +31,8 @@ namespace CryptoKernel {
 class Consensus;
 class Blockchain {
 public:
-    Blockchain(CryptoKernel::Log* GlobalLog);
+    Blockchain(CryptoKernel::Log* GlobalLog,
+               const std::string& dbDir);
     ~Blockchain();
 
     class InvalidElementException : public std::exception {

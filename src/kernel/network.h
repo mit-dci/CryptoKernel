@@ -22,9 +22,10 @@ public:
     * @param log a pointer to the CK log to use
     * @param blockchain a pointer to the blockchain to sync
     * @param port the port to listen on
+    * @param dbDir the directory of the peers database
     */
     Network(CryptoKernel::Log* log, CryptoKernel::Blockchain* blockchain,
-            const unsigned int port);
+            const unsigned int port, const std::string& dbDir);
 
     /**
     * Default destructor

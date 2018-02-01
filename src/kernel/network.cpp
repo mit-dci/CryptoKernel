@@ -6,7 +6,8 @@
 
 CryptoKernel::Network::Network(CryptoKernel::Log* log,
                                CryptoKernel::Blockchain* blockchain,
-                               const unsigned int port) {
+                               const unsigned int port,
+                               const std::string& dbDir) {
     this->log = log;
     this->blockchain = blockchain;
     this->port = port;
@@ -14,7 +15,7 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
 
     myAddress = sf::IpAddress::getPublicAddress();
 
-    networkdb.reset(new CryptoKernel::Storage("./peers"));
+    networkdb.reset(new CryptoKernel::Storage(dbDir));
     peers.reset(new Storage::Table("peers"));
 
     std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());

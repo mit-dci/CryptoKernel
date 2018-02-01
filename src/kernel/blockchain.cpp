@@ -30,9 +30,10 @@
 #include "ckmath.h"
 #include "contract.h"
 
-CryptoKernel::Blockchain::Blockchain(CryptoKernel::Log* GlobalLog) {
+CryptoKernel::Blockchain::Blockchain(CryptoKernel::Log* GlobalLog,
+                                     const std::string& dbDir) {
     status = false;
-    blockdb.reset(new CryptoKernel::Storage("./blockdb"));
+    blockdb.reset(new CryptoKernel::Storage(dbDir));
     blocks.reset(new CryptoKernel::Storage::Table("blocks"));
     transactions.reset(new CryptoKernel::Storage::Table("transactions"));
     utxos.reset(new CryptoKernel::Storage::Table("utxos"));

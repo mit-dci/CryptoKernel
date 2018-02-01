@@ -118,7 +118,8 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* c
 
 class MyBlockchain : public CryptoKernel::Blockchain {
 public:
-    MyBlockchain(CryptoKernel::Log* GlobalLog) : CryptoKernel::Blockchain(GlobalLog) {
+    MyBlockchain(CryptoKernel::Log* GlobalLog,
+                 const std::string& dbDir) : CryptoKernel::Blockchain(GlobalLog, dbDir) {
 
     }
 
@@ -187,11 +188,11 @@ int main(int argc, char* argv[]) {
         running = true;
         std::signal(SIGINT, [](int signal) { running = false; });
 
-        MyBlockchain blockchain(&log);
+        MyBlockchain blockchain(&log, "./blockdb");
         CryptoKernel::Consensus::PoW::KGW_LYRA2REV2 consensus(150, &blockchain);
         blockchain.loadChain(&consensus, "genesisblock.json");
-        CryptoKernel::Network network(&log, &blockchain, 49000);
-        CryptoKernel::Wallet wallet(&blockchain, &network, &log);
+        CryptoKernel::Network network(&log, &blockchain, 49000, "./peers");
+        CryptoKernel::Wallet wallet(&blockchain, &network, &log, "./addressesdb");
         std::unique_ptr<std::thread> minerThread;
         if(minerOn) {
             minerThread.reset(new std::thread(miner, &blockchain, &consensus, &wallet, &log,

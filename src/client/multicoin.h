@@ -33,6 +33,7 @@ namespace CryptoKernel {
             class DynamicBlockchain : public Blockchain {
                 public:
                     DynamicBlockchain(Log* GlobalLog,
+                                      const std::string& dbDir,
                                       std::function<std::string(const std::string&)> getCoinbaseOwnerFunc,
                                       std::function<uint64_t(const uint64_t)> getBlockRewardFunc);
 

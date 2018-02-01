@@ -38,8 +38,10 @@
 namespace CryptoKernel {
 class Wallet {
 public:
-    Wallet(CryptoKernel::Blockchain* blockchain, CryptoKernel::Network* network,
-           CryptoKernel::Log* log);
+    Wallet(CryptoKernel::Blockchain* blockchain,
+           CryptoKernel::Network* network,
+           CryptoKernel::Log* log,
+           const std::string& dbDir);
 
     ~Wallet();
 
@@ -117,8 +119,8 @@ public:
     Account importPrivKey(const std::string& name, const std::string& privKey,
                           const std::string& password);
 
-    std::string sendToAddress(const std::string& pubKey, 
-                              const uint64_t amount, 
+    std::string sendToAddress(const std::string& pubKey,
+                              const uint64_t amount,
                               const std::string& password);
 
     uint64_t getTotalBalance();
@@ -160,11 +162,11 @@ private:
                             const std::string& pubKey);
 
     void clearDB();
-    
+
     uint64_t schemaVersion;
-    
+
     void upgradeWallet();
-    
+
     bool checkPassword(const std::string& password);
 };
 }

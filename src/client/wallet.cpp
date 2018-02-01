@@ -22,12 +22,14 @@
 #include "crypto.h"
 
 CryptoKernel::Wallet::Wallet(CryptoKernel::Blockchain* blockchain,
-                             CryptoKernel::Network* network, CryptoKernel::Log* log) {
+                             CryptoKernel::Network* network,
+                             CryptoKernel::Log* log,
+                             const std::string& dbDir) {
     this->blockchain = blockchain;
     this->network = network;
     this->log = log;
 
-    walletdb.reset(new CryptoKernel::Storage("./addressesdb"));
+    walletdb.reset(new CryptoKernel::Storage(dbDir));
     accounts.reset(new CryptoKernel::Storage::Table("accounts"));
     utxos.reset(new CryptoKernel::Storage::Table("utxos"));
     transactions.reset(new CryptoKernel::Storage::Table("transactions"));
