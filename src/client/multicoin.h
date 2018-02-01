@@ -5,10 +5,15 @@
 #include "network.h"
 #include "wallet.h"
 
+#include "httpserver.h"
+#include "cryptoserver.h"
+
 namespace CryptoKernel {
     class MulticoinLoader {
         public:
-            MulticoinLoader(const std::string& configFile, Log* log);
+            MulticoinLoader(const std::string& configFile,
+                            Log* log,
+                            bool* running);
             ~MulticoinLoader();
 
         private:
@@ -18,6 +23,8 @@ namespace CryptoKernel {
                 std::unique_ptr<Blockchain> blockchain;
                 std::unique_ptr<Network> network;
                 std::unique_ptr<Wallet> wallet;
+                std::unique_ptr<jsonrpc::HttpServerLocal> httpserver;
+                std::unique_ptr<CryptoServer> rpcserver;
             };
 
             std::vector<std::unique_ptr<Coin>> coins;

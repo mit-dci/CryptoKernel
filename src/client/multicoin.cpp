@@ -3,7 +3,8 @@
 #include "consensus/PoW.h"
 
 CryptoKernel::MulticoinLoader::MulticoinLoader(const std::string& configFile,
-                                               Log* log) {
+                                               Log* log,
+                                               bool* running) {
     this->log = log;
 
     std::ifstream t(configFile);
@@ -48,12 +49,24 @@ CryptoKernel::MulticoinLoader::MulticoinLoader(const std::string& configFile,
                                             coin["walletdb"].asString()));
         }
 
+        newCoin->httpserver.reset(new jsonrpc::HttpServerLocal(coin["rpcport"].asUInt(),
+                                  config["rpcuser"].asString(),
+                                  config["rpcpassword"].asString(),
+                                  config["sslcert"].asString(),
+                                  config["sslkey"].asString()));
+        newCoin->rpcserver.reset(new CryptoServer(*newCoin->httpserver));
+        newCoin->rpcserver->setWallet(newCoin->wallet.get(), newCoin->blockchain.get(),
+                                      newCoin->network.get(), running);
+        newCoin->rpcserver->StartListening();
+
         coins.push_back(std::unique_ptr<Coin>(newCoin));
     }
 }
 
 CryptoKernel::MulticoinLoader::~MulticoinLoader() {
-
+    for(auto& coin : coins) {
+        coin->rpcserver->StopListening();
+    }
 }
 
 std::function<uint64_t(const uint64_t)> CryptoKernel::MulticoinLoader::getSubsidyFunc(
