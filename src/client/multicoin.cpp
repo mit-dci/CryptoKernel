@@ -73,7 +73,20 @@ std::function<uint64_t(const uint64_t)> CryptoKernel::MulticoinLoader::getSubsid
                                   const std::string& name) const {
     if(name == "k320") {
         return [](const uint64_t height) {
-            return 0;
+            const uint64_t COIN = 100000000;
+            const uint64_t G = 100 * COIN;
+            const uint64_t blocksPerYear = 210240;
+            const long double k = 1 + (std::log(1 + 0.032) / blocksPerYear);
+            const long double r = 1 + (std::log(1 - 0.24) / blocksPerYear);
+            const uint64_t supplyAtSwitchover = 68720300 * COIN;
+            const uint64_t switchoverBlock = 1741620;
+
+            if(height > switchoverBlock) {
+                const uint64_t supply = supplyAtSwitchover * std::pow(k, height - switchoverBlock);
+                return supply * (k - 1);
+            } else {
+                return G * std::pow(r, height);
+            }
         };
     } else {
         throw std::runtime_error("Unknown subsidy function " + name);

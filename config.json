@@ -1,6 +1,22 @@
 {
-    "rpcuser": "ckrpc",
-    "rpcpassword": "password",
-    "verbose":  false,
-    "miner": true
+   "miner" : false,
+   "rpcpassword" : "password",
+   "rpcuser" : "ckrpc",
+   "verbose" : true,
+   "coins": [{
+        "name": "K320",
+        "consensus": {
+            "type": "kgw_lyra2rev2",
+            "params": {
+                "blocktime": 150
+            }
+        },
+        "blockdb": "./blockdb",
+        "subsidy": "k320",
+        "port": 49000,
+        "rpcport": 8383,
+        "genesisblock": "genesis_block.json",
+        "walletdb": "./addressesdb",
+        "peerdb": "./peers"
+    }]
 }

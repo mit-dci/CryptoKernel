@@ -31,12 +31,11 @@
 #include "crypto.h"
 #include "wallet.h"
 #include "network.h"
-#include "cryptoserver.h"
 #include "cryptoclient.h"
 #include "version.h"
 #include "consensus/PoW.h"
-#include "httpserver.h"
 #include "base64.h"
+#include "multicoin.h"
 
 bool running;
 
@@ -116,44 +115,6 @@ void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* c
     }
 }
 
-class MyBlockchain : public CryptoKernel::Blockchain {
-public:
-    MyBlockchain(CryptoKernel::Log* GlobalLog,
-                 const std::string& dbDir) : CryptoKernel::Blockchain(GlobalLog, dbDir) {
-
-    }
-
-private:
-    const uint64_t COIN = 100000000;
-    const uint64_t G = 100 * COIN;
-    const uint64_t blocksPerYear = 210240;
-    const long double k = 1 + (std::log(1 + 0.032) / blocksPerYear);
-    const long double r = 1 + (std::log(1 - 0.24) / blocksPerYear);
-    const uint64_t supplyAtSwitchover = 68720300 * COIN;
-    const uint64_t switchoverBlock = 1741620;
-
-    uint64_t calcK(const uint64_t height) {
-        const uint64_t supply = supplyAtSwitchover * std::pow(k, height - switchoverBlock);
-        return supply * (k - 1);
-    }
-
-    uint64_t calcR(const uint64_t height) {
-        return G * std::pow(r, height);
-    }
-
-    uint64_t getBlockReward(const uint64_t height) {
-        if(height > switchoverBlock) {
-            return calcK(height);
-        } else {
-            return calcR(height);
-        }
-    }
-
-    std::string getCoinbaseOwner(const std::string& publicKey) {
-        return publicKey;
-    }
-};
-
 int main(int argc, char* argv[]) {
     std::ifstream t("config.json");
     if(!t.is_open()) {
@@ -180,7 +141,7 @@ int main(int argc, char* argv[]) {
         ofs.close();
     }
 
-    const bool minerOn = config["miner"].asBool();
+    //const bool minerOn = config["miner"].asBool();
 
     if(argc < 2) {
         CryptoKernel::Log log("CryptoKernel.log", config["verbose"].asBool());
@@ -188,25 +149,13 @@ int main(int argc, char* argv[]) {
         running = true;
         std::signal(SIGINT, [](int signal) { running = false; });
 
-        MyBlockchain blockchain(&log, "./blockdb");
-        CryptoKernel::Consensus::PoW::KGW_LYRA2REV2 consensus(150, &blockchain);
-        blockchain.loadChain(&consensus, "genesisblock.json");
-        CryptoKernel::Network network(&log, &blockchain, 49000, "./peers");
-        CryptoKernel::Wallet wallet(&blockchain, &network, &log, "./addressesdb");
-        std::unique_ptr<std::thread> minerThread;
+        /*std::unique_ptr<std::thread> minerThread;
         if(minerOn) {
             minerThread.reset(new std::thread(miner, &blockchain, &consensus, &wallet, &log,
                                               &network));
-        }
+        }*/
 
-        jsonrpc::HttpServerLocal httpserver(8383,
-                                            config["rpcuser"].asString(),
-                                            config["rpcpassword"].asString(),
-                                            config["sslcert"].asString(),
-                                            config["sslkey"].asString());
-        CryptoServer server(httpserver);
-        server.setWallet(&wallet, &blockchain, &network, &running);
-        server.StartListening();
+        CryptoKernel::MulticoinLoader loader("./config.json", &log, &running);
 
         if(!config["verbose"].asBool()) {
             std::cout << "ck daemon started" << std::endl;
@@ -218,10 +167,10 @@ int main(int argc, char* argv[]) {
 
         log.printf(LOG_LEVEL_INFO, "Shutting down...");
 
-        server.StopListening();
+        /*server.StopListening();
         if(minerOn) {
             minerThread->join();
-        }
+        }*/
     } else {
         std::string command(argv[1]);
 
