@@ -87,9 +87,12 @@ int main(int argc, char* argv[]) {
 
         std::string port = "8383";
 
+        int offset = 0;
+
         if(command == "-p" && argc >= 4) {
             command = std::string(argv[3]);
             port = std::string(argv[2]);
+            offset = 2;
         } else if(command == "-p") {
             throw std::runtime_error("Malformed commands");
         }
@@ -117,17 +120,17 @@ int main(int argc, char* argv[]) {
             } else if(command == "getinfo") {
                 std::cout << client.getinfo().toStyledString() << std::endl;
             } else if(command == "account") {
-                if(argc >= 3) {
-                    const std::string name(argv[2]);
+                if(argc >= 3 + offset) {
+                    const std::string name(argv[2 + offset]);
                     const std::string password = getPass("Please enter your wallet passphrase: ");
                     std::cout << client.account(name, password).toStyledString() << std::endl;
                 } else {
                     std::cout << "Usage: account [accountname]" << std::endl;
                 }
             } else if(command == "sendtoaddress") {
-                if(argc >= 4) {
-                    const std::string address(argv[2]);
-                    const double amount(std::strtod(argv[3], NULL));
+                if(argc >= 4 + offset) {
+                    const std::string address(argv[2 + offset]);
+                    const double amount(std::strtod(argv[3 + offset], NULL));
                     const std::string password = getPass("Please enter your wallet passphrase: ");
                     std::cout << client.sendtoaddress(address, amount, password) << std::endl;
                 } else {
@@ -136,15 +139,15 @@ int main(int argc, char* argv[]) {
             } else if(command == "listaccounts") {
                 std::cout << client.listaccounts().toStyledString() << std::endl;
             } else if(command == "listunspentoutputs") {
-                if(argc == 3) {
-                    std::string name(argv[2]);
+                if(argc == 3 + offset) {
+                    std::string name(argv[2 + offset]);
                     std::cout << client.listunspentoutputs(name).toStyledString() << std::endl;
                 } else {
                     std::cout << "Usage: listunspentoutputs [accountname]" << std::endl;
                 }
             } else if(command == "compilecontract") {
-                if(argc == 3) {
-                    std::string code(argv[2]);
+                if(argc == 3 + offset) {
+                    std::string code(argv[2 + offset]);
                     std::cout << client.compilecontract(code) << std::endl;
                 } else {
                     std::cout << "Usage: compilecontract [code]" << std::endl;
@@ -152,8 +155,8 @@ int main(int argc, char* argv[]) {
             } else if(command == "listtransactions") {
                 std::cout << client.listtransactions().toStyledString() << std::endl;
             } else if(command == "getblockbyheight") {
-                if(argc == 3) {
-                    std::cout << client.getblockbyheight(std::strtoull(argv[2], nullptr,
+                if(argc == 3 + offset) {
+                    std::cout << client.getblockbyheight(std::strtoull(argv[2 + offset], nullptr,
                                                          0)).toStyledString() << std::endl;
                 } else {
                     std::cout << "Usage: getblockbyheight [height]" << std::endl;
@@ -161,9 +164,9 @@ int main(int argc, char* argv[]) {
             } else if(command == "stop") {
                 std::cout << client.stop().toStyledString() << std::endl;
             } else if(command == "importprivkey") {
-                if(argc >= 4) {
+                if(argc >= 4 + offset) {
                     const std::string password = getPass("Please enter your wallet passphrase: ");
-                    std::cout << client.importprivkey(std::string(argv[2]), std::string(argv[3]),
+                    std::cout << client.importprivkey(std::string(argv[2 + offset]), std::string(argv[3 + offset]),
                                                       password);
                 } else {
                     std::cout << "Usage: importprivkey [accountname] [privkey]" << std::endl;
@@ -171,8 +174,8 @@ int main(int argc, char* argv[]) {
             } else if(command == "getpeerinfo") {
                 std::cout << client.getpeerinfo() << std::endl;
             } else if(command == "dumpprivkeys") {
-                if(argc >= 3) {
-                    const std::string name(argv[2]);
+                if(argc >= 3 + offset) {
+                    const std::string name(argv[2 + offset]);
                     const std::string password = getPass("Please enter your wallet passphrase: ");
                     std::cout << client.dumpprivkeys(name, password).toStyledString() << std::endl;
                 } else {
