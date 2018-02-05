@@ -1,6 +1,8 @@
 #ifndef POW_H_INCLUDED
 #define POW_H_INCLUDED
 
+#include <thread>
+
 #include "../blockchain.h"
 
 namespace CryptoKernel {
@@ -17,8 +19,15 @@ public:
     * @param blockTarget the target number of seconds per block
     * @param blockchain a pointer to the blockchain to be used with this
     *        consensus object
+    * @param miner a flag to determine whether the consensus object should mine
+    * @param pubKey if the miner is enabled, rewards will be sent to this pubKey
     */
-    PoW(const uint64_t blockTarget, CryptoKernel::Blockchain* blockchain);
+    PoW(const uint64_t blockTarget,
+        CryptoKernel::Blockchain* blockchain,
+        const bool miner,
+        const std::string& pubKey);
+
+    virtual ~PoW();
 
     /**
     * In Proof of Work this function checks if the total work of the given
@@ -69,7 +78,7 @@ public:
     * and SHA256 as its Proof of Work function.
     */
     class KGW_SHA256;
-    
+
     /**
      * This class uses Kimoto Gravity Well for difficulty adjustment
     *  and Lyra2REv2 as its Proof of Work function.
@@ -84,7 +93,6 @@ public:
     */
     CryptoKernel::BigNum calculatePoW(const CryptoKernel::Blockchain::block& block,
                                       const uint64_t nonce);
-
 protected:
     CryptoKernel::Blockchain* blockchain;
     uint64_t blockTarget;
@@ -96,11 +104,20 @@ protected:
     consensusData getConsensusData(const CryptoKernel::Blockchain::block& block);
     consensusData getConsensusData(const CryptoKernel::Blockchain::dbBlock& block);
     Json::Value consensusDataToJson(const consensusData& data);
+
+private:
+    bool running;
+    void miner();
+    std::string pubKey;
+    std::unique_ptr<std::thread> minerThread;
 };
 
 class Consensus::PoW::KGW_SHA256 : public PoW {
 public:
-    KGW_SHA256(const uint64_t blockTarget, CryptoKernel::Blockchain* blockchain);
+    KGW_SHA256(const uint64_t blockTarget,
+               CryptoKernel::Blockchain* blockchain,
+               const bool miner,
+               const std::string& pubKey);
 
     /**
     * Uses SHA256 to calculate the hash
@@ -140,8 +157,11 @@ public:
 
 class Consensus::PoW::KGW_LYRA2REV2 : public Consensus::PoW::KGW_SHA256 {
     public:
-        KGW_LYRA2REV2(const uint64_t blockTarget, CryptoKernel::Blockchain* blockchain);
-    
+        KGW_LYRA2REV2(const uint64_t blockTarget,
+                      CryptoKernel::Blockchain* blockchain,
+                      const bool miner,
+                      const std::string& pubKey);
+
         /**
         * Uses Lyra2REv2 to calculate the hash
         */

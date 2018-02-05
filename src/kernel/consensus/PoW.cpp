@@ -6,9 +6,77 @@
 #include "../crypto.h"
 
 CryptoKernel::Consensus::PoW::PoW(const uint64_t blockTarget,
-                                  CryptoKernel::Blockchain* blockchain) {
+                                  CryptoKernel::Blockchain* blockchain,
+                                  const bool miner,
+                                  const std::string& pubKey) {
     this->blockTarget = blockTarget;
     this->blockchain = blockchain;
+    running = miner;
+    this->pubKey = pubKey;
+
+    minerThread.reset(new std::thread(&CryptoKernel::Consensus::PoW::miner, this));
+}
+
+CryptoKernel::Consensus::PoW::~PoW() {
+    running = false;
+    minerThread->join();
+}
+
+void CryptoKernel::Consensus::PoW::miner() {
+    time_t t = std::time(0);
+    uint64_t now = static_cast<uint64_t> (t);
+
+    while(running) {
+        CryptoKernel::Blockchain::block Block = blockchain->generateVerifyingBlock(pubKey);
+        uint64_t nonce = 0;
+
+        t = std::time(0);
+        now = static_cast<uint64_t> (t);
+
+        uint64_t time2 = now;
+        uint64_t count = 0;
+        CryptoKernel::BigNum pow;
+
+        CryptoKernel::BigNum target = CryptoKernel::BigNum(
+                                          Block.getConsensusData()["target"].asString());
+        CryptoKernel::Blockchain::dbBlock previousBlock = blockchain->getBlockDB(
+                    Block.getPreviousBlockId().toString());
+        const CryptoKernel::BigNum inverse =
+              CryptoKernel::BigNum("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff") -
+              target;
+        Json::Value consensusData = Block.getConsensusData();
+        consensusData["totalWork"] = (inverse + CryptoKernel::BigNum(
+                                          previousBlock.getConsensusData()["totalWork"].asString())).toString();
+        consensusData["nonce"] = nonce;
+
+        do {
+            t = std::time(0);
+            time2 = static_cast<uint64_t> (t);
+            if((time2 - now) % 20 == 0 && (time2 - now) > 0) {
+                Block = blockchain->generateVerifyingBlock(pubKey);
+                previousBlock = blockchain->getBlockDB(Block.getPreviousBlockId().toString());
+                target = CryptoKernel::BigNum(Block.getConsensusData()["target"].asString());
+                const CryptoKernel::BigNum inverse =
+                    CryptoKernel::BigNum("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff") -
+                    target;
+                consensusData = Block.getConsensusData();
+                consensusData["totalWork"] = (inverse + CryptoKernel::BigNum(
+                                                  previousBlock.getConsensusData()["totalWork"].asString())).toString();
+                now = time2;
+                count = 0;
+            }
+
+            count += 1;
+            nonce += 1;
+
+            pow = calculatePoW(Block, nonce);
+        } while(pow >= target && running);
+
+        consensusData["nonce"] = nonce;
+        Block.setConsensusData(consensusData);
+
+        blockchain->submitBlock(Block);
+    }
 }
 
 bool CryptoKernel::Consensus::PoW::isBlockBetter(Storage::Transaction* transaction,
@@ -105,8 +173,10 @@ Json::Value CryptoKernel::Consensus::PoW::generateConsensusData(
 }
 
 CryptoKernel::Consensus::PoW::KGW_SHA256::KGW_SHA256(const uint64_t blockTarget,
-        CryptoKernel::Blockchain* blockchain) : CryptoKernel::Consensus::PoW(blockTarget,
-                    blockchain) {
+                                                     CryptoKernel::Blockchain* blockchain,
+                                                     const bool miner,
+                                                     const std::string& pubKey) :
+CryptoKernel::Consensus::PoW(blockTarget, blockchain, miner, pubKey) {
 
 }
 
@@ -232,8 +302,11 @@ bool CryptoKernel::Consensus::PoW::KGW_SHA256::submitBlock(Storage::Transaction*
     return true;
 }
 
-CryptoKernel::Consensus::PoW::KGW_LYRA2REV2::KGW_LYRA2REV2(const uint64_t blockTarget, CryptoKernel::Blockchain* blockchain)
-: KGW_SHA256(blockTarget, blockchain) {}
+CryptoKernel::Consensus::PoW::KGW_LYRA2REV2::KGW_LYRA2REV2(const uint64_t blockTarget,
+                                                           CryptoKernel::Blockchain* blockchain,
+                                                           const bool miner,
+                                                           const std::string& pubKey)
+: KGW_SHA256(blockTarget, blockchain, miner, pubKey) {}
 
 CryptoKernel::BigNum CryptoKernel::Consensus::PoW::KGW_LYRA2REV2::powFunction(const std::string& inputString) {
     char* output = new char[32];

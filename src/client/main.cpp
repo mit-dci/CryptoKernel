@@ -39,82 +39,6 @@
 
 bool running;
 
-void miner(CryptoKernel::Blockchain* blockchain, CryptoKernel::Consensus::PoW* consensus,
-           CryptoKernel::Wallet* wallet, CryptoKernel::Log* log, CryptoKernel::Network* network) {
-    time_t t = std::time(0);
-    uint64_t now = static_cast<uint64_t> (t);
-
-    while(running) {
-        if(network->getConnections() > 0 && network->syncProgress() >= 0.9) {
-            CryptoKernel::Blockchain::block Block = blockchain->generateVerifyingBlock((
-                    *wallet->getAccountByName("mining").getKeys().begin()).pubKey);
-            uint64_t nonce = 0;
-
-            t = std::time(0);
-            now = static_cast<uint64_t> (t);
-
-            uint64_t time2 = now;
-            uint64_t count = 0;
-            CryptoKernel::BigNum pow;
-
-            CryptoKernel::BigNum target = CryptoKernel::BigNum(
-                                              Block.getConsensusData()["target"].asString());
-            CryptoKernel::Blockchain::dbBlock previousBlock = blockchain->getBlockDB(
-                        Block.getPreviousBlockId().toString());
-            const CryptoKernel::BigNum inverse =
-                CryptoKernel::BigNum("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff") -
-                target;
-            Json::Value consensusData = Block.getConsensusData();
-            consensusData["totalWork"] = (inverse + CryptoKernel::BigNum(
-                                              previousBlock.getConsensusData()["totalWork"].asString())).toString();
-            consensusData["nonce"] = nonce;
-
-            do {
-                t = std::time(0);
-                time2 = static_cast<uint64_t> (t);
-                if((time2 - now) % 20 == 0 && (time2 - now) > 0) {
-                    std::stringstream message;
-                    message << "miner(): Hashrate: " << ((count / (time2 - now)) / 1000.0f) << " kH/s";
-                    log->printf(LOG_LEVEL_INFO, message.str());
-                    Block = blockchain->generateVerifyingBlock((
-                                *wallet->getAccountByName("mining").getKeys().begin()).pubKey);
-                    previousBlock = blockchain->getBlockDB(Block.getPreviousBlockId().toString());
-                    target = CryptoKernel::BigNum(Block.getConsensusData()["target"].asString());
-                    const CryptoKernel::BigNum inverse =
-                        CryptoKernel::BigNum("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff") -
-                        target;
-                    consensusData = Block.getConsensusData();
-                    consensusData["totalWork"] = (inverse + CryptoKernel::BigNum(
-                                                      previousBlock.getConsensusData()["totalWork"].asString())).toString();
-                    now = time2;
-                    count = 0;
-                }
-
-                count += 1;
-                nonce += 1;
-
-                pow = consensus->calculatePoW(Block, nonce);
-            } while(pow >= target && running);
-
-            consensusData["nonce"] = nonce;
-            Block.setConsensusData(consensusData);
-
-            if(running) {
-                if(std::get<0>(blockchain->submitBlock(Block))) {
-                    network->broadcastBlock(Block);
-                } else {
-                    log->printf(LOG_LEVEL_WARN,
-                                "miner(): Produced invalid block! Block: " + Block.toJson().toStyledString() +
-                                "\ntarget: " + Block.getConsensusData()["target"].asString() + "\npow: " +
-                                consensus->calculatePoW(Block, nonce).toString());
-                }
-            }
-        } else {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        }
-    }
-}
-
 int main(int argc, char* argv[]) {
     std::ifstream t("config.json");
     if(!t.is_open()) {
@@ -141,19 +65,11 @@ int main(int argc, char* argv[]) {
         ofs.close();
     }
 
-    //const bool minerOn = config["miner"].asBool();
-
     if(argc < 2) {
         CryptoKernel::Log log("CryptoKernel.log", config["verbose"].asBool());
 
         running = true;
         std::signal(SIGINT, [](int signal) { running = false; });
-
-        /*std::unique_ptr<std::thread> minerThread;
-        if(minerOn) {
-            minerThread.reset(new std::thread(miner, &blockchain, &consensus, &wallet, &log,
-                                              &network));
-        }*/
 
         CryptoKernel::MulticoinLoader loader("./config.json", &log, &running);
 
@@ -166,11 +82,6 @@ int main(int argc, char* argv[]) {
         }
 
         log.printf(LOG_LEVEL_INFO, "Shutting down...");
-
-        /*server.StopListening();
-        if(minerOn) {
-            minerThread->join();
-        }*/
     } else {
         std::string command(argv[1]);
 
