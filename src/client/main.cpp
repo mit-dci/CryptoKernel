@@ -85,12 +85,22 @@ int main(int argc, char* argv[]) {
     } else {
         std::string command(argv[1]);
 
+        std::string port = "8383";
+
+        if(command == "-p" && argc >= 4) {
+            command = std::string(argv[3]);
+            port = std::string(argv[2]);
+        } else if(command == "-p") {
+            throw std::runtime_error("Malformed commands");
+        }
+
 		const std::string userpass = config["rpcuser"].asString()
                                    + ":"
                                    + config["rpcpassword"].asString();
-		const std::string auth = base64_encode((unsigned char*)userpass.c_str(), userpass.size());
+		const std::string auth = base64_encode((unsigned char*)userpass.c_str(),
+		                                       userpass.size());
 
-        jsonrpc::HttpClient httpclient("http://127.0.0.1:8383");
+        jsonrpc::HttpClient httpclient("http://127.0.0.1:" + port);
         httpclient.SetTimeout(30000);
 		httpclient.AddHeader("Authorization", "Basic " + auth);
         CryptoClient client(httpclient);
@@ -170,6 +180,7 @@ int main(int argc, char* argv[]) {
                 }
             } else {
                 std::cout << "CryptoKernel - Blockchain Development Toolkit - v" << version << "\n\n"
+                          << "[-p [port]]\n\n"
                           << "account [accountname]\n"
                           << "compilecontract [code]\n"
                           << "dumpprivkeys [accountname]\n"
