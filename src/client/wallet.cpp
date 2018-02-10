@@ -192,8 +192,7 @@ void CryptoKernel::Wallet::watchFunc() {
 
 
         // get the unconfirmed transactions
-        std::set<CryptoKernel::Blockchain::transaction> CryptoKernel::Blockchain::getUnconfirmedTransactions();
-        std::set<CryptoKernel::Blockchain::transaction> unconfirmedTxs;
+        std::set<CryptoKernel::Blockchain::transaction> unconfirmedTxs = CryptoKernel::Blockchain::getUnconfirmedTransactions();
 
         // check to see if they are relevant
         for(const CryptoKernel::Blockchain::transaction& tx : unconfirmedTxs) {
@@ -220,9 +219,9 @@ void CryptoKernel::Wallet::watchFunc() {
         }
         // now we have all the unconfirmed txs
 
-        for(const CryptoKernel::Blockchain::transaction& tx : unconfirmedTxs) {
-            for (CryptoKernel::Blockchain::output& out : tx.getOutputs()) {
-                json::Value jsonTx = out.toJson();   
+        for(const CryptoKernel::Blockchain::transaction tx : unconfirmedTxs) {
+            for (CryptoKernel::Blockchain::output out : tx.getOutputs()) {
+                Json::Value jsonTx = out.toJson();   
                 jsonTx["unconfirmed"] = true;
                 utxos->put(walletTx, out.getId().toString(), jsonTx);
             }
@@ -362,7 +361,7 @@ void digestTx(CryptoKernel::Blockchain::transaction& tx,
 
             const CryptoKernel::Blockchain::output out = blockchain->getOutput(bchainTx,
                     inp.getOutputId().toString());
-            Account acc = getAccountByKey(walletTx, out.getData()["publicKey"].asString());
+               acc = getAccountByKey(walletTx, out.getData()["publicKey"].asString());
             acc.setBalance(acc.getBalance() - out.getValue());
             accounts->put(walletTx, acc.getName(), acc.toJson());
         }
