@@ -223,7 +223,7 @@ void CryptoKernel::Wallet::watchFunc() {
             for (CryptoKernel::Blockchain::output out : tx.getOutputs()) {
                 Json::Value jsonTx = out.toJson();   
                 jsonTx["unconfirmed"] = true;
-                utxos->put(walletTx, out.getId().toString(), jsonTx);
+                utxos->put(dbTx.get(), out.getId().toString(), jsonTx);
             }
         }
     }
