@@ -719,9 +719,16 @@ std::tuple<std::set<CryptoKernel::Blockchain::transaction>, std::set<CryptoKerne
 
     std::tuple<std::set<CryptoKernel::Blockchain::transaction>, std::set<CryptoKernel::Blockchain::transaction>> returning;
 
+    const auto& unconfirmedTxs = blockchain->getUnconfirmedTransactions();
+
     for(it->SeekToFirst(); it->Valid(); it->Next()) {
         if (it->value()["unconfirmed"].asBool()) {
-           std::get<1>(returning).insert(tx); 
+            for (const CryptoKernel::Blockchain::transaction& tx : unconfirmedTxs) {
+                if (tx.getId().toString() == it->key()) {
+                   std::get<1>(returning).insert(tx); 
+                   break;
+                }
+            }
         }
         else {
             const CryptoKernel::Blockchain::transaction tx = blockchain->getTransaction(it->key());
