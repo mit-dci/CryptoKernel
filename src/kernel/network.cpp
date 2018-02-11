@@ -380,7 +380,7 @@ void CryptoKernel::Network::networkFunc() {
             }
         }
 
-        if(bestHeight == currentHeight) {
+        if(bestHeight == currentHeight || connected.size() == 0) {
             std::this_thread::sleep_for(std::chrono::milliseconds(20000));
         }
     }
