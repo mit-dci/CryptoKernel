@@ -151,7 +151,7 @@ private:
     void rewindBlock(CryptoKernel::Storage::Transaction* walletTx,
                      CryptoKernel::Storage::Transaction* bchainTx);
 
-    void rewindTx(CryptoKernel::Blockchain::transaction& tx,
+    void rewindTx(const CryptoKernel::Blockchain::transaction& tx,
                      CryptoKernel::Storage::Transaction* walletTx,
                      CryptoKernel::Storage::Transaction* bchainTx);
 
@@ -159,7 +159,7 @@ private:
                      CryptoKernel::Storage::Transaction* bchainTx,
                      const CryptoKernel::Blockchain::block& block);
 
-    void digestTx(CryptoKernel::Blockchain::transaction& tx,
+    void digestTx(const CryptoKernel::Blockchain::transaction& tx,
                      CryptoKernel::Storage::Transaction* walletTx,
                      CryptoKernel::Storage::Transaction* bchainTx,
                      const bool unconfirmed = false);

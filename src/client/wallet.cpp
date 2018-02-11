@@ -200,7 +200,7 @@ void CryptoKernel::Wallet::watchFunc() {
     }
 }
 
-void CryptoKernel::Wallet::rewindTx(CryptoKernel::Blockchain::transaction& tx,
+void CryptoKernel::Wallet::rewindTx(const CryptoKernel::Blockchain::transaction& tx,
                      CryptoKernel::Storage::Transaction* walletTx,
                      CryptoKernel::Storage::Transaction* bchainTx) {
     const Json::Value txJson = transactions->get(walletTx, tx.getId().toString());
