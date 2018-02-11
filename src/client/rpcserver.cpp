@@ -226,16 +226,25 @@ Json::Value CryptoServer::listtransactions() {
 
     returning["transactions"] = Json::Value();
 
-    const std::set<CryptoKernel::Blockchain::transaction> transactions =
+    const std::tuple<std::set<CryptoKernel::Blockchain::transaction>, std::set<CryptoKernel::Blockchain::transaction>> transactions =
         wallet->listTransactions();
 
-    for(const auto& tx : transactions) {
+    auto unconfirmedOut = [&](const auto& tx, const bool unconfirmed) {  
         auto jsonTx = tx.toJson();
         for(auto& output : jsonTx["outputs"]) {
             CryptoKernel::Blockchain::output out(output);
             output["id"] = out.getId().toString();
+            output["unconfirmed"] = unconfirmed;
         }
-        returning["transactions"].append(jsonTx);
+        returning["transactions"].append(jsonTx); 
+    };   
+
+    for(const auto& tx : std::get<0>transactions) {
+        unconfirmedOut(tx, false);
+
+    }
+    for(const auto& tx : std::get<1>transactions) {
+        unconfirmedOut(tx, true);
     }
 
     return returning;

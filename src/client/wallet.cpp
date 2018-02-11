@@ -710,18 +710,24 @@ std::set<CryptoKernel::Wallet::Account> CryptoKernel::Wallet::listAccounts() {
     return returning;
 }
 
-std::set<CryptoKernel::Blockchain::transaction> CryptoKernel::Wallet::listTransactions() {
+
+// first element of tuple will have the confirmed, second will have unconfirmed Txs
+std::tuple<std::set<CryptoKernel::Blockchain::transaction>, std::set<CryptoKernel::Blockchain::transaction>> CryptoKernel::Wallet::listTransactions() {
     std::lock_guard<std::recursive_mutex> lock(walletLock);
     std::unique_ptr<CryptoKernel::Storage::Table::Iterator> it(new
             CryptoKernel::Storage::Table::Iterator(transactions.get(), walletdb.get()));
 
-    std::set<CryptoKernel::Blockchain::transaction> returning;
+    std::tuple<std::set<CryptoKernel::Blockchain::transaction>, std::set<CryptoKernel::Blockchain::transaction>> returning;
 
     for(it->SeekToFirst(); it->Valid(); it->Next()) {
-        const CryptoKernel::Blockchain::transaction tx = blockchain->getTransaction(it->key());
-        returning.insert(tx);
+        if (it->value()["unconfirmed"].asBool()) {
+           std::get<1>(returning).insert(tx); 
+        }
+        else {
+            const CryptoKernel::Blockchain::transaction tx = blockchain->getTransaction(it->key());
+            std::get<0>(returning).insert(tx);
+        }
     }
-
     return returning;
 }
 

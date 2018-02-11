@@ -125,7 +125,7 @@ public:
 
     std::set<Account> listAccounts();
 
-    std::set<CryptoKernel::Blockchain::transaction> listTransactions();
+    std::tuple<std::set<CryptoKernel::Blockchain::transaction>, std::set<CryptoKernel::Blockchain::transaction>> listTransactions();
 
     CryptoKernel::Blockchain::transaction signTransaction(const
             CryptoKernel::Blockchain::transaction& tx, const std::string& password);
