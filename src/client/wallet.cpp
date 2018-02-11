@@ -256,9 +256,7 @@ void CryptoKernel::Wallet::rewindBlock(CryptoKernel::Storage::Transaction* walle
     txs.insert(oldTip.getCoinbaseTx());
 
     for(const CryptoKernel::Blockchain::transaction& tx : txs) {
-        rewindTx(CryptoKernel::Blockchain::transaction& tx,
-                     CryptoKernel::Storage::Transaction* walletTx,
-                     CryptoKernel::Storage::Transaction* bchainTx);
+        rewindTx(tx, walletTx, bchainTx);
     }
 
     const CryptoKernel::Blockchain::dbBlock newTip = blockchain->getBlockDB(bchainTx,
@@ -318,7 +316,7 @@ void CryptoKernel::Wallet::clearDB() {
 }
 
 
-void CryptoKernel::Wallet::digestTx(CryptoKernel::Blockchain::transaction& tx,
+void CryptoKernel::Wallet::digestTx(const CryptoKernel::Blockchain::transaction& tx,
                  CryptoKernel::Storage::Transaction* walletTx,
                  CryptoKernel::Storage::Transaction* bchainTx,
                  const bool unconfirmed) {
@@ -385,10 +383,7 @@ void CryptoKernel::Wallet::digestBlock(CryptoKernel::Storage::Transaction* walle
     txs.insert(block.getCoinbaseTx());
 
     for(const CryptoKernel::Blockchain::transaction& tx : txs) {
-        digestTx(CryptoKernel::Blockchain::transaction& tx,
-                 CryptoKernel::Storage::Transaction* walletTx,
-                 CryptoKernel::Storage::Transaction* bchainTx,
-                 const CryptoKernel::Blockchain::block& block);
+        digestTx(tx, walletTx, bchainTx);
     }
 
     params->put(walletTx, "height",
