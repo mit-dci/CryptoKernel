@@ -239,11 +239,11 @@ Json::Value CryptoServer::listtransactions() {
         returning["transactions"].append(jsonTx); 
     };   
 
-    for(const auto& tx : std::get<0>transactions) {
+    for(const auto& tx : std::get<0>(transactions)) {
         unconfirmedOut(tx, false);
 
     }
-    for(const auto& tx : std::get<1>transactions) {
+    for(const auto& tx : std::get<1>(transactions)) {
         unconfirmedOut(tx, true);
     }
 
