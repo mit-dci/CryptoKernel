@@ -127,7 +127,7 @@ public:
 
     std::set<Account> listAccounts();
 
-    std::set<CryptoKernel::Blockchain::transaction> listTransactions();
+    std::tuple<std::set<CryptoKernel::Blockchain::transaction>, std::set<CryptoKernel::Blockchain::transaction>> listTransactions();
 
     CryptoKernel::Blockchain::transaction signTransaction(const
             CryptoKernel::Blockchain::transaction& tx, const std::string& password);
@@ -152,9 +152,19 @@ private:
 
     void rewindBlock(CryptoKernel::Storage::Transaction* walletTx,
                      CryptoKernel::Storage::Transaction* bchainTx);
+
+    void rewindTx(const CryptoKernel::Blockchain::transaction& tx,
+                     CryptoKernel::Storage::Transaction* walletTx,
+                     CryptoKernel::Storage::Transaction* bchainTx);
+
     void digestBlock(CryptoKernel::Storage::Transaction* walletTx,
                      CryptoKernel::Storage::Transaction* bchainTx,
                      const CryptoKernel::Blockchain::block& block);
+
+    void digestTx(const CryptoKernel::Blockchain::transaction& tx,
+                     CryptoKernel::Storage::Transaction* walletTx,
+                     CryptoKernel::Storage::Transaction* bchainTx,
+                     const bool unconfirmed = false);
 
     std::recursive_mutex walletLock;
 
