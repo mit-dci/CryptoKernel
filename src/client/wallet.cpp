@@ -114,6 +114,36 @@ void CryptoKernel::Wallet::upgradeWallet() {
         try {
             newAccount("mining", password);
         } catch(const WalletException& e) {}
+
+        schemaVersion = 1;
+    }
+
+    if(schemaVersion == 1) {
+        std::unique_ptr<CryptoKernel::Storage::Table::Iterator> it(new
+            CryptoKernel::Storage::Table::Iterator(transactions.get(), walletdb.get()));
+
+        std::set<std::string> txIds;
+
+        for(it->SeekToFirst(); it->Valid(); it->Next()) {
+            txIds.insert(it->key());
+        }
+
+        it.reset();
+
+        std::unique_ptr<CryptoKernel::Storage::Transaction> dbTx(walletdb->begin());
+
+        for(const auto& txId : txIds) {
+            Json::Value tx;
+            tx["unconfirmed"] = false;
+
+            transactions->put(dbTx.get(), txId, tx);
+        }
+
+        params->put(dbTx.get(), "schemaVersion", Json::Value(2));
+
+        dbTx->commit();
+
+        schemaVersion = 2;
     }
 
     schemaVersion = LATEST_WALLET_SCHEMA;
@@ -189,10 +219,55 @@ void CryptoKernel::Wallet::watchFunc() {
             height = params->get(dbTx.get(), "height").asUInt64();
         }
 
+        // get the unconfirmed transactions
+        const std::set<CryptoKernel::Blockchain::transaction> unconfirmedTxs = blockchain->getUnconfirmedTransactions();
+
+        // check to see if they are relevant
+        for(const CryptoKernel::Blockchain::transaction& tx : unconfirmedTxs) {
+            digestTx(tx, dbTx.get(), bchainTx.get(), true);
+        }
+
         bchainTx->abort();
         dbTx->commit();
     }
 }
+
+void CryptoKernel::Wallet::rewindTx(const CryptoKernel::Blockchain::transaction& tx,
+                     CryptoKernel::Storage::Transaction* walletTx,
+                     CryptoKernel::Storage::Transaction* bchainTx) {
+    const Json::Value txJson = transactions->get(walletTx, tx.getId().toString());
+    if(!txJson.isNull()) {
+        transactions->erase(walletTx, tx.getId().toString());
+
+        for(const CryptoKernel::Blockchain::output& out : tx.getOutputs()) {
+            const Json::Value outJson = utxos->get(walletTx, out.getId().toString());
+            if(outJson.isObject()) {
+                utxos->erase(walletTx, out.getId().toString());
+
+                Account acc = getAccountByKey(walletTx, out.getData()["publicKey"].asString());
+                acc.setBalance(acc.getBalance() - out.getValue());
+                accounts->put(walletTx, acc.getName(), acc.toJson());
+            }
+        }
+
+        for(const CryptoKernel::Blockchain::input& inp : tx.getInputs()) {
+            const CryptoKernel::Blockchain::output out = blockchain->getOutput(bchainTx,
+                    inp.getOutputId().toString());
+            if(out.getData()["publicKey"].isString()) {
+                try {
+                    Account acc = getAccountByKey(walletTx, out.getData()["publicKey"].asString());
+                    acc.setBalance(acc.getBalance() + out.getValue());
+                    accounts->put(walletTx, acc.getName(), acc.toJson());
+                } catch(const WalletException& e) {
+                    continue;
+                }
+            }
+            const Txo newTxo = Txo(out.getId().toString(), out.getValue());
+            utxos->put(walletTx, out.getId().toString(), newTxo.toJson());
+        }
+    }
+}
+
 
 void CryptoKernel::Wallet::rewindBlock(CryptoKernel::Storage::Transaction* walletTx,
                                        CryptoKernel::Storage::Transaction* bchainTx) {
@@ -213,37 +288,7 @@ void CryptoKernel::Wallet::rewindBlock(CryptoKernel::Storage::Transaction* walle
     txs.insert(oldTip.getCoinbaseTx());
 
     for(const CryptoKernel::Blockchain::transaction& tx : txs) {
-        const Json::Value txJson = transactions->get(walletTx, tx.getId().toString());
-        if(!txJson.isNull()) {
-            transactions->erase(walletTx, tx.getId().toString());
-
-            for(const CryptoKernel::Blockchain::output& out : tx.getOutputs()) {
-                const Json::Value outJson = utxos->get(walletTx, out.getId().toString());
-                if(outJson.isObject()) {
-                    utxos->erase(walletTx, out.getId().toString());
-
-                    Account acc = getAccountByKey(walletTx, out.getData()["publicKey"].asString());
-                    acc.setBalance(acc.getBalance() - out.getValue());
-                    accounts->put(walletTx, acc.getName(), acc.toJson());
-                }
-            }
-
-            for(const CryptoKernel::Blockchain::input& inp : tx.getInputs()) {
-                const CryptoKernel::Blockchain::output out = blockchain->getOutput(bchainTx,
-                        inp.getOutputId().toString());
-                if(out.getData()["publicKey"].isString()) {
-                    try {
-                        Account acc = getAccountByKey(walletTx, out.getData()["publicKey"].asString());
-                        acc.setBalance(acc.getBalance() + out.getValue());
-                        accounts->put(walletTx, acc.getName(), acc.toJson());
-                    } catch(const WalletException& e) {
-                        continue;
-                    }
-                }
-                const Txo newTxo = Txo(out.getId().toString(), out.getValue());
-                utxos->put(walletTx, out.getId().toString(), newTxo.toJson());
-            }
-        }
+        rewindTx(tx, walletTx, bchainTx);
     }
 
     const CryptoKernel::Blockchain::dbBlock newTip = blockchain->getBlockDB(bchainTx,
@@ -302,6 +347,57 @@ void CryptoKernel::Wallet::clearDB() {
     dbTx->commit();
 }
 
+
+void CryptoKernel::Wallet::digestTx(const CryptoKernel::Blockchain::transaction& tx,
+                 CryptoKernel::Storage::Transaction* walletTx,
+                 CryptoKernel::Storage::Transaction* bchainTx,
+                 const bool unconfirmed) {
+    bool trackTx = false;
+
+    for(const CryptoKernel::Blockchain::input& inp : tx.getInputs()) {
+        const Json::Value txo = utxos->get(walletTx, inp.getOutputId().toString());
+        if(txo.isObject()) {
+            trackTx = true;
+            if(!unconfirmed) {
+                utxos->erase(walletTx, inp.getOutputId().toString());
+
+                const CryptoKernel::Blockchain::output out = blockchain->getOutput(bchainTx,
+                        inp.getOutputId().toString());
+                Account acc = getAccountByKey(walletTx, out.getData()["publicKey"].asString());
+                acc.setBalance(acc.getBalance() - out.getValue());
+                accounts->put(walletTx, acc.getName(), acc.toJson());
+            }
+        }
+    }
+
+    for(const CryptoKernel::Blockchain::output& out : tx.getOutputs()) {
+        // Check if there is a publicKey that belongs to you
+        if(out.getData()["publicKey"].isString()) {
+            try {
+                Account acc = getAccountByKey(walletTx, out.getData()["publicKey"].asString());
+                if(!unconfirmed) {
+                    acc.setBalance(acc.getBalance() + out.getValue());
+                    accounts->put(walletTx, acc.getName(), acc.toJson());
+                }
+            } catch(const WalletException& e) {
+                continue;
+            }
+        }
+        trackTx = true;
+        
+        if(!unconfirmed) {
+            const Txo newTxo = Txo(out.getId().toString(), out.getValue());
+            utxos->put(walletTx, out.getId().toString(), newTxo.toJson());
+        }
+    }
+
+    if(trackTx) {
+        Json::Value txJson;
+        txJson["unconfirmed"] = unconfirmed;
+        transactions->put(walletTx, tx.getId().toString(), txJson);
+    }
+}
+
 void CryptoKernel::Wallet::digestBlock(CryptoKernel::Storage::Transaction* walletTx,
                                        CryptoKernel::Storage::Transaction* bchainTx,
                                        const CryptoKernel::Blockchain::block& block) {
@@ -319,41 +415,7 @@ void CryptoKernel::Wallet::digestBlock(CryptoKernel::Storage::Transaction* walle
     txs.insert(block.getCoinbaseTx());
 
     for(const CryptoKernel::Blockchain::transaction& tx : txs) {
-        bool trackTx = false;
-
-        for(const CryptoKernel::Blockchain::input& inp : tx.getInputs()) {
-            const Json::Value txo = utxos->get(walletTx, inp.getOutputId().toString());
-            if(txo.isObject()) {
-                trackTx = true;
-                utxos->erase(walletTx, inp.getOutputId().toString());
-
-                const CryptoKernel::Blockchain::output out = blockchain->getOutput(bchainTx,
-                        inp.getOutputId().toString());
-                Account acc = getAccountByKey(walletTx, out.getData()["publicKey"].asString());
-                acc.setBalance(acc.getBalance() - out.getValue());
-                accounts->put(walletTx, acc.getName(), acc.toJson());
-            }
-        }
-
-        for(const CryptoKernel::Blockchain::output& out : tx.getOutputs()) {
-            // Check if there is a publicKey that belongs to you
-            if(out.getData()["publicKey"].isString()) {
-                try {
-                    Account acc = getAccountByKey(walletTx, out.getData()["publicKey"].asString());
-                    acc.setBalance(acc.getBalance() + out.getValue());
-                    accounts->put(walletTx, acc.getName(), acc.toJson());
-                } catch(const WalletException& e) {
-                    continue;
-                }
-            }
-            trackTx = true;
-            const Txo newTxo = Txo(out.getId().toString(), out.getValue());
-            utxos->put(walletTx, out.getId().toString(), newTxo.toJson());
-        }
-
-        if(trackTx) {
-            transactions->put(walletTx, tx.getId().toString(), Json::Value(true));
-        }
+        digestTx(tx, walletTx, bchainTx);
     }
 
     params->put(walletTx, "height",
@@ -680,18 +742,31 @@ std::set<CryptoKernel::Wallet::Account> CryptoKernel::Wallet::listAccounts() {
     return returning;
 }
 
-std::set<CryptoKernel::Blockchain::transaction> CryptoKernel::Wallet::listTransactions() {
+
+// first element of tuple will have the confirmed, second will have unconfirmed Txs
+std::tuple<std::set<CryptoKernel::Blockchain::transaction>, std::set<CryptoKernel::Blockchain::transaction>> CryptoKernel::Wallet::listTransactions() {
     std::lock_guard<std::recursive_mutex> lock(walletLock);
     std::unique_ptr<CryptoKernel::Storage::Table::Iterator> it(new
             CryptoKernel::Storage::Table::Iterator(transactions.get(), walletdb.get()));
 
-    std::set<CryptoKernel::Blockchain::transaction> returning;
+    std::tuple<std::set<CryptoKernel::Blockchain::transaction>, std::set<CryptoKernel::Blockchain::transaction>> returning;
+
+    const auto& unconfirmedTxs = blockchain->getUnconfirmedTransactions();
 
     for(it->SeekToFirst(); it->Valid(); it->Next()) {
-        const CryptoKernel::Blockchain::transaction tx = blockchain->getTransaction(it->key());
-        returning.insert(tx);
+        if(it->value()["unconfirmed"].asBool()) {
+            for (const CryptoKernel::Blockchain::transaction& tx : unconfirmedTxs) {
+                if (tx.getId().toString() == it->key()) {
+                   std::get<1>(returning).insert(tx); 
+                   break;
+                }
+            }
+        }
+        else {
+            const CryptoKernel::Blockchain::transaction tx = blockchain->getTransaction(it->key());
+            std::get<0>(returning).insert(tx);
+        }
     }
-
     return returning;
 }
 
