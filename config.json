@@ -11,7 +11,7 @@
 				},
 				"type" : "kgw_lyra2rev2"
 			},
-			"genesisblock" : "genesis_block.json",
+			"genesisblock" : "genesisblock.json",
 			"name" : "K320",
 			"peerdb" : "./peers",
 			"port" : 49000,
@@ -20,8 +20,9 @@
 			"walletdb" : "./addressesdb"
 		}
 	],
-	"miner" : false,
 	"rpcpassword" : "password",
 	"rpcuser" : "ckrpc",
-	"verbose" : false
+	"verbose" : false,
+	"pubKey": "BGOjpbmxzX26d7zHmNxy3RWb94MzTciGhF7y8ehF2EH2BlTDStCrAhSmmfmbaWDuRYqagRViAhVj6QhOsfp4oT4=",
+	"miner": false
 }
