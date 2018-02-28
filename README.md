@@ -60,12 +60,10 @@ Roadmap
 - ~~L -- RPC Server requires password~~
     
 #### alpha v0.1.0 -- L
-- L -- Improved synchronisation performance
-- L -- Expanded RPC interface for contracts 
-- L -- Other various bug fixes, especially around error handling
-- L -- Wallet tracks unconfirmed transactions
-- L -- Raft consensus module
-- L -- Multicoin support via config files
+- ~~L -- Improved synchronisation performance~~
+- ~~L -- Other various bug fixes, especially around error handling~~
+- ~~L -- Wallet tracks unconfirmed transactions~~
+- ~~L -- Multicoin support via config files~~
 
 #### alpha v0.2.0 -- S 
 - S -- Expand Lua contract standard library with more
@@ -74,6 +72,9 @@ digital currency specific functions
 for propagating contracts
 - L -- Standardised address format (not just public keys)
 - L -- BFT consensus module
+- L -- Raft consensus module
+- L -- Expanded RPC interface for contracts 
+
 
 #### alpha v0.3.0
 - L -- HD key generation and recovery with seed
