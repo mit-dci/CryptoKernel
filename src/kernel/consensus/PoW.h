@@ -93,6 +93,8 @@ public:
     */
     CryptoKernel::BigNum calculatePoW(const CryptoKernel::Blockchain::block& block,
                                       const uint64_t nonce);
+
+    virtual void start();
 protected:
     CryptoKernel::Blockchain* blockchain;
     uint64_t blockTarget;

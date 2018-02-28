@@ -506,6 +506,11 @@ public:
     virtual bool submitBlock(Storage::Transaction* transaction,
                              const CryptoKernel::Blockchain::block& block) = 0;
 
+    /**
+     * Starts the consensus algorithm, e.g. raft voting, mining etc
+     */
+    virtual void start() = 0;
+
     class PoW;
     class AVRR;
     class Raft;

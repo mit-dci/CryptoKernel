@@ -12,14 +12,16 @@ CryptoKernel::Consensus::PoW::PoW(const uint64_t blockTarget,
     this->blockTarget = blockTarget;
     this->blockchain = blockchain;
     running = miner;
-    this->pubKey = pubKey;
-
-    minerThread.reset(new std::thread(&CryptoKernel::Consensus::PoW::miner, this));
+    this->pubKey = pubKey;    
 }
 
 CryptoKernel::Consensus::PoW::~PoW() {
     running = false;
     minerThread->join();
+}
+
+void CryptoKernel::Consensus::PoW::start() {
+    minerThread.reset(new std::thread(&CryptoKernel::Consensus::PoW::miner, this));
 }
 
 void CryptoKernel::Consensus::PoW::miner() {
