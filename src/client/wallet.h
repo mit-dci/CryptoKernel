@@ -33,7 +33,7 @@
 #include "network.h"
 #include "crypto.h"
 
-#define LATEST_WALLET_SCHEMA 1
+#define LATEST_WALLET_SCHEMA 2
 
 namespace CryptoKernel {
 class Wallet {

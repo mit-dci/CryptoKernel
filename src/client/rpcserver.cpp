@@ -226,27 +226,33 @@ Json::Value CryptoServer::listtransactions() {
 
     returning["transactions"] = Json::Value();
 
-    const std::tuple<std::set<CryptoKernel::Blockchain::transaction>, std::set<CryptoKernel::Blockchain::transaction>> transactions =
+    const auto transactions =
         wallet->listTransactions();
 
-    auto unconfirmedOut = [&](const auto& tx, const bool unconfirmed) {  
+    returning["transactions"]["confirmed"] = Json::Value();
+
+    for(const auto& tx : std::get<0>(transactions)) {
         auto jsonTx = tx.toJson();
         for(auto& output : jsonTx["outputs"]) {
             CryptoKernel::Blockchain::output out(output);
             output["id"] = out.getId().toString();
-            output["unconfirmed"] = unconfirmed;
         }
-        returning["transactions"].append(jsonTx); 
-    };   
-
-    for(const auto& tx : std::get<0>(transactions)) {
-        unconfirmedOut(tx, false);
-
+        jsonTx["id"] = tx.getId().toString();
+        returning["transactions"]["confirmed"].append(jsonTx);
     }
+
+    returning["transactions"]["unconfirmed"] = Json::Value();
+
     for(const auto& tx : std::get<1>(transactions)) {
-        unconfirmedOut(tx, true);
+        auto jsonTx = tx.toJson();
+        for(auto& output : jsonTx["outputs"]) {
+            CryptoKernel::Blockchain::output out(output);
+            output["id"] = out.getId().toString();
+        }
+        jsonTx["id"] = tx.getId().toString();
+        returning["transactions"]["unconfirmed"].append(jsonTx);
     }
-
+    
     return returning;
 }
 

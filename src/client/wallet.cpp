@@ -114,6 +114,36 @@ void CryptoKernel::Wallet::upgradeWallet() {
         try {
             newAccount("mining", password);
         } catch(const WalletException& e) {}
+
+        schemaVersion = 1;
+    }
+
+    if(schemaVersion == 1) {
+        std::unique_ptr<CryptoKernel::Storage::Table::Iterator> it(new
+            CryptoKernel::Storage::Table::Iterator(transactions.get(), walletdb.get()));
+
+        std::set<std::string> txIds;
+
+        for(it->SeekToFirst(); it->Valid(); it->Next()) {
+            txIds.insert(it->key());
+        }
+
+        it.reset();
+
+        std::unique_ptr<CryptoKernel::Storage::Transaction> dbTx(walletdb->begin());
+
+        for(const auto& txId : txIds) {
+            Json::Value tx;
+            tx["unconfirmed"] = false;
+
+            transactions->put(dbTx.get(), txId, tx);
+        }
+
+        params->put(dbTx.get(), "schemaVersion", Json::Value(2));
+
+        dbTx->commit();
+
+        schemaVersion = 2;
     }
 
     schemaVersion = LATEST_WALLET_SCHEMA;
@@ -724,7 +754,7 @@ std::tuple<std::set<CryptoKernel::Blockchain::transaction>, std::set<CryptoKerne
     const auto& unconfirmedTxs = blockchain->getUnconfirmedTransactions();
 
     for(it->SeekToFirst(); it->Valid(); it->Next()) {
-        if (it->value()["unconfirmed"].asBool()) {
+        if(it->value()["unconfirmed"].asBool()) {
             for (const CryptoKernel::Blockchain::transaction& tx : unconfirmedTxs) {
                 if (tx.getId().toString() == it->key()) {
                    std::get<1>(returning).insert(tx); 
