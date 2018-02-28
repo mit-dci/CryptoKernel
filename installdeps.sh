@@ -1,5 +1,5 @@
 sudo apt-get update
-sudo apt-get install -y git build-essential libjsoncpp-dev libsfml-dev libleveldb-dev libargtable2-dev libreadline-dev libcurl4-gnutls-dev liblua5.3-dev cmake libhiredis-dev
+sudo apt-get install -y git build-essential libsfml-dev libleveldb-dev libargtable2-dev libreadline-dev libcurl4-gnutls-dev liblua5.3-dev cmake libhiredis-dev
 
 cd /tmp
 
@@ -20,6 +20,14 @@ make
 sudo make install
 cd ../
 
+wget https://github.com/open-source-parsers/jsoncpp/archive/1.8.4.tar.gz
+tar -xzvf 1.8.4.tar.gz
+cd jsoncpp*
+cmake .
+make
+sudo make install
+
+cd ../
 wget https://github.com/cinemast/libjson-rpc-cpp/archive/v1.1.0.tar.gz
 tar -xvzf v1.1.0.tar.gz
 cd libjson-rpc-cpp*
