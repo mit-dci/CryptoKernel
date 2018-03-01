@@ -31,7 +31,7 @@ cd ../
 wget https://github.com/cinemast/libjson-rpc-cpp/archive/v1.1.0.tar.gz
 tar -xvzf v1.1.0.tar.gz
 cd libjson-rpc-cpp*
-cmake .
+cmake . -DBUILD_SHARED_LIBS=NO -DBUILD_STATIC_LIBS=YES
 make
 sudo make install
 
