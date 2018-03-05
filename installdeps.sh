@@ -1,5 +1,5 @@
 sudo apt-get update
-sudo apt-get install -y git build-essential libsfml-dev libleveldb-dev libargtable2-dev libreadline-dev libcurl4-gnutls-dev liblua5.3-dev cmake libhiredis-dev
+sudo apt-get install -y git build-essential libsfml-dev libleveldb-dev libargtable2-dev libreadline-dev libcurl4-gnutls-dev liblua5.3-dev cmake libhiredis-dev doxygen
 
 cd /tmp
 
