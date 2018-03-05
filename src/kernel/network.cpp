@@ -370,7 +370,6 @@ void CryptoKernel::Network::networkFunc() {
                 blockProcessor->join();
                 if(failure) {
                     currentHeight = blockchain->getBlockDB("tip").getHeight();
-                    break;
                 }
             }
         }
