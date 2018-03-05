@@ -20,6 +20,6 @@
 
 #include <string>
 
-const std::string version = "0.1.0-alpha-rc1";
+const std::string version = "0.1.0-alpha-rc3";
 
 #endif // VERSION_H_INCLUDED
