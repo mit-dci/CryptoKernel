@@ -282,7 +282,7 @@ void CryptoKernel::Network::networkFunc() {
             const auto startHeight = currentHeight;
 
             for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin();
-                    it != connected.end() && running; ) {
+                    it != connected.end() && running; it++) {
                 if(it->second->info["height"].asUInt64() > currentHeight) {
                     std::list<CryptoKernel::Blockchain::block> blocks;
 
@@ -298,7 +298,6 @@ void CryptoKernel::Network::networkFunc() {
                                 log->printf(LOG_LEVEL_WARN,
                                             "Network(): Failed to contact " + it->first + " " + e.what() +
                                             " while downloading blocks");
-                                it++;
                                 break;
                             }
 
@@ -332,7 +331,6 @@ void CryptoKernel::Network::networkFunc() {
                             log->printf(LOG_LEVEL_WARN,
                                         "Network(): Failed to contact " + it->first + " " + e.what() +
                                         " while downloading blocks");
-                            it++;
                             break;
                         }
 
@@ -351,24 +349,21 @@ void CryptoKernel::Network::networkFunc() {
                         }
                     }
 
-                    blockProcessor.reset(new std::thread([&, blocks]{
+                    blockProcessor.reset(new std::thread([&, blocks](const std::string& peer){
                         for(auto rit = blocks.rbegin(); rit != blocks.rend(); ++rit) {
                             const auto blockResult = blockchain->submitBlock(*rit);
 
                             if(std::get<1>(blockResult)) {
-                                changeScore(it->first, 50);
+                                changeScore(peer, 50);
                             }
 
                             if(!std::get<0>(blockResult)) {
                                 failure = true;
-                                it++;
                                 break;
                             }
                         }
-                    }));
-                } else {
-                    break;
-                }
+                    }, it->first));
+                } 
             }
 
             if(blockProcessor) {
