@@ -343,6 +343,8 @@ void CryptoKernel::Network::networkFunc() {
                         if(failure) {
                             currentHeight = blockchain->getBlockDB("tip").getHeight();
                             startHeight = currentHeight;
+                            bestHeight = currentHeight;
+                            this->currentHeight = currentHeight;
                             blocks.clear();
                             break;
                         }
@@ -378,6 +380,8 @@ void CryptoKernel::Network::networkFunc() {
             std::this_thread::sleep_for(std::chrono::milliseconds(20000));
             currentHeight = blockchain->getBlockDB("tip").getHeight();
             startHeight = currentHeight;
+            bestHeight = currentHeight;
+            this->currentHeight = currentHeight;
         }
     }
 }
