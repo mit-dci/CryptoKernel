@@ -251,7 +251,7 @@ void CryptoKernel::Wallet::rewindTx(const CryptoKernel::Blockchain::transaction&
         }
 
         for(const CryptoKernel::Blockchain::input& inp : tx.getInputs()) {
-            const CryptoKernel::Blockchain::output out = blockchain->getOutput(bchainTx,
+            const CryptoKernel::Blockchain::output out = blockchain->getOutputDB(bchainTx,
                     inp.getOutputId().toString());
             if(out.getData()["publicKey"].isString()) {
                 try {
@@ -279,7 +279,7 @@ void CryptoKernel::Wallet::rewindBlock(CryptoKernel::Storage::Transaction* walle
     */
     std::lock_guard<std::recursive_mutex> lock(walletLock);
     const std::string tipId = params->get(walletTx, "tipId").asString();
-    const CryptoKernel::Blockchain::block oldTip = blockchain->getBlock(bchainTx, tipId);
+    const CryptoKernel::Blockchain::block oldTip = blockchain->buildBlock(bchainTx, blockchain->getBlockDB(bchainTx, tipId));
 
     log->printf(LOG_LEVEL_INFO,
                 "Wallet::rewindBlock(): Rewinding block " + std::to_string(oldTip.getHeight()));

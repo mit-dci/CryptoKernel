@@ -147,13 +147,22 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::buildBlock(
     std::lock_guard<std::recursive_mutex> lock(chainLock);
     std::set<transaction> transactions;
 
-    for(const BigNum& txid : dbblock.getTransactions()) {
-        transactions.insert(getTransaction(dbTx, txid.toString()));
-    }
+    try {
+        for(const BigNum& txid : dbblock.getTransactions()) {
+            transactions.insert(getTransaction(dbTx, txid.toString()));
+        }
 
-    return block(transactions, getTransaction(dbTx, dbblock.getCoinbaseTx().toString()),
-                 dbblock.getPreviousBlockId(), dbblock.getTimestamp(), dbblock.getConsensusData(),
-                 dbblock.getHeight());
+        return block(transactions, getTransaction(dbTx, dbblock.getCoinbaseTx().toString()),
+                    dbblock.getPreviousBlockId(), dbblock.getTimestamp(), dbblock.getConsensusData(),
+                    dbblock.getHeight());
+    } catch(const NotFoundException& e) {
+        const Json::Value jsonBlock = candidates->get(dbTx, dbblock.getId().toString());
+        if(jsonBlock.isObject()) {
+            return block(jsonBlock);
+        } else {
+            throw;
+        }
+    }
 }
 
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlockByHeight(
