@@ -245,12 +245,13 @@ void CryptoKernel::Network::peerFunc() {
 void CryptoKernel::Network::networkFunc() {
     std::unique_ptr<std::thread> blockProcessor;
     bool failure = false;
+    uint64_t currentHeight = blockchain->getBlockDB("tip").getHeight();
+    this->currentHeight = currentHeight;
+    uint64_t bestHeight = currentHeight;
+    uint64_t startHeight = currentHeight;
 
     while(running) {
         //Determine best chain
-        uint64_t currentHeight = blockchain->getBlockDB("tip").getHeight();
-        this->currentHeight = currentHeight;
-        uint64_t bestHeight = currentHeight;
         connectedMutex.lock();
         for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin();
                 it != connected.end(); it++) {
@@ -279,8 +280,6 @@ void CryptoKernel::Network::networkFunc() {
         //Detect if we are behind
         if(bestHeight > currentHeight) {
             connectedMutex.lock();
-
-            const auto startHeight = currentHeight;
 
             for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin();
                     it != connected.end() && running; it++) {
@@ -343,6 +342,8 @@ void CryptoKernel::Network::networkFunc() {
                         blockProcessor.reset();
                         if(failure) {
                             currentHeight = blockchain->getBlockDB("tip").getHeight();
+                            startHeight = currentHeight;
+                            blocks.clear();
                             break;
                         }
 
@@ -352,6 +353,8 @@ void CryptoKernel::Network::networkFunc() {
                     }
 
                     blockProcessor.reset(new std::thread([&, blocks](const std::string& peer){
+                        failure = false;
+
                         for(auto rit = blocks.rbegin(); rit != blocks.rend(); ++rit) {
                             const auto blockResult = blockchain->submitBlock(*rit);
 
@@ -373,6 +376,8 @@ void CryptoKernel::Network::networkFunc() {
 
         if(bestHeight == currentHeight || connected.size() == 0) {
             std::this_thread::sleep_for(std::chrono::milliseconds(20000));
+            currentHeight = blockchain->getBlockDB("tip").getHeight();
+            startHeight = currentHeight;
         }
     }
 }
