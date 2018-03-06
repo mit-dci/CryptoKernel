@@ -760,7 +760,7 @@ void CryptoKernel::Blockchain::reverseBlock(Storage::Transaction* dbTransaction)
     const block tip = getBlock(dbTransaction, "tip");
 
     auto eraseUtxo = [&](const auto& out, auto& db) {
-        utxos->erase(dbTransaction, out.getId().toString());
+        db->erase(dbTransaction, out.getId().toString());
 
         const auto txoData = out.getData();
         if(!txoData["publicKey"].isNull()) {

@@ -270,6 +270,10 @@ void CryptoKernel::Network::networkFunc() {
                 }
             }
         }
+
+        if(this->currentHeight > bestHeight) {
+            bestHeight = this->currentHeight;
+        }
         this->bestHeight = bestHeight;
         connectedMutex.unlock();
 
@@ -340,12 +344,14 @@ void CryptoKernel::Network::networkFunc() {
                     if(blockProcessor) {
                         blockProcessor->join();
                         blockProcessor.reset();
+
+                        currentHeight = blockchain->getBlockDB("tip").getHeight();
+                        this->currentHeight = currentHeight;
+
                         if(failure) {
-                            currentHeight = blockchain->getBlockDB("tip").getHeight();
+                            blocks.clear();
                             startHeight = currentHeight;
                             bestHeight = currentHeight;
-                            this->currentHeight = currentHeight;
-                            blocks.clear();
                             break;
                         }
 
