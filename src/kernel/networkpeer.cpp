@@ -23,9 +23,9 @@ CryptoKernel::Network::Peer::Peer(sf::TcpSocket* client, CryptoKernel::Blockchai
 }
 
 CryptoKernel::Network::Peer::~Peer() {
-    clientMutex.lock();
     running = false;
     requestThread->join();
+    clientMutex.lock();
     client->disconnect();
     delete client;
     clientMutex.unlock();

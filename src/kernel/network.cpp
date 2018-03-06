@@ -243,6 +243,9 @@ void CryptoKernel::Network::peerFunc() {
 }
 
 void CryptoKernel::Network::networkFunc() {
+    std::unique_ptr<std::thread> blockProcessor;
+    bool failure = false;
+
     while(running) {
         //Determine best chain
         uint64_t currentHeight = blockchain->getBlockDB("tip").getHeight();
@@ -275,10 +278,8 @@ void CryptoKernel::Network::networkFunc() {
 
         //Detect if we are behind
         if(bestHeight > currentHeight) {
-            std::lock_guard<std::recursive_mutex> lock(connectedMutex);
+            connectedMutex.lock();
 
-            std::unique_ptr<std::thread> blockProcessor;
-            bool failure = false;
             const auto startHeight = currentHeight;
 
             for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin();
@@ -339,6 +340,7 @@ void CryptoKernel::Network::networkFunc() {
 
                     if(blockProcessor) {
                         blockProcessor->join();
+                        blockProcessor.reset();
                         if(failure) {
                             currentHeight = blockchain->getBlockDB("tip").getHeight();
                             break;
@@ -363,15 +365,10 @@ void CryptoKernel::Network::networkFunc() {
                             }
                         }
                     }, it->first));
-                } 
-            }
-
-            if(blockProcessor) {
-                blockProcessor->join();
-                if(failure) {
-                    currentHeight = blockchain->getBlockDB("tip").getHeight();
                 }
             }
+
+            connectedMutex.unlock();
         }
 
         if(bestHeight == currentHeight || connected.size() == 0) {
