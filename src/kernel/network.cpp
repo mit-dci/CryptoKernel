@@ -328,8 +328,11 @@ void CryptoKernel::Network::networkFunc() {
                         log->printf(LOG_LEVEL_INFO,
                                     "Network(): Downloading blocks " + std::to_string(currentHeight + 1) + " to " +
                                     std::to_string(currentHeight + 6));
+
+                        auto nBlocks = 0;
                         try {
                             const auto newBlocks = it->second->peer->getBlocks(currentHeight + 1, currentHeight + 6);
+                            nBlocks = newBlocks.size();
                             blocks.insert(blocks.begin(), newBlocks.rbegin(), newBlocks.rend());
                         } catch(Peer::NetworkError& e) {
                             log->printf(LOG_LEVEL_WARN,
@@ -338,7 +341,7 @@ void CryptoKernel::Network::networkFunc() {
                             break;
                         }
 
-                        currentHeight = std::min(currentHeight + 5, bestHeight);
+                        currentHeight = std::min(currentHeight + nBlocks, bestHeight);
                     }
 
                     if(blockProcessor) {

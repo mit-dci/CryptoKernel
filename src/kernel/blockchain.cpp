@@ -836,7 +836,7 @@ void CryptoKernel::Blockchain::reverseBlock(Storage::Transaction* dbTransaction)
 
 	for(const auto& tx : replayTxs) {
 		if(!std::get<0>(submitTransaction(dbTransaction, tx))) {
-            log->printf(LOG_LEVEL_ERR,
+            log->printf(LOG_LEVEL_WARN,
                         "Blockchain::reverseBlock(): previously moved transaction is now invalid");
         }
 	}
