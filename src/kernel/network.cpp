@@ -291,12 +291,14 @@ void CryptoKernel::Network::networkFunc() {
                     std::list<CryptoKernel::Blockchain::block> blocks;
 
                     if(currentHeight == startHeight) {
+                        auto nBlocks = 0;
                         do {
                             log->printf(LOG_LEVEL_INFO,
                                         "Network(): Downloading blocks " + std::to_string(currentHeight + 1) + " to " +
                                         std::to_string(currentHeight + 6));
                             try {
                                 const auto newBlocks = it->second->peer->getBlocks(currentHeight + 1, currentHeight + 6);
+                                nBlocks = newBlocks.size();
                                 blocks.insert(blocks.end(), newBlocks.rbegin(), newBlocks.rend());
                             } catch(Peer::NetworkError& e) {
                                 log->printf(LOG_LEVEL_WARN,
@@ -313,7 +315,7 @@ void CryptoKernel::Network::networkFunc() {
                                     changeScore(it->first, 250);
                                     break;
                                 } else {
-                                    currentHeight = std::max(1, (int)currentHeight - 5);
+                                    currentHeight = std::max(1, (int)currentHeight - nBlocks);
                                     continue;
                                 }
                             }
@@ -321,7 +323,7 @@ void CryptoKernel::Network::networkFunc() {
                             break;
                         } while(running);
 
-                        currentHeight += 5;
+                        currentHeight += nBlocks;
                     }
 
                     while(blocks.size() < 2000 && running && currentHeight < bestHeight) {
@@ -385,7 +387,7 @@ void CryptoKernel::Network::networkFunc() {
             connectedMutex.unlock();
         }
 
-        if(bestHeight == currentHeight || connected.size() == 0) {
+        if(bestHeight <= currentHeight || connected.size() == 0) {
             std::this_thread::sleep_for(std::chrono::milliseconds(20000));
             currentHeight = blockchain->getBlockDB("tip").getHeight();
             startHeight = currentHeight;
