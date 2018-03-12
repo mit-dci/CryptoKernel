@@ -18,3 +18,5 @@ blockbuffer
 addressesdb
 *.so
 peers
+/.vscode/
+test-ck
