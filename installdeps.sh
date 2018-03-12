@@ -1,5 +1,5 @@
 sudo apt-get update
-sudo apt-get install -y git build-essential libsfml-dev libleveldb-dev libargtable2-dev libreadline-dev libcurl4-gnutls-dev liblua5.3-dev cmake libhiredis-dev doxygen
+sudo apt-get install -y git build-essential libsfml-dev libleveldb-dev libargtable2-dev libreadline-dev libcurl4-gnutls-dev liblua5.3-dev cmake libhiredis-dev doxygen libcppunit-dev
 
 cd /tmp
 
@@ -43,3 +43,5 @@ git clone https://github.com/metalicjames/lua-lz4.git
 cd lua-lz4
 make
 sudo cp lz4.so /usr/lib
+
+sudo ldconfig
