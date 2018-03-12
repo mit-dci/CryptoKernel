@@ -16,10 +16,6 @@ void StorageTest::setUp() {
 void StorageTest::tearDown() {
 }
 
-void StorageTest::testGenerateDB() {
-    CPPUNIT_ASSERT_NO_THROW(CryptoKernel::Storage database("./testdb"));
-}
-
 void StorageTest::testGetNoExcept() {
     CryptoKernel::Storage database("./testdb");
 
