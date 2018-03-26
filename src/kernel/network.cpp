@@ -395,6 +395,10 @@ void CryptoKernel::Network::networkFunc() {
             this->currentHeight = currentHeight;
         }
     }
+
+    if(blockProcessor) {
+        blockProcessor->join();
+    }
 }
 
 void CryptoKernel::Network::connectionFunc() {
