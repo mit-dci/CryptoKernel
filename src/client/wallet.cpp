@@ -613,12 +613,16 @@ std::string CryptoKernel::Wallet::sendToAddress(const std::string& pubKey,
         const Txo out = Txo(it->value());
         if(accumulator < amount + fee) {
             if(!out.isSpent()) {
-                const CryptoKernel::Blockchain::output fullOut = blockchain->getOutput(bchainTx.get(),
-                        it->key());
-                if(fullOut.getData()["contract"].isNull()) {
-                    fee += CryptoKernel::Storage::toString(fullOut.getData()).size() * 60;
-                    toSpend.insert(fullOut);
-                    accumulator += fullOut.getValue();
+                try {
+                    const CryptoKernel::Blockchain::output fullOut = blockchain->getOutput(bchainTx.get(),
+                            it->key());
+                    if(fullOut.getData()["contract"].isNull()) {
+                        fee += CryptoKernel::Storage::toString(fullOut.getData()).size() * 60;
+                        toSpend.insert(fullOut);
+                        accumulator += fullOut.getValue();
+                    }
+                } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
+                    continue;
                 }
             }
         } else {

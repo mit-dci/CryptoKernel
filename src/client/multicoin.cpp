@@ -69,6 +69,9 @@ CryptoKernel::MulticoinLoader::MulticoinLoader(const std::string& configFile,
 CryptoKernel::MulticoinLoader::~MulticoinLoader() {
     for(auto& coin : coins) {
         coin->rpcserver->StopListening();
+        coin->wallet.reset();
+        coin->network.reset();
+        coin->consensusAlgo.reset();
     }
 }
 
