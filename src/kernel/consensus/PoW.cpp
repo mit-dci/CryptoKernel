@@ -77,7 +77,9 @@ void CryptoKernel::Consensus::PoW::miner() {
         consensusData["nonce"] = nonce;
         Block.setConsensusData(consensusData);
 
-        blockchain->submitBlock(Block);
+        if(running) {
+            blockchain->submitBlock(Block);
+        }
     }
 }
 
