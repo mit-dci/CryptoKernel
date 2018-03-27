@@ -902,6 +902,10 @@ bool CryptoKernel::Blockchain::Mempool::insert(const transaction& tx) {
 		if(inputs.find(inp.getId()) != inputs.end()) {
 			return false;
 		}
+
+        if(outputs.find(inp.getOutputId()) != outputs.end()) {
+            return false;
+        }
 	}
 
 	for(const output& out : tx.getOutputs()) {
@@ -916,6 +920,7 @@ bool CryptoKernel::Blockchain::Mempool::insert(const transaction& tx) {
 
 	for(const input& inp : tx.getInputs()) {
 		inputs.insert(std::pair<BigNum, BigNum>(inp.getId(), tx.getId()));
+        outputs.insert(std::pair<BigNum, BigNum>(inp.getOutputId(), tx.getId()));
 	}
 
 	for(const output& out : tx.getOutputs()) {
@@ -933,6 +938,7 @@ void CryptoKernel::Blockchain::Mempool::remove(const transaction& tx) {
 
 		for(const input& inp : tx.getInputs()) {
 			inputs.erase(inp.getId());
+            outputs.erase(inp.getOutputId());
 		}
 
 		for(const output& out : tx.getOutputs()) {
@@ -944,9 +950,9 @@ void CryptoKernel::Blockchain::Mempool::remove(const transaction& tx) {
 void CryptoKernel::Blockchain::Mempool::rescanMempool(Storage::Transaction* dbTx, Blockchain* blockchain) {
 	std::set<transaction> removals;
 
-	for(const auto& it : txs) {
-		if(!std::get<0>(blockchain->verifyTransaction(dbTx, it.second))) {
-			removals.insert(it.second);
+	for(const auto& tx : txs) {
+        if(!std::get<0>(blockchain->verifyTransaction(dbTx, tx.second))) {
+			removals.insert(tx.second);
 		}
 	}
 
