@@ -114,7 +114,7 @@ void CryptoKernel::Network::peerFunc() {
 
                 log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + it->key());
 
-                peer["lastattempt"] = result;
+                peer["lastattempt"] = static_cast<uint64_t>(result);
 
                 // Attempt to connect to peer
                 sf::TcpSocket* socket = new sf::TcpSocket();
@@ -152,7 +152,7 @@ void CryptoKernel::Network::peerFunc() {
                     break;
                 }
 
-                peer["lastseen"] = result;
+                peer["lastseen"] = static_cast<uint64_t>(result);
 
                 peer["score"] = 0;
 
@@ -212,7 +212,7 @@ void CryptoKernel::Network::peerFunc() {
                     }
 
                     const std::time_t result = std::time(nullptr);
-                    it->second->info["lastseen"] = result;
+                    it->second->info["lastseen"] = static_cast<uint64_t>(result);
                 } catch(const Peer::NetworkError& e) {
                     log->printf(LOG_LEVEL_WARN,
                                 "Network(): Failed to contact " + it->first + ", disconnecting it");
@@ -467,7 +467,7 @@ void CryptoKernel::Network::connectionFunc() {
             }
 
             const std::time_t result = std::time(nullptr);
-            peerInfo->info["lastseen"] = result;
+            peerInfo->info["lastseen"] = static_cast<uint64_t>(result);
 
             peerInfo->info["score"] = 0;
 

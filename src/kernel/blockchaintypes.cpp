@@ -549,6 +549,10 @@ void CryptoKernel::Blockchain::block::checkRep() {
         }
     }
 
+    if(totalPuts != outputIds.size()) {
+        throw InvalidElementException("Block contains duplicate outputs without coinbase");
+    }
+
     // Coinbase tx should have no inputs, others should have at least 1
     const std::set<input> inputs = coinbaseTx.getInputs();
     const std::set<output> outputs = coinbaseTx.getOutputs();
@@ -559,7 +563,7 @@ void CryptoKernel::Blockchain::block::checkRep() {
     }
 
     if(totalPuts != outputIds.size()) {
-        throw InvalidElementException("Block contains duplicate outputs");
+        throw InvalidElementException("Block contains duplicate outputs with coinbase");
     }
 
     if(totalInputs != inputIds.size()) {
