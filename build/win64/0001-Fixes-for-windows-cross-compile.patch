@@ -1,0 +1,38 @@
+From 4b8b4bdad9de33ee701b7163b9f820d73485bc5e Mon Sep 17 00:00:00 2001
+From: James Lovejoy <jameslovejoy1@gmail.com>
+Date: Wed, 28 Mar 2018 21:57:44 +0000
+Subject: [PATCH] Fixes for windows cross-compile
+
+---
+ Makefile              | 2 +-
+ build_detect_platform | 1 +
+ 2 files changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/Makefile b/Makefile
+index f7cc7d7..6d42167 100644
+--- a/Makefile
++++ b/Makefile
+@@ -139,7 +139,7 @@ $(SHARED_OUTDIR)/$(SHARED_LIB3): $(SHARED_LIBOBJECTS)
+ 
+ endif  # PLATFORM_SHARED_EXT
+ 
+-all: $(SHARED_LIBS) $(SHARED_PROGRAMS) $(STATIC_OUTDIR)/libleveldb.a $(STATIC_OUTDIR)/libmemenv.a $(STATIC_PROGRAMS)
++all: $(STATIC_OUTDIR)/libleveldb.a $(STATIC_OUTDIR)/libmemenv.a
+ 
+ check: $(STATIC_PROGRAMS)
+ 	for t in $(notdir $(TESTS)); do echo "***** Running $$t"; $(STATIC_OUTDIR)/$$t || exit 1; done
+diff --git a/build_detect_platform b/build_detect_platform
+index 4a94715..560c187 100755
+--- a/build_detect_platform
++++ b/build_detect_platform
+@@ -171,6 +171,7 @@ case "$TARGET_OS" in
+         PLATFORM_SOURCES="util/env_win.cc"
+         PLATFORM_LIBS="-lshlwapi"
+         PORT_FILE=port/port_win.cc
++        PORT_SSE_FILE=port/port_posix_sse.cc
+         CROSS_COMPILE=true
+         ;;
+     *)
+-- 
+2.15.0
+

@@ -16,8 +16,8 @@ ifeq ($(UNAME), MINGW32_NT-6.2)
 LUA_INCDIR ?= /usr/local/include
 LUA_LIBDIR ?= /usr/local/lib
 LIBFLAGS   ?= -shared
-BINFLAGS   ?= -I. -L. -lck -llua -ljsoncpp -lcrypto -pthread -lleveldb -ljsonrpccpp-server -ljsonrpccpp-client -ljsonrpccpp-common -lmicrohttpd -lcurl -lsfml-system -lsfml-network -lws2_32
-KERNELLIBS ?= -llua -ljsoncpp -lcrypto -pthread -lleveldb -lsfml-system -lsfml-network -lws2_32
+BINFLAGS   ?= -I. -L. -lck -llua -ljsoncpp -lcrypto -pthread -lleveldb -ljsonrpccpp-server -ljsonrpccpp-client -ljsonrpccpp-common -lmicrohttpd -lcurl -lsfml-system -lsfml-network -lws2_32 -lshlwapi -lcrypt32 -lgcov -lcurl
+KERNELLIBS ?= -llua -ljsoncpp -lcrypto -pthread -lleveldb -lsfml-network -lsfml-system -lws2_32 -lshlwapi -lcrypt32 -lgcov -lcurl
 CKLIB ?= libck.dll
 CKBIN ?= ckd.exe
 TESTBIN ?= test-ck.exe
@@ -51,7 +51,7 @@ CC = o64-clang++
 C = o64-clang
 endif
 
-KERNELCXXFLAGS += -g -Wall -std=c++14 -O2 -Wl,-E -Isrc/kernel
+KERNELCXXFLAGS += -g -Wall -std=c++14 -Og -Wl,-E -Isrc/kernel
 
 KERNELSRC = src/kernel/blockchain.cpp src/kernel/blockchaintypes.cpp src/kernel/math.cpp src/kernel/storage.cpp src/kernel/network.cpp src/kernel/networkpeer.cpp src/kernel/base64.cpp src/kernel/crypto.cpp src/kernel/log.cpp src/kernel/contract.cpp src/kernel/consensus/AVRR.cpp src/kernel/consensus/PoW.cpp src/kernel/merkletree.cpp
 KERNELOBJS = $(KERNELSRC:.cpp=.cpp.o)
