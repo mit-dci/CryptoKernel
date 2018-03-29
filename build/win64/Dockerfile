@@ -75,5 +75,4 @@ RUN git clone https://github.com/mit-dci/cryptokernel
 RUN cp lua-lz4/lz4.dll cryptokernel
 
 WORKDIR cryptokernel
-ADD Makefile .
 RUN make LUA_LIBDIR=/usr/local/mingw/lib LUA_INCDIR=/usr/local/mingw/include UNAME=MINGW32_NT-6.2 CC=x86_64-w64-mingw32-g++ C=x86_64-w64-mingw32-gcc
