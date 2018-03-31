@@ -286,7 +286,7 @@ void CryptoKernel::Network::networkFunc() {
             connectedMutex.lock();
 
             for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin();
-                    it != connected.end() && running; it++) {
+                    it != connected.end() && running; ) {
                 if(it->second->info["height"].asUInt64() > currentHeight) {
                     std::list<CryptoKernel::Blockchain::block> blocks;
 
@@ -304,6 +304,7 @@ void CryptoKernel::Network::networkFunc() {
                                 log->printf(LOG_LEVEL_WARN,
                                             "Network(): Failed to contact " + it->first + " " + e.what() +
                                             " while downloading blocks");
+                                it++;
                                 break;
                             }
 
@@ -313,6 +314,7 @@ void CryptoKernel::Network::networkFunc() {
                                 if(currentHeight == 1) {
                                     // This peer has a different genesis block to us
                                     changeScore(it->first, 250);
+                                    it++;
                                     break;
                                 } else {
                                     currentHeight = std::max(1, (int)currentHeight - nBlocks);
@@ -340,6 +342,7 @@ void CryptoKernel::Network::networkFunc() {
                             log->printf(LOG_LEVEL_WARN,
                                         "Network(): Failed to contact " + it->first + " " + e.what() +
                                         " while downloading blocks");
+                            it++;
                             break;
                         }
 
@@ -350,13 +353,13 @@ void CryptoKernel::Network::networkFunc() {
                         blockProcessor->join();
                         blockProcessor.reset();
 
-                        currentHeight = blockchain->getBlockDB("tip").getHeight();
-                        this->currentHeight = currentHeight;
-
                         if(failure) {
                             blocks.clear();
+                            currentHeight = blockchain->getBlockDB("tip").getHeight();
+                            this->currentHeight = currentHeight;
                             startHeight = currentHeight;
                             bestHeight = currentHeight;
+                            it++;
                             break;
                         }
 
@@ -381,6 +384,8 @@ void CryptoKernel::Network::networkFunc() {
                             }
                         }
                     }, it->first));
+                } else {
+                    it++;
                 }
             }
 
