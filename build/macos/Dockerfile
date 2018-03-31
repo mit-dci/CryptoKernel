@@ -44,9 +44,19 @@ RUN LUA_INCDIR=/osxcross/target/macports/pkgs/opt/local/include LUA_LIBDIR=/osxc
 
 WORKDIR ../
 
+RUN git clone https://github.com/auriamg/macdylibbundler.git
+WORKDIR macdylibbundler
+RUN CXX=clang++ make && make install
+
+WORKDIR ../
+
 RUN git clone https://github.com/mit-dci/cryptokernel
 
 RUN cp lua-lz4/lz4.so cryptokernel
 
 WORKDIR cryptokernel
 RUN make LUA_INCDIR=/osxcross/target/macports/pkgs/opt/local/include LUA_LIBDIR=/osxcross/target/macports/pkgs/opt/local/lib UNAME=Darwin-Cross CC=$CXX C=$CC
+
+RUN ln -s /osxcross/target/bin/x86_64-apple-darwin15-otool /osxcross/target/bin/otool && ln -s /osxcross/target/bin/x86_64-apple-darwin15-install_name_tool /osxcross/target/bin/install_name_tool && rm -r /opt && ln -s /osxcross/target/macports/pkgs/opt /opt
+
+RUN dylibbundler -b -x ckd -cd -i /usr/lib/ -p @executable_path/libs/
