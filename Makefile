@@ -62,7 +62,7 @@ LYRAOBJS = $(LYRASRC:.c=.c.o)
 CLIENTSRC = src/client/main.cpp src/client/rpcserver.cpp src/client/wallet.cpp src/client/httpserver.cpp src/client/multicoin.cpp
 CLIENTOBJS = $(CLIENTSRC:.cpp=.cpp.o)
 
-TESTSRC = tests/CryptoKernelTestRunner.cpp tests/CryptoTests.cpp tests/MathTests.cpp tests/StorageTests.cpp tests/LogTests.cpp
+TESTSRC = tests/CryptoKernelTestRunner.cpp tests/CryptoTests.cpp tests/MathTests.cpp tests/MerkletreeTests.cpp tests/StorageTests.cpp tests/LogTests.cpp
 TESTOBJS = $(TESTSRC:.cpp=.cpp.o)
 
 CXXFLAGS = $(KERNELCXXFLAGS) $(PLATFORMCXXFLAGS) -I$(LUA_INCDIR)
