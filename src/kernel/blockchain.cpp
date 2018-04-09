@@ -377,8 +377,10 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::submitTransaction(Storage::Tran
 }
 
 std::tuple<bool, bool> CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx,
-        const block& newBlock, bool genesisBlock) {
+        const block& Block, bool genesisBlock) {
     std::lock_guard<std::recursive_mutex> lock(chainLock);
+
+    block newBlock = Block;
 
     const std::string idAsString = newBlock.getId().toString();
     //Check block does not already exist

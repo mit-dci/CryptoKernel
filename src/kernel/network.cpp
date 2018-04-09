@@ -247,12 +247,12 @@ void CryptoKernel::Network::networkFunc() {
     bool failure = false;
     uint64_t currentHeight = blockchain->getBlockDB("tip").getHeight();
     this->currentHeight = currentHeight;
-    uint64_t bestHeight = currentHeight;
     uint64_t startHeight = currentHeight;
 
     while(running) {
         //Determine best chain
         connectedMutex.lock();
+        uint64_t bestHeight = currentHeight;
         for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin();
                 it != connected.end(); it++) {
             if(it->second->info["height"].asUInt64() > bestHeight) {
@@ -281,6 +281,8 @@ void CryptoKernel::Network::networkFunc() {
                     "Network(): Current height: " + std::to_string(currentHeight) + ", best height: " +
                     std::to_string(bestHeight));
 
+        bool madeProgress = false;
+
         //Detect if we are behind
         if(bestHeight > currentHeight) {
             connectedMutex.lock();
@@ -300,6 +302,9 @@ void CryptoKernel::Network::networkFunc() {
                                 const auto newBlocks = it->second->peer->getBlocks(currentHeight + 1, currentHeight + 6);
                                 nBlocks = newBlocks.size();
                                 blocks.insert(blocks.end(), newBlocks.rbegin(), newBlocks.rend());
+                                if(nBlocks > 0) {
+                                    madeProgress = true;
+                                }
                             } catch(Peer::NetworkError& e) {
                                 log->printf(LOG_LEVEL_WARN,
                                             "Network(): Failed to contact " + it->first + " " + e.what() +
@@ -338,6 +343,9 @@ void CryptoKernel::Network::networkFunc() {
                             const auto newBlocks = it->second->peer->getBlocks(currentHeight + 1, currentHeight + 6);
                             nBlocks = newBlocks.size();
                             blocks.insert(blocks.begin(), newBlocks.rbegin(), newBlocks.rend());
+                            if(nBlocks > 0) {
+                                madeProgress = true;
+                            }
                         } catch(Peer::NetworkError& e) {
                             log->printf(LOG_LEVEL_WARN,
                                         "Network(): Failed to contact " + it->first + " " + e.what() +
@@ -346,7 +354,7 @@ void CryptoKernel::Network::networkFunc() {
                             break;
                         }
 
-                        currentHeight = std::min(currentHeight + nBlocks, bestHeight);
+                        currentHeight = std::min(currentHeight + std::max(nBlocks, 1), bestHeight);
                     }
 
                     if(blockProcessor) {
@@ -392,11 +400,10 @@ void CryptoKernel::Network::networkFunc() {
             connectedMutex.unlock();
         }
 
-        if(bestHeight <= currentHeight || connected.size() == 0) {
+        if(bestHeight <= currentHeight || connected.size() == 0 || !madeProgress) {
             std::this_thread::sleep_for(std::chrono::milliseconds(20000));
             currentHeight = blockchain->getBlockDB("tip").getHeight();
             startHeight = currentHeight;
-            bestHeight = currentHeight;
             this->currentHeight = currentHeight;
         }
     }

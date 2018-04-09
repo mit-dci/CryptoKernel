@@ -47,7 +47,7 @@ public:
     *   - Checks the block's total work is correct
     */
     bool checkConsensusRules(Storage::Transaction* transaction,
-                             const CryptoKernel::Blockchain::block& block,
+                             CryptoKernel::Blockchain::block& block,
                              const CryptoKernel::Blockchain::dbBlock& previousBlock);
 
     Json::Value generateConsensusData(Storage::Transaction* transaction,
