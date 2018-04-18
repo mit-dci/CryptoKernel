@@ -1,5 +1,6 @@
 #include <sstream>
 #include <math.h>
+#include <iostream>
 
 #include "PoW.h"
 #include "Lyra2REv2/Lyra2RE.h"
@@ -140,6 +141,8 @@ bool CryptoKernel::Consensus::PoW::checkConsensusRules(Storage::Transaction* tra
 
         //Check proof of work
         if(blockData.target <= calculatePoW(block, blockData.nonce)) {
+            std::cout << blockData.target.toString() << ", " << calculatePoW(block, blockData.nonce).toString() << std::endl;
+
             return false;
         }
 

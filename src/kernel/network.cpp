@@ -259,8 +259,8 @@ void CryptoKernel::Network::networkFunc() {
                 bestHeight = it->second->info["height"].asUInt64();
             }
             const auto banIt = banned.find(it->first);
-            if(banIt != banned.end()) {
-                if(banIt->second > static_cast<uint64_t>(std::time(nullptr))) {
+            if(banIt != banned.end() || it->second->info["disconnect"].asBool()) {
+                if(banIt->second > static_cast<uint64_t>(std::time(nullptr)) || it->second->info["disconnect"].asBool()) {
                     log->printf(LOG_LEVEL_WARN,
                                 "Network(): Disconnecting " + it->first + " for being banned");
                     it = connected.erase(it);
@@ -279,7 +279,7 @@ void CryptoKernel::Network::networkFunc() {
 
         log->printf(LOG_LEVEL_INFO,
                     "Network(): Current height: " + std::to_string(currentHeight) + ", best height: " +
-                    std::to_string(bestHeight));
+                    std::to_string(bestHeight) + ", start height: " + std::to_string(startHeight));
 
         bool madeProgress = false;
 
@@ -333,7 +333,7 @@ void CryptoKernel::Network::networkFunc() {
                         currentHeight += nBlocks;
                     }
 
-                    while(blocks.size() < 2000 && running && currentHeight < bestHeight) {
+                    while(blocks.size() < 2000 && running && !failure && currentHeight < bestHeight) {
                         log->printf(LOG_LEVEL_INFO,
                                     "Network(): Downloading blocks " + std::to_string(currentHeight + 1) + " to " +
                                     std::to_string(currentHeight + 6));
@@ -345,6 +345,8 @@ void CryptoKernel::Network::networkFunc() {
                             blocks.insert(blocks.begin(), newBlocks.rbegin(), newBlocks.rend());
                             if(nBlocks > 0) {
                                 madeProgress = true;
+                            } else {
+                                break;
                             }
                         } catch(Peer::NetworkError& e) {
                             log->printf(LOG_LEVEL_WARN,
@@ -368,6 +370,7 @@ void CryptoKernel::Network::networkFunc() {
                             startHeight = currentHeight;
                             bestHeight = currentHeight;
                             it++;
+                            failure = false;
                             break;
                         }
 
@@ -388,6 +391,8 @@ void CryptoKernel::Network::networkFunc() {
 
                             if(!std::get<0>(blockResult)) {
                                 failure = true;
+                                changeScore(peer, 25);
+                                log->printf(LOG_LEVEL_WARN, "Network(): offending block: " + rit->toJson().toStyledString());
                                 break;
                             }
                         }
@@ -537,6 +542,7 @@ void CryptoKernel::Network::changeScore(const std::string& url, const uint64_t s
         // Ban for 24 hours
         banned[url] = static_cast<uint64_t>(std::time(nullptr)) + 24 * 60 * 60;
     }
+    connected[url]->info["disconnect"] = true;
 }
 
 std::set<std::string> CryptoKernel::Network::getConnectedPeers() {
