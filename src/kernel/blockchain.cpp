@@ -34,7 +34,7 @@ CryptoKernel::Blockchain::Blockchain(CryptoKernel::Log* GlobalLog,
                                      const std::string& dbDir) {
     status = false;
     this->dbDir = dbDir;
-    blockdb.reset(new CryptoKernel::Storage(dbDir));
+    blockdb.reset(new CryptoKernel::Storage(dbDir, false, 300, true));
     blocks.reset(new CryptoKernel::Storage::Table("blocks"));
     transactions.reset(new CryptoKernel::Storage::Table("transactions"));
     utxos.reset(new CryptoKernel::Storage::Table("utxos"));
@@ -399,7 +399,7 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::submitBlock(Storage::Transactio
             previousBlockJson = candidates->get(dbTx, newBlock.getPreviousBlockId().toString());
             if(!previousBlockJson.isObject()) {
                 log->printf(LOG_LEVEL_INFO, "blockchain::submitBlock(): Previous block does not exist");
-                return std::make_tuple(false, false);
+                return std::make_tuple(false, true);
             }
 
             const block previousBlock = block(previousBlockJson);
@@ -880,7 +880,7 @@ CryptoKernel::Blockchain::transaction CryptoKernel::Blockchain::getTransaction(
 void CryptoKernel::Blockchain::emptyDB() {
     blockdb.reset();
     CryptoKernel::Storage::destroy(dbDir);
-    blockdb.reset(new CryptoKernel::Storage(dbDir));
+    blockdb.reset(new CryptoKernel::Storage(dbDir, false, 300, true));
 }
 
 CryptoKernel::Storage::Transaction* CryptoKernel::Blockchain::getTxHandle() {

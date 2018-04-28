@@ -39,9 +39,12 @@ public:
     * the existing database.
     *
     * @param filename the directory of the LevelDB database to use
+    * @param sync set to true if fsync should take place after every write
+    * @param cache 0 turns off the cache, any number higher than zero uses a cache with that size in MB
+    * @param bloom set to true to use a bloom filter for lookups
     * @throw std::runtime_error if there is a failure
     */
-    Storage(const std::string& filename);
+    Storage(const std::string& filename, const bool sync, const unsigned int cache, const bool bloom);
 
     /**
     * Default destructor, saves and closes the database
@@ -166,6 +169,7 @@ public:
 private:
     leveldb::DB* db;
     std::mutex dbMutex;
+    bool sync;
 };
 }
 
