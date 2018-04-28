@@ -381,7 +381,7 @@ void CryptoKernel::Network::networkFunc() {
                     blockProcessor.reset(new std::thread([&, blocks](const std::string& peer){
                         failure = false;
 
-                        for(auto rit = blocks.rbegin(); rit != blocks.rend(); ++rit) {
+                        for(auto rit = blocks.rbegin(); rit != blocks.rend() && running; ++rit) {
                             const auto blockResult = blockchain->submitBlock(*rit);
 
                             if(std::get<1>(blockResult)) {
