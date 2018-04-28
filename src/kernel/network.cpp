@@ -15,7 +15,7 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
 
     myAddress = sf::IpAddress::getPublicAddress();
 
-    networkdb.reset(new CryptoKernel::Storage(dbDir));
+    networkdb.reset(new CryptoKernel::Storage(dbDir, false, 8, false));
     peers.reset(new Storage::Table("peers"));
 
     std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
@@ -174,10 +174,10 @@ void CryptoKernel::Network::peerFunc() {
             std::lock_guard<std::recursive_mutex> lock(connectedMutex);
             std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
 
-	    std::set<std::string> removals;
+	        std::set<std::string> removals;
 
-	    for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin();
-                    it != connected.end(); it++) {
+            for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin();
+                        it != connected.end(); it++) {
                 try {
                     const Json::Value info = it->second->peer->getInfo();
                     try {
@@ -186,6 +186,15 @@ void CryptoKernel::Network::peerFunc() {
                             log->printf(LOG_LEVEL_WARN,
                                         "Network(): " + it->first + " has a different major version than us");
                             throw Peer::NetworkError();
+                        }
+
+                        const auto banIt = banned.find(it->first);
+                        if(banIt != banned.end()) {
+                            if(banIt->second > static_cast<uint64_t>(std::time(nullptr))) {
+                                log->printf(LOG_LEVEL_WARN,
+                                            "Network(): Disconnecting " + it->first + " for being banned");
+                                throw Peer::NetworkError();
+                            }
                         }
 
                         it->second->info["height"] = info["tipHeight"].asUInt64();
@@ -220,12 +229,13 @@ void CryptoKernel::Network::peerFunc() {
                 }
             }
 
-	    for(const auto& peer : removals) {
-            const auto it = connected.find(peer);
-            if(it != connected.end()) {
-                connected.erase(it);
+            for(const auto& peer : removals) {
+                const auto it = connected.find(peer);
+                peers->put(dbTx.get(), peer, it->second->info);
+                if(it != connected.end()) {
+                    connected.erase(it);
+                }
             }
-	    }
 
             for(const auto& peer : peerInfos) {
                 peers->put(dbTx.get(), peer.first, peer.second);
@@ -257,17 +267,6 @@ void CryptoKernel::Network::networkFunc() {
                 it != connected.end(); it++) {
             if(it->second->info["height"].asUInt64() > bestHeight) {
                 bestHeight = it->second->info["height"].asUInt64();
-            }
-            const auto banIt = banned.find(it->first);
-            if(banIt != banned.end() || it->second->info["disconnect"].asBool()) {
-                if(banIt->second > static_cast<uint64_t>(std::time(nullptr)) || it->second->info["disconnect"].asBool()) {
-                    log->printf(LOG_LEVEL_WARN,
-                                "Network(): Disconnecting " + it->first + " for being banned");
-                    it = connected.erase(it);
-                    if(connected.size() < 1) {
-                        break;
-                    }
-                }
             }
         }
 

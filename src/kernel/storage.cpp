@@ -21,12 +21,24 @@
 #include <json/reader.h>
 
 #include <leveldb/write_batch.h>
+#include <leveldb/cache.h>
+#include <leveldb/filter_policy.h>
 
 #include "storage.h"
 
-CryptoKernel::Storage::Storage(const std::string& filename) {
+CryptoKernel::Storage::Storage(const std::string& filename, const bool sync, const unsigned int cache, const bool bloom) {
     leveldb::Options options;
     options.create_if_missing = true;
+
+    if(cache > 0) {
+        options.block_cache = leveldb::NewLRUCache(cache * 1024 * 1024);
+    }
+
+    if(bloom) {
+        options.filter_policy = leveldb::NewBloomFilterPolicy(8 * 2);
+    }
+
+    this->sync = sync;
 
     dbMutex.lock();
     leveldb::Status dbstatus = leveldb::DB::Open(options, filename, &db);
@@ -126,7 +138,7 @@ void CryptoKernel::Storage::Transaction::commit() {
         }
 
         leveldb::WriteOptions options;
-        options.sync = true;
+        options.sync = db->sync;
 
         leveldb::Status status = db->db->Write(options, &batch);
 

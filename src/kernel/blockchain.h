@@ -390,6 +390,8 @@ private:
 
     Mempool unconfirmedTransactions;
 
+    std::string dbDir;
+
     std::tuple<bool, bool> verifyTransaction(Storage::Transaction* dbTransaction, const transaction& tx,
                            const bool coinbaseTx = false);
     void confirmTransaction(Storage::Transaction* dbTransaction, const transaction& tx,
