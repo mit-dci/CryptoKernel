@@ -830,6 +830,7 @@ void CryptoKernel::Blockchain::reverseBlock(Storage::Transaction* dbTransaction)
     const dbBlock tipDB = getBlockDB(dbTransaction, "tip");
 
     blocks->erase(dbTransaction, std::to_string(tipDB.getHeight()), 0);
+    blocks->erase(dbTransaction, tip.getId().toString());
     blocks->put(dbTransaction, "tip", getBlockDB(dbTransaction,
                 tip.getPreviousBlockId().toString()).toJson());
 
