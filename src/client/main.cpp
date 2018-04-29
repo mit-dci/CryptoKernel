@@ -203,6 +203,7 @@ int main(int argc, char* argv[]) {
                           << "getblockbyheight [height]\n"
                           << "getinfo\n"
                           << "getpeerinfo\n"
+                          << "gettransaction [id]\n"
                           << "importprivkey [accountname] [privkey]\n"
                           << "listaccounts\n"
                           << "listtransactions\n"
