@@ -179,6 +179,12 @@ int main(int argc, char* argv[]) {
                 }
             } else if(command == "getpeerinfo") {
                 std::cout << client.getpeerinfo() << std::endl;
+            } else if(command == "gettransaction") {
+                if(argc == 3 + offset) {
+                    std::cout << client.gettransaction(std::string(argv[2 + offset])).toStyledString() << std::endl;
+                } else {
+                    std::cout << "Usage: gettransaction [id]" << std::endl;
+                }
             } else if(command == "dumpprivkeys") {
                 if(argc >= 3 + offset) {
                     const std::string name(argv[2 + offset]);
