@@ -291,6 +291,8 @@ void CryptoKernel::Network::networkFunc() {
                 if(it->second->info["height"].asUInt64() > currentHeight) {
                     std::list<CryptoKernel::Blockchain::block> blocks;
 
+                    const std::string peerUrl = it->first;
+
                     if(currentHeight == startHeight) {
                         auto nBlocks = 0;
                         do {
@@ -395,7 +397,7 @@ void CryptoKernel::Network::networkFunc() {
                                 break;
                             }
                         }
-                    }, it->first));
+                    }, peerUrl));
                 } else {
                     it++;
                 }
