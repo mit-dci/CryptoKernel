@@ -114,6 +114,12 @@ bool CryptoKernel::ContractRunner::evaluateValid(Storage::Transaction* dbTx,
 
             bool result = false;
             std::string errorMessage = "";
+
+            state->HandleExceptionsWith([&](int, std::string msg, std::exception_ptr) {
+                                                errorMessage = msg; 
+                                                result = false;
+                                            });
+
             sel::tie(result, errorMessage) = (*state.get())["verifyTransaction"](base64_decode(
                                                  data["contract"].asString()));
 
