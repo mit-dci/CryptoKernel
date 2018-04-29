@@ -65,7 +65,7 @@ private:
     class BlockchainInterface {
     public:
         BlockchainInterface(CryptoKernel::Blockchain* blockchain) {this->blockchain = blockchain;}
-        std::string getBlock(const std::string& id) {
+        std::string getBlock(std::string id) {
             try {
                 const Blockchain::dbBlock block = blockchain->getBlockDB(dbTx, id, true);
                 return CryptoKernel::Storage::toString(block.toJson());
@@ -73,7 +73,7 @@ private:
                 return "";
             }
         }
-        std::string getTransaction(const std::string& id) {
+        std::string getTransaction(std::string id) {
             try {
                 const Blockchain::dbTransaction tx = blockchain->getTransactionDB(dbTx, id);
                 return CryptoKernel::Storage::toString(tx.toJson());
@@ -81,7 +81,7 @@ private:
                 return "";
             }
         }
-        std::string getOutput(const std::string& id) {
+        std::string getOutput(std::string id) {
             try {
                 const Blockchain::dbOutput out = blockchain->getOutputDB(dbTx, id);
                 return CryptoKernel::Storage::toString(out.toJson());
@@ -89,7 +89,7 @@ private:
                 return "";
             }
         }
-        std::string getInput(const std::string& id) {
+        std::string getInput(std::string id) {
             try {
                 const Blockchain::input inp = blockchain->getInput(dbTx, id);
                 return CryptoKernel::Storage::toString(inp.toJson());
