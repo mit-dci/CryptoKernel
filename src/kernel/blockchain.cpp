@@ -112,7 +112,6 @@ CryptoKernel::Blockchain::getUnconfirmedTransactions() {
 
 CryptoKernel::Blockchain::dbBlock CryptoKernel::Blockchain::getBlockDB(
     Storage::Transaction* transaction, const std::string& id, const bool mainChain) {
-    std::lock_guard<std::recursive_mutex> lock(chainLock);
     Json::Value jsonBlock = blocks->get(transaction, id);
     if(!jsonBlock.isObject()) {
         // Check if it's an orphan
@@ -137,7 +136,6 @@ CryptoKernel::Blockchain::dbBlock CryptoKernel::Blockchain::getBlockDB(
 
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlock(
     Storage::Transaction* transaction, const std::string& id) {
-    std::lock_guard<std::recursive_mutex> lock(chainLock);
     const dbBlock block = getBlockDB(transaction, id);
 
     return buildBlock(transaction, block);
@@ -145,7 +143,6 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlock(
 
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::buildBlock(
     Storage::Transaction* dbTx, const dbBlock& dbblock) {
-    std::lock_guard<std::recursive_mutex> lock(chainLock);
     std::set<transaction> transactions;
 
     try {
@@ -168,14 +165,12 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::buildBlock(
 
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlockByHeight(
     Storage::Transaction* transaction, const uint64_t height) {
-    std::lock_guard<std::recursive_mutex> lock(chainLock);
     const std::string id = blocks->get(transaction, std::to_string(height), 0).asString();
     return getBlock(transaction, id);
 }
 
 CryptoKernel::Blockchain::dbBlock CryptoKernel::Blockchain::getBlockByHeightDB(
     Storage::Transaction* transaction, const uint64_t height) {
-    std::lock_guard<std::recursive_mutex> lock(chainLock);
     const std::string id = blocks->get(transaction, std::to_string(height), 0).asString();
     return getBlockDB(transaction, id);
 }
@@ -210,7 +205,6 @@ CryptoKernel::Blockchain::output CryptoKernel::Blockchain::getOutput(
 
 CryptoKernel::Blockchain::output CryptoKernel::Blockchain::getOutput(
     Storage::Transaction* dbTx, const std::string& id) {
-    std::lock_guard<std::recursive_mutex> lock(chainLock);
     Json::Value outputJson = utxos->get(dbTx, id);
     if(!outputJson.isObject()) {
         outputJson = stxos->get(dbTx, id);
@@ -224,7 +218,6 @@ CryptoKernel::Blockchain::output CryptoKernel::Blockchain::getOutput(
 
 CryptoKernel::Blockchain::dbOutput CryptoKernel::Blockchain::getOutputDB(
     Storage::Transaction* dbTx, const std::string& id) {
-    std::lock_guard<std::recursive_mutex> lock(chainLock);
     Json::Value outputJson = utxos->get(dbTx, id);
     if(!outputJson.isObject()) {
         outputJson = stxos->get(dbTx, id);
@@ -238,7 +231,6 @@ CryptoKernel::Blockchain::dbOutput CryptoKernel::Blockchain::getOutputDB(
 
 CryptoKernel::Blockchain::input CryptoKernel::Blockchain::getInput(
     Storage::Transaction* dbTx, const std::string& id) {
-    std::lock_guard<std::recursive_mutex> lock(chainLock);
     Json::Value inputJson = inputs->get(dbTx, id);
     if(!inputJson.isObject()) {
         throw NotFoundException("Input " + id);
