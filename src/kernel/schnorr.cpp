@@ -35,29 +35,23 @@ CryptoKernel::Schnorr::Schnorr(const bool fGenerate) {
 }
 
 CryptoKernel::Schnorr::~Schnorr() {
-    if(ctx != NULL) {
-        schnorr_context_free(ctx);
-    }
-
-    if(schnorr_key != NULL) {
-        schnorr_key_free(schnorr_key);
-    }
+    schnorr_context_free(ctx);
+    schnorr_key_free(schnorr_key);
 }
 
 bool CryptoKernel::Schnorr::verify(const std::string& message,
                                   const std::string& signature) {
-    const std::string messageHash = sha256(message);
-    const std::string decodedSignature = base64_decode(signature);
 
-    if(schnorr_sign(ctx, &sig, key, "hello", 5) == 0) {
-        return -1;
-    }
+    // const std::string messageHash = sha256(message);
+    // const std::string decodedSignature = base64_decode(signature);
 
-    if(!schnorr_verify(ctx,
-                   const schnorr_sig* sig,
-                   const schnorr_pubkey* pubkey,
-                   const unsigned char* msg,
-                   const size_t len);) {
+    if(!schnorr_verify(
+        ctx,
+        const schnorr_sig* sig,
+        schnorr_key.pub,
+        reinterpret_cast<unsigned char*>(const_cast<char*>(message)),
+        message.length())
+    ) {
         return false;
     }
 
@@ -71,20 +65,18 @@ bool CryptoKernel::Schnorr::verify(const std::string& message,
 
 std::string CryptoKernel::Schnorr::sign(const std::string& message) {
     if(schnorr_key != NULL) {
-        const std::string messageHash = sha256(message);
 
-        unsigned char *buffer, *pp;
-        unsigned int buf_len;
-        buf_len = ECDSA_size(eckey);
-        buffer = new unsigned char[buf_len];
-        pp = buffer;
+        schnorr_sig** buffer;
 
-        if(!ECDSA_sign(0, (unsigned char*)messageHash.c_str(), (int)messageHash.size(), pp,
-                       &buf_len, eckey)) {
+        if(!schnorr_sign(ctx,
+                         buffer,  // figure out
+                         schnorr_key, 
+                         reinterpret_cast<unsigned char*>(const_cast<char*>(message)),
+                         message.length())) {
             delete[] buffer;
             throw std::runtime_error("Could not sign message");
         } else {
-            const std::string returning = base64_encode(buffer, buf_len);
+            const std::string returning = base64_encode(buffer, buffer.length());
             delete[] buffer;
             return returning;
         }
@@ -105,7 +97,7 @@ std::string CryptoKernel::Schnorr::getPublicKey() {
 
 std::string CryptoKernel::Schnorr::getPrivateKey() {
     if(schnorr_key != NULL) {
-        const std::string returning = const std::string returning = base64_encode(schnorr_key.a, len(schnorr_key.a));
+        const std::string returning = base64_encode(schnorr_key.a, len(schnorr_key.a));
 
         return returning;
     } else {
@@ -113,6 +105,7 @@ std::string CryptoKernel::Schnorr::getPrivateKey() {
     }
 }
 
+// Ask James if we should use schnorr_new_key for both and ask about committed_r_key?
 bool CryptoKernel::Schnorr::setPublicKey(const std::string& publicKey) {
     const std::string decodedKey = base64_decode(publicKey);
 
@@ -152,34 +145,6 @@ bool CryptoKernel::Schnorr::setPrivateKey(const std::string& privateKey) {
     }
 }
 
-std::string CryptoKernel::Schnorr::sha256(const std::string& message) {
-    unsigned char hash[SHA256_DIGEST_LENGTH];
-
-    SHA256_CTX sha256CTX;
-
-    if(!SHA256_Init(&sha256CTX)) {
-        throw std::runtime_error("Failed to initialise SHA256 context");
-    }
-
-    if(!SHA256_Update(&sha256CTX, (unsigned char*)message.c_str(), message.size())) {
-        throw std::runtime_error("Failed to calculate SHA256 hash");
-    }
-
-    if(!SHA256_Final(hash, &sha256CTX)) {
-        throw std::runtime_error("Failed to calculate SHA256 hash");
-    }
-
-    return base16_encode(hash, SHA256_DIGEST_LENGTH);
-}
-
 bool CryptoKernel::Schnorr::getStatus() {
     return true;
-}
-
-std::string base16_encode(unsigned char const* bytes_to_encode, unsigned int in_len) {
-    std::stringstream ss;
-    for(unsigned int i = 0; i < in_len; i++) {
-        ss << std::setfill('0') << std::setw(2) << std::hex << (unsigned int)bytes_to_encode[i];
-    }
-    return ss.str();
 }
