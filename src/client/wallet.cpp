@@ -382,12 +382,13 @@ void CryptoKernel::Wallet::digestTx(const CryptoKernel::Blockchain::transaction&
             } catch(const WalletException& e) {
                 continue;
             }
-        }
-        trackTx = true;
+
+            trackTx = true;
         
-        if(!unconfirmed) {
-            const Txo newTxo = Txo(out.getId().toString(), out.getValue());
-            utxos->put(walletTx, out.getId().toString(), newTxo.toJson());
+            if(!unconfirmed) {
+                const Txo newTxo = Txo(out.getId().toString(), out.getValue());
+                utxos->put(walletTx, out.getId().toString(), newTxo.toJson());
+            }
         }
     }
 
