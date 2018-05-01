@@ -282,6 +282,27 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::verifyTransaction(Storage::Tran
         inputTotal += out.getValue();
 
         const Json::Value outData = out.getData();
+
+
+        //TODO check if works and add the type of schnorr to dbOutput
+        if(!outData["schnorr"].empty() && outData["contract"].empty()) {
+            const Json::Value spendData = inp.getData();
+            if(spendData["signature"].empty()) {
+                log->printf(LOG_LEVEL_INFO,
+                            "blockchain::verifyTransaction(): Could not verify input signature");
+                return std::make_tuple(false, true);
+            }
+
+            CryptoKernel::Schnorr schnorr;
+            schnorr.setPublicKey(outData["schnorr"].asString());
+            if(!schnorr.verify(out.getId().toString() + outputHash.toString(),
+                              spendData["signature"].asString())) {
+                log->printf(LOG_LEVEL_INFO,
+                            "blockchain::verifyTransaction(): Could not verify input signature");
+                return std::make_tuple(false, true);
+            }
+        }
+
         if(!outData["publicKey"].empty() && outData["contract"].empty()) {
             const Json::Value spendData = inp.getData();
             if(spendData["signature"].empty()) {

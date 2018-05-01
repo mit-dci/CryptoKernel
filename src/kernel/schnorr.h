@@ -19,6 +19,7 @@ Copyright (C) 2016  James Lovejoy
 #include <memory>
 
 #include <cschnorr/signature.h>
+//#include <cschnorr/multisig.h> 
 #include <cschnorr/context.h>
 #include <cschnorr/key.h>
 #include <json/value.h>
