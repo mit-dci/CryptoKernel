@@ -1,5 +1,6 @@
 #include <sstream>
 #include <math.h>
+#include <iostream>
 
 #include "PoW.h"
 #include "Lyra2REv2/Lyra2RE.h"
@@ -131,17 +132,17 @@ Json::Value CryptoKernel::Consensus::PoW::consensusDataToJson(const
 }
 
 bool CryptoKernel::Consensus::PoW::checkConsensusRules(Storage::Transaction* transaction,
-        const CryptoKernel::Blockchain::block& block,
+        CryptoKernel::Blockchain::block& block,
         const CryptoKernel::Blockchain::dbBlock& previousBlock) {
     //Check target
     try {
-        const consensusData blockData = getConsensusData(block);
-        if(blockData.target != calculateTarget(transaction, block.getPreviousBlockId())) {
-            return false;
-        }
+        consensusData blockData = getConsensusData(block);
+        blockData.target = calculateTarget(transaction, block.getPreviousBlockId());
 
         //Check proof of work
         if(blockData.target <= calculatePoW(block, blockData.nonce)) {
+            std::cout << blockData.target.toString() << ", " << calculatePoW(block, blockData.nonce).toString() << std::endl;
+
             return false;
         }
 
@@ -150,9 +151,9 @@ bool CryptoKernel::Consensus::PoW::checkConsensusRules(Storage::Transaction* tra
         const BigNum inverse =
             CryptoKernel::BigNum("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff") -
             blockData.target;
-        if(blockData.totalWork != inverse + tipData.totalWork) {
-            return false;
-        }
+        blockData.totalWork = inverse + tipData.totalWork;
+
+        block.setConsensusData(consensusDataToJson(blockData));
 
         return true;
     } catch(const CryptoKernel::Blockchain::InvalidElementException& e) {

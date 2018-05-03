@@ -60,7 +60,7 @@ public:
     * @param message the message to sign, must be non-empty
     * @return the ECDSA signature of the message with a SHA256 digest
     */
-    std::string sign(const std::string& message);
+    std::string sign(std::string message);
 
     /**
     * Verifies a that a given signature verifies the given message with the public key of this class
@@ -69,7 +69,7 @@ public:
     * @param signature the signature to check against, must be non-empty
     * @return true if the signature is correctly verified against the message and public key, false otherwise
     */
-    bool verify(const std::string& message, const std::string& signature);
+    bool verify(std::string message, std::string signature);
 
     /**
     * Returns the public key of the instance
@@ -91,7 +91,7 @@ public:
     * @param publicKey valid public key from another instance of Crypto
     * @return true if setting the key was successful, false otherwise
     */
-    bool setPublicKey(const std::string& publicKey);
+    bool setPublicKey(std::string publicKey);
 
     /**
     * Sets the private key of the instance
@@ -99,7 +99,7 @@ public:
     * @param privateKey valid private key from another instance of Crypto
     * @return true if setting the key was successful, false otherwise
     */
-    bool setPrivateKey(const std::string& privateKey);
+    bool setPrivateKey(std::string privateKey);
 
     /**
     * Static function which generates a hex encoded SHA256 hash of the given message
@@ -107,7 +107,7 @@ public:
     * @param message the message to hash, must be non-empty
     * @return the SHA256 hash of the message, hex encoded, lowercase
     */
-    static std::string sha256(const std::string& message);
+    static std::string sha256(std::string message);
 
 private:
     EC_KEY *eckey;

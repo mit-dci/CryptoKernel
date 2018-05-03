@@ -124,7 +124,7 @@ function programCounterHook()
 end
 
 function run_sandbox(sb_env, sb_func, ...)
-  if (not sb_func) then return nil end
+  if (not sb_func) then return "Not a valid function" end
   setfenv(sb_func, sb_env)
   collectgarbage("stop")
   debug.sethook(programCounterHook, "", 50)

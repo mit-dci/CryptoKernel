@@ -450,7 +450,7 @@ public:
     * @return true iff the rules are valid, otherwise false
     */
     virtual bool checkConsensusRules(Storage::Transaction* transaction,
-                                     const CryptoKernel::Blockchain::block& block,
+                                     CryptoKernel::Blockchain::block& block,
                                      const CryptoKernel::Blockchain::dbBlock& previousBlock) = 0;
 
     /**
