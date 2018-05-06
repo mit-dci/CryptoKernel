@@ -29,6 +29,7 @@
 #include "crypto.h"
 #include "ckmath.h"
 #include "contract.h"
+#include "schnorr.h"
 
 CryptoKernel::Blockchain::Blockchain(CryptoKernel::Log* GlobalLog,
                                      const std::string& dbDir) {
