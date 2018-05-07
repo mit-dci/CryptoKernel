@@ -22,10 +22,10 @@
 
 #include <cschnorr/signature.h>
 
-#include "crypto.h"
+#include "schnorr.h"
 #include "base64.h"
 
-CryptoKernel::Schnorr::Schnorr(const bool fGenerate) {
+CryptoKernel::Schnorr::Schnorr() {
     schnorr_context* ctx = schnorr_context_new();
     musig_key* musign_key = musig_key_new(ctx);
 

@@ -32,10 +32,8 @@ public:
 
     /**
     * Constructs a Schnorr object. Optionally generates a Schnorr keypair.
-    *
-    * @param fGenerate optional param, when set to true, generates a Schnorr keypair. Otherwise if false or ommited, do not generate.
     */
-    Schnorr(const bool fGenerate = false);
+    Schnorr();
 
     /**
     * Schnorr class deconstructor
@@ -109,7 +107,7 @@ private:
     schnorr_context *ctx;
 };
 
-
+}
 
 std::string base16_encode(unsigned char const* bytes_to_encode, unsigned int in_len);
 
