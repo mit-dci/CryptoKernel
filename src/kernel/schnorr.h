@@ -18,10 +18,7 @@ Copyright (C) 2016  James Lovejoy
 #include <string>
 #include <memory>
 
-#include <cschnorr/signature.h>
 #include <cschnorr/multisig.h> 
-#include <cschnorr/context.h>
-#include <cschnorr/key.h>
 #include <json/value.h>
 
 namespace CryptoKernel {
@@ -108,7 +105,7 @@ public:
    static std::string sha256(const std::string& message);
 
 private:
-    schnorr_key *schnorr_key;
+    schnorr_key *key;
     schnorr_context *ctx;
 };
 
