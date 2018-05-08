@@ -21,6 +21,16 @@ Copyright (C) 2016  James Lovejoy
 #include <cschnorr/multisig.h> 
 #include <json/value.h>
 
+//added
+// #include <openssl/ec.h>
+// #include <openssl/ecdsa.h>
+// #include <openssl/obj_mac.h>
+
+// #include <cschnorr/key.h>
+// #include <cschnorr/multisig.h>
+// #include <cschnorr/signature.h>
+// #include <cschnorr/context.h>
+
 namespace CryptoKernel {
 
 /**
@@ -103,12 +113,13 @@ public:
    static std::string sha256(const std::string& message);
 
 private:
-    schnorr_key *key;
+    musig_key *key;
     schnorr_context *ctx;
+    EC_GROUP *ecgroup;
 };
 
 }
 
-std::string base16_encode(unsigned char const* bytes_to_encode, unsigned int in_len);
+//std::string base16_encode(unsigned char const* bytes_to_encode, unsigned int in_len);
 
-#endif // CRYPTO_H_INCLUDED
+#endif  //SCHNORR_H_INCLUDED

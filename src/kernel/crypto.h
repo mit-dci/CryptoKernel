@@ -136,4 +136,4 @@ class AES256 {
 
 std::string base16_encode(unsigned char const* bytes_to_encode, unsigned int in_len);
 
-#endif // CRYPTO_H_INCLUDED
+#endif //CRYPTO_H_INCLUDED
