@@ -111,13 +111,9 @@ bool CryptoKernel::Schnorr::verify(const std::string& message,
 std::string CryptoKernel::Schnorr::sign(const std::string& message) {
     if(key != NULL) {
 
-        schnorr_sig** buffer;
+        musig_sig** buffer;
 
-        if(!schnorr_sign(ctx,
-                         buffer,  // figure out
-                         key, 
-                         (unsigned char*)message.c_str(),
-                         message.size()) {
+        if(!musig_sign(ctx, buffer, key, (unsigned char*)message.c_str(), message.size())) {
             delete[] buffer;
             throw std::runtime_error("Could not sign message");
         } else {
