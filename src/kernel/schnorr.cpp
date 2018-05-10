@@ -82,15 +82,14 @@ bool CryptoKernel::Schnorr::verify(const std::string& message,
     const std::string messageHash = sha256(message);
     const std::string decodedSignature = base64_decode(signature);
 
-    musig_sig sig;
+    musig_sig* sig;
 
     // char* sHex = BN_bn2hex(signature->s);
     // char* AHex = EC_POINT_point2hex(ctx->group, *(key)->pub->A, POINT_CONVERSION_COMPRESSED, ctx->bn_ctx);
     // char* RHex = EC_POINT_point2hex(ctx->group, sigAgg->R, POINT_CONVERSION_COMPRESSED, ctx->bn_ctx);
 
-    BN_hex2bn(&sig.s, (const char*)decodedSignature.c_str()); 
-    EC_POINT_hex2point(ctx->group, (const char*)messageHash.c_str(), sig.R, ctx->bn_ctx);
-
+    BN_hex2bn(&sig->s, (const char*)decodedSignature.c_str()); 
+    EC_POINT_hex2point(ctx->group, (const char*)messageHash.c_str(), sig->R, ctx->bn_ctx);
 
     //std::string newString(sHex);
 
@@ -98,7 +97,7 @@ bool CryptoKernel::Schnorr::verify(const std::string& message,
 
     if(!musig_verify(
         ctx,
-        (const musig_sig*) sig,
+        sig,
         key->pub,
         (unsigned char*)message.c_str(),
         message.length())
