@@ -24,7 +24,7 @@
 #include "schnorr.h"
 #include "base64.h"
 
-//added
+// added
 #include <openssl/sha.h>
 
 
@@ -44,7 +44,7 @@ CryptoKernel::Schnorr::~Schnorr() {
 
 bool CryptoKernel::Schnorr::verify(const std::string& message,
                                   const std::string& signature) {
-    const std::string messageHash = sha256(message); //TODO check sha256
+    const std::string messageHash = sha256(message);
     const std::string decodedSignature = base64_decode(signature);
 
     musig_sig* sig;
@@ -52,8 +52,8 @@ bool CryptoKernel::Schnorr::verify(const std::string& message,
     BN_hex2bn(&sig->s, (const char*)decodedSignature.c_str()); 
     EC_POINT_hex2point(ctx->group, (const char*)messageHash.c_str(), sig->R, ctx->bn_ctx);
 
-    //free(messageHash);
-    //free(decodedSignature);
+    // free(messageHash);
+    // free(decodedSignature);
 
     if(!musig_verify(
         ctx,
@@ -70,26 +70,22 @@ bool CryptoKernel::Schnorr::verify(const std::string& message,
 
 std::string CryptoKernel::Schnorr::sign(const std::string& message) {
     if(key != NULL) {
-
         musig_sig* sig;
         musig_pubkey* pubkeys[1];
         pubkeys[0] = key->pub;
 
-        if(!musig_sign(ctx, 
-            &sig, 
+        if(!musig_sign(ctx,
+            &sig,
             &key->pub,
-            key, 
+            key,
             pubkeys,
             sizeof(pubkeys),
-            (unsigned char*)message.c_str(), 
+            (unsigned char*)message.c_str(),
             message.size())) {
             delete[] sig;
             throw std::runtime_error("Could not sign message");
         } else {
-
-            const std::string returning = base64_encode(
-                (const unsigned char*)BN_bn2hex(sig->s), (int) sizeof(sig)
-            );
+            const std::string returning = base64_encode((const unsigned char*)BN_bn2hex(sig->s), static_cast<int> sizeof(sig));
             delete[] sig;
             return returning;
         }
@@ -138,7 +134,7 @@ std::string CryptoKernel::Schnorr::getPrivateKey() {
 
 bool CryptoKernel::Schnorr::setPublicKey(const std::string& publicKey) {
     const std::string decodedKey = base64_decode(publicKey);
-    if (!EC_POINT_hex2point(ctx->group, (const char*)decodedKey.c_str(), key->pub->A, ctx->bn_ctx)){
+    if(!EC_POINT_hex2point(ctx->group, (const char*)decodedKey.c_str(), key->pub->A, ctx->bn_ctx)) {
         return false;
     }
     return true;

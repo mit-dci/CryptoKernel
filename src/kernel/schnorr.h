@@ -30,7 +30,6 @@ namespace CryptoKernel {
 */
 class Schnorr {
 public:
-
     /**
     * Constructs a Schnorr object. Optionally generates a Schnorr keypair.
     */
