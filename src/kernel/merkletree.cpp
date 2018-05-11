@@ -54,7 +54,7 @@ CryptoKernel::BigNum CryptoKernel::MerkleNode::getRightVal() const {
 CryptoKernel::BigNum CryptoKernel::MerkleNode::calcRoot(const std::string& left,
                                                         const std::string& right) {
     CryptoKernel::Crypto crypto;
-    return CryptoKernel::BigNum(crypto.sha256(left + right));
+    return CryptoKernel::BigNum(sha256(left + right));
 }
 
 std::shared_ptr<CryptoKernel::MerkleNode> CryptoKernel::MerkleNode::makeMerkleTree(

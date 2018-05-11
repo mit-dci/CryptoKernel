@@ -188,7 +188,7 @@ CryptoKernel::Consensus::PoW(blockTarget, blockchain, miner, pubKey) {
 CryptoKernel::BigNum CryptoKernel::Consensus::PoW::KGW_SHA256::powFunction(
     const std::string& inputString) {
     CryptoKernel::Crypto crypto;
-    return CryptoKernel::BigNum(crypto.sha256(inputString));
+    return CryptoKernel::BigNum(sha256(inputString));
 }
 
 CryptoKernel::BigNum CryptoKernel::Consensus::PoW::KGW_SHA256::calculateTarget(

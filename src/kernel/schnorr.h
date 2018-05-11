@@ -21,15 +21,6 @@ Copyright (C) 2016  James Lovejoy
 #include <cschnorr/multisig.h> 
 #include <json/value.h>
 
-//added
-// #include <openssl/ec.h>
-// #include <openssl/ecdsa.h>
-// #include <openssl/obj_mac.h>
-
-// #include <cschnorr/key.h>
-// #include <cschnorr/multisig.h>
-// #include <cschnorr/signature.h>
-// #include <cschnorr/context.h>
 
 namespace CryptoKernel {
 
@@ -63,7 +54,7 @@ public:
     * @param message the message to sign, must be non-empty
     * @return the Schnorr signature of the message with a SHA256 digest
     */
-    std::string sign(const std::string& message);
+    //std::string sign(const std::string& message);
 
     /**
     * Verifies a that a given signature verifies the given message with the public key of this class
@@ -104,14 +95,6 @@ public:
     */
     bool setPrivateKey(const std::string& privateKey);
 
-    /**
-    * Static function which generates a hex encoded SHA256 hash of the given message
-    *
-    * @param message the message to hash, must be non-empty
-    * @return the SHA256 hash of the message, hex encoded, lowercase
-    */
-   static std::string sha256(const std::string& message);
-
 private:
     musig_key *key;
     schnorr_context *ctx;
@@ -119,7 +102,5 @@ private:
 };
 
 }
-
-//std::string base16_encode(unsigned char const* bytes_to_encode, unsigned int in_len);
 
 #endif  //SCHNORR_H_INCLUDED

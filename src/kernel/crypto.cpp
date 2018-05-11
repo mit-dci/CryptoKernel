@@ -167,7 +167,7 @@ bool CryptoKernel::Crypto::setPrivateKey(std::string privateKey) {
     }
 }
 
-std::string CryptoKernel::Crypto::sha256(std::string message) {
+std::string sha256(std::string message) {
     unsigned char hash[SHA256_DIGEST_LENGTH];
 
     SHA256_CTX sha256CTX;

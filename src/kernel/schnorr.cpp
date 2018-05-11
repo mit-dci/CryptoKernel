@@ -20,7 +20,7 @@
 #include <iomanip>
 #include <cstring>
 
-
+#include "crypto.h"
 #include "schnorr.h"
 #include "base64.h"
 
@@ -79,7 +79,8 @@ bool CryptoKernel::Schnorr::verify(const std::string& message,
     //              const unsigned char* msg,
     //              const size_t len);
 
-    const std::string messageHash = sha256(message);
+    const std::string messageHash = sha256(message); //TODO check sha256
+    //const std::string messageHash = hash((unsigned char*)message.c_str());
     const std::string decodedSignature = base64_decode(signature);
 
     musig_sig* sig;
@@ -108,23 +109,38 @@ bool CryptoKernel::Schnorr::verify(const std::string& message,
     return true;
 }
 
-std::string CryptoKernel::Schnorr::sign(const std::string& message) {
-    if(key != NULL) {
+// int musig_sign(const schnorr_context* ctx,
+//                musig_sig** dest, 
+//                musig_pubkey** pub,
+//                const musig_key* key,
+//                musig_pubkey** pubkeys,
+//                const size_t n,
+//                const unsigned char* msg, 
+//                const size_t len);
 
-        musig_sig** buffer;
 
-        if(!musig_sign(ctx, buffer, key, (unsigned char*)message.c_str(), message.size())) {
-            delete[] buffer;
-            throw std::runtime_error("Could not sign message");
-        } else {
-            const std::string returning = base64_encode(buffer, buffer.length());
-            delete[] buffer;
-            return returning;
-        }
-    } else {
-        return "";
-    }
-}
+// std::string CryptoKernel::Schnorr::sign(const std::string& message) {
+//     if(key != NULL) {
+
+//         musig_sig** buffer;
+
+//         if(!musig_sign(ctx, 
+//             buffer, 
+//             &key->pub,
+//             key, 
+//             (unsigned char*)message.c_str(), 
+//             message.size())) {
+//             delete[] buffer;
+//             throw std::runtime_error("Could not sign message");
+//         } else {
+//             const std::string returning = base64_encode(buffer, buffer.length());
+//             delete[] buffer;
+//             return returning;
+//         }
+//     } else {
+//         return "";
+//     }
+// }
 
 std::string CryptoKernel::Schnorr::getPublicKey() {
     if(key != NULL) {
@@ -148,10 +164,10 @@ std::string CryptoKernel::Schnorr::getPublicKey() {
 
 std::string CryptoKernel::Schnorr::getPrivateKey() {
     if(key != NULL) {
-        unsigned char *buf = malloc(sizeof(unsigned char) * 32);
+        unsigned char *buf = (unsigned char*) malloc(sizeof(unsigned char) * 32);
 
-        if (BN_bn2binpad(key->a, &buf, 32) != 32) {
-            return ""
+        if (BN_bn2binpad(key->a, buf, 32) != 32) {
+            return "";
         }
 
         const std::string returning = base64_encode(buf, 32);
@@ -166,44 +182,49 @@ std::string CryptoKernel::Schnorr::getPrivateKey() {
 
 bool CryptoKernel::Schnorr::setPublicKey(const std::string& publicKey) {
     const std::string decodedKey = base64_decode(publicKey);
-
-    if(!EC_KEY_oct2key(eckey, (unsigned char*)decodedKey.c_str(),
-                       (unsigned int)decodedKey.size(), NULL)) {
+    if (!EC_POINT_hex2point(ctx->group, (const char*)decodedKey.c_str(), key->pub->A, ctx->bn_ctx)){
         return false;
-    } else {
-        return true;
     }
+    return true;
 }
 
 bool CryptoKernel::Schnorr::setPrivateKey(const std::string& privateKey) {
     const std::string decodedKey = base64_decode(privateKey);
 
-    BIGNUM *BN_bin2bn(const unsigned char *s, int len, BIGNUM *ret);
-
-    if(!EC_KEY_oct2priv(eckey, (unsigned char*)decodedKey.c_str(),
-                        (unsigned int)decodedKey.size())) {
-        throw std::runtime_error("Could not copy private key");
-    } else {
-        BN_CTX* ctx = BN_CTX_new();
-
-        EC_POINT* pub_key = EC_POINT_new(ecgroup);
-        if(!EC_POINT_mul(ecgroup, pub_key,
-                     EC_KEY_get0_private_key(eckey), nullptr,
-                     nullptr, ctx)) {
-            BN_CTX_free(ctx);
-            return false;
-        }
-
-        BN_CTX_free(ctx);
-
-        if(!EC_KEY_set_public_key(eckey, pub_key)) {
-            EC_POINT_free(pub_key);
-            return false;
-        }
-
-        return key != NULL;
+    //BN_hex2bn(&sig->s, (const char*)decodedSignature.c_str()); 
+    if(!BN_hex2bn(&key->a, (const char*)decodedKey.c_str())){
+        return false;
     }
+    return true;
+
+
+    // BIGNUM *BN_bin2bn(const unsigned char *s, int len, BIGNUM *ret);
+
+    // if(!EC_KEY_oct2priv(eckey, (unsigned char*)decodedKey.c_str(),
+    //                     (unsigned int)decodedKey.size())) {
+    //     throw std::runtime_error("Could not copy private key");
+    // } else {
+    //     BN_CTX* ctx = BN_CTX_new();
+
+    //     EC_POINT* pub_key = EC_POINT_new(ecgroup);
+    //     if(!EC_POINT_mul(ecgroup, pub_key,
+    //                  EC_KEY_get0_private_key(eckey), nullptr,
+    //                  nullptr, ctx)) {
+    //         BN_CTX_free(ctx);
+    //         return false;
+    //     }
+
+    //     BN_CTX_free(ctx);
+
+    //     if(!EC_KEY_set_public_key(eckey, pub_key)) {
+    //         EC_POINT_free(pub_key);
+    //         return false;
+    //     }
+
+    //     return key != NULL;
+    // }
 }
+
 
 bool CryptoKernel::Schnorr::getStatus() {
     return true;

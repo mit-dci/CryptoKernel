@@ -91,7 +91,7 @@ void CryptoKernel::ContractRunner::setupEnvironment(Storage::Transaction* dbTx,
             "getStatus", &CryptoKernel::Crypto::getStatus
                                                                  );
     (*state.get())["txJson"] = CryptoKernel::Storage::toString(tx.toJson());
-    (*state.get())["sha256"] = &CryptoKernel::Crypto::sha256;
+    (*state.get())["sha256"] = &sha256;
     (*state.get())["thisInputJson"] = CryptoKernel::Storage::toString(input.toJson());
     (*state.get())["outputSetId"] = tx.getOutputSetId().toString();
     blockchainInterface->setTransaction(dbTx);

@@ -63,7 +63,7 @@ CryptoKernel::BigNum CryptoKernel::Blockchain::output::calculateId() {
     buffer << value << nonce << CryptoKernel::Storage::toString(data, false);
 
     CryptoKernel::Crypto crypto;
-    return CryptoKernel::BigNum(crypto.sha256(buffer.str()));
+    return CryptoKernel::BigNum(sha256(buffer.str()));
 }
 
 CryptoKernel::BigNum CryptoKernel::Blockchain::output::getId() const {
@@ -164,7 +164,7 @@ CryptoKernel::BigNum CryptoKernel::Blockchain::input::calculateId() {
     buffer << outputId.toString() << CryptoKernel::Storage::toString(data, false);
 
     CryptoKernel::Crypto crypto;
-    return CryptoKernel::BigNum(crypto.sha256(buffer.str()));
+    return CryptoKernel::BigNum(sha256(buffer.str()));
 }
 
 CryptoKernel::Blockchain::dbInput::dbInput(const Json::Value& inputJson) : input(
@@ -269,7 +269,7 @@ CryptoKernel::BigNum CryptoKernel::Blockchain::transaction::calculateId() {
 	buffer << getOutputSetId().toString() << timestamp;
 
     CryptoKernel::Crypto crypto;
-    return CryptoKernel::BigNum(crypto.sha256(buffer.str()));
+    return CryptoKernel::BigNum(sha256(buffer.str()));
 }
 
 bool CryptoKernel::Blockchain::transaction::operator<(const transaction& rhs) const {
@@ -382,7 +382,7 @@ CryptoKernel::BigNum CryptoKernel::Blockchain::dbTransaction::calculateId() {
     buffer << timestamp;
 
     CryptoKernel::Crypto crypto;
-    return CryptoKernel::BigNum(crypto.sha256(buffer.str()));
+    return CryptoKernel::BigNum(sha256(buffer.str()));
 }
 
 void CryptoKernel::Blockchain::dbTransaction::checkRep () {
@@ -510,7 +510,7 @@ CryptoKernel::BigNum CryptoKernel::Blockchain::block::calculateId() {
 		   << CryptoKernel::Storage::toString(data);
 
     CryptoKernel::Crypto crypto;
-    return CryptoKernel::BigNum(crypto.sha256(buffer.str()));
+    return CryptoKernel::BigNum(sha256(buffer.str()));
 }
 
 void CryptoKernel::Blockchain::block::checkRep() {
@@ -735,7 +735,7 @@ CryptoKernel::BigNum CryptoKernel::Blockchain::dbBlock::calculateId() {
 		   << CryptoKernel::Storage::toString(data);
 
     CryptoKernel::Crypto crypto;
-    return CryptoKernel::BigNum(crypto.sha256(buffer.str()));
+    return CryptoKernel::BigNum(sha256(buffer.str()));
 }
 
 Json::Value CryptoKernel::Blockchain::dbBlock::toJson() const {
