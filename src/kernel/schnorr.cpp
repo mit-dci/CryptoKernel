@@ -26,13 +26,7 @@
 
 //added
 #include <openssl/sha.h>
-// #include <openssl/evp.h>
-// #include <openssl/rand.h>
 
-// #include <cschnorr/key.h>
-// #include <cschnorr/multisig.h>
-// #include <cschnorr/signature.h>
-// #include <cschnorr/context.h>
 
 CryptoKernel::Schnorr::Schnorr() {
     schnorr_context* ctx = schnorr_context_new();
@@ -50,51 +44,16 @@ CryptoKernel::Schnorr::~Schnorr() {
 
 bool CryptoKernel::Schnorr::verify(const std::string& message,
                                   const std::string& signature) {
-
-    // const std::string messageHash = sha256(message);
-    // const std::string decodedSignature = base64_decode(signature);
-
-    // BN_hex2point
-    // BN_bn2hex
-    // EC_POINT_hex2point
-    // EC_POINT_point2hex
-
-    // Point is 33 bytes with 1 bit z ; s should be 32 bytes
-    // need to serialize this -> buffer convert to base64
-    // need to hex functions and buffer functions
-    // buffer would be more precise -> creates unsigned char 
-
-    // BN_bn2bin
-    // BIGNUM *BN_lebin2bn(const unsigned char *s, int len, BIGNUM *ret);
-    // get converts from type to str 
-    // set converts from str to type
-
-    // EC_POINT_point2buf
-
-    // int BN_hex2bn(BIGNUM **a, const char *str);
-    // EC_POINT *EC_POINT_hex2point(const EC_GROUP *, const char *,EC_POINT *, BN_CTX *);
-    // int musig_verify(const schnorr_context* ctx,
-    //              const musig_sig* sig,
-    //              const musig_pubkey* pubkey,
-    //              const unsigned char* msg,
-    //              const size_t len);
-
     const std::string messageHash = sha256(message); //TODO check sha256
-    //const std::string messageHash = hash((unsigned char*)message.c_str());
     const std::string decodedSignature = base64_decode(signature);
 
     musig_sig* sig;
 
-    // char* sHex = BN_bn2hex(signature->s);
-    // char* AHex = EC_POINT_point2hex(ctx->group, *(key)->pub->A, POINT_CONVERSION_COMPRESSED, ctx->bn_ctx);
-    // char* RHex = EC_POINT_point2hex(ctx->group, sigAgg->R, POINT_CONVERSION_COMPRESSED, ctx->bn_ctx);
-
     BN_hex2bn(&sig->s, (const char*)decodedSignature.c_str()); 
     EC_POINT_hex2point(ctx->group, (const char*)messageHash.c_str(), sig->R, ctx->bn_ctx);
 
-    //std::string newString(sHex);
-
-    //OPENSSL_free(sHex);
+    //free(messageHash);
+    //free(decodedSignature);
 
     if(!musig_verify(
         ctx,
@@ -109,38 +68,35 @@ bool CryptoKernel::Schnorr::verify(const std::string& message,
     return true;
 }
 
-// int musig_sign(const schnorr_context* ctx,
-//                musig_sig** dest, 
-//                musig_pubkey** pub,
-//                const musig_key* key,
-//                musig_pubkey** pubkeys,
-//                const size_t n,
-//                const unsigned char* msg, 
-//                const size_t len);
+std::string CryptoKernel::Schnorr::sign(const std::string& message) {
+    if(key != NULL) {
 
+        musig_sig* sig;
+        musig_pubkey* pubkeys[1];
+        pubkeys[0] = key->pub;
 
-// std::string CryptoKernel::Schnorr::sign(const std::string& message) {
-//     if(key != NULL) {
+        if(!musig_sign(ctx, 
+            &sig, 
+            &key->pub,
+            key, 
+            pubkeys,
+            sizeof(pubkeys),
+            (unsigned char*)message.c_str(), 
+            message.size())) {
+            delete[] sig;
+            throw std::runtime_error("Could not sign message");
+        } else {
 
-//         musig_sig** buffer;
-
-//         if(!musig_sign(ctx, 
-//             buffer, 
-//             &key->pub,
-//             key, 
-//             (unsigned char*)message.c_str(), 
-//             message.size())) {
-//             delete[] buffer;
-//             throw std::runtime_error("Could not sign message");
-//         } else {
-//             const std::string returning = base64_encode(buffer, buffer.length());
-//             delete[] buffer;
-//             return returning;
-//         }
-//     } else {
-//         return "";
-//     }
-// }
+            const std::string returning = base64_encode(
+                (const unsigned char*)BN_bn2hex(sig->s), (int) sizeof(sig)
+            );
+            delete[] sig;
+            return returning;
+        }
+    } else {
+        return "";
+    }
+}
 
 std::string CryptoKernel::Schnorr::getPublicKey() {
     if(key != NULL) {
@@ -190,39 +146,10 @@ bool CryptoKernel::Schnorr::setPublicKey(const std::string& publicKey) {
 
 bool CryptoKernel::Schnorr::setPrivateKey(const std::string& privateKey) {
     const std::string decodedKey = base64_decode(privateKey);
-
-    //BN_hex2bn(&sig->s, (const char*)decodedSignature.c_str()); 
     if(!BN_hex2bn(&key->a, (const char*)decodedKey.c_str())){
         return false;
     }
     return true;
-
-
-    // BIGNUM *BN_bin2bn(const unsigned char *s, int len, BIGNUM *ret);
-
-    // if(!EC_KEY_oct2priv(eckey, (unsigned char*)decodedKey.c_str(),
-    //                     (unsigned int)decodedKey.size())) {
-    //     throw std::runtime_error("Could not copy private key");
-    // } else {
-    //     BN_CTX* ctx = BN_CTX_new();
-
-    //     EC_POINT* pub_key = EC_POINT_new(ecgroup);
-    //     if(!EC_POINT_mul(ecgroup, pub_key,
-    //                  EC_KEY_get0_private_key(eckey), nullptr,
-    //                  nullptr, ctx)) {
-    //         BN_CTX_free(ctx);
-    //         return false;
-    //     }
-
-    //     BN_CTX_free(ctx);
-
-    //     if(!EC_KEY_set_public_key(eckey, pub_key)) {
-    //         EC_POINT_free(pub_key);
-    //         return false;
-    //     }
-
-    //     return key != NULL;
-    // }
 }
 
 

@@ -54,7 +54,7 @@ public:
     * @param message the message to sign, must be non-empty
     * @return the Schnorr signature of the message with a SHA256 digest
     */
-    //std::string sign(const std::string& message);
+    std::string sign(const std::string& message);
 
     /**
     * Verifies a that a given signature verifies the given message with the public key of this class
@@ -98,7 +98,6 @@ public:
 private:
     musig_key *key;
     schnorr_context *ctx;
-    EC_GROUP *ecgroup;
 };
 
 }
