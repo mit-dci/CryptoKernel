@@ -18,7 +18,7 @@ Copyright (C) 2016  James Lovejoy
 #include <string>
 #include <memory>
 
-#include <cschnorr/multisig.h> 
+#include <cschnorr/multisig.h>
 #include <json/value.h>
 
 
@@ -101,4 +101,4 @@ private:
 
 }
 
-#endif  //SCHNORR_H_INCLUDED
+#endif  // SCHNORR_H_INCLUDED

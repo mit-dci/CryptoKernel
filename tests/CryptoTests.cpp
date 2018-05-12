@@ -68,5 +68,5 @@ void CryptoTest::testPassingKeys() {
 void CryptoTest::testSHA256Hash() {
     const std::string hash =
         "b6dc933311bc2357cc5fc636a4dbe41a01b7a33b583d043a7f870f3440697e27";
-    CPPUNIT_ASSERT_EQUAL(hash, crypto.sha256("wow"));
+    CPPUNIT_ASSERT_EQUAL(hash, CryptoKernel::Crypto::sha256("wow"));
 }

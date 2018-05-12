@@ -51,7 +51,7 @@ bool CryptoKernel::Schnorr::verify(const std::string& message,
 
     musig_sig* sig;
 
-    BN_hex2bn(&sig->s, (const char*)decodedSignature.c_str()); 
+    BN_hex2bn(&sig->s, (const char*)decodedSignature.c_str());
     EC_POINT_hex2point(ctx->group, (const char*)messageHash.c_str(), sig->R, ctx->bn_ctx);
 
     // free(messageHash);
