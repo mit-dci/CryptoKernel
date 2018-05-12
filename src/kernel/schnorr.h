@@ -81,7 +81,7 @@ public:
     /**
     * Sets the public key of the instance
     *
-    * @param publicKey valid public key from another instance of Crypto
+    * @param publicKey valid public key from another instance of Schnorr
     * @return true if setting the key was successful, false otherwise
     */
     bool setPublicKey(const std::string& publicKey);
@@ -89,7 +89,7 @@ public:
     /**
     * Sets the private key of the instance
     *
-    * @param privateKey valid private key from another instance of Crypto
+    * @param privateKey valid private key from another instance of Schnorr
     * @return true if setting the key was successful, false otherwise
     */
     bool setPrivateKey(const std::string& privateKey);
