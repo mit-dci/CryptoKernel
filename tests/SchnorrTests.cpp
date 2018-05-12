@@ -9,7 +9,7 @@ SchnorrTest::~SchnorrTest() {
 }
 
 void SchnorrTest::setUp() {
-    schnorr = new CryptoKernel::Schnorr(true);
+    schnorr = new CryptoKernel::Schnorr();
 }
 
 void SchnorrTest::tearDown() {
@@ -51,7 +51,7 @@ void SchnorrTest::testSignVerify() {
 * Tests passing key to class
 */
 void SchnorrTest::testPassingKeys() {
-    CryptoKernel::Schnorr *tempSchnorr = new CryptoKernel::Schnorr(true);
+    CryptoKernel::Schnorr *tempSchnorr = new CryptoKernel::Schnorr();
 
     const std::string signature = tempSchnorr->sign(plainText);
     CPPUNIT_ASSERT(signature.size() > 0);

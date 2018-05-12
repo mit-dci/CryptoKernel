@@ -85,7 +85,7 @@ std::string CryptoKernel::Schnorr::sign(const std::string& message) {
             delete[] sig;
             throw std::runtime_error("Could not sign message");
         } else {
-            const std::string returning = base64_encode((const unsigned char*)BN_bn2hex(sig->s), static_cast<int> sizeof(sig));
+            const std::string returning = base64_encode((const unsigned char*)BN_bn2hex(sig->s), static_cast<int>(sizeof(sig)));
             delete[] sig;
             return returning;
         }
