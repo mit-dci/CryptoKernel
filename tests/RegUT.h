@@ -11,14 +11,8 @@ class Consensus::RegUT : public Consensus{
 public:
 
 	/**
-	* Constructs a Proof of Work consensus object. Provides Bitcoin-style
-	* Proof of Work to the blockchain module.
+	* Regression Unit Tests for isBlockBetter
 	*
-	* @param blockTarget the target number of seconds per block
-	* @param blockchain a pointer to the blockchain to be used with this
-	*        consensus object
-	* @param miner a flag to determine whether the consensus object should mine
-	* @param pubKey if the miner is enabled, rewards will be sent to this pubKey
 	*/
 	RegUT(CryptoKernel::Blockchain* blockchain);
 
