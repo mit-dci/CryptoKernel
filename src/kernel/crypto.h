@@ -101,6 +101,14 @@ public:
     */
     bool setPrivateKey(std::string privateKey);
 
+    /**
+    * Static method which generates a hex encoded SHA256 hash of the given message
+    *
+    * @param message the message to hash, must be non-empty
+    * @return the SHA256 hash of the message, hex encoded, lowercase
+    */
+    std::string sha256(std::string message);
+
 private:
     EC_KEY *eckey;
     EC_GROUP *ecgroup;
@@ -124,14 +132,6 @@ class AES256 {
 };
 
 }
-
-/**
-* Function which generates a hex encoded SHA256 hash of the given message
-*
-* @param message the message to hash, must be non-empty
-* @return the SHA256 hash of the message, hex encoded, lowercase
-*/
-std::string sha256(std::string message);
 
 std::string base16_encode(unsigned char const* bytes_to_encode, unsigned int in_len);
 

@@ -38,13 +38,15 @@ CryptoKernel::Schnorr::Schnorr() {
 }
 
 CryptoKernel::Schnorr::~Schnorr() {
-    schnorr_context_free(ctx);
-    // TODO: musig_free(key);
+    // TODO fix segfault on schnorr_context_free, write musig_free
+    // schnorr_context_free(ctx);
+    // musig_free(key);
 }
 
 bool CryptoKernel::Schnorr::verify(const std::string& message,
                                   const std::string& signature) {
-    const std::string messageHash = sha256(message);
+    CryptoKernel::Crypto crypto;
+    const std::string messageHash = crypto.sha256(message);
     const std::string decodedSignature = base64_decode(signature);
 
     musig_sig* sig;
@@ -118,6 +120,7 @@ std::string CryptoKernel::Schnorr::getPrivateKey() {
     if(key != NULL) {
         unsigned char *buf = (unsigned char*) malloc(sizeof(unsigned char) * 32);
 
+        // TODO fix segfault here
         if (BN_bn2binpad(key->a, buf, 32) != 32) {
             return "";
         }
