@@ -35,7 +35,7 @@ CryptoKernel::Storage::Storage(const std::string& filename, const bool sync, con
     }
 
     if(bloom) {
-        options.filter_policy = leveldb::NewBloomFilterPolicy(8 * 2);
+        options.filter_policy = leveldb::NewBloomFilterPolicy(10);
     }
 
     this->sync = sync;
