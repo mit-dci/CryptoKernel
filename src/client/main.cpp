@@ -154,6 +154,12 @@ int main(int argc, char* argv[]) {
                 }
             } else if(command == "listtransactions") {
                 std::cout << client.listtransactions().toStyledString() << std::endl;
+            } else if(command == "getblock") {
+                if(argc == 3 + offset) {
+                    std::cout << client.getblock(std::string(argv[2 + offset])) << std::endl;
+                } else {
+                    std::cout << "Usage: getblock [id]" << std::endl;
+                }
             } else if(command == "getblockbyheight") {
                 if(argc == 3 + offset) {
                     std::cout << client.getblockbyheight(std::strtoull(argv[2 + offset], nullptr,
@@ -173,6 +179,12 @@ int main(int argc, char* argv[]) {
                 }
             } else if(command == "getpeerinfo") {
                 std::cout << client.getpeerinfo() << std::endl;
+            } else if(command == "gettransaction") {
+                if(argc == 3 + offset) {
+                    std::cout << client.gettransaction(std::string(argv[2 + offset])).toStyledString() << std::endl;
+                } else {
+                    std::cout << "Usage: gettransaction [id]" << std::endl;
+                }
             } else if(command == "dumpprivkeys") {
                 if(argc >= 3 + offset) {
                     const std::string name(argv[2 + offset]);
@@ -187,9 +199,11 @@ int main(int argc, char* argv[]) {
                           << "account [accountname]\n"
                           << "compilecontract [code]\n"
                           << "dumpprivkeys [accountname]\n"
+                          << "getblock [id]\n"
                           << "getblockbyheight [height]\n"
                           << "getinfo\n"
                           << "getpeerinfo\n"
+                          << "gettransaction [id]\n"
                           << "importprivkey [accountname] [privkey]\n"
                           << "listaccounts\n"
                           << "listtransactions\n"

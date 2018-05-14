@@ -59,8 +59,8 @@ CryptoKernel::Crypto::~Crypto() {
     }
 }
 
-bool CryptoKernel::Crypto::verify(const std::string& message,
-                                  const std::string& signature) {
+bool CryptoKernel::Crypto::verify(std::string message,
+                                  std::string signature) {
     const std::string messageHash = sha256(message);
     const std::string decodedSignature = base64_decode(signature);
 
@@ -72,7 +72,7 @@ bool CryptoKernel::Crypto::verify(const std::string& message,
     return true;
 }
 
-std::string CryptoKernel::Crypto::sign(const std::string& message) {
+std::string CryptoKernel::Crypto::sign(std::string message) {
     if(EC_KEY_check_key(eckey)) {
         const std::string messageHash = sha256(message);
 
@@ -128,7 +128,7 @@ std::string CryptoKernel::Crypto::getPrivateKey() {
     }
 }
 
-bool CryptoKernel::Crypto::setPublicKey(const std::string& publicKey) {
+bool CryptoKernel::Crypto::setPublicKey(std::string publicKey) {
     const std::string decodedKey = base64_decode(publicKey);
 
     if(!EC_KEY_oct2key(eckey, (unsigned char*)decodedKey.c_str(),
@@ -139,7 +139,7 @@ bool CryptoKernel::Crypto::setPublicKey(const std::string& publicKey) {
     }
 }
 
-bool CryptoKernel::Crypto::setPrivateKey(const std::string& privateKey) {
+bool CryptoKernel::Crypto::setPrivateKey(std::string privateKey) {
     const std::string decodedKey = base64_decode(privateKey);
 
     if(!EC_KEY_oct2priv(eckey, (unsigned char*)decodedKey.c_str(),
@@ -167,7 +167,7 @@ bool CryptoKernel::Crypto::setPrivateKey(const std::string& privateKey) {
     }
 }
 
-std::string CryptoKernel::Crypto::sha256(const std::string& message) {
+std::string CryptoKernel::Crypto::sha256(std::string message) {
     unsigned char hash[SHA256_DIGEST_LENGTH];
 
     SHA256_CTX sha256CTX;

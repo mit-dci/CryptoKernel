@@ -40,7 +40,7 @@ endif
 ifeq ($(UNAME), Darwin-Cross)
 LUA_INCDIR ?= /home/james/osxcross/target/macports/pkgs/opt/local/include
 LUA_LIBDIR ?= /home/james/osxcross/target/macports/pkgs/opt/local/lib
-LIBFLAGS   ?= -shared -stdlib=libc++ -std=c++14
+LIBFLAGS   ?= -shared -stdlib=libc++ -std=c++14 -headerpad_max_install_names
 BINFLAGS   ?= -I. -L. -lck -llua -ljsoncpp -lcrypto.1.1 -lleveldb -ljsonrpccpp-server -ljsonrpccpp-client -ljsonrpccpp-common -lmicrohttpd -lcurl -lsfml-system -lsfml-network
 KERNELLIBS ?= -llua -ljsoncpp -lcrypto.1.1 -lleveldb -lsfml-system -lsfml-network
 KERNELCXXFLAGS += -stdlib=libc++

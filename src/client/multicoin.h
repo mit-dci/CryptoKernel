@@ -1,6 +1,8 @@
 #ifndef MULTICOIN_H_INCLUDED
 #define MULTICOIN_H_INCLUDED
 
+#include <functional>
+
 #include "blockchain.h"
 #include "network.h"
 #include "wallet.h"

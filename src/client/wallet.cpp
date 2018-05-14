@@ -29,7 +29,7 @@ CryptoKernel::Wallet::Wallet(CryptoKernel::Blockchain* blockchain,
     this->network = network;
     this->log = log;
 
-    walletdb.reset(new CryptoKernel::Storage(dbDir));
+    walletdb.reset(new CryptoKernel::Storage(dbDir, true, 8, false));
     accounts.reset(new CryptoKernel::Storage::Table("accounts"));
     utxos.reset(new CryptoKernel::Storage::Table("utxos"));
     transactions.reset(new CryptoKernel::Storage::Table("transactions"));
@@ -382,12 +382,13 @@ void CryptoKernel::Wallet::digestTx(const CryptoKernel::Blockchain::transaction&
             } catch(const WalletException& e) {
                 continue;
             }
-        }
-        trackTx = true;
+
+            trackTx = true;
         
-        if(!unconfirmed) {
-            const Txo newTxo = Txo(out.getId().toString(), out.getValue());
-            utxos->put(walletTx, out.getId().toString(), newTxo.toJson());
+            if(!unconfirmed) {
+                const Txo newTxo = Txo(out.getId().toString(), out.getValue());
+                utxos->put(walletTx, out.getId().toString(), newTxo.toJson());
+            }
         }
     }
 
