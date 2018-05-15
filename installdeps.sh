@@ -1,8 +1,18 @@
-sudo apt-get update
-sudo apt-get install -y git build-essential libsfml-dev libleveldb-dev libargtable2-dev libreadline-dev libcurl4-gnutls-dev liblua5.3-dev cmake libhiredis-dev doxygen libcppunit-dev
+sudo apt-get update && apt-get install -y \
+    git \
+    build-essential \
+    libsfml-dev \
+    libleveldb-dev \
+    libargtable2-dev \
+    libreadline-dev \
+    libcurl4-gnutls-dev \
+    liblua5.3-dev \
+    cmake \
+    libhiredis-dev \
+    doxygen \
+    libcppunit-dev
 
 cd /tmp
-
 wget https://www.openssl.org/source/openssl-1.1.0f.tar.gz
 tar -xvzf openssl-1.1.0f.tar.gz
 cd openssl-1.1.0f
@@ -10,17 +20,17 @@ cd openssl-1.1.0f
 make
 sudo make install
 sudo ldconfig
-cd ../
 
+cd ../
 wget http://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-latest.tar.gz
 tar -xvzf libmicrohttpd-latest.tar.gz
 cd libmicrohttpd*
 ./configure
 make
 sudo make install
-cd ../
 
-wget https://github.com/open-source-parsers/jsoncpp/archive/1.8.4.tar.gz
+cd ../
+wget --no-check-certificate https://github.com/open-source-parsers/jsoncpp/archive/1.8.4.tar.gz
 tar -xzvf 1.8.4.tar.gz
 cd jsoncpp*
 cmake .
@@ -28,7 +38,7 @@ make
 sudo make install
 
 cd ../
-wget https://github.com/cinemast/libjson-rpc-cpp/archive/v1.1.0.tar.gz
+wget --no-check-certificate https://github.com/cinemast/libjson-rpc-cpp/archive/v1.1.0.tar.gz
 tar -xvzf v1.1.0.tar.gz
 cd libjson-rpc-cpp*
 cmake . -DBUILD_SHARED_LIBS=NO -DBUILD_STATIC_LIBS=YES -DCOMPILE_TESTS=NO -DCOMPILE_STUBGEN=NO -DCOMPILE_EXAMPLES=NO
@@ -43,5 +53,13 @@ git clone https://github.com/metalicjames/lua-lz4.git
 cd lua-lz4
 make
 sudo cp lz4.so /usr/lib
+sudo ldconfig
 
+cd ../
+git clone https://github.com/metalicjames/cschnorr.git
+cd cschnorr
+./build.sh
+sudo mkdir /usr/local/include/cschnorr/
+sudo cp src/*.h /usr/local/include/cschnorr/
+sudo cp libcschnorr.a /usr/local/lib
 sudo ldconfig
