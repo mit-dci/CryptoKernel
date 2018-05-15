@@ -29,8 +29,8 @@
 
 
 CryptoKernel::Schnorr::Schnorr() {
-    schnorr_context* ctx = schnorr_context_new();
-    musig_key* key = musig_key_new(ctx);
+    this->ctx = schnorr_context_new();
+    this->key = musig_key_new(ctx);
 
     if(key == NULL) {
         throw std::runtime_error("Could not generate key pair");
@@ -39,8 +39,8 @@ CryptoKernel::Schnorr::Schnorr() {
 
 CryptoKernel::Schnorr::~Schnorr() {
     // TODO fix segfault on schnorr_context_free, write musig_free
-    // schnorr_context_free(ctx);
-    // musig_free(key);
+    schnorr_context_free(ctx);
+    //musig_free(key);
 }
 
 bool CryptoKernel::Schnorr::verify(const std::string& message,
