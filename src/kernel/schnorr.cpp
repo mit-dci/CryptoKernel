@@ -81,7 +81,7 @@ std::string CryptoKernel::Schnorr::sign(const std::string& message) {
             &key->pub,
             key,
             pubkeys,
-            sizeof(pubkeys),
+            1,
             (unsigned char*)message.c_str(),
             message.size())) {
             delete[] sig;
