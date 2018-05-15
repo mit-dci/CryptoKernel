@@ -49,10 +49,16 @@ bool CryptoKernel::Schnorr::verify(const std::string& message,
     const std::string messageHash = crypto.sha256(message);
     const std::string decodedSignature = base64_decode(signature);
 
-    musig_sig* sig;
 
-    BN_hex2bn(&sig->s, (const char*)decodedSignature.c_str());
-    EC_POINT_hex2point(ctx->group, (const char*)messageHash.c_str(), sig->R, ctx->bn_ctx);
+    musig_sig* sig;
+    if(!this->musig_new(&sig)){
+        return false;
+    }
+
+    BN_bin2bn( (const unsigned char*)decodedSignature.c_str(), (unsigned int) decodedSignature.size(),sig->s);
+    EC_POINT_oct2point(ctx->group, sig->R,(const unsigned char*)messageHash.c_str(), (unsigned int)messageHash.size(), ctx->bn_ctx);
+
+
 
     // free(messageHash);
     // free(decodedSignature);
@@ -70,15 +76,39 @@ bool CryptoKernel::Schnorr::verify(const std::string& message,
     return true;
 }
 
+bool CryptoKernel::Schnorr::musig_new(musig_sig** sig){
+    *sig = NULL;
+    *sig = (musig_sig* )malloc(sizeof(musig_sig));
+    if(*sig == NULL) {
+        return false;
+    }
+    (*sig)->s = NULL;
+    (*sig)->R = NULL;
+
+    (*sig)->s = BN_new();
+    if((*sig)->s == NULL) {
+        return false;
+    }
+    (*sig)->R = EC_POINT_new(ctx->group);
+    if((*sig)->R == NULL) {
+        return false;
+    }
+
+    return true;
+
+}
+
 std::string CryptoKernel::Schnorr::sign(const std::string& message) {
     if(key != NULL) {
         musig_sig* sig;
         musig_pubkey* pubkeys[1];
         pubkeys[0] = key->pub;
 
+        musig_pubkey* p;
+
         if(!musig_sign(ctx,
             &sig,
-            &key->pub,
+            &p,
             key,
             pubkeys,
             1,
@@ -145,7 +175,7 @@ bool CryptoKernel::Schnorr::setPublicKey(const std::string& publicKey) {
 
 bool CryptoKernel::Schnorr::setPrivateKey(const std::string& privateKey) {
     const std::string decodedKey = base64_decode(privateKey);
-    if(!BN_hex2bn(&key->a, (const char*)decodedKey.c_str())){
+    if(!BN_hex2bn(&(key->a), (const char*)decodedKey.c_str())){
         return false;
     }
     return true;

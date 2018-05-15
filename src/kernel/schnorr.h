@@ -64,6 +64,11 @@ public:
     */
     bool verify(const std::string& message, const std::string& signature);
 
+    
+    /**
+    */
+    bool musig_new(musig_sig** sig);
+
     /**
     * Returns the public key of the instance
     *
