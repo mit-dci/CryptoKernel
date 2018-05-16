@@ -276,7 +276,6 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::verifyTransaction(Storage::Tran
 
         const Json::Value outData = out.getData();
 
-        //TODO check if works and add the type of schnorr to dbOutput
         if(!outData["schnorrKey"].empty() && outData["contract"].empty()) {
             const Json::Value spendData = inp.getData();
             if(spendData["signature"].empty()) {
