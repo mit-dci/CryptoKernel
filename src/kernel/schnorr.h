@@ -26,7 +26,7 @@ namespace CryptoKernel {
 
 /**
 * A mutable class which performs cryptography operations on Schnorr keypairs. It provides funtions to
-* generate keys, signing and verifying. It also provides a static function for generating SHA256 hashes.
+* generate keys, signing and verifying.
 */
 class Schnorr {
 public:
@@ -41,17 +41,17 @@ public:
     ~Schnorr();
 
     /**
-    * DEPRECATED: Returns the status of the crypto module
+    * DEPRECATED: Returns the status of the Schnorr module
     *
-    * @return the status of the crypto module. Always true.
+    * @return the status of the Schnorr module. Always true.
     */
     bool getStatus();
 
     /**
-    * Generates an Schnorr signature from the given message using a SHA256 digest.
+    * Generates an Schnorr signature from the given message.
     *
     * @param message the message to sign, must be non-empty
-    * @return the Schnorr signature of the message with a SHA256 digest
+    * @return the Schnorr signature of the message and public key as base64_encode(s + R + A)
     */
     std::string sign(const std::string& message);
 
