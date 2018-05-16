@@ -41,8 +41,21 @@ bool CryptoKernel::Schnorr::verify(const std::string& message,
                                    const std::string& signature) {
     const std::string decodedSignature = base64_decode(signature);
 
-    musig_sig* sig;
-    if (!musig_new(&sig)) {
+    musig_sig* sig = NULL;
+    sig = reinterpret_cast<musig_sig*>(malloc(sizeof(musig_sig)));
+    if (sig == NULL) {
+        return false;
+    }
+    sig->s = NULL;
+    sig->R = NULL;
+
+    sig->s = BN_new();
+    if (sig->s == NULL) {
+        return false;
+    }
+
+    sig->R = EC_POINT_new(ctx->group);
+    if (sig->R == NULL) {
         return false;
     }
 
@@ -71,28 +84,6 @@ bool CryptoKernel::Schnorr::verify(const std::string& message,
     return true;
 }
 
-bool CryptoKernel::Schnorr::musig_new(musig_sig** sig) {
-    *sig = NULL;
-    *sig = reinterpret_cast<musig_sig*>(malloc(sizeof(musig_sig)));
-    if (*sig == NULL) {
-        return false;
-    }
-    (*sig)->s = NULL;
-    (*sig)->R = NULL;
-
-    (*sig)->s = BN_new();
-    if ((*sig)->s == NULL) {
-        return false;
-    }
-
-    (*sig)->R = EC_POINT_new(ctx->group);
-    if ((*sig)->R == NULL) {
-        return false;
-    }
-
-    return true;
-}
-
 std::string CryptoKernel::Schnorr::sign(const std::string& message) {
     if (key != NULL) {
         musig_sig* sig;
@@ -114,26 +105,25 @@ std::string CryptoKernel::Schnorr::sign(const std::string& message) {
 
             throw std::runtime_error("Could not sign message");
         } else {
-            unsigned char *buf;
-            buf = new unsigned char[32 + 33];
+            unsigned char buf[65];
 
-            if (BN_bn2binpad(sig->s, buf, 32) != 32) {
-                throw std::runtime_error("Invalid signature: no s");
+            if (BN_bn2binpad(sig->s, (unsigned char*)&buf, 32) != 32) {
+                throw std::runtime_error("Failed to encode s");
             }
 
             if (EC_POINT_point2oct(
                     ctx->group,
                     sig->R,
                     POINT_CONVERSION_COMPRESSED,
-                    buf + 32,
+                    (unsigned char*)&buf + 32,
                     33,
                     ctx->bn_ctx) != 33) {
-                throw std::runtime_error("Invalid signature: no R");
+                throw std::runtime_error("Failed to encode R");
             }
 
-            const std::string returning = base64_encode(buf, 32 + 33);
+            const std::string returning = base64_encode(buf, 65);
 
-            delete[] buf;
+            // delete[] buf;
             delete[] sig;
 
             return returning;
