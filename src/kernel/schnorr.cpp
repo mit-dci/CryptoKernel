@@ -77,7 +77,8 @@ bool CryptoKernel::Schnorr::verify(const std::string& message,
         sig,
         key->pub,
         (unsigned char*)message.c_str(),
-        message.length()) != 1) {
+        message.size()) != 1) {
+
         return false;
     }
 
@@ -87,10 +88,9 @@ bool CryptoKernel::Schnorr::verify(const std::string& message,
 std::string CryptoKernel::Schnorr::sign(const std::string& message) {
     if (key != NULL) {
         musig_sig* sig;
+        musig_pubkey* pub;
         musig_pubkey* pubkeys[1];
         pubkeys[0] = key->pub;
-
-        musig_pubkey* pub;
 
         if (musig_sign(
             ctx,
@@ -105,9 +105,11 @@ std::string CryptoKernel::Schnorr::sign(const std::string& message) {
 
             throw std::runtime_error("Could not sign message");
         } else {
-            unsigned char buf[65];
+            unsigned int buf_len = 65;
+            unsigned char *buf;
+            buf = new unsigned char[buf_len];
 
-            if (BN_bn2binpad(sig->s, (unsigned char*)&buf, 32) != 32) {
+            if (BN_bn2binpad(sig->s, buf, 32) != 32) {
                 throw std::runtime_error("Failed to encode s");
             }
 
@@ -115,7 +117,7 @@ std::string CryptoKernel::Schnorr::sign(const std::string& message) {
                     ctx->group,
                     sig->R,
                     POINT_CONVERSION_COMPRESSED,
-                    (unsigned char*)&buf + 32,
+                    buf + 32,
                     33,
                     ctx->bn_ctx) != 33) {
                 throw std::runtime_error("Failed to encode R");
@@ -123,8 +125,8 @@ std::string CryptoKernel::Schnorr::sign(const std::string& message) {
 
             const std::string returning = base64_encode(buf, 65);
 
-            // delete[] buf;
             delete[] sig;
+            delete[] buf;
 
             return returning;
         }
