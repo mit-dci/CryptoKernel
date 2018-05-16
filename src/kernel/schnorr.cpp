@@ -20,105 +20,122 @@
 #include <iomanip>
 #include <cstring>
 
-#include "crypto.h"
 #include "schnorr.h"
 #include "base64.h"
 
-// added
-#include <openssl/sha.h>
-
-
 CryptoKernel::Schnorr::Schnorr() {
-    this->ctx = schnorr_context_new();
-    this->key = musig_key_new(ctx);
+    ctx = schnorr_context_new();
+    key = musig_key_new(ctx);
 
-    if(key == NULL) {
+    if (key == NULL) {
         throw std::runtime_error("Could not generate key pair");
     }
 }
 
 CryptoKernel::Schnorr::~Schnorr() {
-    // TODO fix segfault on schnorr_context_free, write musig_free
     schnorr_context_free(ctx);
-    //musig_free(key);
+    // TODO(metalicjames): musig_key_free(key);
 }
 
 bool CryptoKernel::Schnorr::verify(const std::string& message,
-                                  const std::string& signature) {
-    CryptoKernel::Crypto crypto;
-    const std::string messageHash = crypto.sha256(message);
+                                   const std::string& signature) {
     const std::string decodedSignature = base64_decode(signature);
 
-
     musig_sig* sig;
-    if(!this->musig_new(&sig)){
+    if (!musig_new(&sig)) {
         return false;
     }
 
-    BN_bin2bn( (const unsigned char*)decodedSignature.c_str(), (unsigned int) decodedSignature.size(),sig->s);
-    EC_POINT_oct2point(ctx->group, sig->R,(const unsigned char*)messageHash.c_str(), (unsigned int)messageHash.size(), ctx->bn_ctx);
+    if (!BN_bin2bn((unsigned char*)decodedSignature.c_str(), 32, sig->s)) {
+        return false;
+    }
 
+    if (!EC_POINT_oct2point(
+        ctx->group,
+        sig->R,
+        (unsigned char*)decodedSignature.c_str() + 32,
+        33,
+        ctx->bn_ctx)) {
+        return false;
+    }
 
-
-    // free(messageHash);
-    // free(decodedSignature);
-
-    if(!musig_verify(
+    if (musig_verify(
         ctx,
         sig,
         key->pub,
         (unsigned char*)message.c_str(),
-        message.length())
-    ) {
+        message.length()) != 1) {
         return false;
     }
 
     return true;
 }
 
-bool CryptoKernel::Schnorr::musig_new(musig_sig** sig){
+bool CryptoKernel::Schnorr::musig_new(musig_sig** sig) {
     *sig = NULL;
-    *sig = (musig_sig* )malloc(sizeof(musig_sig));
-    if(*sig == NULL) {
+    *sig = reinterpret_cast<musig_sig*>(malloc(sizeof(musig_sig)));
+    if (*sig == NULL) {
         return false;
     }
     (*sig)->s = NULL;
     (*sig)->R = NULL;
 
     (*sig)->s = BN_new();
-    if((*sig)->s == NULL) {
+    if ((*sig)->s == NULL) {
         return false;
     }
+
     (*sig)->R = EC_POINT_new(ctx->group);
-    if((*sig)->R == NULL) {
+    if ((*sig)->R == NULL) {
         return false;
     }
 
     return true;
-
 }
 
 std::string CryptoKernel::Schnorr::sign(const std::string& message) {
-    if(key != NULL) {
+    if (key != NULL) {
         musig_sig* sig;
         musig_pubkey* pubkeys[1];
         pubkeys[0] = key->pub;
 
-        musig_pubkey* p;
+        musig_pubkey* pub;
 
-        if(!musig_sign(ctx,
+        if (musig_sign(
+            ctx,
             &sig,
-            &p,
+            &pub,
             key,
             pubkeys,
             1,
             (unsigned char*)message.c_str(),
-            message.size())) {
+            message.size()) == 0) {
             delete[] sig;
+
             throw std::runtime_error("Could not sign message");
         } else {
-            const std::string returning = base64_encode((const unsigned char*)BN_bn2hex(sig->s), static_cast<int>(sizeof(sig)));
+            unsigned char *buf;
+            buf = new unsigned char[32 + 33];
+
+            if (BN_bn2binpad(sig->s, buf, 32) != 32) {
+                throw std::runtime_error("Invalid signature: no s");
+            }
+
+            if (EC_POINT_point2oct(
+                    ctx->group,
+                    sig->R,
+                    POINT_CONVERSION_COMPRESSED,
+                    buf + 32,
+                    33,
+                    ctx->bn_ctx) != 33) {
+                throw std::runtime_error("Invalid signature: no R");
+            }
+
+            const std::string returning = base64_encode(buf, 32 + 33);
+
+            delete[] buf;
             delete[] sig;
+
             return returning;
         }
     } else {
@@ -127,18 +144,24 @@ std::string CryptoKernel::Schnorr::sign(const std::string& message) {
 }
 
 std::string CryptoKernel::Schnorr::getPublicKey() {
-    if(key != NULL) {
+    if (key != NULL) {
+        unsigned int buf_len = 33;
         unsigned char *buf;
+        buf = new unsigned char[buf_len];
 
-        if (EC_POINT_point2buf(ctx->group, key->pub->A,
-                           POINT_CONVERSION_COMPRESSED,
-                           &buf, ctx->bn_ctx) != 33) {
+        if (EC_POINT_point2oct(
+                ctx->group,
+                key->pub->A,
+                POINT_CONVERSION_COMPRESSED,
+                buf,
+                buf_len,
+                ctx->bn_ctx) != buf_len) {
             return "";
         }
 
-        const std::string returning = base64_encode(buf, 33);
+        const std::string returning = base64_encode(buf, buf_len);
 
-        OPENSSL_free(buf);
+        delete[] buf;
 
         return returning;
     } else {
@@ -147,17 +170,18 @@ std::string CryptoKernel::Schnorr::getPublicKey() {
 }
 
 std::string CryptoKernel::Schnorr::getPrivateKey() {
-    if(key != NULL) {
-        unsigned char *buf = (unsigned char*) malloc(sizeof(unsigned char) * 32);
+    if (key != NULL) {
+        int buf_len = 32;
+        unsigned char *buf;
+        buf = new unsigned char[buf_len];
 
-        // TODO fix segfault here
-        if (BN_bn2binpad(key->a, buf, 32) != 32) {
+        if (BN_bn2binpad(key->a, buf, buf_len) != buf_len) {
             return "";
         }
 
-        const std::string returning = base64_encode(buf, 32);
+        const std::string returning = base64_encode(buf, buf_len);
 
-        free(buf);
+        delete[] buf;
 
         return returning;
     } else {
@@ -167,7 +191,13 @@ std::string CryptoKernel::Schnorr::getPrivateKey() {
 
 bool CryptoKernel::Schnorr::setPublicKey(const std::string& publicKey) {
     const std::string decodedKey = base64_decode(publicKey);
-    if(!EC_POINT_hex2point(ctx->group, (const char*)decodedKey.c_str(), key->pub->A, ctx->bn_ctx)) {
+
+    if (!EC_POINT_oct2point(
+            ctx->group,
+            key->pub->A,
+            (unsigned char*)decodedKey.c_str(),
+            decodedKey.size(),
+            ctx->bn_ctx)) {
         return false;
     }
     return true;
@@ -175,7 +205,11 @@ bool CryptoKernel::Schnorr::setPublicKey(const std::string& publicKey) {
 
 bool CryptoKernel::Schnorr::setPrivateKey(const std::string& privateKey) {
     const std::string decodedKey = base64_decode(privateKey);
-    if(!BN_hex2bn(&(key->a), (const char*)decodedKey.c_str())){
+
+    if (!BN_bin2bn(
+            (unsigned char*)decodedKey.c_str(),
+            (unsigned int)decodedKey.size(),
+            key->a)) {
         return false;
     }
     return true;
