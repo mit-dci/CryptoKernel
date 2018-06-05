@@ -69,7 +69,7 @@ bool CryptoKernel::Log::printf(int loglevel, std::string message) {
     stagingstream << message << "\n";
 
     if(fPrintToConsole) {
-        std::cout << stagingstream.str();
+        std::cout << stagingstream.str() << std::flush;
     }
 
     logfilemutex.lock();
