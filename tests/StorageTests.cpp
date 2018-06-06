@@ -17,7 +17,7 @@ void StorageTest::tearDown() {
 }
 
 void StorageTest::testGetNoExcept() {
-    CryptoKernel::Storage database("./testdb");
+    CryptoKernel::Storage database("./testdb", false, 10, true);
 
     std::unique_ptr<CryptoKernel::Storage::Transaction> dbTx(database.begin());
 
@@ -29,7 +29,7 @@ void StorageTest::testGetNoExcept() {
 }
 
 void StorageTest::testStoreGet() {
-    CryptoKernel::Storage database("./testdb");
+    CryptoKernel::Storage database("./testdb", false, 10, true);
 
     Json::Value dataToStore;
     dataToStore["myval"] = "this";
@@ -52,7 +52,7 @@ void StorageTest::testStoreGet() {
 }
 
 void StorageTest::testPersistence() {
-    CryptoKernel::Storage database("./testdb");
+    CryptoKernel::Storage database("./testdb", false, 10, true);
 
     Json::Value dataToStore;
     dataToStore["myval"] = "this";
@@ -72,7 +72,7 @@ void StorageTest::testPersistence() {
 
 
 void StorageTest::testErase() {
-    CryptoKernel::Storage database("./testdb");
+    CryptoKernel::Storage database("./testdb", false, 10, true);
 
     std::unique_ptr<CryptoKernel::Storage::Transaction> dbTx(database.begin());
 
@@ -110,7 +110,7 @@ void StorageTest::testToString() {
 }
 
 void StorageTest::testIterator() {
-    CryptoKernel::Storage database("./testdb");
+    CryptoKernel::Storage database("./testdb", false, 10, true);
 
     CryptoKernel::Storage::Table myTable("myTable");
 
