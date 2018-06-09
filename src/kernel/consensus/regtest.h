@@ -1,5 +1,5 @@
-#ifndef RegUT_H_INCLUDED
-#define RegUT_H_INCLUDED
+#ifndef Regtest_H_INCLUDED
+#define Regtest_H_INCLUDED
 
 #include <thread>
 
@@ -7,16 +7,16 @@
 
 namespace CryptoKernel {
 
-class Consensus::RegUT : public Consensus{
+class Consensus::Regtest : public Consensus {
 public:
 
 	/**
 	* Regression Unit Tests for isBlockBetter
 	*
 	*/
-	RegUT(CryptoKernel::Blockchain* blockchain);
+	Regtest(CryptoKernel::Blockchain* blockchain);
 
-	virtual ~RegUT();
+	virtual ~Regtest();
 	/**
     	* In Regression Unit Test this function checks if the total work of the given
     	* block is greater than the total work of the current tip block.
@@ -31,15 +31,15 @@ public:
                 const CryptoKernel::Blockchain::block& block,
                 const CryptoKernel::Blockchain::dbBlock& previousBlock);
 
-    	Json::Value generateConsensusData(Storage::Transaction* transaction,
-                const CryptoKernel::BigNum& previousBlockId, 
-		const std::string& publicKey);
+	Json::Value generateConsensusData(Storage::Transaction* transaction,
+			const CryptoKernel::BigNum& previousBlockId, 
+	const std::string& publicKey);
 
 	/**
-    	* Has no effect, always returns true
-    	*/
-    	bool verifyTransaction(Storage::Transaction* transaction, 
-		const CryptoKernel::Blockchain::transaction& tx);
+	* Has no effect, always returns true
+	*/
+	bool verifyTransaction(Storage::Transaction* transaction, 
+	const CryptoKernel::Blockchain::transaction& tx);
 
 	/**
 	* Has no effect, always returns true
@@ -53,8 +53,8 @@ public:
 	bool submitTransaction(Storage::Transaction* transaction,
 		const CryptoKernel::Blockchain::transaction& tx);
 	/**
-    	* Has no effect, always returns true
-    	*/
+	* Has no effect, always returns true
+	*/
 	bool submitBlock(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block& block);
 
 	void mineBlock(const bool isBetter, const std::string &pubKey);
@@ -64,8 +64,8 @@ protected:
 	struct consensusData {
 		bool isBetter;
 	};
-	CryptoKernel::Consensus::RegUT::consensusData getConsensusData(const CryptoKernel::Blockchain::block& block);
-	CryptoKernel::Consensus::RegUT::consensusData getConsensusData(const CryptoKernel::Blockchain::dbBlock& block);
+	CryptoKernel::Consensus::Regtest::consensusData getConsensusData(const CryptoKernel::Blockchain::block& block);
+	CryptoKernel::Consensus::Regtest::consensusData getConsensusData(const CryptoKernel::Blockchain::dbBlock& block);
 	Json::Value consensusDataToJson(const consensusData& data);
 
 private:
@@ -76,4 +76,4 @@ private:
 
 
 }
-#endif //RegUT_H_INCLUDED
+#endif //Regtest_H_INCLUDED
