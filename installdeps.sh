@@ -1,4 +1,4 @@
-sudo apt-get update && apt-get install -y \
+sudo apt-get update && sudo apt-get install -y \
     git \
     build-essential \
     libsfml-dev \
@@ -53,7 +53,6 @@ git clone https://github.com/metalicjames/lua-lz4.git
 cd lua-lz4
 make
 sudo cp lz4.so /usr/lib
-sudo ldconfig
 
 cd ../
 git clone https://github.com/metalicjames/cschnorr.git
