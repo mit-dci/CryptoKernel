@@ -98,10 +98,9 @@ RUN CC=x86_64-w64-mingw32-gcc make UNAME=x86_64-w64-mingw32
 
 WORKDIR ../
 
-COPY ./cryptokernel .
+COPY ./cryptokernel /cryptokernel
 
 RUN cp lua-lz4/lz4.dll cryptokernel
 
 WORKDIR cryptokernel
 RUN make LUA_LIBDIR=/usr/local/mingw/lib LUA_INCDIR=/usr/local/mingw/include UNAME=MINGW32_NT-6.2 CC=$CXX C=$CC KERNELCXXFLAGS="-DSFML_STATIC -I`pwd`/src/kernel"
-
