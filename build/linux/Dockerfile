@@ -90,5 +90,4 @@ RUN cp lua-lz4/lz4.so cryptokernel
 
 WORKDIR cryptokernel
 
-#RUN nm /usr/local/lib/libsfml-network.a 
-RUN make KERNELCXXFLAGS="-DSFML_STATIC -I`pwd`/src/kernel"
+RUN make static KERNELCXXFLAGS="-DSFML_STATIC -I`pwd`/src/kernel"
