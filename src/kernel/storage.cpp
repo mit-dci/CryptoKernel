@@ -16,6 +16,7 @@
 */
 
 #include <sstream>
+#include <memory>
 
 #include <json/writer.h>
 #include <json/reader.h>
@@ -72,13 +73,16 @@ Json::Value CryptoKernel::Storage::toJson(const std::string& json) {
 }
 
 std::string CryptoKernel::Storage::toString(const Json::Value& json, const bool pretty) {
-    if(pretty) {
-        Json::StyledWriter writer;
-        return writer.write(json);
-    } else {
-        Json::FastWriter writer;
-        return writer.write(json);
+    std::stringstream buf;   
+    Json::StreamWriterBuilder builder;
+    std::unique_ptr<Json::StreamWriter> writer;     
+    if(!pretty) {
+        builder["commentStyle"] = "None";
+        builder["indentation"] = "";
     }
+    writer.reset(builder.newStreamWriter());
+    writer->write(json, &buf);
+    return buf.str();
 }
 
 bool CryptoKernel::Storage::destroy(const std::string& filename) {
