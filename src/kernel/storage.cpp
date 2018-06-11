@@ -82,7 +82,7 @@ std::string CryptoKernel::Storage::toString(const Json::Value& json, const bool 
     }
     writer.reset(builder.newStreamWriter());
     writer->write(json, &buf);
-    return buf.str();
+    return buf.str() + "\n";
 }
 
 bool CryptoKernel::Storage::destroy(const std::string& filename) {
