@@ -4,8 +4,8 @@ ifeq ($(UNAME), Linux)
 LUA_INCDIR ?= /usr/include/lua5.3
 LUA_LIBDIR ?= /usr/lib
 LIBFLAGS   ?= -shared
-BINFLAGS   ?= -I. -L. -L/usr/local/lib -Wl,-rpath -Wl,./ -lck -llua5.3 -lcrypto -ldl -pthread -lleveldb -lmicrohttpd -ljsonrpccpp-common -ljsonrpccpp-server -ljsonrpccpp-client -lcurl -lgcov -ljsoncpp -lsfml-system -lsfml-network
-STATICBINFLAGS   ?= -I. -L. -L/usr/local/lib -llua5.3 -lcrypto -ldl -pthread -lleveldb -lmicrohttpd -ljsonrpccpp-common -ljsonrpccpp-server -ljsonrpccpp-client -lcurl -lgcov -ljsoncpp -lsfml-system -lsfml-network
+BINFLAGS   ?= -I. -L. -L/usr/local/lib -Wl,-rpath -Wl,./ -lck -llua5.3 -lcrypto -ldl -pthread -lleveldb -lmicrohttpd -ljsonrpccpp-common -ljsonrpccpp-server -ljsonrpccpp-client -lcurl -lgcov -ljsoncpp -lsfml-network -lsfml-system
+STATICBINFLAGS   ?= -I. -L. -L/usr/local/lib -llua5.3 -lcrypto -ldl -pthread -lleveldb -lmicrohttpd -ljsonrpccpp-common -ljsonrpccpp-server -ljsonrpccpp-client -lcurl -lgcov -ljsoncpp -lsfml-network -lsfml-system 
 PLATFORMCXXFLAGS ?= -fPIC
 CKLIB ?= libck.so
 CKBIN ?= ckd
