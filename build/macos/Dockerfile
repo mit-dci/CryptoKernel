@@ -50,7 +50,7 @@ RUN CXX=clang++ make && make install
 
 WORKDIR ../
 
-RUN git clone https://github.com/mit-dci/cryptokernel
+COPY ./cryptokernel /cryptokernel
 
 RUN cp lua-lz4/lz4.so cryptokernel
 
