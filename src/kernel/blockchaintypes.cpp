@@ -239,6 +239,18 @@ void CryptoKernel::Blockchain::transaction::checkRep(const bool coinbaseTx) {
         throw InvalidElementException("Transaction has no inputs");
     }
 
+    uint64_t curTotal = 0;
+    uint64_t prevTotal = 0;
+    for(const output& out : outputs) {
+        curTotal += out.getValue();
+
+        if(curTotal < prevTotal) {
+            throw InvalidElementException("Transaction total output value overflows");
+        }
+
+        prevTotal = curTotal;
+    }
+
     std::set<BigNum> outputIds;
 
     for(const input& inp : inputs) {
