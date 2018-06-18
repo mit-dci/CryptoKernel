@@ -7,6 +7,7 @@ class BlockchainTypesTest : public CPPUNIT_NS::TestFixture {
     CPPUNIT_TEST_SUITE(BlockchainTypesTest);
 
     CPPUNIT_TEST(testOutputId);
+    CPPUNIT_TEST(testTransactionOutputOverflow);
 
     CPPUNIT_TEST_SUITE_END();
 
@@ -18,6 +19,7 @@ public:
 
 private:
     void testOutputId();
+    void testTransactionOutputOverflow();
 
 };
 
