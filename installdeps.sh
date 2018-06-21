@@ -14,7 +14,7 @@ cd ../
 
 wget http://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-latest.tar.gz
 tar -xvzf libmicrohttpd-latest.tar.gz
-
+rm libmicrohttpd-latest.tar.gz
 cd libmicrohttpd*
 ./configure
 make
