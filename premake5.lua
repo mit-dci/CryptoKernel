@@ -20,13 +20,26 @@ cklibs = {"crypto", "lua5.3", "sfml-network",
 newoption {
     trigger     = "with-docs",
     description = "Use doxygen to build the docs"
- }
+}
  
+newoption {
+    trigger = "lib-dir",
+    description = "Specify extra directory to look for libraries in",
+    value = "DIR"
+}
+
+newoption {
+    trigger = "include-dir",
+    description = "Specify extra directory to look for headers in",
+    value = "DIR"
+}
 
 project "ck"
         
     files {"src/kernel/**.cpp", "src/kernel/**.h", "src/kernel/**.c"}
-    
+    libdirs {_OPTIONS["lib-dir"]}
+    includedirs {_OPTIONS["include-dir"]}
+
     configuration "with-docs"
         postbuildcommands{"doxygen %{wks.location}/doxyfile"}
     
