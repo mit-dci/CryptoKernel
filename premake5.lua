@@ -31,10 +31,13 @@ workspace "CryptoKernel"
     filter {"configurations:Release"}
         optimize "Full"
 
-cklibs = {"crypto", "lua5.3", "sfml-network", 
+cklibs = {"crypto", "sfml-network", 
 "sfml-system", "leveldb", "jsoncpp", "jsonrpccpp-server", 
 "jsonrpccpp-client", "jsonrpccpp-common", "microhttpd"}
 
+linuxLinks = {"pthread", "lua5.3"}
+
+winLinks = {"lua"}
 
 project "ck"
         
@@ -57,7 +60,10 @@ project "ckd"
     links(cklibs)
 
     filter "system:linux"
-        links {"pthread"}
+        links(linuxLinks)
+
+    filter "system:windows"
+        links(winLinks)
 
 project "test"
 
@@ -66,3 +72,9 @@ project "test"
     links {"ck", "cppunit"}
     links(cklibs)
     postbuildcommands{"%{cfg.linktarget.abspath}"}
+
+    filter "system:linux"
+        links(linuxLinks)
+
+    filter "system:windows"
+        links(winLinks)   
