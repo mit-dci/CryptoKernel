@@ -37,7 +37,7 @@ cklibs = {"crypto", "sfml-network",
 
 linuxLinks = {"pthread", "lua5.3"}
 
-winLinks = {"lua", "ws2_32", "curl"}
+winLinks = {"lua", "curl", "ws2_32", "shlwapi", "crypt32"}
 
 project "ck"
         
@@ -48,8 +48,7 @@ project "ck"
     
     filter {"platforms:Static"}
         kind "StaticLib"
-        filter{"system:windows"}
-            defines {"SFML_STATIC"}
+        defines {"SFML_STATIC"}
 
     filter {"platforms:Shared"}
         kind "SharedLib"
