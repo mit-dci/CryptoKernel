@@ -1,22 +1,3 @@
-workspace "CryptoKernel"
-    configurations {"Debug", "Release"}
-    platforms {"Static", "Shared"}
-    language "C++"
-    cppdialect "C++14"
-    includedirs {"/usr/include/lua5.3", "src/kernel"}
-
-    symbols "On"
-
-    filter {"configurations:Debug"}
-        optimize "Off"
-
-    filter {"configurations:Release"}
-        optimize "Full"
-
-cklibs = {"crypto", "lua5.3", "sfml-network", 
-"sfml-system", "leveldb", "jsoncpp", "jsonrpccpp-server", 
-"jsonrpccpp-client", "jsonrpccpp-common", "microhttpd"}
-
 newoption {
     trigger     = "with-docs",
     description = "Use doxygen to build the docs"
@@ -34,12 +15,31 @@ newoption {
     value = "DIR"
 }
 
+workspace "CryptoKernel"
+    configurations {"Debug", "Release"}
+    platforms {"Static", "Shared"}
+    language "C++"
+    cppdialect "C++14"
+    includedirs {"/usr/include/lua5.3", "src/kernel",
+                 _OPTIONS["include-dir"]}
+    libdirs {_OPTIONS["lib-dir"]}
+    symbols "On"
+
+    filter {"configurations:Debug"}
+        optimize "Off"
+
+    filter {"configurations:Release"}
+        optimize "Full"
+
+cklibs = {"crypto", "lua5.3", "sfml-network", 
+"sfml-system", "leveldb", "jsoncpp", "jsonrpccpp-server", 
+"jsonrpccpp-client", "jsonrpccpp-common", "microhttpd"}
+
+
 project "ck"
         
     files {"src/kernel/**.cpp", "src/kernel/**.h", "src/kernel/**.c"}
-    libdirs {_OPTIONS["lib-dir"]}
-    includedirs {_OPTIONS["include-dir"]}
-
+    
     configuration "with-docs"
         postbuildcommands{"doxygen %{wks.location}/doxyfile"}
     
