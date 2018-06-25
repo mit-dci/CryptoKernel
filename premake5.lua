@@ -20,7 +20,7 @@ workspace "CryptoKernel"
     platforms {"Static", "Shared"}
     language "C++"
     cppdialect "C++14"
-    includedirs {"/usr/include/lua5.3", "src/kernel",
+    includedirs {"src/kernel",
                  _OPTIONS["include-dir"]}
     libdirs {_OPTIONS["lib-dir"]}
     symbols "On"
@@ -38,6 +38,8 @@ cklibs = {"crypto", "sfml-network",
 linuxLinks = {"pthread", "lua5.3"}
 
 winLinks = {"lua", "curl", "ws2_32", "shlwapi", "crypt32"}
+
+macLinks = {"lua", "curl"}
 
 project "ck"
         
@@ -66,6 +68,9 @@ project "ckd"
     filter "system:windows"
         links(winLinks)
 
+    filter "system:macosx"
+        links(macLinks)
+
 project "test"
 
     kind "ConsoleApp"
@@ -78,4 +83,7 @@ project "test"
         links(linuxLinks)
 
     filter "system:windows"
-        links(winLinks)   
+        links(winLinks)
+
+    filter "system:macosx"
+        links(macLinks)
