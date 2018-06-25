@@ -17,9 +17,18 @@ cklibs = {"crypto", "lua5.3", "sfml-network",
 "sfml-system", "leveldb", "jsoncpp", "jsonrpccpp-server", 
 "jsonrpccpp-client", "jsonrpccpp-common", "microhttpd"}
 
+newoption {
+    trigger     = "with-docs",
+    description = "Use doxygen to build the docs"
+ }
+ 
+
 project "ck"
         
     files {"src/kernel/**.cpp", "src/kernel/**.h", "src/kernel/**.c"}
+    
+    configuration "with-docs"
+        postbuildcommands{"doxygen %{wks.location}/doxyfile"}
     
     filter {"platforms:Static"}
         kind "StaticLib"
