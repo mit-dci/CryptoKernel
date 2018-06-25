@@ -98,9 +98,14 @@ RUN CC=x86_64-w64-mingw32-gcc make UNAME=x86_64-w64-mingw32
 
 WORKDIR ../
 
+RUN wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha12/premake-5.0.0-alpha12-linux.tar.gz && \
+    tar zxvf premake-5.0.0-alpha12-linux.tar.gz && \
+    cp premake5 /usr/bin
+
 COPY ./cryptokernel /cryptokernel
 
 RUN cp lua-lz4/lz4.dll cryptokernel
 
 WORKDIR cryptokernel
-RUN make LUA_LIBDIR=/usr/local/mingw/lib LUA_INCDIR=/usr/local/mingw/include UNAME=MINGW32_NT-6.2 CC=$CXX C=$CC KERNELCXXFLAGS="-DSFML_STATIC -I`pwd`/src/kernel"
+RUN premake5 gmake2 --os=windows --include-dir=/usr/local/mingw/include --lib-dir=/usr/local/mingw/lib
+RUN make ckd
