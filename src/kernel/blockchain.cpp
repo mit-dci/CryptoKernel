@@ -719,12 +719,12 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateVerifyingBlock
     return returning;
 }
 
-std::set<CryptoKernel::Blockchain::output> CryptoKernel::Blockchain::getUnspentOutputs(
+std::set<CryptoKernel::Blockchain::dbOutput> CryptoKernel::Blockchain::getUnspentOutputs(
     const std::string& publicKey) {
     std::lock_guard<std::recursive_mutex> lock(chainLock);
     std::unique_ptr<Storage::Transaction> dbTx(blockdb->begin());
 
-    std::set<output> returning;
+    std::set<dbOutput> returning;
 
     const auto unspent = utxos->get(dbTx.get(), publicKey, 0);
 
@@ -735,12 +735,12 @@ std::set<CryptoKernel::Blockchain::output> CryptoKernel::Blockchain::getUnspentO
     return returning;
 }
 
-std::set<CryptoKernel::Blockchain::output> CryptoKernel::Blockchain::getSpentOutputs(
+std::set<CryptoKernel::Blockchain::dbOutput> CryptoKernel::Blockchain::getSpentOutputs(
     const std::string& publicKey) {
     std::lock_guard<std::recursive_mutex> lock(chainLock);
     std::unique_ptr<Storage::Transaction> dbTx(blockdb->begin());
 
-    std::set<output> returning;
+    std::set<dbOutput> returning;
 
     const auto spent = stxos->get(dbTx.get(), publicKey, 0);
 

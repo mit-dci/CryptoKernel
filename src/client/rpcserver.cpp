@@ -149,7 +149,7 @@ Json::Value CryptoServer::listunspentoutputs(const std::string& account) {
     try {
         CryptoKernel::Wallet::Account acc = wallet->getAccountByName(account);
 
-        std::set<CryptoKernel::Blockchain::output> utxos;
+        std::set<CryptoKernel::Blockchain::dbOutput> utxos;
 
         for(const auto& addr : acc.getKeys()) {
             const auto unspent = blockchain->getUnspentOutputs(addr.pubKey);
@@ -158,9 +158,9 @@ Json::Value CryptoServer::listunspentoutputs(const std::string& account) {
 
         Json::Value returning;
 
-        for(const CryptoKernel::Blockchain::output& output : utxos) {
-            Json::Value out = output.toJson();
-            out["id"] = output.getId().toString();
+        for(const CryptoKernel::Blockchain::dbOutput& dbOutput : utxos) {
+            Json::Value out = dbOutput.toJson();
+            out["id"] = dbOutput.getId().toString();
             returning["outputs"].append(out);
         }
 
@@ -252,7 +252,7 @@ Json::Value CryptoServer::listtransactions() {
         jsonTx["id"] = tx.getId().toString();
         returning["transactions"]["unconfirmed"].append(jsonTx);
     }
-    
+
     return returning;
 }
 

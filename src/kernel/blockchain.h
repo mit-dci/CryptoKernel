@@ -336,9 +336,9 @@ public:
 
     input getInput(Storage::Transaction* dbTx, const std::string& id);
 
-    std::set<output> getUnspentOutputs(const std::string& publicKey);
+    std::set<dbOutput> getUnspentOutputs(const std::string& publicKey);
 
-    std::set<output> getSpentOutputs(const std::string& publicKey);
+    std::set<dbOutput> getSpentOutputs(const std::string& publicKey);
 
     std::set<transaction> getUnconfirmedTransactions();
 
