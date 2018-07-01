@@ -35,7 +35,7 @@ cklibs = {"crypto", "sfml-network",
 "sfml-system", "leveldb", "jsoncpp", "jsonrpccpp-server", 
 "jsonrpccpp-client", "jsonrpccpp-common", "microhttpd"}
 
-linuxLinks = {"pthread", "lua5.3"}
+linuxLinks = {"pthread", "lua5.3", "curl", "dl"}
 
 winLinks = {"lua", "curl", "ws2_32", "shlwapi", "crypt32"}
 

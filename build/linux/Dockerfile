@@ -84,10 +84,14 @@ RUN make
 
 WORKDIR ../
 
+RUN wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha12/premake-5.0.0-alpha12-linux.tar.gz && \
+    tar zxvf premake-5.0.0-alpha12-linux.tar.gz && \
+    cp premake5 /usr/bin
+
 COPY ./cryptokernel /cryptokernel
 
 RUN cp lua-lz4/lz4.so cryptokernel
 
 WORKDIR cryptokernel
 
-RUN make static KERNELCXXFLAGS="-DSFML_STATIC -I`pwd`/src/kernel"
+RUN premake5 gmake2 && make ckd
