@@ -50,13 +50,18 @@ RUN CXX=clang++ make && make install
 
 WORKDIR ../
 
+RUN wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha12/premake-5.0.0-alpha12-linux.tar.gz && \
+    tar zxvf premake-5.0.0-alpha12-linux.tar.gz && \
+    cp premake5 /usr/bin
+
 COPY ./cryptokernel /cryptokernel
 
 RUN cp lua-lz4/lz4.so cryptokernel
 
 WORKDIR cryptokernel
-RUN make LUA_INCDIR=/osxcross/target/macports/pkgs/opt/local/include LUA_LIBDIR=/osxcross/target/macports/pkgs/opt/local/lib UNAME=Darwin-Cross CC=$CXX C=$CC
+RUN premake5 gmake2 --os=macosx --include-dir=/osxcross/target/macports/pkgs/opt/local/include --lib-dir=/osxcross/target/macports/pkgs/opt/local/lib && \
+    make ckd
 
 RUN ln -s /osxcross/target/bin/x86_64-apple-darwin15-otool /osxcross/target/bin/otool && ln -s /osxcross/target/bin/x86_64-apple-darwin15-install_name_tool /osxcross/target/bin/install_name_tool && rm -r /opt && ln -s /osxcross/target/macports/pkgs/opt /opt
 
-RUN dylibbundler -b -x ckd -cd -i /usr/lib/ -p @executable_path/libs/
+RUN dylibbundler -b -x bin/Static/Debug/ckd -cd -i /usr/lib/ -p @executable_path/libs/
