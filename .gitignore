@@ -20,3 +20,7 @@ addressesdb
 peers
 /.vscode/
 test-ck
+ck.make
+ckd.make
+Makefile
+test.make
