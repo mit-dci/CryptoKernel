@@ -41,6 +41,17 @@ winLinks = {"lua", "curl", "ws2_32", "shlwapi", "crypt32"}
 
 macLinks = {"lua", "curl"}
 
+function linkSystemSpecific()
+    filter "system:linux"
+        links(linuxLinks)
+
+    filter "system:windows"
+        links(winLinks)
+
+    filter "system:macosx"
+        links(macLinks)
+end
+
 project "ck"
         
     files {"src/kernel/**.cpp", "src/kernel/**.h", "src/kernel/**.c"}
@@ -62,14 +73,7 @@ project "ckd"
     links {"ck"}
     links(cklibs)
 
-    filter "system:linux"
-        links(linuxLinks)
-
-    filter "system:windows"
-        links(winLinks)
-
-    filter "system:macosx"
-        links(macLinks)
+    linkSystemSpecific()
 
 project "test"
 
@@ -79,11 +83,4 @@ project "test"
     links(cklibs)
     postbuildcommands{"%{cfg.linktarget.abspath}"}
 
-    filter "system:linux"
-        links(linuxLinks)
-
-    filter "system:windows"
-        links(winLinks)
-
-    filter "system:macosx"
-        links(macLinks)
+    linkSystemSpecific()
