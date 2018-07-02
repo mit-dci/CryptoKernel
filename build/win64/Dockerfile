@@ -111,7 +111,7 @@ WORKDIR cschnorr
 RUN premake5 gmake2 --os=windows --include-dir=/usr/local/mingw/include && make cschnorr && \
     mkdir /usr/local/include/cschnorr/ && \
     cp src/*.h /usr/local/include/cschnorr/ && \
-    cp bin/Static/Debug/libcschnorr.a /usr/local/lib
+    cp bin/Static/Debug/libcschnorr.lib /usr/local/lib
 WORKDIR ../
 
 WORKDIR cryptokernel
