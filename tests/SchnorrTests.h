@@ -12,6 +12,7 @@ class SchnorrTest : public CPPUNIT_NS::TestFixture {
     CPPUNIT_TEST(testKeygen);
     CPPUNIT_TEST(testSignVerify);
     CPPUNIT_TEST(testPassingKeys);
+    CPPUNIT_TEST(testPermutedSigFail);
 
     CPPUNIT_TEST_SUITE_END();
 
@@ -26,6 +27,7 @@ private:
     void testKeygen();
     void testSignVerify();
     void testPassingKeys();
+    void testPermutedSigFail();
     CryptoKernel::Schnorr *schnorr;
     const std::string plainText = "This is a test.";
 

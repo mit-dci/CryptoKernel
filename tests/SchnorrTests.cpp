@@ -61,3 +61,29 @@ void SchnorrTest::testPassingKeys() {
 
     delete tempSchnorr;
 }
+
+/**
+* Tests permuting a valid signature causes a failure  s
+*/
+void SchnorrTest::testPermutedSigFail() {
+    CryptoKernel::Schnorr *tempSchnorr = new CryptoKernel::Schnorr();
+
+    std::string signature = tempSchnorr->sign(plainText);
+    CPPUNIT_ASSERT(signature.size() > 0);
+    const std::string pubKey = tempSchnorr->getPublicKey();
+
+    delete tempSchnorr;
+
+    tempSchnorr = new CryptoKernel::Schnorr();
+    CPPUNIT_ASSERT(schnorr->setPublicKey(pubKey));
+    CPPUNIT_ASSERT(schnorr->verify(plainText, signature));
+
+    signature.replace(0, 1, "0");
+    signature.replace(5, 1, "C");
+    signature.replace(10, 1, "D");
+
+    CPPUNIT_ASSERT(!schnorr->verify(plainText, signature));
+
+    delete tempSchnorr;
+}
+
