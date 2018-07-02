@@ -46,3 +46,8 @@ make
 sudo cp lz4.so /usr/lib
 
 sudo ldconfig
+
+cd ../
+wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha12/premake-5.0.0-alpha12-linux.tar.gz && \
+tar zxvf premake-5.0.0-alpha12-linux.tar.gz && \
+sudo cp premake5 /usr/bin

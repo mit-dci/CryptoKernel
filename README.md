@@ -8,6 +8,7 @@ Building on Ubuntu 16.04
 
 ```
 ./installdeps.sh
+premake5 gmake2
 make
 ```
 
