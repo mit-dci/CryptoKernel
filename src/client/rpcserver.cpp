@@ -41,7 +41,7 @@ void CryptoServer::setWallet(CryptoKernel::Wallet* Wallet,
 Json::Value CryptoServer::getinfo() {
     Json::Value returning;
 
-    returning["rpc_version"] = "0.0.1";
+    returning["rpc_version"] = "0.0.2";
     returning["ck_version"] = version;
     const long double balance = wallet->getTotalBalance() / 100000000.0;
     std::stringstream buffer;
