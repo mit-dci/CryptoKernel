@@ -60,7 +60,6 @@ wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha12/pr
 tar zxvf premake-5.0.0-alpha12-linux.tar.gz && \
 sudo cp premake5 /usr/bin
 
-cd ../
 git clone https://github.com/metalicjames/cschnorr.git
 cd cschnorr
 premake5 gmake2
