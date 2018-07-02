@@ -58,6 +58,14 @@ COPY ./cryptokernel /cryptokernel
 
 RUN cp lua-lz4/lz4.so cryptokernel
 
+RUN git clone https://github.com/metalicjames/cschnorr.git
+WORKDIR cschnorr
+RUN premake5 gmake2 --os=macosx --include-dir=/osxcross/target/macports/pkgs/opt/local/include && make cschnorr && \
+    mkdir /usr/local/include/cschnorr/ && \
+    cp src/*.h /usr/local/include/cschnorr/ && \
+    cp bin/Static/Debug/libcschnorr.a /usr/local/lib
+WORKDIR ../
+
 WORKDIR cryptokernel
 RUN premake5 gmake2 --os=macosx --include-dir=/osxcross/target/macports/pkgs/opt/local/include --lib-dir=/osxcross/target/macports/pkgs/opt/local/lib && \
     make ckd
