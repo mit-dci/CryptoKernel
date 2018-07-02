@@ -1,8 +1,18 @@
-sudo apt-get update
-sudo apt-get install -y git build-essential libsfml-dev libleveldb-dev libargtable2-dev libreadline-dev libcurl4-gnutls-dev liblua5.3-dev cmake libhiredis-dev doxygen libcppunit-dev
+sudo apt-get update && sudo apt-get install -y \
+    git \
+    build-essential \
+    libsfml-dev \
+    libleveldb-dev \
+    libargtable2-dev \
+    libreadline-dev \
+    libcurl4-gnutls-dev \
+    liblua5.3-dev \
+    cmake \
+    libhiredis-dev \
+    doxygen \
+    libcppunit-dev
 
 cd /tmp
-
 wget https://www.openssl.org/source/openssl-1.1.0f.tar.gz
 tar -xvzf openssl-1.1.0f.tar.gz
 cd openssl-1.1.0f
@@ -10,8 +20,8 @@ cd openssl-1.1.0f
 make
 sudo make install
 sudo ldconfig
-cd ../
 
+cd ../
 wget http://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-latest.tar.gz
 tar -xvzf libmicrohttpd-latest.tar.gz
 rm libmicrohttpd-latest.tar.gz
@@ -19,8 +29,8 @@ cd libmicrohttpd*
 ./configure
 make
 sudo make install
-cd ../
 
+cd ../
 wget https://github.com/open-source-parsers/jsoncpp/archive/1.8.4.tar.gz
 tar -xzvf 1.8.4.tar.gz
 cd jsoncpp*
@@ -45,9 +55,16 @@ cd lua-lz4
 make
 sudo cp lz4.so /usr/lib
 
-sudo ldconfig
-
 cd ../
 wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha12/premake-5.0.0-alpha12-linux.tar.gz && \
 tar zxvf premake-5.0.0-alpha12-linux.tar.gz && \
 sudo cp premake5 /usr/bin
+
+git clone https://github.com/metalicjames/cschnorr.git
+cd cschnorr
+premake5 gmake2
+make cschnorr
+sudo mkdir /usr/local/include/cschnorr/
+sudo cp src/*.h /usr/local/include/cschnorr/
+sudo cp bin/Static/Debug/libcschnorr.a /usr/local/lib
+sudo ldconfig

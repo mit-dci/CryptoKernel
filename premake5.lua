@@ -33,7 +33,7 @@ workspace "CryptoKernel"
 
 cklibs = {"crypto", "sfml-network", 
 "sfml-system", "leveldb", "jsoncpp", "jsonrpccpp-server", 
-"jsonrpccpp-client", "jsonrpccpp-common", "microhttpd"}
+"jsonrpccpp-client", "jsonrpccpp-common", "microhttpd", "cschnorr"}
 
 linuxLinks = {"pthread", "lua5.3", "curl", "dl", "gcov"}
 
