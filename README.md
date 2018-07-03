@@ -59,4 +59,4 @@ when propagating contracts
 - Raft consensus module
 - Proof of Stake consensus module
 - HD key generation
-- Schnorr key aggregation for transactions
+- Schnorr signature aggregation for transactions
