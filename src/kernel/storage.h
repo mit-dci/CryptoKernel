@@ -76,7 +76,7 @@ public:
         Storage* db;
         bool finished;
         bool readonly;
-        std::shared_ptr<const leveldb::Snapshot> snapshot;
+        const leveldb::Snapshot* snapshot;
         std::recursive_mutex* mut;
     };
 

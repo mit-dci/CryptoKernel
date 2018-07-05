@@ -104,9 +104,9 @@ CryptoKernel::Blockchain::~Blockchain() {
 
 std::set<CryptoKernel::Blockchain::transaction>
 CryptoKernel::Blockchain::getUnconfirmedTransactions() {
-    //chainLock.lock();
+    mempoolMutex.lock();
     const std::set<CryptoKernel::Blockchain::transaction> returning = unconfirmedTransactions.getTransactions();
-    //chainLock.unlock();
+    mempoolMutex.unlock();
 
     return returning;
 }
@@ -373,6 +373,7 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::submitTransaction(Storage::Tran
 	const auto verifyResult = verifyTransaction(dbTx, tx);
     if(std::get<0>(verifyResult)) {
         if(consensus->submitTransaction(dbTx, tx)) {
+            std::lock_guard<std::mutex> lock(mempoolMutex);
 			if(unconfirmedTransactions.insert(tx)) {
 				log->printf(LOG_LEVEL_INFO,
 							"blockchain::submitTransaction(): Received transaction " + tx.getId().toString());
@@ -542,6 +543,7 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::submitBlock(Storage::Transactio
         blocks->put(dbTx, "tip", blockAsJson);
         blocks->put(dbTx, std::to_string(blockHeight), Json::Value(idAsString), 0);
         blocks->put(dbTx, idAsString, blockAsJson);
+        std::lock_guard<std::mutex> lock(mempoolMutex);
 		unconfirmedTransactions.rescanMempool(dbTx, this);
     }
 
@@ -625,6 +627,7 @@ void CryptoKernel::Blockchain::confirmTransaction(Storage::Transaction* dbTransa
                       confirmingBlock, coinbaseTx).toJson());
 
     //Remove transaction from unconfirmed transactions vector
+    std::lock_guard<std::mutex> lock(mempoolMutex);
     unconfirmedTransactions.remove(tx);
 }
 
@@ -856,7 +859,9 @@ void CryptoKernel::Blockchain::reverseBlock(Storage::Transaction* dbTransaction)
 
     candidates->put(dbTransaction, tip.getId().toString(), tip.toJson());
 
+    mempoolMutex.lock();
 	unconfirmedTransactions.rescanMempool(dbTransaction, this);
+    mempoolMutex.unlock();
 
 	for(const auto& tx : replayTxs) {
 		if(!std::get<0>(submitTransaction(dbTransaction, tx))) {

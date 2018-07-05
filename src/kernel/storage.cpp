@@ -116,10 +116,7 @@ CryptoKernel::Storage::Transaction::Transaction(CryptoKernel::Storage* db,
         finished = false;
     } else {
         std::lock_guard<std::mutex> lock(db->readLock);
-        snapshot.reset(db->db->GetSnapshot(), [&](const leveldb::Snapshot* snapshot) {
-            std::lock_guard<std::mutex> lock(db->readLock);
-            db->db->ReleaseSnapshot(snapshot);
-        });
+        snapshot = db->db->GetSnapshot();
         finished = true;
     }
     this->db = db;
@@ -135,10 +132,7 @@ CryptoKernel::Storage::Transaction::Transaction(CryptoKernel::Storage* db,
         finished = false;
     } else {
         std::lock_guard<std::mutex> lock(db->readLock);
-        snapshot.reset(db->db->GetSnapshot(), [&](const leveldb::Snapshot* snapshot) {
-            std::lock_guard<std::mutex> lock(db->readLock);
-            db->db->ReleaseSnapshot(snapshot);
-        });
+        snapshot = db->db->GetSnapshot();
         finished = true;
     }
     this->db = db;
@@ -149,6 +143,11 @@ CryptoKernel::Storage::Transaction::Transaction(CryptoKernel::Storage* db,
 CryptoKernel::Storage::Transaction::~Transaction() {
     if(!finished) {
         abort();
+    }
+
+    if(readonly) {
+        std::lock_guard<std::mutex> lock(db->readLock);
+        db->db->ReleaseSnapshot(snapshot);
     }
 
     if(mut != nullptr) {
@@ -212,7 +211,7 @@ Json::Value CryptoKernel::Storage::Transaction::get(const std::string& key) {
         
         leveldb::ReadOptions options;
         if(readonly) {
-            options.snapshot = snapshot.get();
+            options.snapshot = snapshot;
         }
 
         db->db->Get(options, key, &data);
