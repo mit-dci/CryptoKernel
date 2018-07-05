@@ -23,3 +23,5 @@ test-ck
 /Default/
 .project
 .cproject
+*.make
+Makefile
