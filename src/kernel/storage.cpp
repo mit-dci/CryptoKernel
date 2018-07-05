@@ -41,9 +41,11 @@ CryptoKernel::Storage::Storage(const std::string& filename, const bool sync, con
 
     this->sync = sync;
 
-    dbMutex.lock();
+    readLock.lock();
+    writeLock.lock();
     leveldb::Status dbstatus = leveldb::DB::Open(options, filename, &db);
-    dbMutex.unlock();
+    writeLock.unlock();
+    readLock.unlock();
 
     if(!dbstatus.ok()) {
         throw std::runtime_error("Failed to open the database");
@@ -51,9 +53,11 @@ CryptoKernel::Storage::Storage(const std::string& filename, const bool sync, con
 }
 
 CryptoKernel::Storage::~Storage() {
-    dbMutex.lock();
+    readLock.lock();
+    writeLock.lock();
     delete db;
-    dbMutex.unlock();
+    writeLock.unlock();
+    readLock.unlock();
 }
 
 Json::Value CryptoKernel::Storage::toJson(const std::string& json) {
@@ -101,19 +105,45 @@ CryptoKernel::Storage::Transaction* CryptoKernel::Storage::begin(
     return new Transaction(this, mut);
 }
 
-CryptoKernel::Storage::Transaction::Transaction(CryptoKernel::Storage* db) {
-    db->dbMutex.lock();
-    this->db = db;
-    mut = nullptr;
-    finished = false;
+CryptoKernel::Storage::Transaction* CryptoKernel::Storage::beginReadOnly() {
+    return new Transaction(this, true);
 }
 
 CryptoKernel::Storage::Transaction::Transaction(CryptoKernel::Storage* db,
-        std::recursive_mutex& mut) {
-    db->dbMutex.lock();
+                                                const bool readonly) {
+    if(!readonly) {
+        db->writeLock.lock();
+        finished = false;
+    } else {
+        std::lock_guard<std::mutex> lock(db->readLock);
+        snapshot.reset(db->db->GetSnapshot(), [&](const leveldb::Snapshot* snapshot) {
+            std::lock_guard<std::mutex> lock(db->readLock);
+            db->db->ReleaseSnapshot(snapshot);
+        });
+        finished = true;
+    }
+    this->db = db;
+    this->readonly = readonly;
+    mut = nullptr;
+}
+
+CryptoKernel::Storage::Transaction::Transaction(CryptoKernel::Storage* db,
+                                                std::recursive_mutex& mut,
+                                                const bool readonly) {
+    if(!readonly) {
+        db->writeLock.lock();
+        finished = false;
+    } else {
+        std::lock_guard<std::mutex> lock(db->readLock);
+        snapshot.reset(db->db->GetSnapshot(), [&](const leveldb::Snapshot* snapshot) {
+            std::lock_guard<std::mutex> lock(db->readLock);
+            db->db->ReleaseSnapshot(snapshot);
+        });
+        finished = true;
+    }
     this->db = db;
     this->mut = &mut;
-    finished = false;
+    this->readonly = readonly;
 }
 
 CryptoKernel::Storage::Transaction::~Transaction() {
@@ -144,6 +174,7 @@ void CryptoKernel::Storage::Transaction::commit() {
         leveldb::WriteOptions options;
         options.sync = db->sync;
 
+        std::lock_guard<std::mutex> lock(db->readLock);
         leveldb::Status status = db->db->Write(options, &batch);
 
         if(!status.ok()) {
@@ -158,7 +189,9 @@ void CryptoKernel::Storage::Transaction::commit() {
 
 void CryptoKernel::Storage::Transaction::abort() {
     finished = true;
-    db->dbMutex.unlock();
+    if(!readonly) {
+        db->writeLock.unlock();
+    }
 }
 
 void CryptoKernel::Storage::Transaction::put(const std::string& key,
@@ -176,7 +209,13 @@ Json::Value CryptoKernel::Storage::Transaction::get(const std::string& key) {
         return it->second.data;
     } else {
         std::string data;
-        db->db->Get(leveldb::ReadOptions(), key, &data);
+        
+        leveldb::ReadOptions options;
+        if(readonly) {
+            options.snapshot = snapshot.get();
+        }
+
+        db->db->Get(options, key, &data);
         return CryptoKernel::Storage::toJson(data);
     }
 }
@@ -208,7 +247,7 @@ Json::Value CryptoKernel::Storage::Table::get(Transaction* transaction,
 CryptoKernel::Storage::Table::Iterator::Iterator(Table* table, Storage* db) {
     this->table = table;
     this->db = db;
-    db->dbMutex.lock();
+    db->writeLock.lock();
 
     it = db->db->NewIterator(leveldb::ReadOptions());
 
@@ -217,7 +256,7 @@ CryptoKernel::Storage::Table::Iterator::Iterator(Table* table, Storage* db) {
 
 CryptoKernel::Storage::Table::Iterator::~Iterator() {
     delete it;
-    db->dbMutex.unlock();
+    db->writeLock.unlock();
 }
 
 void CryptoKernel::Storage::Table::Iterator::SeekToFirst() {

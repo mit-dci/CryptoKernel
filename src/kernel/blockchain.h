@@ -401,7 +401,7 @@ private:
     bool status;
     void reverseBlock(Storage::Transaction* dbTransaction);
     bool reorgChain(Storage::Transaction* dbTransaction, const BigNum& newTipId);
-    std::recursive_mutex chainLock;
+    //std::recursive_mutex chainLock;
     virtual uint64_t getBlockReward(const uint64_t height) = 0;
     virtual std::string getCoinbaseOwner(const std::string& publicKey) = 0;
     Consensus* consensus;

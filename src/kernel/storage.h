@@ -53,8 +53,8 @@ public:
 
     class Transaction {
     public:
-        Transaction(Storage* db);
-        Transaction(Storage* db, std::recursive_mutex& mut);
+        Transaction(Storage* db, const bool readonly = false);
+        Transaction(Storage* db, std::recursive_mutex& mut, const bool readonly = false);
 
         ~Transaction();
 
@@ -75,12 +75,16 @@ public:
         std::map<std::string, dbObject> dbStateCache;
         Storage* db;
         bool finished;
+        bool readonly;
+        std::shared_ptr<const leveldb::Snapshot> snapshot;
         std::recursive_mutex* mut;
     };
 
     Transaction* begin();
 
     Transaction* begin(std::recursive_mutex& mut);
+
+    Transaction* beginReadOnly();
 
     class Table {
     public:
@@ -168,7 +172,8 @@ public:
 
 private:
     leveldb::DB* db;
-    std::mutex dbMutex;
+    std::mutex readLock;
+    std::mutex writeLock;
     bool sync;
 };
 }
