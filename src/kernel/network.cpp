@@ -242,6 +242,16 @@ void CryptoKernel::Network::peerFunc() {
             }
 
             dbTx->commit();
+
+            std::lock_guard<std::mutex> cLock(connectedStatsMutex);
+            connectedStats.clear();
+
+            for(const auto& peer : connected) {
+                peerStats stats = peer.second->peer->getPeerStats();
+                stats.version = peer.second->info["version"].asString();
+                stats.blockHeight = peer.second->info["height"].asUInt64();
+                connectedStats.insert(std::make_pair(peer.first, stats));
+            }
         }
 
         if(wait) {
@@ -573,16 +583,7 @@ uint64_t CryptoKernel::Network::getCurrentHeight() {
 
 std::map<std::string, CryptoKernel::Network::peerStats>
 CryptoKernel::Network::getPeerStats() {
-    std::lock_guard<std::recursive_mutex> lock(connectedMutex);
+    std::lock_guard<std::mutex> lock(connectedStatsMutex);
 
-    std::map<std::string, peerStats> returning;
-
-    for(const auto& peer : connected) {
-        peerStats stats = peer.second->peer->getPeerStats();
-        stats.version = peer.second->info["version"].asString();
-        stats.blockHeight = peer.second->info["height"].asUInt64();
-        returning.insert(std::make_pair(peer.first, stats));
-    }
-
-    return returning;
+    return connectedStats;
 }
