@@ -914,7 +914,7 @@ void CryptoKernel::Blockchain::emptyDB() {
 CryptoKernel::Storage::Transaction* CryptoKernel::Blockchain::getTxHandle() {
     //chainLock.lock();
     //Storage::Transaction* dbTx = blockdb->begin(chainLock);
-    Storage::Transaction* dbTx = blockdb->begin();
+    Storage::Transaction* dbTx = blockdb->beginReadOnly();
     return dbTx;
 }
 
