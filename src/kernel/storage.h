@@ -19,6 +19,7 @@
 #define STORAGE_H_INCLUDED
 
 #include <mutex>
+#include <memory>
 
 #include <json/writer.h>
 #include <json/reader.h>
