@@ -12,6 +12,7 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
     this->blockchain = blockchain;
     this->port = port;
     bestHeight = 0;
+    currentHeight = 0;
 
     myAddress = sf::IpAddress::getPublicAddress();
 
@@ -55,201 +56,204 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
     networkThread.reset(new std::thread(&CryptoKernel::Network::networkFunc, this));
 
     // Start peer thread
-    peerThread.reset(new std::thread(&CryptoKernel::Network::peerFunc, this));
+    outgoingConnectionsThread.reset(new std::thread(&CryptoKernel::Network::outgoingConnectionsFunc, this));
 }
 
 CryptoKernel::Network::~Network() {
     running = false;
     connectionThread->join();
     networkThread->join();
-    peerThread->join();
+    outgoingConnectionsThread->join();
     listener.close();
 }
 
-void CryptoKernel::Network::peerFunc() {
-    while(running) {
-        bool wait = false;
+void CryptoKernel::Network::outgoingConnectionsFunc() {
+	while(running) {
+		std::map<std::string, Json::Value> peerInfos;
+		bool wait = false;
 
-        std::map<std::string, Json::Value> peerInfos;
+		makeOutgoingConnections(wait, peerInfos);
+		manageOutgoingConnections(wait, peerInfos);
 
-        {
-            std::lock_guard<std::recursive_mutex> lock(connectedMutex);
-            CryptoKernel::Storage::Table::Iterator* it = new CryptoKernel::Storage::Table::Iterator(
-                peers.get(), networkdb.get());
+		if(wait) {
+			std::this_thread::sleep_for(std::chrono::seconds(20));
+		}
+		else {
+			std::this_thread::sleep_for(std::chrono::milliseconds(20));
+		}
+	}
+}
 
-            for(it->SeekToFirst(); it->Valid(); it->Next()) {
-                if(connected.size() >= 8) {
-                    wait = true;
-                    break;
-                }
+void CryptoKernel::Network::makeOutgoingConnections(bool& wait, std::map<std::string, Json::Value>& peerInfos) {
+	std::lock_guard<std::recursive_mutex> lock(connectedMutex);
+	CryptoKernel::Storage::Table::Iterator* it = new CryptoKernel::Storage::Table::Iterator(
+		peers.get(), networkdb.get());
 
-                Json::Value peer = it->value();
+	for(it->SeekToFirst(); it->Valid(); it->Next()) {
+		if(connected.size() >= 8) {
+			wait = true;
+			break;
+		}
 
-                if(connected.find(it->key()) != connected.end()) {
-                    continue;
-                }
+		Json::Value peer = it->value();
 
-                std::time_t result = std::time(nullptr);
+		if(connected.find(it->key()) != connected.end()) {
+			continue;
+		}
 
-                const auto banIt = banned.find(it->key());
-                if(banIt != banned.end()) {
-                    if(banIt->second > static_cast<uint64_t>(result)) {
-                        continue;
-                    }
-                }
+		std::time_t result = std::time(nullptr);
 
-                if(peer["lastattempt"].asUInt64() + 5 * 60 > static_cast<unsigned long long int>
-                        (result) && peer["lastattempt"].asUInt64() != peer["lastseen"].asUInt64()) {
-                    continue;
-                }
+		const auto banIt = banned.find(it->key());
+		if(banIt != banned.end()) {
+			if(banIt->second > static_cast<uint64_t>(result)) {
+				continue;
+			}
+		}
 
-                sf::IpAddress addr(it->key());
+		if(peer["lastattempt"].asUInt64() + 5 * 60 > static_cast<unsigned long long int>
+				(result) && peer["lastattempt"].asUInt64() != peer["lastseen"].asUInt64()) {
+			continue;
+		}
 
-                if(addr == sf::IpAddress::getLocalAddress()
-                        || addr == myAddress
-                        || addr == sf::IpAddress::LocalHost
-                        || addr == sf::IpAddress::None) {
-                    continue;
-                }
+		sf::IpAddress addr(it->key());
 
-                log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + it->key());
+		if(addr == sf::IpAddress::getLocalAddress()
+				|| addr == myAddress
+				|| addr == sf::IpAddress::LocalHost
+				|| addr == sf::IpAddress::None) {
+			continue;
+		}
 
-                peer["lastattempt"] = static_cast<uint64_t>(result);
+		log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + it->key());
 
-                // Attempt to connect to peer
-                sf::TcpSocket* socket = new sf::TcpSocket();
-                if(socket->connect(it->key(), port, sf::seconds(3)) != sf::Socket::Done) {
-                    log->printf(LOG_LEVEL_WARN, "Network(): Failed to connect to " + it->key());
-                    delete socket;
-                    peerInfos[it->key()] = peer;
-                    break;
-                }
+		peer["lastattempt"] = static_cast<uint64_t>(result);
 
-                PeerInfo* peerInfo = new PeerInfo;
-                peerInfo->peer.reset(new Peer(socket, blockchain, this, false));
+		// Attempt to connect to peer
+		sf::TcpSocket* socket = new sf::TcpSocket();
+		if(socket->connect(it->key(), port, sf::seconds(3)) != sf::Socket::Done) {
+			log->printf(LOG_LEVEL_WARN, "Network(): Failed to connect to " + it->key());
+			delete socket;
+			peerInfos[it->key()] = peer;
+			break;
+		}
 
-                // Get height
-                Json::Value info;
-                try {
-                    info = peerInfo->peer->getInfo();
-                } catch(Peer::NetworkError& e) {
-                    log->printf(LOG_LEVEL_WARN, "Network(): Error getting info from " + it->key());
-                    delete peerInfo;
-                    peerInfos[it->key()] = peer;
-                    break;
-                }
+		PeerInfo* peerInfo = new PeerInfo;
+		peerInfo->peer.reset(new Peer(socket, blockchain, this, false));
 
-                log->printf(LOG_LEVEL_INFO, "Network(): Successfully connected to " + it->key());
+		// Get height
+		Json::Value info;
+		try {
+			info = peerInfo->peer->getInfo();
+		} catch(Peer::NetworkError& e) {
+			log->printf(LOG_LEVEL_WARN, "Network(): Error getting info from " + it->key());
+			delete peerInfo;
+			peerInfos[it->key()] = peer;
+			break;
+		}
 
-                // Update info
-                try {
-                    peer["height"] = info["tipHeight"].asUInt64();
-                    peer["version"] = info["version"].asString();
-                } catch(const Json::Exception& e) {
-                    log->printf(LOG_LEVEL_WARN, "Network(): " + it->key() + " sent a malformed info message");
-                    delete peerInfo;
-                    peerInfos[it->key()] = peer;
-                    break;
-                }
+		log->printf(LOG_LEVEL_INFO, "Network(): Successfully connected to " + it->key());
 
-                peer["lastseen"] = static_cast<uint64_t>(result);
+		// Update info
+		try {
+			peer["height"] = info["tipHeight"].asUInt64();
+			peer["version"] = info["version"].asString();
+		} catch(const Json::Exception& e) {
+			log->printf(LOG_LEVEL_WARN, "Network(): " + it->key() + " sent a malformed info message");
+			delete peerInfo;
+			peerInfos[it->key()] = peer;
+			break;
+		}
 
-                peer["score"] = 0;
+		peer["lastseen"] = static_cast<uint64_t>(result);
 
-                peerInfo->info = peer;
+		peer["score"] = 0;
 
-                connected[it->key()].reset(peerInfo);
-                peerInfos[it->key()] = peer;
-                break;
-            }
+		peerInfo->info = peer;
 
-            if(!it->Valid()) {
-                wait = true;
-            }
+		connected[it->key()].reset(peerInfo);
+		peerInfos[it->key()] = peer;
+		break;
+	}
 
-            delete it;
-        }
+	if(!it->Valid()) {
+		wait = true;
+	}
 
-        {
-            std::lock_guard<std::recursive_mutex> lock(connectedMutex);
-            std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
+	delete it;
+}
 
-	        std::set<std::string> removals;
+void CryptoKernel::Network::manageOutgoingConnections(bool& wait, std::map<std::string, Json::Value>& peerInfos) {
+	std::lock_guard<std::recursive_mutex> lock(connectedMutex);
+	std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
 
-            for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin();
-                        it != connected.end(); it++) {
-                try {
-                    const Json::Value info = it->second->peer->getInfo();
-                    try {
-                        const std::string peerVersion = info["version"].asString();
-                        if(peerVersion.substr(0, peerVersion.find(".")) != version.substr(0, version.find("."))) {
-                            log->printf(LOG_LEVEL_WARN,
-                                        "Network(): " + it->first + " has a different major version than us");
-                            throw Peer::NetworkError();
-                        }
+	std::set<std::string> removals;
 
-                        const auto banIt = banned.find(it->first);
-                        if(banIt != banned.end()) {
-                            if(banIt->second > static_cast<uint64_t>(std::time(nullptr))) {
-                                log->printf(LOG_LEVEL_WARN,
-                                            "Network(): Disconnecting " + it->first + " for being banned");
-                                throw Peer::NetworkError();
-                            }
-                        }
+	for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin();
+				it != connected.end(); it++) {
+		try {
+			const Json::Value info = it->second->peer->getInfo();
+			try {
+				const std::string peerVersion = info["version"].asString();
+				if(peerVersion.substr(0, peerVersion.find(".")) != version.substr(0, version.find("."))) {
+					log->printf(LOG_LEVEL_WARN,
+								"Network(): " + it->first + " has a different major version than us");
+					throw Peer::NetworkError();
+				}
 
-                        it->second->info["height"] = info["tipHeight"].asUInt64();
+				const auto banIt = banned.find(it->first);
+				if(banIt != banned.end()) {
+					if(banIt->second > static_cast<uint64_t>(std::time(nullptr))) {
+						log->printf(LOG_LEVEL_WARN,
+									"Network(): Disconnecting " + it->first + " for being banned");
+						throw Peer::NetworkError();
+					}
+				}
 
-                        for(const Json::Value& peer : info["peers"]) {
-                            sf::IpAddress addr(peer.asString());
-                            if(addr != sf::IpAddress::None) {
-                                if(!peers->get(dbTx.get(), addr.toString()).isObject()) {
-                                    log->printf(LOG_LEVEL_INFO, "Network(): Discovered new peer: " + addr.toString());
-                                    Json::Value newSeed;
-                                    newSeed["lastseen"] = 0;
-                                    newSeed["height"] = 1;
-                                    newSeed["score"] = 0;
-                                    peers->put(dbTx.get(), addr.toString(), newSeed);
-                                }
-                            } else {
-                                changeScore(it->first, 10);
-                                throw Peer::NetworkError();
-                            }
-                        }
-                    } catch(const Json::Exception& e) {
-                        changeScore(it->first, 50);
-                        throw Peer::NetworkError();
-                    }
+				it->second->info["height"] = info["tipHeight"].asUInt64();
 
-                    const std::time_t result = std::time(nullptr);
-                    it->second->info["lastseen"] = static_cast<uint64_t>(result);
-                } catch(const Peer::NetworkError& e) {
-                    log->printf(LOG_LEVEL_WARN,
-                                "Network(): Failed to contact " + it->first + ", disconnecting it");
-                    removals.insert(it->first);
-                }
-            }
+				for(const Json::Value& peer : info["peers"]) {
+					sf::IpAddress addr(peer.asString());
+					if(addr != sf::IpAddress::None) {
+						if(!peers->get(dbTx.get(), addr.toString()).isObject()) {
+							log->printf(LOG_LEVEL_INFO, "Network(): Discovered new peer: " + addr.toString());
+							Json::Value newSeed;
+							newSeed["lastseen"] = 0;
+							newSeed["height"] = 1;
+							newSeed["score"] = 0;
+							peers->put(dbTx.get(), addr.toString(), newSeed);
+						}
+					} else {
+						changeScore(it->first, 10);
+						throw Peer::NetworkError();
+					}
+				}
+			} catch(const Json::Exception& e) {
+				changeScore(it->first, 50);
+				throw Peer::NetworkError();
+			}
 
-            for(const auto& peer : removals) {
-                const auto it = connected.find(peer);
-                peers->put(dbTx.get(), peer, it->second->info);
-                if(it != connected.end()) {
-                    connected.erase(it);
-                }
-            }
+			const std::time_t result = std::time(nullptr);
+			it->second->info["lastseen"] = static_cast<uint64_t>(result);
+		} catch(const Peer::NetworkError& e) {
+			log->printf(LOG_LEVEL_WARN,
+						"Network(): Failed to contact " + it->first + ", disconnecting it");
+			removals.insert(it->first);
+		}
+	}
 
-            for(const auto& peer : peerInfos) {
-                peers->put(dbTx.get(), peer.first, peer.second);
-            }
+	for(const auto& peer : removals) {
+		const auto it = connected.find(peer);
+		peers->put(dbTx.get(), peer, it->second->info);
+		if(it != connected.end()) {
+			connected.erase(it);
+		}
+	}
 
-            dbTx->commit();
-        }
+	for(const auto& peer : peerInfos) {
+		peers->put(dbTx.get(), peer.first, peer.second);
+	}
 
-        if(wait) {
-            std::this_thread::sleep_for(std::chrono::seconds(20));
-        } else {
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        }
-    }
+	dbTx->commit();
 }
 
 void CryptoKernel::Network::networkFunc() {

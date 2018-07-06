@@ -117,10 +117,13 @@ private:
     std::unique_ptr<std::thread> networkThread;
 
     void connectionFunc();
-    std::unique_ptr<std::thread> connectionThread;
+	std::unique_ptr<std::thread> connectionThread;
 
-    void peerFunc();
-    std::unique_ptr<std::thread> peerThread;
+    //void peerFunc();
+	void makeOutgoingConnections(bool& wait, std::map<std::string, Json::Value>& peerInfos);
+	void manageOutgoingConnections(bool& wait, std::map<std::string, Json::Value>& peerInfos);
+	void outgoingConnectionsFunc();
+    std::unique_ptr<std::thread> outgoingConnectionsThread;
 
     sf::TcpListener listener;
 
