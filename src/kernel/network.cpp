@@ -74,7 +74,7 @@ CryptoKernel::Network::~Network() {
 void CryptoKernel::Network::makeOutgoingConnectionsWrapper() {
 	while(running) {
 		makeOutgoingConnections();
-		std::this_thread::sleep_for(std::chrono::milliseconds(20));
+		std::this_thread::sleep_for(std::chrono::milliseconds(300));
 	}
 }
 
@@ -106,6 +106,10 @@ void CryptoKernel::Network::makeOutgoingConnections() {
 
 	CryptoKernel::Storage::Table::Iterator* it = new CryptoKernel::Storage::Table::Iterator(
 		peers.get(), networkdb.get());
+
+	for(it->SeekToFirst(); it->Valid(); it->Next()) {
+		log->printf(LOG_LEVEL_INFO, it->key());
+	}
 
 	for(it->SeekToFirst(); it->Valid(); it->Next()) {
 		if(connected.size() >= 8) {
@@ -152,7 +156,8 @@ void CryptoKernel::Network::makeOutgoingConnections() {
 			log->printf(LOG_LEVEL_WARN, "Network(): Failed to connect to " + it->key());
 			delete socket;
 			peerInfos[it->key()] = peer;
-			break;
+			//break;
+			continue;
 		}
 
 		PeerInfo* peerInfo = new PeerInfo;
@@ -166,7 +171,8 @@ void CryptoKernel::Network::makeOutgoingConnections() {
 			log->printf(LOG_LEVEL_WARN, "Network(): Error getting info from " + it->key());
 			delete peerInfo;
 			peerInfos[it->key()] = peer;
-			break;
+			//break;
+			continue;
 		}
 
 		log->printf(LOG_LEVEL_INFO, "Network(): Successfully connected to " + it->key());
@@ -179,7 +185,8 @@ void CryptoKernel::Network::makeOutgoingConnections() {
 			log->printf(LOG_LEVEL_WARN, "Network(): " + it->key() + " sent a malformed info message");
 			delete peerInfo;
 			peerInfos[it->key()] = peer;
-			break;
+			continue;
+			//break;
 		}
 
 		peer["lastseen"] = static_cast<uint64_t>(result);
@@ -190,10 +197,10 @@ void CryptoKernel::Network::makeOutgoingConnections() {
 
 		connected[it->key()].reset(peerInfo);
 		peerInfos[it->key()] = peer;
-		break;
+		//break;
 	}
 
-	std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
+	std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin()); // todo, put this back in somehow
 	for(const auto& peer : peerInfos) {
 		peers->put(dbTx.get(), peer.first, peer.second);
 	}
