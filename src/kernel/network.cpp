@@ -99,7 +99,8 @@ void CryptoKernel::Network::outgoingConnectionsFunc() {
 void CryptoKernel::Network::makeOutgoingConnections() {
 	std::map<std::string, Json::Value> peerInfos;
 
-	lukeTex.lock();
+	connectedMutex.lock();
+	//lukeTex.lock();
 	//std::lock_guard<std::recursive_mutex> lock(connectedMutex);
 
 	//std::map<std::string, Json::Value> peerInfos;
@@ -211,12 +212,15 @@ void CryptoKernel::Network::makeOutgoingConnections() {
 
 	delete it;
 
-	lukeTex.unlock();
+	connectedMutex.unlock();
+	//lukeTex.unlock();
 }
 
 void CryptoKernel::Network::manageOutgoingConnections() {
 	//std::lock_guard<std::recursive_mutex> lock(connectedMutex);
-	lukeTex.lock();
+
+	//lukeTex.lock();
+	connectedMutex.lock();
 
 	log->printf(LOG_LEVEL_INFO, "management taking place, thank you");
 
@@ -291,7 +295,8 @@ void CryptoKernel::Network::manageOutgoingConnections() {
 
 	dbTx->commit();
 
-	lukeTex.unlock();
+	//lukeTex.unlock();
+	connectedMutex.unlock();
 }
 
 void CryptoKernel::Network::networkFunc() {
