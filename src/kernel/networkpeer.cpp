@@ -62,7 +62,9 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request) {
     {
 		std::unique_lock<std::mutex> cm(clientMutex);
 		std::map<uint64_t, Json::Value>& resp = responses;
-		if(responseReady.wait_for(cm, std::chrono::milliseconds(15000), [this, nonce] { return this->responses.find(nonce) != this->responses.end(); })) {
+		if(responseReady.wait_for(cm, std::chrono::milliseconds(15000), [this, nonce] {
+			return this->responses.find(nonce) != this->responses.end();
+		})) {
 			std::map<uint64_t, Json::Value>::iterator it = responses.find(nonce);
 			const uint64_t endTime = std::chrono::duration_cast<std::chrono::milliseconds>
 									(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -239,8 +241,7 @@ void CryptoKernel::Network::Peer::requestFunc() {
                     if(it != requests.end()) {
                         responses[request["nonce"].asUInt64()] = request["data"];
                         requests.erase(it);
-                        //clientMutex.unlock(); // errrr
-                        responseReady.notify_one(); // notify_one?  We only have one thread to notify, right?
+                        responseReady.notify_one();
                     } else {
                         network->changeScore(client->getRemoteAddress().toString(), 50);
                     }
