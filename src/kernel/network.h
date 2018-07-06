@@ -121,14 +121,13 @@ private:
     void connectionFunc();
 	std::unique_ptr<std::thread> connectionThread;
 
-    //void peerFunc();
 	void makeOutgoingConnections();
-	void manageOutgoingConnections();
-	void makeOutgoingConnections2();
 	void makeOutgoingConnectionsWrapper();
-	void outgoingConnectionsFunc();
-    std::unique_ptr<std::thread> outgoingConnectionsThread;
     std::unique_ptr<std::thread> makeOutgoingConnectionsThread;
+
+    void infoOutgoingConnections();
+    void infoOutgoingConnectionsWrapper();
+    std::unique_ptr<std::thread> infoOutgoingConnectionsThread;
 
     sf::TcpListener listener;
 

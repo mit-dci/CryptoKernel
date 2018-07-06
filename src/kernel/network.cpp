@@ -59,7 +59,7 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
    	makeOutgoingConnectionsThread.reset(new std::thread(&CryptoKernel::Network::makeOutgoingConnectionsWrapper, this));
 
     // Start peer thread
-    outgoingConnectionsThread.reset(new std::thread(&CryptoKernel::Network::outgoingConnectionsFunc, this));
+    infoOutgoingConnectionsThread.reset(new std::thread(&CryptoKernel::Network::infoOutgoingConnectionsWrapper, this));
 }
 
 CryptoKernel::Network::~Network() {
@@ -67,40 +67,30 @@ CryptoKernel::Network::~Network() {
     connectionThread->join();
     networkThread->join();
     makeOutgoingConnectionsThread->join();
-    outgoingConnectionsThread->join();
+    infoOutgoingConnectionsThread->join();
     listener.close();
 }
 
 void CryptoKernel::Network::makeOutgoingConnectionsWrapper() {
 	while(running) {
-		makeOutgoingConnections2();
+		makeOutgoingConnections();
 		std::this_thread::sleep_for(std::chrono::milliseconds(20));
 	}
 }
 
-void CryptoKernel::Network::outgoingConnectionsFunc() {
+void CryptoKernel::Network::infoOutgoingConnectionsWrapper() {
 	while(running) {
-		//std::map<std::string, Json::Value> peerInfos;
 		bool wait = false;
 
-		//makeOutgoingConnections();
-		manageOutgoingConnections();
-
-		/*if(wait) {
-			std::this_thread::sleep_for(std::chrono::seconds(20));
-		}
-		else {
-			std::this_thread::sleep_for(std::chrono::milliseconds(20));
-		}*/
+		infoOutgoingConnections();
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 }
 
-void CryptoKernel::Network::makeOutgoingConnections2() {
-	std::map<std::string, Json::Value> peersToTry; //= new std::map<std::string, Json::Value>();
+void CryptoKernel::Network::makeOutgoingConnections() {
+	std::map<std::string, Json::Value> peersToTry;
 	{
 		std::lock_guard<std::recursive_mutex> lock(connectedMutex);
-		//connectedMutex.lock();
 		CryptoKernel::Storage::Table::Iterator* it = new CryptoKernel::Storage::Table::Iterator(
 				peers.get(), networkdb.get());
 
@@ -142,8 +132,6 @@ void CryptoKernel::Network::makeOutgoingConnections2() {
 			peersToTry.insert(std::pair<std::string, Json::Value>(it->key(), peerInfo));
 		}
 		delete it;
-		//it->~Iterator(); // kill this stupid thing
-		//connectedMutex.unlock();
 	}
 
 	// here, we only access local data (except where there are more locks)
@@ -154,8 +142,7 @@ void CryptoKernel::Network::makeOutgoingConnections2() {
 		sf::TcpSocket* socket = new sf::TcpSocket();
 		if(socket->connect(peerIp, port, sf::seconds(3)) == sf::Socket::Done) {
 			log->printf(LOG_LEVEL_INFO, "Network(): Successfully connected to " + peerIp);
-			//connectedMutex.lock();
-			{
+			{ // this scoping is unnecessary
 				std::lock_guard<std::recursive_mutex> lock(connectedMutex);
 				PeerInfo* peerInfo = new PeerInfo;
 				peerInfo->peer.reset(new Peer(socket, blockchain, this, false));
@@ -167,7 +154,6 @@ void CryptoKernel::Network::makeOutgoingConnections2() {
 
 				connected[peerIp].reset(peerInfo);
 			}
-			//connectedMutex.unlock();
 		}
 		else {
 			log->printf(LOG_LEVEL_WARN, "Network(): Failed to connect to " + peerIp);
@@ -176,95 +162,8 @@ void CryptoKernel::Network::makeOutgoingConnections2() {
 	}
 }
 
-void CryptoKernel::Network::makeOutgoingConnections() {
-	std::map<std::string, Json::Value> peerInfos;
-
-	connectedMutex.lock();
-
-	CryptoKernel::Storage::Table::Iterator* it = new CryptoKernel::Storage::Table::Iterator(
-		peers.get(), networkdb.get());
-
-	/*for(it->SeekToFirst(); it->Valid(); it->Next()) {
-		log->printf(LOG_LEVEL_INFO, it->key());
-	}*/
-
-	for(it->SeekToFirst(); it->Valid(); it->Next()) {
-		if(connected.size() >= 8) { // honestly, this is enough
-			std::this_thread::sleep_for(std::chrono::seconds(20)); // so stop looking for a while
-		}
-
-		Json::Value peer = it->value();
-
-		if(connected.find(it->key()) != connected.end()) {
-			continue;
-		}
-
-		std::time_t result = std::time(nullptr);
-
-		const auto banIt = banned.find(it->key());
-		if(banIt != banned.end()) {
-			if(banIt->second > static_cast<uint64_t>(result)) {
-				continue;
-			}
-		}
-
-		if(peer["lastattempt"].asUInt64() + 5 * 60 > static_cast<unsigned long long int>
-				(result) && peer["lastattempt"].asUInt64() != peer["lastseen"].asUInt64()) {
-			continue;
-		}
-
-		sf::IpAddress addr(it->key());
-
-		if(addr == sf::IpAddress::getLocalAddress()
-				|| addr == myAddress
-				|| addr == sf::IpAddress::LocalHost
-				|| addr == sf::IpAddress::None) {
-			continue;
-		}
-
-		log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + it->key());
-
-		peer["lastattempt"] = static_cast<uint64_t>(result);
-
-		// Attempt to connect to peer
-		sf::TcpSocket* socket = new sf::TcpSocket();
-		if(socket->connect(it->key(), port, sf::seconds(3)) != sf::Socket::Done) {
-			log->printf(LOG_LEVEL_WARN, "Network(): Failed to connect to " + it->key());
-			delete socket;
-			peerInfos[it->key()] = peer;
-			//break;
-			continue;
-		}
-
-		PeerInfo* peerInfo = new PeerInfo;
-		peerInfo->peer.reset(new Peer(socket, blockchain, this, false));
-
-		peer["lastseen"] = static_cast<uint64_t>(result);
-
-		peer["score"] = 0;
-
-		peerInfo->info = peer;
-
-		connected[it->key()].reset(peerInfo);
-		peerInfos[it->key()] = peer;
-	}
-
-	if(!it->Valid()) { // woops
-		std::this_thread::sleep_for(std::chrono::seconds(20)); // take a deep breath
-	}
-
-	delete it;
-
-	connectedMutex.unlock();
-}
-
-void CryptoKernel::Network::manageOutgoingConnections() {
+void CryptoKernel::Network::infoOutgoingConnections() {
 	std::lock_guard<std::recursive_mutex> lock(connectedMutex);
-
-	//lukeTex.lock();
-	//connectedMutex.lock();
-
-	//log->printf(LOG_LEVEL_INFO, "management taking place, thank you");
 
 	std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
 
@@ -331,14 +230,7 @@ void CryptoKernel::Network::manageOutgoingConnections() {
 		}
 	}
 
-	/*for(const auto& peer : peerInfos) {
-		peers->put(dbTx.get(), peer.first, peer.second);
-	}*/
-
 	dbTx->commit();
-
-	//lukeTex.unlock();
-	//connectedMutex.unlock();
 }
 
 void CryptoKernel::Network::networkFunc() {
@@ -584,7 +476,6 @@ void CryptoKernel::Network::connectionFunc() {
             std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
             peers->put(dbTx.get(), client->getRemoteAddress().toString(), peerInfo->info);
             dbTx->commit();
-            //connectedMutex.unlock();
         } else {
             delete client;
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -655,7 +546,6 @@ uint64_t CryptoKernel::Network::getCurrentHeight() {
 std::map<std::string, CryptoKernel::Network::peerStats>
 CryptoKernel::Network::getPeerStats() {
     std::lock_guard<std::recursive_mutex> lock(connectedMutex);
-	//connectedMutex.lock();
 
     std::map<std::string, peerStats> returning;
 
@@ -665,8 +555,6 @@ CryptoKernel::Network::getPeerStats() {
         stats.blockHeight = peer.second->info["height"].asUInt64();
         returning.insert(std::make_pair(peer.first, stats));
     }
-
-    //connectedMutex.unlock();
 
     return returning;
 }
