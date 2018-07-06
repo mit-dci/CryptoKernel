@@ -74,7 +74,7 @@ CryptoKernel::Network::~Network() {
 void CryptoKernel::Network::makeOutgoingConnectionsWrapper() {
 	while(running) {
 		makeOutgoingConnections();
-		std::this_thread::sleep_for(std::chrono::milliseconds(300));
+		std::this_thread::sleep_for(std::chrono::milliseconds(20000));
 	}
 }
 
@@ -164,7 +164,7 @@ void CryptoKernel::Network::makeOutgoingConnections() {
 		peerInfo->peer.reset(new Peer(socket, blockchain, this, false));
 
 		// Get height
-		Json::Value info;
+		/*Json::Value info;
 		try {
 			info = peerInfo->peer->getInfo();
 		} catch(Peer::NetworkError& e) {
@@ -187,7 +187,7 @@ void CryptoKernel::Network::makeOutgoingConnections() {
 			peerInfos[it->key()] = peer;
 			continue;
 			//break;
-		}
+		}*/
 
 		peer["lastseen"] = static_cast<uint64_t>(result);
 
@@ -200,10 +200,10 @@ void CryptoKernel::Network::makeOutgoingConnections() {
 		//break;
 	}
 
-	std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin()); // todo, put this back in somehow
+	/*std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin()); // todo, put this back in somehow
 	for(const auto& peer : peerInfos) {
 		peers->put(dbTx.get(), peer.first, peer.second);
-	}
+	}*/
 
 	if(!it->Valid()) {
 		//wait = true;
@@ -217,6 +217,8 @@ void CryptoKernel::Network::makeOutgoingConnections() {
 void CryptoKernel::Network::manageOutgoingConnections() {
 	//std::lock_guard<std::recursive_mutex> lock(connectedMutex);
 	lukeTex.lock();
+
+	log->printf(LOG_LEVEL_INFO, "management taking place, thank you");
 
 	std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
 
