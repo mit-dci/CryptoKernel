@@ -69,29 +69,35 @@ CryptoKernel::Network::~Network() {
 
 void CryptoKernel::Network::outgoingConnectionsFunc() {
 	while(running) {
-		std::map<std::string, Json::Value> peerInfos;
+		//std::map<std::string, Json::Value> peerInfos;
 		bool wait = false;
 
-		makeOutgoingConnections(wait, peerInfos);
-		manageOutgoingConnections(wait, peerInfos);
+		std::map<std::string, Json::Value> peerInfos;
+		makeOutgoingConnections(peerInfos);
+		manageOutgoingConnections(peerInfos);
 
-		if(wait) {
+		/*if(wait) {
 			std::this_thread::sleep_for(std::chrono::seconds(20));
 		}
 		else {
 			std::this_thread::sleep_for(std::chrono::milliseconds(20));
-		}
+		}*/
+		std::this_thread::sleep_for(std::chrono::milliseconds(20));
 	}
 }
 
-void CryptoKernel::Network::makeOutgoingConnections(bool& wait, std::map<std::string, Json::Value>& peerInfos) {
-	std::lock_guard<std::recursive_mutex> lock(connectedMutex);
+void CryptoKernel::Network::makeOutgoingConnections(std::map<std::string, Json::Value> peerInfos) {
+	lukeTex.lock();
+	//std::lock_guard<std::recursive_mutex> lock(connectedMutex);
+
+	//std::map<std::string, Json::Value> peerInfos;
+
 	CryptoKernel::Storage::Table::Iterator* it = new CryptoKernel::Storage::Table::Iterator(
 		peers.get(), networkdb.get());
 
 	for(it->SeekToFirst(); it->Valid(); it->Next()) {
 		if(connected.size() >= 8) {
-			wait = true;
+			//wait = true;
 			break;
 		}
 
@@ -175,15 +181,24 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait, std::map<std::st
 		break;
 	}
 
+	std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
+	for(const auto& peer : peerInfos) {
+		peers->put(dbTx.get(), peer.first, peer.second);
+	}
+
 	if(!it->Valid()) {
-		wait = true;
+		//wait = true;
 	}
 
 	delete it;
+
+	lukeTex.unlock();
 }
 
-void CryptoKernel::Network::manageOutgoingConnections(bool& wait, std::map<std::string, Json::Value>& peerInfos) {
-	std::lock_guard<std::recursive_mutex> lock(connectedMutex);
+void CryptoKernel::Network::manageOutgoingConnections(std::map<std::string, Json::Value> peerInfos) {
+	//std::lock_guard<std::recursive_mutex> lock(connectedMutex);
+	lukeTex.lock();
+
 	std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
 
 	std::set<std::string> removals;
@@ -249,11 +264,13 @@ void CryptoKernel::Network::manageOutgoingConnections(bool& wait, std::map<std::
 		}
 	}
 
-	for(const auto& peer : peerInfos) {
+	/*for(const auto& peer : peerInfos) {
 		peers->put(dbTx.get(), peer.first, peer.second);
-	}
+	}*/
 
 	dbTx->commit();
+
+	lukeTex.unlock();
 }
 
 void CryptoKernel::Network::networkFunc() {

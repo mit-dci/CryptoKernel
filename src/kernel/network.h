@@ -105,6 +105,8 @@ private:
     std::map<std::string, std::unique_ptr<PeerInfo>> connected;
     std::recursive_mutex connectedMutex;
 
+    std::mutex lukeTex;
+
     CryptoKernel::Log* log;
     CryptoKernel::Blockchain* blockchain;
 
@@ -120,8 +122,8 @@ private:
 	std::unique_ptr<std::thread> connectionThread;
 
     //void peerFunc();
-	void makeOutgoingConnections(bool& wait, std::map<std::string, Json::Value>& peerInfos);
-	void manageOutgoingConnections(bool& wait, std::map<std::string, Json::Value>& peerInfos);
+	void makeOutgoingConnections(std::map<std::string, Json::Value> peerInfos);
+	void manageOutgoingConnections(std::map<std::string, Json::Value> peerInfos);
 	void outgoingConnectionsFunc();
     std::unique_ptr<std::thread> outgoingConnectionsThread;
 
