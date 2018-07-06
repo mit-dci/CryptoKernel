@@ -25,3 +25,5 @@ test-ck
 .cproject
 *.make
 Makefile
+core
+vgcore.*

@@ -124,6 +124,7 @@ private:
     //void peerFunc();
 	void makeOutgoingConnections();
 	void manageOutgoingConnections();
+	void makeOutgoingConnections2();
 	void makeOutgoingConnectionsWrapper();
 	void outgoingConnectionsFunc();
     std::unique_ptr<std::thread> outgoingConnectionsThread;
