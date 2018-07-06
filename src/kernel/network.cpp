@@ -56,6 +56,9 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
     networkThread.reset(new std::thread(&CryptoKernel::Network::networkFunc, this));
 
     // Start peer thread
+   	makeOutgoingConnectionsThread.reset(new std::thread(&CryptoKernel::Network::makeOutgoingConnectionsWrapper, this));
+
+    // Start peer thread
     outgoingConnectionsThread.reset(new std::thread(&CryptoKernel::Network::outgoingConnectionsFunc, this));
 }
 
@@ -63,8 +66,16 @@ CryptoKernel::Network::~Network() {
     running = false;
     connectionThread->join();
     networkThread->join();
+    makeOutgoingConnectionsThread->join();
     outgoingConnectionsThread->join();
     listener.close();
+}
+
+void CryptoKernel::Network::makeOutgoingConnectionsWrapper() {
+	while(running) {
+		makeOutgoingConnections();
+		std::this_thread::sleep_for(std::chrono::milliseconds(20));
+	}
 }
 
 void CryptoKernel::Network::outgoingConnectionsFunc() {
@@ -72,9 +83,8 @@ void CryptoKernel::Network::outgoingConnectionsFunc() {
 		//std::map<std::string, Json::Value> peerInfos;
 		bool wait = false;
 
-		std::map<std::string, Json::Value> peerInfos;
-		makeOutgoingConnections(peerInfos);
-		manageOutgoingConnections(peerInfos);
+		//makeOutgoingConnections();
+		manageOutgoingConnections();
 
 		/*if(wait) {
 			std::this_thread::sleep_for(std::chrono::seconds(20));
@@ -86,7 +96,9 @@ void CryptoKernel::Network::outgoingConnectionsFunc() {
 	}
 }
 
-void CryptoKernel::Network::makeOutgoingConnections(std::map<std::string, Json::Value> peerInfos) {
+void CryptoKernel::Network::makeOutgoingConnections() {
+	std::map<std::string, Json::Value> peerInfos;
+
 	lukeTex.lock();
 	//std::lock_guard<std::recursive_mutex> lock(connectedMutex);
 
@@ -195,7 +207,7 @@ void CryptoKernel::Network::makeOutgoingConnections(std::map<std::string, Json::
 	lukeTex.unlock();
 }
 
-void CryptoKernel::Network::manageOutgoingConnections(std::map<std::string, Json::Value> peerInfos) {
+void CryptoKernel::Network::manageOutgoingConnections() {
 	//std::lock_guard<std::recursive_mutex> lock(connectedMutex);
 	lukeTex.lock();
 
