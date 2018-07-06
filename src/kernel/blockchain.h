@@ -33,7 +33,7 @@ class Blockchain {
 public:
     Blockchain(CryptoKernel::Log* GlobalLog,
                const std::string& dbDir);
-    ~Blockchain();
+    virtual ~Blockchain();
 
     class InvalidElementException : public std::exception {
     public:
