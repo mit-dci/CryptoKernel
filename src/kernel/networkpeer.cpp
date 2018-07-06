@@ -59,21 +59,34 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request) {
 
     clientMutex.unlock();
 
-    for(unsigned int t = 0; t < 1500 && running; t++) {
-        clientMutex.lock();
-        std::map<uint64_t, Json::Value>::iterator it = responses.find(nonce);
-        if(it != responses.end()) {
-            const uint64_t endTime = std::chrono::duration_cast<std::chrono::milliseconds>
-                                    (std::chrono::system_clock::now().time_since_epoch()).count();
-            stats.ping = (stats.ping * 0.8) + ((endTime - startTime) * 0.2);
-            const Json::Value returning = it->second;
-            it = responses.erase(it);
-            clientMutex.unlock();
-            return returning;
-        }
-        clientMutex.unlock();
+    {
+    //for(unsigned int t = 0; t < 1500 && running; t++) { // i1
+		//clientMutex.lock();
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		std::unique_lock<std::mutex> cm(clientMutex);
+		std::map<uint64_t, Json::Value>& resp = responses;
+		responseReady.wait(cm, [this, nonce] {
+			//log->printf(LOG_LEVEL_INFO, "nonce we're waiting for is " + std::to_string(nonce));
+			//return true;
+			return this->responses.find(nonce) != this->responses.end();
+		});
+
+		std::map<uint64_t, Json::Value>::iterator it = responses.find(nonce);
+		//if(it != responses.end()) {
+			const uint64_t endTime = std::chrono::duration_cast<std::chrono::milliseconds>
+									(std::chrono::system_clock::now().time_since_epoch()).count();
+			stats.ping = (stats.ping * 0.8) + ((endTime - startTime) * 0.2);
+			const Json::Value returning = it->second;
+			it = responses.erase(it);
+			cm.unlock();
+			//responseReady.notify_all();
+			return returning;
+		//}
+		//clientMutex.unlock();
+		//cm.unlock();
+
+		//std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    //}
     }
 
     running = false;
@@ -125,7 +138,7 @@ void CryptoKernel::Network::Peer::requestFunc() {
             packet >> requestString;
 
             // If this breaks, request will be null
-            const Json::Value request = CryptoKernel::Storage::toJson(requestString);
+            const Json::Value request = CryptoKernel::Storage::toJson(requestString); // but this is the response....
 
             try {
                 if(!request["command"].empty()) {
@@ -240,6 +253,8 @@ void CryptoKernel::Network::Peer::requestFunc() {
                     if(it != requests.end()) {
                         responses[request["nonce"].asUInt64()] = request["data"];
                         requests.erase(it);
+                        //clientMutex.unlock(); // errrr
+                        responseReady.notify_one(); // notify_one?  We only have one thread to notify, right?
                     } else {
                         network->changeScore(client->getRemoteAddress().toString(), 50);
                     }
