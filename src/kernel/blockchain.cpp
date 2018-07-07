@@ -272,25 +272,29 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::verifyTransaction(Storage::Tran
 
         if(!outData["schnorrKey"].empty() && outData["contract"].empty()) {
             const Json::Value spendData = inp.getData();
-            if(spendData["signature"].empty()) {
+            if(spendData["signature"].empty() || !spendData["signature"].isString()) {
                 log->printf(LOG_LEVEL_INFO,
                             "blockchain::verifyTransaction(): Could not verify input signature");
                 return std::make_tuple(false, true);
             }
 
-            CryptoKernel::Schnorr schnorr;
-            schnorr.setPublicKey(outData["schnorrKey"].asString());
-            if(!schnorr.verify(out.getId().toString() + outputHash.toString(),
-                              spendData["signature"].asString())) {
-                log->printf(LOG_LEVEL_INFO,
-                            "blockchain::verifyTransaction(): Could not verify input signature");
-                return std::make_tuple(false, true);
+            if(!outData["schnorrKey"].isString()) {
+                log->printf(LOG_LEVEL_WARN, "blockchain::verifyTransaction(): Output has a malformed schnorr key, not checking its signature");
+            } else {
+                CryptoKernel::Schnorr schnorr;
+                schnorr.setPublicKey(outData["schnorrKey"].asString());
+                if(!schnorr.verify(out.getId().toString() + outputHash.toString(),
+                                spendData["signature"].asString())) {
+                    log->printf(LOG_LEVEL_INFO,
+                                "blockchain::verifyTransaction(): Could not verify input signature");
+                    return std::make_tuple(false, true);
+                }
             }
         }
 
         if(!outData["publicKey"].empty() && outData["contract"].empty()) {
             const Json::Value spendData = inp.getData();
-            if(spendData["signature"].empty()) {
+            if(spendData["signature"].empty() || !spendData["signature"].isString()) {
                 log->printf(LOG_LEVEL_INFO,
                             "blockchain::verifyTransaction(): Could not verify input signature");
                 return std::make_tuple(false, true);
