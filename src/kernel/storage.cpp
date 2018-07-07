@@ -243,19 +243,34 @@ Json::Value CryptoKernel::Storage::Table::get(Transaction* transaction,
     return transaction->get(getKey(key, index));
 }
 
-CryptoKernel::Storage::Table::Iterator::Iterator(Table* table, Storage* db) {
+CryptoKernel::Storage::Table::Iterator::Iterator(Table* table, Storage* db, const 
+leveldb::Snapshot* snapshot, const std::string& prefix, const int index) {
     this->table = table;
     this->db = db;
-    db->writeLock.lock();
+    
+    leveldb::ReadOptions options;
 
-    it = db->db->NewIterator(leveldb::ReadOptions());
+    if(snapshot != nullptr) {
+        this->snapshot = snapshot;
+        options.snapshot = snapshot;
+    } else {
+         db->writeLock.lock();
+    }
 
-    prefix = table->getKey("");
+    it = db->db->NewIterator(options);
+
+    this->prefix = table->getKey("");
+
+    if(prefix != "") {
+        this->prefix += prefix;
+    }
 }
 
 CryptoKernel::Storage::Table::Iterator::~Iterator() {
     delete it;
-    db->writeLock.unlock();
+    if(snapshot == nullptr) {
+        db->writeLock.unlock();
+    }
 }
 
 void CryptoKernel::Storage::Table::Iterator::SeekToFirst() {

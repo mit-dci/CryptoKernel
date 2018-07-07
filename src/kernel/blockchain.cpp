@@ -562,7 +562,7 @@ void CryptoKernel::Blockchain::confirmTransaction(Storage::Transaction* dbTransa
         stxos->put(dbTransaction, outputId, utxo);
 
         if(!txoData["publicKey"].isNull()) {
-            Json::Value txos = stxos->get(dbTransaction,
+            /*Json::Value txos = stxos->get(dbTransaction,
                                           txoData["publicKey"].asString(),
                                           0);
             txos.append(outputId);
@@ -585,7 +585,12 @@ void CryptoKernel::Blockchain::confirmTransaction(Storage::Transaction* dbTransa
             utxos->put(dbTransaction,
                        txoData["publicKey"].asString(),
                        newTxos,
-                       0);
+                       0);*/
+
+            const auto txoStr = txoData["publicKey"].asString() + outputId;
+
+            stxos->put(dbTransaction, txoStr, Json::nullValue, 0);
+            utxos->erase(dbTransaction, txoStr, 0);
         }
 
         utxos->erase(dbTransaction, outputId);
@@ -597,14 +602,17 @@ void CryptoKernel::Blockchain::confirmTransaction(Storage::Transaction* dbTransa
     for(const output& out : tx.getOutputs()) {
         const auto txoData = out.getData();
         if(!txoData["publicKey"].isNull()) {
-            Json::Value txos = utxos->get(dbTransaction,
+            /*Json::Value txos = utxos->get(dbTransaction,
                                           txoData["publicKey"].asString(),
                                           0);
             txos.append(out.getId().toString());
             utxos->put(dbTransaction,
                        txoData["publicKey"].asString(),
                        txos,
-                       0);
+                       0);*/
+
+            const auto txoStr = txoData["publicKey"].asString() + out.getId().toString();
+            utxos->put(dbTransaction, txoStr, Json::nullValue, 0);
         }
 
         utxos->put(dbTransaction, out.getId().toString(), dbOutput(out, tx.getId()).toJson());
@@ -740,10 +748,10 @@ std::set<CryptoKernel::Blockchain::dbOutput> CryptoKernel::Blockchain::getUnspen
 
     std::set<dbOutput> returning;
 
-    const auto unspent = utxos->get(dbTx.get(), publicKey, 0);
+    std::unique_ptr<Storage::Table::Iterator> it(new Storage::Table::Iterator(utxos.get(), blockdb.get(), dbTx->snapshot, publicKey, 0));
 
-    for(const auto& utxo : unspent) {
-        returning.insert(getOutputDB(dbTx.get(), utxo.asString()));
+    for(it->SeekToFirst(); it->Valid(); it->Next()) {
+        returning.insert(getOutputDB(dbTx.get(), it->key()));
     }
 
     return returning;
@@ -755,10 +763,10 @@ std::set<CryptoKernel::Blockchain::dbOutput> CryptoKernel::Blockchain::getSpentO
 
     std::set<dbOutput> returning;
 
-    const auto spent = stxos->get(dbTx.get(), publicKey, 0);
+    std::unique_ptr<Storage::Table::Iterator> it(new Storage::Table::Iterator(stxos.get(), blockdb.get(), dbTx->snapshot, publicKey, 0));
 
-    for(const auto& stxo : spent) {
-        returning.insert(getOutputDB(dbTx.get(), stxo.asString()));
+    for(it->SeekToFirst(); it->Valid(); it->Next()) {
+        returning.insert(getOutputDB(dbTx.get(), it->key()));
     }
 
     return returning;
@@ -772,7 +780,7 @@ void CryptoKernel::Blockchain::reverseBlock(Storage::Transaction* dbTransaction)
 
         const auto txoData = out.getData();
         if(!txoData["publicKey"].isNull()) {
-            const Json::Value txos = db->get(dbTransaction,
+            /*const Json::Value txos = db->get(dbTransaction,
                                           txoData["publicKey"].asString(),
                                           0);
 
@@ -788,7 +796,10 @@ void CryptoKernel::Blockchain::reverseBlock(Storage::Transaction* dbTransaction)
             db->put(dbTransaction,
                        txoData["publicKey"].asString(),
                        newTxos,
-                       0);
+                       0);*/
+
+            const auto txoStr = txoData["publicKey"].asString() + out.getId().toString();
+            db->erase(dbTransaction, txoStr, 0);
         }
     };
 
@@ -816,14 +827,17 @@ void CryptoKernel::Blockchain::reverseBlock(Storage::Transaction* dbTransaction)
             utxos->put(dbTransaction, oldOutputId, oldOutput.toJson());
             const auto txoData = oldOutput.getData();
             if(!txoData["publicKey"].isNull()) {
-                Json::Value txos = utxos->get(dbTransaction,
+                /*Json::Value txos = utxos->get(dbTransaction,
                                               txoData["publicKey"].asString(),
                                               0);
                 txos.append(oldOutputId);
                 utxos->put(dbTransaction,
                            txoData["publicKey"].asString(),
                            txos,
-                           0);
+                           0);*/
+
+                const auto txoStr = txoData["publicKey"].asString() + oldOutputId;
+                utxos->put(dbTransaction, txoStr, Json::nullValue, 0);
             }
         }
 

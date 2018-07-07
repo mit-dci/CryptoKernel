@@ -68,6 +68,8 @@ public:
 
         bool ended();
 
+        const leveldb::Snapshot* snapshot;
+
     private:
         struct dbObject {
             Json::Value data;
@@ -77,7 +79,6 @@ public:
         Storage* db;
         bool finished;
         bool readonly;
-        const leveldb::Snapshot* snapshot;
         std::recursive_mutex* mut;
     };
 
@@ -98,7 +99,8 @@ public:
 
         class Iterator {
         public:
-            Iterator(Table* table, Storage* db);
+            Iterator(Table* table, Storage* db, const leveldb::Snapshot* snapshot = nullptr,
+                     const std::string& prefix = "", const int index = -1);
 
             ~Iterator();
 
@@ -137,6 +139,7 @@ public:
             Table* table;
             Storage* db;
             std::string prefix;
+            const leveldb::Snapshot* snapshot;
         };
 
         std::string getKey(const std::string& key, const int index = -1);
