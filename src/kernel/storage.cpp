@@ -250,8 +250,9 @@ leveldb::Snapshot* snapshot, const std::string& prefix, const int index) {
     
     leveldb::ReadOptions options;
 
+    this->snapshot = snapshot;
+
     if(snapshot != nullptr) {
-        this->snapshot = snapshot;
         options.snapshot = snapshot;
     } else {
          db->writeLock.lock();
