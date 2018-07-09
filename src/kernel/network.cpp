@@ -242,6 +242,16 @@ void CryptoKernel::Network::peerFunc() {
             }
 
             dbTx->commit();
+
+            std::lock_guard<std::mutex> cLock(connectedStatsMutex);
+            connectedStats.clear();
+
+            for(const auto& peer : connected) {
+                peerStats stats = peer.second->peer->getPeerStats();
+                stats.version = peer.second->info["version"].asString();
+                stats.blockHeight = peer.second->info["height"].asUInt64();
+                connectedStats.insert(std::make_pair(peer.first, stats));
+            }
         }
 
         if(wait) {
@@ -305,6 +315,8 @@ void CryptoKernel::Network::networkFunc() {
                                 blocks.insert(blocks.end(), newBlocks.rbegin(), newBlocks.rend());
                                 if(nBlocks > 0) {
                                     madeProgress = true;
+                                } else {
+                                    log->printf(LOG_LEVEL_WARN, "Network(): Peer responded with no blocks");
                                 }
                             } catch(Peer::NetworkError& e) {
                                 log->printf(LOG_LEVEL_WARN,
@@ -313,6 +325,8 @@ void CryptoKernel::Network::networkFunc() {
                                 it++;
                                 break;
                             }
+
+                            log->printf(LOG_LEVEL_INFO, "Network(): Testing if we have block " + std::to_string(blocks.rbegin()->getHeight() - 1));
 
                             try {
                                 blockchain->getBlockDB(blocks.rbegin()->getPreviousBlockId().toString());
@@ -323,6 +337,9 @@ void CryptoKernel::Network::networkFunc() {
                                     it++;
                                     break;
                                 } else {
+                                    log->printf(LOG_LEVEL_INFO, "Network(): got block h: " + std::to_string(blocks.rbegin()->getHeight()) + " with prevBlock: " + blocks.rbegin()->getPreviousBlockId().toString() + " prev not found");
+
+
                                     currentHeight = std::max(1, (int)currentHeight - nBlocks);
                                     continue;
                                 }
@@ -333,6 +350,8 @@ void CryptoKernel::Network::networkFunc() {
 
                         currentHeight += nBlocks;
                     }
+
+                    log->printf(LOG_LEVEL_INFO, "Network(): Found common block " + std::to_string(currentHeight-1) + " with peer, starting block download");
 
                     while(blocks.size() < 2000 && running && !failure && currentHeight < bestHeight) {
                         log->printf(LOG_LEVEL_INFO,
@@ -347,6 +366,7 @@ void CryptoKernel::Network::networkFunc() {
                             if(nBlocks > 0) {
                                 madeProgress = true;
                             } else {
+                                log->printf(LOG_LEVEL_WARN, "Network(): Peer responded with no blocks");
                                 break;
                             }
                         } catch(Peer::NetworkError& e) {
@@ -361,10 +381,12 @@ void CryptoKernel::Network::networkFunc() {
                     }
 
                     if(blockProcessor) {
+                        log->printf(LOG_LEVEL_INFO, "Network(): Waiting for previous block processor thread to finish");
                         blockProcessor->join();
                         blockProcessor.reset();
 
                         if(failure) {
+                            log->printf(LOG_LEVEL_WARN, "Network(): Failure processing blocks");
                             blocks.clear();
                             currentHeight = blockchain->getBlockDB("tip").getHeight();
                             this->currentHeight = currentHeight;
@@ -374,14 +396,12 @@ void CryptoKernel::Network::networkFunc() {
                             failure = false;
                             break;
                         }
-
-                        if(currentHeight == bestHeight) {
-                            break;
-                        }
                     }
 
                     blockProcessor.reset(new std::thread([&, blocks](const std::string& peer){
                         failure = false;
+
+                        log->printf(LOG_LEVEL_INFO, "Network(): Submitting " + std::to_string(blocks.size()) + " blocks to blockchain");
 
                         for(auto rit = blocks.rbegin(); rit != blocks.rend() && running; ++rit) {
                             const auto blockResult = blockchain->submitBlock(*rit);
@@ -563,16 +583,7 @@ uint64_t CryptoKernel::Network::getCurrentHeight() {
 
 std::map<std::string, CryptoKernel::Network::peerStats>
 CryptoKernel::Network::getPeerStats() {
-    std::lock_guard<std::recursive_mutex> lock(connectedMutex);
+    std::lock_guard<std::mutex> lock(connectedStatsMutex);
 
-    std::map<std::string, peerStats> returning;
-
-    for(const auto& peer : connected) {
-        peerStats stats = peer.second->peer->getPeerStats();
-        stats.version = peer.second->info["version"].asString();
-        stats.blockHeight = peer.second->info["height"].asUInt64();
-        returning.insert(std::make_pair(peer.first, stats));
-    }
-
-    return returning;
+    return connectedStats;
 }

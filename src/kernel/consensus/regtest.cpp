@@ -17,7 +17,7 @@ bool CryptoKernel::Consensus::Regtest::isBlockBetter(Storage::Transaction* trans
 	return blockData.isBetter;
 }
 
-bool CryptoKernel::Consensus::Regtest::checkConsensusRules(Storage::Transaction* transaction, const CryptoKernel::Blockchain::block& block, const CryptoKernel::Blockchain::dbBlock& previousBlock)
+bool CryptoKernel::Consensus::Regtest::checkConsensusRules(Storage::Transaction* transaction, CryptoKernel::Blockchain::block& block, const CryptoKernel::Blockchain::dbBlock& previousBlock)
 {
 	return true;
 }
@@ -96,7 +96,6 @@ CryptoKernel::Consensus::Regtest::getConsensusData(const CryptoKernel::Blockchai
 	return data;
 }
 
-
 Json::Value CryptoKernel::Consensus::Regtest::consensusDataToJson(const CryptoKernel::Consensus::Regtest::consensusData& data) 
 {
 	Json::Value returning;
@@ -104,4 +103,4 @@ Json::Value CryptoKernel::Consensus::Regtest::consensusDataToJson(const CryptoKe
 	return returning;
 }
 
-
+void CryptoKernel::Consensus::Regtest::start() {}
