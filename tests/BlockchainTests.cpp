@@ -71,7 +71,7 @@ void BlockchainTest::testListUnspentOutputsFromCoinbase() {
     }
 
     // Ensure three blocks were actually mined
-    blockchain->getBlockByHeight(3);
+    blockchain->getBlockByHeight(4);
 
     const auto outs = blockchain->getUnspentOutputs(pubKey);
 
