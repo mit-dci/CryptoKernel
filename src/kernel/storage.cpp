@@ -260,7 +260,7 @@ leveldb::Snapshot* snapshot, const std::string& prefix, const int index) {
 
     it = db->db->NewIterator(options);
 
-    this->prefix = table->getKey("");
+    this->prefix = table->getKey("", index);
 
     if(prefix != "") {
         this->prefix += prefix;
