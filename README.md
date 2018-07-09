@@ -1,7 +1,7 @@
 CryptoKernel
 ============
 
-CryptoKernel is a C++ library intended to help create blockchain-based digital currencies. It contains modules for key-value storage with JSON, peer-to-peer networking, ECDSA key generation, signing and verifying, big number operations, logging and a blockchain class for handling a Bitcoin-style write-only log. Designed to be object-oriented and easy to use, it provides transaction scripting with Lua 5.3, custom consensus algorithms (e.g Raft, Proof of Work, Authorised Verifier Round-Robin) and custom transaction types. 
+CryptoKernel is a C++ library intended to help create blockchain-based digital currencies. It contains modules for key-value storage with JSON, peer-to-peer networking, ECDSA & Schnorr key generation, signing and verifying, big number operations, logging and a blockchain class for handling a Bitcoin-style write-only log. Designed to be object-oriented and easy to use, it provides transaction scripting with Lua 5.3, custom consensus algorithms (e.g Proof of Work, Authorised Verifier Round-Robin) and custom transaction types. 
 
 Building on Ubuntu 16.04
 ------------------------
@@ -11,6 +11,11 @@ Building on Ubuntu 16.04
 premake5 gmake2
 make
 ```
+
+The resulting binary will be in the `bin/Static/Debug` directory. 
+
+It is also possible to compile with other options. See `make help` and `premake5 --help`
+for a list.
 
 Usage
 -----
@@ -32,53 +37,26 @@ To make ckd run in daemon mode use:
 ./ckd -daemon
 ```
 
-There is also a GUI for CryptoKernel that runs client-side in a web browser available here: https://github.com/metalicjames/ckui
-
 API Reference
 -------------
 
 Build the documentation with doxyblocks.
 ```
-make doc
+premake5 gmake2 --with-docs
+make
 ```
 
 Roadmap
 ===
 
-## Legend
+(in no particular order)
 
-   - H -- Hard Fork
-   - S -- Soft Fork
-   - L -- Local (No Fork Required)
-
-## Versions
-#### ~~alpha v0.0.1 -- H~~ - Released
-- ~~H -- Transaction Merkle root in block header~~
-- ~~H -- Rule change signalling in block~~
-- ~~H -- Friedman rule emission schedule~~
-- ~~H -- Lyra2REv2 as PoW function~~
-- ~~L -- Wallet schema version detection~~
-- ~~L -- RPC Server requires password~~
-    
-#### alpha v0.1.0 -- L
-- ~~L -- Improved synchronisation performance~~
-- ~~L -- Other various bug fixes, especially around error handling~~
-- ~~L -- Wallet tracks unconfirmed transactions~~
-- ~~L -- Multicoin support via config files~~
-
-#### alpha v0.2.0 -- S 
-- S -- Expand Lua contract standard library with more
-digital currency specific functions
-- S -- Load external contract code to avoid duplication
-for propagating contracts
-- L -- Standardised address format (not just public keys)
-- L -- BFT consensus module
-- L -- Raft consensus module
-- L -- Expanded RPC interface for contracts 
-
-
-#### alpha v0.3.0
-- L -- HD key generation and recovery with seed
-- L -- LN integrated with wallet
-- S -- Schnorr signatures
-- L -- Seed addresses
+- Load external contract code to avoid duplication
+when propagating contracts
+- Standardised address format (not just public keys)
+- Pay to MAST transaction type (includes pay to pubkey hash and pay to script hash)
+- BFT consensus module
+- Raft consensus module
+- Proof of Stake consensus module
+- HD key generation
+- Schnorr signature aggregation for transactions

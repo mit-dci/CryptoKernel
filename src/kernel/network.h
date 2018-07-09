@@ -105,7 +105,8 @@ private:
     std::map<std::string, std::unique_ptr<PeerInfo>> connected;
     std::recursive_mutex connectedMutex;
 
-    std::mutex lukeTex;
+    std::map<std::string, peerStats> connectedStats;
+    std::mutex connectedStatsMutex;
 
     CryptoKernel::Log* log;
     CryptoKernel::Blockchain* blockchain;

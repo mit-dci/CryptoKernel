@@ -47,7 +47,6 @@ CryptoKernel::Blockchain::Blockchain(CryptoKernel::Log* GlobalLog,
 
 bool CryptoKernel::Blockchain::loadChain(CryptoKernel::Consensus* consensus,
                                          const std::string& genesisBlockFile) {
-    std::lock_guard<std::recursive_mutex> lock(chainLock);
     this->consensus = consensus;
     std::unique_ptr<Storage::Transaction> dbTransaction(blockdb->begin());
     const bool tipExists = blocks->get(dbTransaction.get(), "tip").isObject();
@@ -104,9 +103,9 @@ CryptoKernel::Blockchain::~Blockchain() {
 
 std::set<CryptoKernel::Blockchain::transaction>
 CryptoKernel::Blockchain::getUnconfirmedTransactions() {
-    chainLock.lock();
+    mempoolMutex.lock();
     const std::set<CryptoKernel::Blockchain::transaction> returning = unconfirmedTransactions.getTransactions();
-    chainLock.unlock();
+    mempoolMutex.unlock();
 
     return returning;
 }
@@ -129,8 +128,7 @@ CryptoKernel::Blockchain::dbBlock CryptoKernel::Blockchain::getBlockDB(
 
 CryptoKernel::Blockchain::dbBlock CryptoKernel::Blockchain::getBlockDB(
     const std::string& id) {
-    std::lock_guard<std::recursive_mutex> lock(chainLock);
-    std::unique_ptr<Storage::Transaction> tx(blockdb->begin());
+    std::unique_ptr<Storage::Transaction> tx(blockdb->beginReadOnly());
 
     return getBlockDB(tx.get(), id);
 }
@@ -178,29 +176,25 @@ CryptoKernel::Blockchain::dbBlock CryptoKernel::Blockchain::getBlockByHeightDB(
 
 CryptoKernel::Blockchain::transaction CryptoKernel::Blockchain::getTransaction(
     const std::string& id) {
-    std::lock_guard<std::recursive_mutex> lock(chainLock);
-    std::unique_ptr<Storage::Transaction> tx(blockdb->begin());
+    std::unique_ptr<Storage::Transaction> tx(blockdb->beginReadOnly());
     return getTransaction(tx.get(), id);
 }
 
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlock(
     const std::string& id) {
-    std::lock_guard<std::recursive_mutex> lock(chainLock);
-    std::unique_ptr<Storage::Transaction> tx(blockdb->begin());
+    std::unique_ptr<Storage::Transaction> tx(blockdb->beginReadOnly());
     return getBlock(tx.get(), id);
 }
 
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::getBlockByHeight(
     const uint64_t height) {
-    std::lock_guard<std::recursive_mutex> lock(chainLock);
-    std::unique_ptr<Storage::Transaction> tx(blockdb->begin());
+    std::unique_ptr<Storage::Transaction> tx(blockdb->beginReadOnly());
     return getBlockByHeight(tx.get(), height);
 }
 
 CryptoKernel::Blockchain::output CryptoKernel::Blockchain::getOutput(
     const std::string& id) {
-    std::lock_guard<std::recursive_mutex> lock(chainLock);
-    std::unique_ptr<Storage::Transaction> tx(blockdb->begin());
+    std::unique_ptr<Storage::Transaction> tx(blockdb->beginReadOnly());
     return getOutput(tx.get(), id);
 }
 
@@ -278,25 +272,29 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::verifyTransaction(Storage::Tran
 
         if(!outData["schnorrKey"].empty() && outData["contract"].empty()) {
             const Json::Value spendData = inp.getData();
-            if(spendData["signature"].empty()) {
+            if(spendData["signature"].empty() || !spendData["signature"].isString()) {
                 log->printf(LOG_LEVEL_INFO,
                             "blockchain::verifyTransaction(): Could not verify input signature");
                 return std::make_tuple(false, true);
             }
 
-            CryptoKernel::Schnorr schnorr;
-            schnorr.setPublicKey(outData["schnorrKey"].asString());
-            if(!schnorr.verify(out.getId().toString() + outputHash.toString(),
-                              spendData["signature"].asString())) {
-                log->printf(LOG_LEVEL_INFO,
-                            "blockchain::verifyTransaction(): Could not verify input signature");
-                return std::make_tuple(false, true);
+            if(!outData["schnorrKey"].isString()) {
+                log->printf(LOG_LEVEL_WARN, "blockchain::verifyTransaction(): Output has a malformed schnorr key, not checking its signature");
+            } else {
+                CryptoKernel::Schnorr schnorr;
+                schnorr.setPublicKey(outData["schnorrKey"].asString());
+                if(!schnorr.verify(out.getId().toString() + outputHash.toString(),
+                                spendData["signature"].asString())) {
+                    log->printf(LOG_LEVEL_INFO,
+                                "blockchain::verifyTransaction(): Could not verify input signature");
+                    return std::make_tuple(false, true);
+                }
             }
         }
 
         if(!outData["publicKey"].empty() && outData["contract"].empty()) {
             const Json::Value spendData = inp.getData();
-            if(spendData["signature"].empty()) {
+            if(spendData["signature"].empty() || !spendData["signature"].isString()) {
                 log->printf(LOG_LEVEL_INFO,
                             "blockchain::verifyTransaction(): Could not verify input signature");
                 return std::make_tuple(false, true);
@@ -343,7 +341,6 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::verifyTransaction(Storage::Tran
 }
 
 std::tuple<bool, bool> CryptoKernel::Blockchain::submitTransaction(const transaction& tx) {
-    std::lock_guard<std::recursive_mutex> lock(chainLock);
     std::unique_ptr<Storage::Transaction> dbTx(blockdb->begin());
     const auto result = submitTransaction(dbTx.get(), tx);
     if(std::get<0>(result)) {
@@ -353,7 +350,6 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::submitTransaction(const transac
 }
 
 std::tuple<bool, bool> CryptoKernel::Blockchain::submitBlock(const block& newBlock, bool genesisBlock) {
-    std::lock_guard<std::recursive_mutex> lock(chainLock);
     std::unique_ptr<Storage::Transaction> dbTx(blockdb->begin());
     const auto result = submitBlock(dbTx.get(), newBlock, genesisBlock);
     if(std::get<0>(result)) {
@@ -364,10 +360,10 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::submitBlock(const block& newBlo
 
 std::tuple<bool, bool> CryptoKernel::Blockchain::submitTransaction(Storage::Transaction* dbTx,
         const transaction& tx) {
-    std::lock_guard<std::recursive_mutex> lock(chainLock);
 	const auto verifyResult = verifyTransaction(dbTx, tx);
     if(std::get<0>(verifyResult)) {
         if(consensus->submitTransaction(dbTx, tx)) {
+            std::lock_guard<std::mutex> lock(mempoolMutex);
 			if(unconfirmedTransactions.insert(tx)) {
 				log->printf(LOG_LEVEL_INFO,
 							"blockchain::submitTransaction(): Received transaction " + tx.getId().toString());
@@ -391,8 +387,6 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::submitTransaction(Storage::Tran
 
 std::tuple<bool, bool> CryptoKernel::Blockchain::submitBlock(Storage::Transaction* dbTx,
         const block& Block, bool genesisBlock) {
-    std::lock_guard<std::recursive_mutex> lock(chainLock);
-
     block newBlock = Block;
 
     const std::string idAsString = newBlock.getId().toString();
@@ -537,6 +531,7 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::submitBlock(Storage::Transactio
         blocks->put(dbTx, "tip", blockAsJson);
         blocks->put(dbTx, std::to_string(blockHeight), Json::Value(idAsString), 0);
         blocks->put(dbTx, idAsString, blockAsJson);
+        std::lock_guard<std::mutex> lock(mempoolMutex);
 		unconfirmedTransactions.rescanMempool(dbTx, this);
     }
 
@@ -620,6 +615,7 @@ void CryptoKernel::Blockchain::confirmTransaction(Storage::Transaction* dbTransa
                       confirmingBlock, coinbaseTx).toJson());
 
     //Remove transaction from unconfirmed transactions vector
+    std::lock_guard<std::mutex> lock(mempoolMutex);
     unconfirmedTransactions.remove(tx);
 }
 
@@ -689,8 +685,7 @@ uint64_t CryptoKernel::Blockchain::calculateTransactionFee(Storage::Transaction*
 
 CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateVerifyingBlock(
     const std::string& publicKey) {
-    std::lock_guard<std::recursive_mutex> lock(chainLock);
-    std::unique_ptr<Storage::Transaction> dbTx(blockdb->begin());
+    std::unique_ptr<Storage::Transaction> dbTx(blockdb->beginReadOnly());
 
     const std::set<transaction> blockTransactions = getUnconfirmedTransactions();
 
@@ -741,8 +736,7 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateVerifyingBlock
 
 std::set<CryptoKernel::Blockchain::dbOutput> CryptoKernel::Blockchain::getUnspentOutputs(
     const std::string& publicKey) {
-    std::lock_guard<std::recursive_mutex> lock(chainLock);
-    std::unique_ptr<Storage::Transaction> dbTx(blockdb->begin());
+    std::unique_ptr<Storage::Transaction> dbTx(blockdb->beginReadOnly());
 
     std::set<dbOutput> returning;
 
@@ -757,8 +751,7 @@ std::set<CryptoKernel::Blockchain::dbOutput> CryptoKernel::Blockchain::getUnspen
 
 std::set<CryptoKernel::Blockchain::dbOutput> CryptoKernel::Blockchain::getSpentOutputs(
     const std::string& publicKey) {
-    std::lock_guard<std::recursive_mutex> lock(chainLock);
-    std::unique_ptr<Storage::Transaction> dbTx(blockdb->begin());
+    std::unique_ptr<Storage::Transaction> dbTx(blockdb->beginReadOnly());
 
     std::set<dbOutput> returning;
 
@@ -848,7 +841,9 @@ void CryptoKernel::Blockchain::reverseBlock(Storage::Transaction* dbTransaction)
 
     candidates->put(dbTransaction, tip.getId().toString(), tip.toJson());
 
+    mempoolMutex.lock();
 	unconfirmedTransactions.rescanMempool(dbTransaction, this);
+    mempoolMutex.unlock();
 
 	for(const auto& tx : replayTxs) {
 		if(!std::get<0>(submitTransaction(dbTransaction, tx))) {
@@ -860,7 +855,6 @@ void CryptoKernel::Blockchain::reverseBlock(Storage::Transaction* dbTransaction)
 
 CryptoKernel::Blockchain::dbTransaction CryptoKernel::Blockchain::getTransactionDB(
     Storage::Transaction* transaction, const std::string& id) {
-    std::lock_guard<std::recursive_mutex> lock(chainLock);
     const Json::Value jsonTx = transactions->get(transaction, id);
     if(!jsonTx.isObject()) {
         throw NotFoundException("Transaction " + id);
@@ -871,7 +865,6 @@ CryptoKernel::Blockchain::dbTransaction CryptoKernel::Blockchain::getTransaction
 
 CryptoKernel::Blockchain::transaction CryptoKernel::Blockchain::getTransaction(
     Storage::Transaction* transaction, const std::string& id) {
-    std::lock_guard<std::recursive_mutex> lock(chainLock);
     const Json::Value jsonTx = transactions->get(transaction, id);
     if(!jsonTx.isObject()) {
         throw NotFoundException("Transaction " + id);
@@ -899,8 +892,7 @@ void CryptoKernel::Blockchain::emptyDB() {
 }
 
 CryptoKernel::Storage::Transaction* CryptoKernel::Blockchain::getTxHandle() {
-    chainLock.lock();
-    Storage::Transaction* dbTx = blockdb->begin(chainLock);
+    Storage::Transaction* dbTx = blockdb->beginReadOnly();
     return dbTx;
 }
 

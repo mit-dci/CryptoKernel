@@ -33,7 +33,7 @@ class Blockchain {
 public:
     Blockchain(CryptoKernel::Log* GlobalLog,
                const std::string& dbDir);
-    ~Blockchain();
+    virtual ~Blockchain();
 
     class InvalidElementException : public std::exception {
     public:
@@ -389,6 +389,7 @@ private:
 	};
 
     Mempool unconfirmedTransactions;
+    std::mutex mempoolMutex;
 
     std::string dbDir;
 
@@ -401,7 +402,6 @@ private:
     bool status;
     void reverseBlock(Storage::Transaction* dbTransaction);
     bool reorgChain(Storage::Transaction* dbTransaction, const BigNum& newTipId);
-    std::recursive_mutex chainLock;
     virtual uint64_t getBlockReward(const uint64_t height) = 0;
     virtual std::string getCoinbaseOwner(const std::string& publicKey) = 0;
     Consensus* consensus;
