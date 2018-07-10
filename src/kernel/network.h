@@ -120,10 +120,15 @@ private:
     std::unique_ptr<std::thread> networkThread;
 
     void connectionFunc();
-    std::unique_ptr<std::thread> connectionThread;
+	std::unique_ptr<std::thread> connectionThread;
 
-    void peerFunc();
-    std::unique_ptr<std::thread> peerThread;
+	void makeOutgoingConnections();
+	void makeOutgoingConnectionsWrapper();
+    std::unique_ptr<std::thread> makeOutgoingConnectionsThread;
+
+    void infoOutgoingConnections();
+    void infoOutgoingConnectionsWrapper();
+    std::unique_ptr<std::thread> infoOutgoingConnectionsThread;
 
     sf::TcpListener listener;
 

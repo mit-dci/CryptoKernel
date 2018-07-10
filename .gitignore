@@ -20,7 +20,10 @@ addressesdb
 peers
 /.vscode/
 test-ck
-ck.make
-ckd.make
+/Default/
+.project
+.cproject
+*.make
 Makefile
-test.make
+core
+vgcore.*
