@@ -59,13 +59,13 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
    	makeOutgoingConnectionsThread.reset(new std::thread(&CryptoKernel::Network::makeOutgoingConnectionsWrapper, this));
 
     // Start peer thread
-    //infoOutgoingConnectionsThread.reset(new std::thread(&CryptoKernel::Network::infoOutgoingConnectionsWrapper, this));
+    infoOutgoingConnectionsThread.reset(new std::thread(&CryptoKernel::Network::infoOutgoingConnectionsWrapper, this));
 }
 
 CryptoKernel::Network::~Network() {
     running = false;
-    connectionThread->join();
-    networkThread->join();
+    //connectionThread->join();
+    //networkThread->join();
     makeOutgoingConnectionsThread->join();
     infoOutgoingConnectionsThread->join();
     listener.close();
@@ -90,7 +90,7 @@ void CryptoKernel::Network::infoOutgoingConnectionsWrapper() {
 void CryptoKernel::Network::makeOutgoingConnections() {
 	std::map<std::string, Json::Value> peersToTry;
 	{
-		std::lock_guard<std::recursive_mutex> lock(connectedMutex);
+		//std::lock_guard<std::recursive_mutex> lock(connectedMutex);
 		CryptoKernel::Storage::Table::Iterator* it = new CryptoKernel::Storage::Table::Iterator(
 				peers.get(), networkdb.get());
 
@@ -101,18 +101,18 @@ void CryptoKernel::Network::makeOutgoingConnections() {
 
 			Json::Value peerInfo = it->value();
 
-			if(connected.find(it->key()) != connected.end()) {
+			if(connected.contains(it->key())) {
 				continue;
 			}
 
 			std::time_t result = std::time(nullptr);
 
-			const auto banIt = banned.find(it->key());
+			/*const auto banIt = banned.find(it->key());
 			if(banIt != banned.end()) {
 				if(banIt->second > static_cast<uint64_t>(result)) {
 					continue;
 				}
-			}
+			}*/
 
 			if(peerInfo["lastattempt"].asUInt64() + 5 * 60 > static_cast<unsigned long long int>
 					(result) && peerInfo["lastattempt"].asUInt64() != peerInfo["lastseen"].asUInt64()) {
@@ -143,16 +143,18 @@ void CryptoKernel::Network::makeOutgoingConnections() {
 		if(socket->connect(peerIp, port, sf::seconds(3)) == sf::Socket::Done) {
 			log->printf(LOG_LEVEL_INFO, "Network(): Successfully connected to " + peerIp);
 			{ // this scoping is unnecessary
-				std::lock_guard<std::recursive_mutex> lock(connectedMutex);
-				PeerInfo* peerInfo = new PeerInfo;
-				peerInfo->peer.reset(new Peer(socket, blockchain, this, false));
+				//std::lock_guard<std::recursive_mutex> lock(connectedMutex);
+				Connection* connection = new Connection;
+				connection->peer.reset(new Peer(socket, blockchain, this, false));
 
 				peerData["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
 				peerData["score"] = 0;
 
-				peerInfo->info = peerData;
+				connection->info = peerData;
 
-				connected[peerIp].reset(peerInfo);
+				//connected[peerIp].reset(peerInfo);
+				//connected.find(peerIp)->second.reset(peerInfo);
+				connected.insert(peerIp, connection);
 			}
 		}
 		else {
@@ -163,14 +165,16 @@ void CryptoKernel::Network::makeOutgoingConnections() {
 }
 
 void CryptoKernel::Network::infoOutgoingConnections() {
-	std::lock_guard<std::recursive_mutex> lock(connectedMutex);
+	//std::lock_guard<std::recursive_mutex> lock(connectedMutex);
 
 	std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
 
 	std::set<std::string> removals;
 
-	for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin();
-				it != connected.end(); it++) {
+	auto keys = connected.keys();
+	for(auto key: keys) {
+		log->printf(LOG_LEVEL_INFO, "WE HAVE KEY " + key);
+		auto it = connected.find(key);
 		try {
 			const Json::Value info = it->second->peer->getInfo();
 			try {
@@ -181,14 +185,14 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 					throw Peer::NetworkError();
 				}
 
-				const auto banIt = banned.find(it->first);
+				/*const auto banIt = banned.find(it->first);
 				if(banIt != banned.end()) {
 					if(banIt->second > static_cast<uint64_t>(std::time(nullptr))) {
 						log->printf(LOG_LEVEL_WARN,
 									"Network(): Disconnecting " + it->first + " for being banned");
 						throw Peer::NetworkError();
 					}
-				}
+				}*/
 
 				it->second->info["height"] = info["tipHeight"].asUInt64();
 
@@ -225,7 +229,7 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 	for(const auto& peer : removals) {
 		const auto it = connected.find(peer);
 		peers->put(dbTx.get(), peer, it->second->info);
-		if(it != connected.end()) {
+		if(connected.contains(it->first)) {
 			connected.erase(it);
 		}
 	}

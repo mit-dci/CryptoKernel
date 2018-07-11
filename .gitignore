@@ -27,3 +27,5 @@ test-ck
 Makefile
 core
 vgcore.*
+genesistest.json
+testblockdb/*

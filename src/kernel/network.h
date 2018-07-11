@@ -7,6 +7,7 @@
 #include <SFML/Network.hpp>
 
 #include "blockchain.h"
+#include "ConcMap.h"
 
 namespace CryptoKernel {
 /**
@@ -103,7 +104,7 @@ private:
         Json::Value info;
     };
 
-    std::map<std::string, std::unique_ptr<PeerInfo>> connected;
+    ConcMap<std::string, PeerInfo> connected;
     std::recursive_mutex connectedMutex;
 
     std::map<std::string, peerStats> connectedStats;
