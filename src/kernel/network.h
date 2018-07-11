@@ -102,6 +102,7 @@ private:
         std::unique_ptr<Peer> peer;
         Json::Value info;
     };
+
     std::map<std::string, std::unique_ptr<PeerInfo>> connected;
     std::recursive_mutex connectedMutex;
 
