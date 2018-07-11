@@ -99,10 +99,10 @@ private:
 
     void changeScore(const std::string& url, const uint64_t score);
 
-    struct PeerInfo {
+    /*struct PeerInfo {
         std::unique_ptr<Peer> peer;
         Json::Value info;
-    };
+    };*/
 
     class Connection {
     public:
@@ -115,14 +115,26 @@ private:
 		CryptoKernel::Blockchain::block getBlock(const uint64_t height, const std::string& id);
 		std::vector<CryptoKernel::Blockchain::block> getBlocks(const uint64_t start, const uint64_t end);
 
+		void setInfo(Json::ArrayIndex& key, Json::Value& value) {
+			std::lock_guard<std::mutex> im(infoMutex);
+			this->info[key] = value;
+		}
+
+		Json::Value& getInfo(Json::ArrayIndex& key) {
+			std::lock_guard<std::mutex> im(infoMutex);
+			return this->info[key];
+		}
+
     	~Connection();
 
     private:
     	std::unique_ptr<Peer> peer;
 		Json::Value info;
+		std::mutex peerMutex;
+		std::mutex infoMutex;
 	};
 
-    ConcMap<std::string, PeerInfo> connected;
+    ConcMap<std::string, Connection> connected;
     std::recursive_mutex connectedMutex;
 
     std::map<std::string, peerStats> connectedStats;

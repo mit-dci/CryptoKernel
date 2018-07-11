@@ -9,28 +9,34 @@ CryptoKernel::Network::Connection::Connection() {
 }
 
 Json::Value CryptoKernel::Network::Connection::getInfo() {
+	std::lock_guard<std::mutex> pm(peerMutex);
 	return peer->getInfo();
 }
 
 void CryptoKernel::Network::Connection::sendTransactions(const std::vector<CryptoKernel::Blockchain::transaction>&
 					  transactions) {
+	std::lock_guard<std::mutex> pm(peerMutex);
 	peer->sendTransactions(transactions);
 }
 
 void CryptoKernel::Network::Connection::sendBlock(const CryptoKernel::Blockchain::block& block) {
+	std::lock_guard<std::mutex> pm(peerMutex);
 	peer->sendBlock(block);
 }
 
 std::vector<CryptoKernel::Blockchain::transaction> CryptoKernel::Network::Connection::getUnconfirmedTransactions() {
+	std::lock_guard<std::mutex> pm(peerMutex);
 	return peer->getUnconfirmedTransactions();
 }
 
 CryptoKernel::Blockchain::block CryptoKernel::Network::Connection::getBlock(const uint64_t height, const std::string& id) {
+	std::lock_guard<std::mutex> pm(peerMutex);
 	return peer->getBlock(height, id);
 }
 
 std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Connection::getBlocks(const uint64_t start,
 													   const uint64_t end) {
+	std::lock_guard<std::mutex> pm(peerMutex);
 	return peer->getBlocks(start, end);
 }
 
