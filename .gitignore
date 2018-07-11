@@ -24,3 +24,8 @@ ck.make
 ckd.make
 Makefile
 test.make
+Default/*
+.cproject
+.project
+core
+vgcore.*
