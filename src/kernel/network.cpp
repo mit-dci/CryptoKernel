@@ -98,7 +98,7 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
     //connectionThread.reset(new std::thread(&CryptoKernel::Network::connectionFunc, this));
 
     // Start management thread
-    //networkThread.reset(new std::thread(&CryptoKernel::Network::networkFunc, this));
+    networkThread.reset(new std::thread(&CryptoKernel::Network::networkFunc, this));
 
     // Start peer thread
    	makeOutgoingConnectionsThread.reset(new std::thread(&CryptoKernel::Network::makeOutgoingConnectionsWrapper, this));
@@ -110,7 +110,7 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
 CryptoKernel::Network::~Network() {
     running = false;
     //connectionThread->join();
-    //networkThread->join();
+    networkThread->join();
     makeOutgoingConnectionsThread->join();
     infoOutgoingConnectionsThread->join();
     listener.close();
@@ -293,7 +293,7 @@ void CryptoKernel::Network::networkFunc() {
 
     while(running) {
         //Determine best chain
-        connectedMutex.lock();
+        //connectedMutex.lock();
         uint64_t bestHeight = currentHeight;
 
         std::vector<std::string> keys = connected.keys();
@@ -304,11 +304,11 @@ void CryptoKernel::Network::networkFunc() {
             }
         }
 
-        if(this->currentHeight > bestHeight) {
+        if(this->currentHeight > bestHeight) { // todo, protect this
             bestHeight = this->currentHeight;
         }
         this->bestHeight = bestHeight;
-        connectedMutex.unlock();
+        //connectedMutex.unlock();
 
         log->printf(LOG_LEVEL_INFO,
                     "Network(): Current height: " + std::to_string(currentHeight) + ", best height: " +
@@ -318,7 +318,7 @@ void CryptoKernel::Network::networkFunc() {
 
         //Detect if we are behind
         if(bestHeight > currentHeight) {
-            connectedMutex.lock();
+            //connectedMutex.lock();
 
             keys = connected.keys();
 			for(auto key : keys) {
@@ -448,7 +448,7 @@ void CryptoKernel::Network::networkFunc() {
                 }
             }
 
-            connectedMutex.unlock();
+            //connectedMutex.unlock();
         }
 
         if(bestHeight <= currentHeight || connected.size() == 0 || !madeProgress) {
