@@ -4,6 +4,40 @@
 
 #include <list>
 
+CryptoKernel::Network::Connection::Connection() {
+
+}
+
+Json::Value CryptoKernel::Network::Connection::getInfo() {
+	return peer->getInfo();
+}
+
+void CryptoKernel::Network::Connection::sendTransactions(const std::vector<CryptoKernel::Blockchain::transaction>&
+					  transactions) {
+	peer->sendTransactions(transactions);
+}
+
+void CryptoKernel::Network::Connection::sendBlock(const CryptoKernel::Blockchain::block& block) {
+	peer->sendBlock(block);
+}
+
+std::vector<CryptoKernel::Blockchain::transaction> CryptoKernel::Network::Connection::getUnconfirmedTransactions() {
+	return peer->getUnconfirmedTransactions();
+}
+
+CryptoKernel::Blockchain::block CryptoKernel::Network::Connection::getBlock(const uint64_t height, const std::string& id) {
+	return peer->getBlock(height, id);
+}
+
+std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Connection::getBlocks(const uint64_t start,
+													   const uint64_t end) {
+	return peer->getBlocks(start, end);
+}
+
+CryptoKernel::Network::Connection::~Connection() {
+
+}
+
 CryptoKernel::Network::Network(CryptoKernel::Log* log,
                                CryptoKernel::Blockchain* blockchain,
                                const unsigned int port,
