@@ -137,6 +137,11 @@ private:
 			return this->info[key];
 		}
 
+		Json::Value& getInfo(std::string key) {
+			std::lock_guard<std::mutex> im(infoMutex);
+			return this->info[key];
+		}
+
     	~Connection();
 
     private:
