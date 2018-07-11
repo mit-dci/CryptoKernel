@@ -545,7 +545,7 @@ void CryptoKernel::Network::connectionFunc() {
 }
 
 unsigned int CryptoKernel::Network::getConnections() {
-    //return connected.size();
+    return connected.size();
 }
 
 void CryptoKernel::Network::broadcastTransactions(const
@@ -592,14 +592,16 @@ void CryptoKernel::Network::changeScore(const std::string& url, const uint64_t s
 }
 
 std::set<std::string> CryptoKernel::Network::getConnectedPeers() {
-    /*std::set<std::string> peerUrls;
-    for(const auto& peer : connected) {
+    std::set<std::string> peerUrls;
+    /*for(const auto& peer : connected) {
         peerUrls.insert(peer.first);
+    }*/
+    std::vector<std::string> keys = connected.keys();
+    for(auto& peer : keys) {
+    	peerUrls.insert(peer);
     }
 
-    return peerUrls;*/
-	std::set<std::string> dummySet;
-	return dummySet;
+    return peerUrls;
 }
 
 uint64_t CryptoKernel::Network::getCurrentHeight() {
