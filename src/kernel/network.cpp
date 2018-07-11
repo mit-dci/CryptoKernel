@@ -144,17 +144,17 @@ void CryptoKernel::Network::makeOutgoingConnections() {
 			log->printf(LOG_LEVEL_INFO, "Network(): Successfully connected to " + peerIp);
 			{ // this scoping is unnecessary
 				//std::lock_guard<std::recursive_mutex> lock(connectedMutex);
-				Connection* connection = new Connection;
-				connection->peer.reset(new Peer(socket, blockchain, this, false));
+				PeerInfo* peerInfo = new PeerInfo;
+				peerInfo->peer.reset(new Peer(socket, blockchain, this, false));
 
 				peerData["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
 				peerData["score"] = 0;
 
-				connection->info = peerData;
+				peerInfo->info = peerData;
 
 				//connected[peerIp].reset(peerInfo);
 				//connected.find(peerIp)->second.reset(peerInfo);
-				connected.insert(peerIp, connection);
+				connected.insert(peerIp, peerInfo);
 			}
 		}
 		else {

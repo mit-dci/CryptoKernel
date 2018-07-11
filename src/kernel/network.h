@@ -96,6 +96,7 @@ public:
 
 private:
     class Peer;
+    class Connection;
 
     void changeScore(const std::string& url, const uint64_t score);
 
