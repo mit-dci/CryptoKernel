@@ -4,6 +4,7 @@
 #include <random>
 
 #include <SFML/Network.hpp>
+#include <condition_variable>
 
 #include "network.h"
 
@@ -36,6 +37,7 @@ private:
     CryptoKernel::Blockchain* blockchain;
     CryptoKernel::Network* network;
     std::mutex clientMutex;
+    std::condition_variable responseReady;
     Json::Value sendRecv(const Json::Value& request);
     void send(const Json::Value& response);
     void requestFunc();
