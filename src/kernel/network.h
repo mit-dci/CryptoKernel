@@ -115,9 +115,21 @@ private:
 		CryptoKernel::Blockchain::block getBlock(const uint64_t height, const std::string& id);
 		std::vector<CryptoKernel::Blockchain::block> getBlocks(const uint64_t start, const uint64_t end);
 
+		void setPeer(Peer* peer);
+
 		void setInfo(Json::ArrayIndex& key, Json::Value& value) {
 			std::lock_guard<std::mutex> im(infoMutex);
 			this->info[key] = value;
+		}
+
+		void setInfo(std::string key, uint64_t value) {
+			std::lock_guard<std::mutex> im(infoMutex);
+			this->info[key] = value;
+		}
+
+		void setInfo(Json::Value info) {
+			std::lock_guard<std::mutex> im(infoMutex);
+			this->info = info;
 		}
 
 		Json::Value& getInfo(Json::ArrayIndex& key) {

@@ -40,6 +40,11 @@ std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Connection::
 	return peer->getBlocks(start, end);
 }
 
+void CryptoKernel::Network::Connection::setPeer(CryptoKernel::Network::Peer* peer) {
+	std::lock_guard<std::mutex> pm(peerMutex);
+	this->peer.reset(peer);
+}
+
 CryptoKernel::Network::Connection::~Connection() {
 
 }
@@ -184,17 +189,17 @@ void CryptoKernel::Network::makeOutgoingConnections() {
 			log->printf(LOG_LEVEL_INFO, "Network(): Successfully connected to " + peerIp);
 			{ // this scoping is unnecessary
 				//std::lock_guard<std::recursive_mutex> lock(connectedMutex);
-				PeerInfo* peerInfo = new PeerInfo;
-				peerInfo->peer.reset(new Peer(socket, blockchain, this, false));
+				Connection* connection = new Connection;
+				connection->setPeer(new Peer(socket, blockchain, this, false));
 
 				peerData["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
 				peerData["score"] = 0;
 
-				peerInfo->info = peerData;
+				connection->setInfo(peerData);
 
 				//connected[peerIp].reset(peerInfo);
 				//connected.find(peerIp)->second.reset(peerInfo);
-				connected.insert(peerIp, peerInfo);
+				connected.insert(peerIp, connection);
 			}
 		}
 		else {
@@ -216,7 +221,7 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 		log->printf(LOG_LEVEL_INFO, "WE HAVE KEY " + key);
 		auto it = connected.find(key);
 		try {
-			const Json::Value info = it->second->peer->getInfo();
+			const Json::Value info = it->second->getInfo();
 			try {
 				const std::string peerVersion = info["version"].asString();
 				if(peerVersion.substr(0, peerVersion.find(".")) != version.substr(0, version.find("."))) {
@@ -234,7 +239,8 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 					}
 				}*/
 
-				it->second->info["height"] = info["tipHeight"].asUInt64();
+				//it->second->info["height"] = info["tipHeight"].asUInt64();
+				it->second->setInfo("height", info["tipHeight"].asUInt64());
 
 				for(const Json::Value& peer : info["peers"]) {
 					sf::IpAddress addr(peer.asString());
@@ -258,7 +264,8 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 			}
 
 			const std::time_t result = std::time(nullptr);
-			it->second->info["lastseen"] = static_cast<uint64_t>(result);
+			//it->second->info["lastseen"] = static_cast<uint64_t>(result);
+			it->second->setInfo("lastseen", static_cast<uint64_t>(result));
 		} catch(const Peer::NetworkError& e) {
 			log->printf(LOG_LEVEL_WARN,
 						"Network(): Failed to contact " + it->first + ", disconnecting it");
@@ -268,7 +275,7 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 
 	for(const auto& peer : removals) {
 		const auto it = connected.find(peer);
-		peers->put(dbTx.get(), peer, it->second->info);
+		peers->put(dbTx.get(), peer, it->second->getInfo());
 		if(connected.contains(it->first)) {
 			connected.erase(it);
 		}
