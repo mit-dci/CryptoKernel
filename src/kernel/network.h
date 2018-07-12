@@ -189,7 +189,7 @@ private:
 
     sf::TcpListener listener;
 
-    std::map<std::string, uint64_t> banned;
+    ConcMap<std::string, uint64_t> banned;
 
     sf::IpAddress myAddress;
 

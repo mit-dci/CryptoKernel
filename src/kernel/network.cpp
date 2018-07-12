@@ -163,12 +163,12 @@ void CryptoKernel::Network::makeOutgoingConnections() {
 
 			std::time_t result = std::time(nullptr);
 
-			/*const auto banIt = banned.find(it->key());
+			const auto banIt = banned.find(it->key());
 			if(banIt != banned.end()) {
 				if(banIt->second > static_cast<uint64_t>(result)) {
 					continue;
 				}
-			}*/
+			}
 
 			if(peerInfo["lastattempt"].asUInt64() + 5 * 60 > static_cast<unsigned long long int>
 					(result) && peerInfo["lastattempt"].asUInt64() != peerInfo["lastseen"].asUInt64()) {
@@ -243,14 +243,14 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 						throw Peer::NetworkError();
 					}
 
-					/*const auto banIt = banned.find(it->first);
+					const auto banIt = banned.find(it->first);
 					if(banIt != banned.end()) {
 						if(banIt->second > static_cast<uint64_t>(std::time(nullptr))) {
 							log->printf(LOG_LEVEL_WARN,
 										"Network(): Disconnecting " + it->first + " for being banned");
 							throw Peer::NetworkError();
 						}
-					}*/
+					}
 
 					//it->second->info["height"] = info["tipHeight"].asUInt64();
 					it->second->setInfo("height", info["tipHeight"].asUInt64());
@@ -500,7 +500,7 @@ void CryptoKernel::Network::connectionFunc() {
                 continue;
             }
 
-            /*const auto it = banned.find(client->getRemoteAddress().toString());
+            const auto it = banned.find(client->getRemoteAddress().toString());
             if(it != banned.end()) {
                 if(it->second > static_cast<uint64_t>(std::time(nullptr))) {
                     log->printf(LOG_LEVEL_INFO,
@@ -509,7 +509,7 @@ void CryptoKernel::Network::connectionFunc() {
                     delete client;
                     continue;
                 }
-            }*/
+            }
 
             sf::IpAddress addr(client->getRemoteAddress());
 
@@ -600,27 +600,26 @@ double CryptoKernel::Network::syncProgress() {
     return (double)(currentHeight)/(double)(bestHeight);
 }
 
+// ONLY CALL THIS IF YOU ALREADY HAVE A LOCK
 void CryptoKernel::Network::changeScore(const std::string& url, const uint64_t score) {
-    /*if(connected[url]) {
-        connected[url]->info["score"] = connected[url]->info["score"].asUInt64() + score;
+    if(connected.contains(url)) { // this check isn't necessary
+    	//connected.find(url)->second;
+        connected.at(url)->setInfo("score", connected.at(url)->getInfo("score").asUInt64() + score);
         log->printf(LOG_LEVEL_WARN,
                     "Network(): " + url + " misbehaving, increasing ban score by " + std::to_string(
-                        score) + " to " + connected[url]->info["score"].asString());
-        if(connected[url]->info["score"].asUInt64() > 200) {
+                        score) + " to " + connected.at(url)->getInfo("score").asString());
+        if(connected.at(url)->getInfo("score").asUInt64() > 200) {
             log->printf(LOG_LEVEL_WARN,
                         "Network(): Banning " + url + " for being above the ban score threshold");
             // Ban for 24 hours
-            banned[url] = static_cast<uint64_t>(std::time(nullptr)) + 24 * 60 * 60;
+            banned.insert(url, static_cast<uint64_t>(std::time(nullptr)) + 24 * 60 * 60);
         }
-        connected[url]->info["disconnect"] = true;
-    }*/
+        connected.at(url)->setInfo("disconnect", true);
+    }
 }
 
 std::set<std::string> CryptoKernel::Network::getConnectedPeers() {
     std::set<std::string> peerUrls;
-    /*for(const auto& peer : connected) {
-        peerUrls.insert(peer.first);
-    }*/
     std::vector<std::string> keys = connected.keys();
     for(auto& peer : keys) {
     	peerUrls.insert(peer);

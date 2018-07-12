@@ -53,6 +53,13 @@ public:
 		return res;
 	}
 
+	typename std::map<KEY, VAL>::iterator end() {
+		mapMutex.lock_shared();
+		auto res = map.end();
+		mapMutex.unlock_shared();
+		return res;
+	}
+
 	typename std::vector<KEY> keys() {
 		mapMutex.lock_shared();
 		std::vector<KEY> keys;
