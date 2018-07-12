@@ -130,6 +130,11 @@ private:
 			this->info[key] = value;
 		}
 
+		void setInfo(std::string key, std::string value) {
+			std::lock_guard<std::mutex> im(infoMutex);
+			this->info[key] = value;
+		}
+
 		void setInfo(Json::Value info) {
 			std::lock_guard<std::mutex> im(infoMutex);
 			this->info = info;

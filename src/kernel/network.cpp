@@ -106,7 +106,7 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
     listener.setBlocking(false);
 
     // Start connection thread
-    //connectionThread.reset(new std::thread(&CryptoKernel::Network::connectionFunc, this));
+    connectionThread.reset(new std::thread(&CryptoKernel::Network::connectionFunc, this));
 
     // Start management thread
     networkThread.reset(new std::thread(&CryptoKernel::Network::networkFunc, this));
@@ -486,86 +486,87 @@ void CryptoKernel::Network::networkFunc() {
 }
 
 void CryptoKernel::Network::connectionFunc() {
-//    while(running) {
-//        sf::TcpSocket* client = new sf::TcpSocket();
-//        if(listener.accept(*client) == sf::Socket::Done) {
-//            std::lock_guard<std::recursive_mutex> lock(connectedMutex);
-//        	//connectedMutex.lock();
-//            if(connected.find(client->getRemoteAddress().toString()) != connected.end()) {
-//                log->printf(LOG_LEVEL_INFO,
-//                            "Network(): Incoming connection duplicates existing connection for " +
-//                            client->getRemoteAddress().toString());
-//                client->disconnect();
-//                delete client;
-//                continue;
-//            }
-//
-//            const auto it = banned.find(client->getRemoteAddress().toString());
-//            if(it != banned.end()) {
-//                if(it->second > static_cast<uint64_t>(std::time(nullptr))) {
-//                    log->printf(LOG_LEVEL_INFO,
-//                                "Network(): Incoming connection " + client->getRemoteAddress().toString() + " is banned");
-//                    client->disconnect();
-//                    delete client;
-//                    continue;
-//                }
-//            }
-//
-//            sf::IpAddress addr(client->getRemoteAddress());
-//
-//            if(addr == sf::IpAddress::getLocalAddress()
-//                    || addr == myAddress
-//                    || addr == sf::IpAddress::LocalHost
-//                    || addr == sf::IpAddress::None) {
-//                log->printf(LOG_LEVEL_INFO,
-//                            "Network(): Incoming connection " + client->getRemoteAddress().toString() +
-//                            " is connecting to self");
-//                client->disconnect();
-//                delete client;
-//                continue;
-//            }
-//
-//
-//            log->printf(LOG_LEVEL_INFO,
-//                        "Network(): Peer connected from " + client->getRemoteAddress().toString() + ":" +
-//                        std::to_string(client->getRemotePort()));
-//            PeerInfo* peerInfo = new PeerInfo();
-//            peerInfo->peer.reset(new Peer(client, blockchain, this, true));
-//
-//            Json::Value info;
-//
-//            try {
-//                info = peerInfo->peer->getInfo();
-//            } catch(const Peer::NetworkError& e) {
-//                log->printf(LOG_LEVEL_WARN, "Network(): Failed to get information from connecting peer");
-//                delete peerInfo;
-//                continue;
-//            }
-//
-//            try {
-//                peerInfo->info["height"] = info["tipHeight"].asUInt64();
-//                peerInfo->info["version"] = info["version"].asString();
-//            } catch(const Json::Exception& e) {
-//                log->printf(LOG_LEVEL_WARN, "Network(): Incoming peer sent invalid info message");
-//                delete peerInfo;
-//                continue;
-//            }
-//
-//            const std::time_t result = std::time(nullptr);
-//            peerInfo->info["lastseen"] = static_cast<uint64_t>(result);
-//
-//            peerInfo->info["score"] = 0;
-//
-//            connected[client->getRemoteAddress().toString()].reset(peerInfo);
-//
-//            std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
-//            peers->put(dbTx.get(), client->getRemoteAddress().toString(), peerInfo->info);
-//            dbTx->commit();
-//        } else {
-//            delete client;
-//            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-//        }
-//    }
+    while(running) {
+        sf::TcpSocket* client = new sf::TcpSocket();
+        if(listener.accept(*client) == sf::Socket::Done) {
+            //std::lock_guard<std::recursive_mutex> lock(connectedMutex);
+        	//connectedMutex.lock();
+            if(connected.contains(client->getRemoteAddress().toString())) {
+                log->printf(LOG_LEVEL_INFO,
+                            "Network(): Incoming connection duplicates existing connection for " +
+                            client->getRemoteAddress().toString());
+                client->disconnect();
+                delete client;
+                continue;
+            }
+
+            /*const auto it = banned.find(client->getRemoteAddress().toString());
+            if(it != banned.end()) {
+                if(it->second > static_cast<uint64_t>(std::time(nullptr))) {
+                    log->printf(LOG_LEVEL_INFO,
+                                "Network(): Incoming connection " + client->getRemoteAddress().toString() + " is banned");
+                    client->disconnect();
+                    delete client;
+                    continue;
+                }
+            }*/
+
+            sf::IpAddress addr(client->getRemoteAddress());
+
+            if(addr == sf::IpAddress::getLocalAddress()
+                    || addr == myAddress
+                    || addr == sf::IpAddress::LocalHost
+                    || addr == sf::IpAddress::None) {
+                log->printf(LOG_LEVEL_INFO,
+                            "Network(): Incoming connection " + client->getRemoteAddress().toString() +
+                            " is connecting to self");
+                client->disconnect();
+                delete client;
+                continue;
+            }
+
+
+            log->printf(LOG_LEVEL_INFO,
+                        "Network(): Peer connected from " + client->getRemoteAddress().toString() + ":" +
+                        std::to_string(client->getRemotePort()));
+            Connection* connection = new Connection(); // todo check for thread safety
+            connection->setPeer(new Peer(client, blockchain, this, true));
+
+            Json::Value info;
+
+            try {
+                info = connection->getInfo();
+            } catch(const Peer::NetworkError& e) {
+                log->printf(LOG_LEVEL_WARN, "Network(): Failed to get information from connecting peer");
+                delete connection;
+                continue;
+            }
+
+            try {
+                connection->setInfo("height", info["tipHeight"].asUInt64());
+                connection->setInfo("version", info["version"].asString());
+            } catch(const Json::Exception& e) {
+                log->printf(LOG_LEVEL_WARN, "Network(): Incoming peer sent invalid info message");
+                delete connection;
+                continue;
+            }
+
+            const std::time_t result = std::time(nullptr);
+            connection->setInfo("lastseen", static_cast<uint64_t>(result));
+
+            connection->setInfo("score", 0);
+
+            //connected[client->getRemoteAddress().toString()].reset(peerInfo);
+            connected.at(client->getRemoteAddress().toString()).reset(connection);
+
+            std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
+            peers->put(dbTx.get(), client->getRemoteAddress().toString(), connection->getInfo());
+            dbTx->commit();
+        } else {
+            delete client;
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+    }
 }
 
 unsigned int CryptoKernel::Network::getConnections() {
