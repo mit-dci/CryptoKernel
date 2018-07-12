@@ -131,7 +131,7 @@ private:
 		std::mutex infoMutex;
 	};
 
-    CryptoKernel::ConcurrentMap<std::string, std::unique_ptr<Connection>> connected;
+    ConcurrentMap<std::string, std::unique_ptr<Connection>> connected;
     std::recursive_mutex connectedMutex;
 
     std::map<std::string, peerStats> connectedStats;
@@ -161,7 +161,7 @@ private:
 
     sf::TcpListener listener;
 
-    CryptoKernel::ConcurrentMap<std::string, uint64_t> banned;
+    ConcurrentMap<std::string, uint64_t> banned;
 
     sf::IpAddress myAddress;
 

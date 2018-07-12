@@ -13,7 +13,6 @@
 #include <mutex>
 #include <shared_mutex>
 
-namespace CryptoKernel {
 template <class KEY, class VAL> class ConcurrentMap {
 public:
 	ConcurrentMap() {
@@ -89,6 +88,5 @@ private:
 	std::map<KEY, VAL> map;
 	std::shared_timed_mutex mapMutex;
 };
-}
 
 #endif /* CONCMAP_H_ */
