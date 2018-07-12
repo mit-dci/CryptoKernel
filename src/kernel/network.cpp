@@ -56,6 +56,36 @@ void CryptoKernel::Network::Connection::release() {
 	peerMutex.unlock();
 }
 
+void CryptoKernel::Network::Connection::setInfo(Json::ArrayIndex& key, Json::Value& value) {
+	std::lock_guard<std::mutex> im(infoMutex);
+	this->info[key] = value;
+}
+
+void CryptoKernel::Network::Connection::setInfo(std::string key, uint64_t value) {
+	std::lock_guard<std::mutex> im(infoMutex);
+	this->info[key] = value;
+}
+
+void CryptoKernel::Network::Connection::setInfo(std::string key, std::string value) {
+	std::lock_guard<std::mutex> im(infoMutex);
+	this->info[key] = value;
+}
+
+void CryptoKernel::Network::Connection::setInfo(Json::Value info) {
+	std::lock_guard<std::mutex> im(infoMutex);
+	this->info = info;
+}
+
+Json::Value& CryptoKernel::Network::Connection::getInfo(Json::ArrayIndex& key) {
+	std::lock_guard<std::mutex> im(infoMutex);
+	return this->info[key];
+}
+
+Json::Value& CryptoKernel::Network::Connection::getInfo(std::string key) {
+	std::lock_guard<std::mutex> im(infoMutex);
+	return this->info[key];
+}
+
 CryptoKernel::Network::Connection::~Connection() {
 
 }
@@ -282,7 +312,8 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 			} catch(const Peer::NetworkError& e) {
 				log->printf(LOG_LEVEL_WARN,
 							"Network(): Failed to contact " + it->first + ", disconnecting it");
-				removals.insert(it->first);
+
+				//removals.insert(it->first);
 				connected.erase(it);
 				continue;
 			}
@@ -292,7 +323,7 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 
 	/*for(const auto& peer : removals) {
 		const auto it = connected.find(peer);
-		peers->put(dbTx.get(), peer, it->second->getInfo());
+		peers->put(dbTx.get(), peer, it->second->getInfo()); // how did this work???  this only winds up getting called if info wasn't fetched in the first place
 		if(connected.contains(it->first)) {
 			connected.erase(it);
 		}

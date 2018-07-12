@@ -99,11 +99,6 @@ private:
 
     void changeScore(const std::string& url, const uint64_t score);
 
-    /*struct PeerInfo {
-        std::unique_ptr<Peer> peer;
-        Json::Value info;
-    };*/
-
     class Connection {
     public:
     	Connection();
@@ -119,36 +114,12 @@ private:
 		void release();
 
 		void setPeer(Peer* peer);
-
-		void setInfo(Json::ArrayIndex& key, Json::Value& value) {
-			std::lock_guard<std::mutex> im(infoMutex);
-			this->info[key] = value;
-		}
-
-		void setInfo(std::string key, uint64_t value) {
-			std::lock_guard<std::mutex> im(infoMutex);
-			this->info[key] = value;
-		}
-
-		void setInfo(std::string key, std::string value) {
-			std::lock_guard<std::mutex> im(infoMutex);
-			this->info[key] = value;
-		}
-
-		void setInfo(Json::Value info) {
-			std::lock_guard<std::mutex> im(infoMutex);
-			this->info = info;
-		}
-
-		Json::Value& getInfo(Json::ArrayIndex& key) {
-			std::lock_guard<std::mutex> im(infoMutex);
-			return this->info[key];
-		}
-
-		Json::Value& getInfo(std::string key) {
-			std::lock_guard<std::mutex> im(infoMutex);
-			return this->info[key];
-		}
+		void setInfo(Json::ArrayIndex& key, Json::Value& value);
+		void setInfo(std::string key, uint64_t value);
+		void setInfo(std::string key, std::string value);
+		void setInfo(Json::Value info);
+		Json::Value& getInfo(Json::ArrayIndex& key);
+		Json::Value& getInfo(std::string key);
 
     	~Connection();
 
