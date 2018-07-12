@@ -11,7 +11,6 @@
 #include <map>
 #include <vector>
 #include <mutex>
-#include <shared_mutex>
 
 template <class KEY, class VAL> class ConcurrentMap {
 public:
@@ -19,16 +18,16 @@ public:
 	}
 
 	std::size_t size() {
-		mapMutex.lock_shared();
+		mapMutex.lock();
 		size_t size = map.size();
-		mapMutex.unlock_shared();
+		mapMutex.unlock();
 		return size;
 	}
 
 	typename std::map<KEY, VAL>::iterator find(KEY key) {
-		mapMutex.lock_shared();
+		mapMutex.lock();
 		auto res = map.find(key);
-		mapMutex.unlock_shared();
+		mapMutex.unlock();
 		return res;
 	}
 
@@ -38,35 +37,35 @@ public:
 
 	bool contains(KEY key) {
 		bool found = false;
-		mapMutex.lock_shared();
+		mapMutex.lock();
 		if(map.find(key) != map.end()) {
 			found = true;
 		}
-		mapMutex.unlock_shared();
+		mapMutex.unlock();
 		return found;
 	}
 
 	typename std::map<KEY, VAL>::iterator begin() {
-		mapMutex.lock_shared();
+		mapMutex.lock();
 		auto res = map.begin();
-		mapMutex.unlock_shared();
+		mapMutex.unlock();
 		return res;
 	}
 
 	typename std::map<KEY, VAL>::iterator end() {
-		mapMutex.lock_shared();
+		mapMutex.lock();
 		auto res = map.end();
-		mapMutex.unlock_shared();
+		mapMutex.unlock();
 		return res;
 	}
 
 	typename std::vector<KEY> keys() {
-		mapMutex.lock_shared();
+		mapMutex.lock();
 		std::vector<KEY> keys;
 		for(auto it = map.begin(); it != map.end(); it++) {
 			keys.push_back(it->first);
 		}
-		mapMutex.unlock_shared();
+		mapMutex.unlock();
 		return keys;
 	}
 
@@ -86,7 +85,7 @@ public:
 
 private:
 	std::map<KEY, VAL> map;
-	std::shared_timed_mutex mapMutex;
+	std::mutex mapMutex; // someday, this should be a shared mutex
 };
 
 #endif /* CONCMAP_H_ */
