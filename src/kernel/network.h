@@ -7,7 +7,7 @@
 #include <SFML/Network.hpp>
 
 #include "blockchain.h"
-#include "ConcMap.h"
+#include "concurrentmap.h"
 
 namespace CryptoKernel {
 /**
@@ -131,7 +131,7 @@ private:
 		std::mutex infoMutex;
 	};
 
-    ConcMap<std::string, std::unique_ptr<Connection>> connected;
+    CryptoKernel::ConcurrentMap<std::string, std::unique_ptr<Connection>> connected;
     std::recursive_mutex connectedMutex;
 
     std::map<std::string, peerStats> connectedStats;
@@ -161,7 +161,7 @@ private:
 
     sf::TcpListener listener;
 
-    ConcMap<std::string, uint64_t> banned;
+    CryptoKernel::ConcurrentMap<std::string, uint64_t> banned;
 
     sf::IpAddress myAddress;
 

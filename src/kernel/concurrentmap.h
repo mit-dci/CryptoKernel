@@ -2,7 +2,7 @@
  * ConcMap.h
  *
  *  Created on: Jul 11, 2018
- *      Author: root
+ *      Author: Luke Horgan
  */
 
 #ifndef CONCMAP_H_
@@ -13,9 +13,10 @@
 #include <mutex>
 #include <shared_mutex>
 
-template <class KEY, class VAL> class ConcMap {
+namespace CryptoKernel {
+template <class KEY, class VAL> class ConcurrentMap {
 public:
-	ConcMap() {
+	ConcurrentMap() {
 	}
 
 	std::size_t size() {
@@ -82,11 +83,12 @@ public:
 		mapMutex.unlock();
 	}
 
-	virtual ~ConcMap() {};
+	virtual ~ConcurrentMap() {};
 
 private:
 	std::map<KEY, VAL> map;
 	std::shared_timed_mutex mapMutex;
 };
+}
 
 #endif /* CONCMAP_H_ */
