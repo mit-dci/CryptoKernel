@@ -9,6 +9,7 @@ class BlockchainTest : public CPPUNIT_NS::TestFixture {
     CPPUNIT_TEST_SUITE(BlockchainTest);
 
     CPPUNIT_TEST(testVerifyMalformedSignature);
+    CPPUNIT_TEST(testListUnspentOutputsFromCoinbase);
 
     CPPUNIT_TEST_SUITE_END();
 
@@ -30,6 +31,7 @@ private:
 
 
     void testVerifyMalformedSignature();
+    void testListUnspentOutputsFromCoinbase();
 
     std::unique_ptr<CryptoKernel::Blockchain> blockchain;
     std::unique_ptr<CryptoKernel::Log> log;

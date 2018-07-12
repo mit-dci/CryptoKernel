@@ -9,21 +9,21 @@ BlockchainTest::BlockchainTest() {
     log.reset(new CryptoKernel::Log("tests.log"));
 }
 
-BlockchainTest::~BlockchainTest() {
-    CryptoKernel::Storage::destroy("./testblockdb");
-}
+BlockchainTest::~BlockchainTest() {}
 
 void BlockchainTest::setUp() {
-    std::remove("genesistest.json");
-    CryptoKernel::Storage::destroy("./testblockdb");
-
     blockchain.reset(new testChain(log.get()));
     consensus.reset(new CryptoKernel::Consensus::Regtest(blockchain.get()));
     blockchain->loadChain(consensus.get(), "genesistest.json");
     consensus->start();
 }
 
-void BlockchainTest::tearDown() {}
+void BlockchainTest::tearDown() {
+    blockchain.reset();
+    consensus.reset();
+    std::remove("genesistest.json");
+    CryptoKernel::Storage::destroy("./testblockdb");
+}
 
 BlockchainTest::testChain::testChain(CryptoKernel::Log* GlobalLog) : CryptoKernel::Blockchain(GlobalLog, "./testblockdb") {}
 
@@ -60,4 +60,25 @@ void BlockchainTest::testVerifyMalformedSignature() {
     const auto res = blockchain->submitTransaction(tx);
 
     CPPUNIT_ASSERT(!std::get<0>(res));
+}
+
+void BlockchainTest::testListUnspentOutputsFromCoinbase() {
+    const std::string pubKey = "BL2AcSzFw2+rGgQwJ25r7v/misIvr3t4JzkH3U1CCknchfkncSneKLBo6tjnKDhDxZUSPXEKMDtTU/YsvkwxJR8=";
+
+    // Mine three blocks
+    for(int i = 0; i < 3; i++) {    
+        consensus->mineBlock(true, pubKey);
+    }
+
+    // Ensure three blocks were actually mined
+    blockchain->getBlockByHeight(4);
+
+    const auto outs = blockchain->getUnspentOutputs(pubKey);
+
+    CPPUNIT_ASSERT_EQUAL(size_t(3), outs.size());
+    
+    for(const auto& out : outs) {
+        CPPUNIT_ASSERT_EQUAL(pubKey, out.getData()["publicKey"].asString());
+        CPPUNIT_ASSERT_EQUAL(uint64_t(100000000), out.getValue());
+    }
 }
