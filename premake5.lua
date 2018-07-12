@@ -15,6 +15,8 @@ newoption {
     value = "DIR"
 }
 
+flags { "C++14" }
+
 workspace "CryptoKernel"
     configurations {"Debug", "Release"}
     platforms {"Static", "Shared"}
