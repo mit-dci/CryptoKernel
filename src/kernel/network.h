@@ -154,7 +154,7 @@ private:
 		std::mutex infoMutex;
 	};
 
-    ConcMap<std::string, Connection> connected;
+    ConcMap<std::string, std::unique_ptr<Connection>> connected;
     std::recursive_mutex connectedMutex;
 
     std::map<std::string, peerStats> connectedStats;

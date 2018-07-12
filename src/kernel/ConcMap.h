@@ -25,11 +25,15 @@ public:
 		return size;
 	}
 
-	typename std::map<KEY, std::unique_ptr<VAL>>::iterator find(KEY key) {
+	typename std::map<KEY, VAL>::iterator find(KEY key) {
 		mapMutex.lock_shared();
 		auto res = map.find(key);
 		mapMutex.unlock_shared();
 		return res;
+	}
+
+	VAL& at(KEY key) {
+		return map[key];
 	}
 
 	bool contains(KEY key) {
@@ -42,7 +46,7 @@ public:
 		return found;
 	}
 
-	typename std::map<KEY, std::unique_ptr<VAL>>::iterator begin() {
+	typename std::map<KEY, VAL>::iterator begin() {
 		mapMutex.lock_shared();
 		auto res = map.begin();
 		mapMutex.unlock_shared();
@@ -59,22 +63,22 @@ public:
 		return keys;
 	}
 
-	void erase(typename std::map<KEY, std::unique_ptr<VAL>>::iterator it) {
+	void erase(typename std::map<KEY, VAL>::iterator it) {
 		mapMutex.lock();
 		map.erase(it);
 		mapMutex.unlock();
 	}
 
-	void insert(KEY key, VAL* val) {
+	void insert(KEY key, VAL val) {
 		mapMutex.lock();
-		map[key].reset(val);
+		map[key] = val;
 		mapMutex.unlock();
 	}
 
 	virtual ~ConcMap() {};
 
 private:
-	std::map<KEY, std::unique_ptr<VAL>> map;
+	std::map<KEY, VAL> map;
 	std::shared_timed_mutex mapMutex;
 };
 

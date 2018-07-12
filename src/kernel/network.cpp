@@ -210,7 +210,8 @@ void CryptoKernel::Network::makeOutgoingConnections() {
 
 				//connected[peerIp].reset(peerInfo);
 				//connected.find(peerIp)->second.reset(peerInfo);
-				connected.insert(peerIp, connection);
+				//connected.insert(peerIp, connection);
+				connected.at(peerIp).reset(connection);
 			}
 		}
 		else {
