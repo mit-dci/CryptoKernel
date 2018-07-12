@@ -115,6 +115,9 @@ private:
 		CryptoKernel::Blockchain::block getBlock(const uint64_t height, const std::string& id);
 		std::vector<CryptoKernel::Blockchain::block> getBlocks(const uint64_t start, const uint64_t end);
 
+		bool acquire();
+		void release();
+
 		void setPeer(Peer* peer);
 
 		void setInfo(Json::ArrayIndex& key, Json::Value& value) {

@@ -9,40 +9,51 @@ CryptoKernel::Network::Connection::Connection() {
 }
 
 Json::Value CryptoKernel::Network::Connection::getInfo() {
-	std::lock_guard<std::mutex> pm(peerMutex);
+	//std::lock_guard<std::mutex> pm(peerMutex);
 	return peer->getInfo();
 }
 
 void CryptoKernel::Network::Connection::sendTransactions(const std::vector<CryptoKernel::Blockchain::transaction>&
 					  transactions) {
-	std::lock_guard<std::mutex> pm(peerMutex);
+	//std::lock_guard<std::mutex> pm(peerMutex);
 	peer->sendTransactions(transactions);
 }
 
 void CryptoKernel::Network::Connection::sendBlock(const CryptoKernel::Blockchain::block& block) {
-	std::lock_guard<std::mutex> pm(peerMutex);
+	//std::lock_guard<std::mutex> pm(peerMutex);
 	peer->sendBlock(block);
 }
 
 std::vector<CryptoKernel::Blockchain::transaction> CryptoKernel::Network::Connection::getUnconfirmedTransactions() {
-	std::lock_guard<std::mutex> pm(peerMutex);
+	//std::lock_guard<std::mutex> pm(peerMutex);
 	return peer->getUnconfirmedTransactions();
 }
 
 CryptoKernel::Blockchain::block CryptoKernel::Network::Connection::getBlock(const uint64_t height, const std::string& id) {
-	std::lock_guard<std::mutex> pm(peerMutex);
+	//std::lock_guard<std::mutex> pm(peerMutex);
 	return peer->getBlock(height, id);
 }
 
 std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Connection::getBlocks(const uint64_t start,
 													   const uint64_t end) {
-	std::lock_guard<std::mutex> pm(peerMutex);
+	//std::lock_guard<std::mutex> pm(peerMutex);
 	return peer->getBlocks(start, end);
 }
 
 void CryptoKernel::Network::Connection::setPeer(CryptoKernel::Network::Peer* peer) {
-	std::lock_guard<std::mutex> pm(peerMutex);
+	//std::lock_guard<std::mutex> pm(peerMutex);
 	this->peer.reset(peer);
+}
+
+bool CryptoKernel::Network::Connection::acquire() {
+	if(peerMutex.try_lock()) {
+		return true;
+	}
+	return false;
+}
+
+void CryptoKernel::Network::Connection::release() {
+	peerMutex.unlock();
 }
 
 CryptoKernel::Network::Connection::~Connection() {
@@ -220,66 +231,69 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 	for(auto key: keys) {
 		log->printf(LOG_LEVEL_INFO, "WE HAVE KEY " + key);
 		auto it = connected.find(key);
-		try {
-			const Json::Value info = it->second->getInfo();
+		if(it->second->acquire()) {
 			try {
-				const std::string peerVersion = info["version"].asString();
-				if(peerVersion.substr(0, peerVersion.find(".")) != version.substr(0, version.find("."))) {
-					log->printf(LOG_LEVEL_WARN,
-								"Network(): " + it->first + " has a different major version than us");
+				const Json::Value info = it->second->getInfo();
+				try {
+					const std::string peerVersion = info["version"].asString();
+					if(peerVersion.substr(0, peerVersion.find(".")) != version.substr(0, version.find("."))) {
+						log->printf(LOG_LEVEL_WARN,
+									"Network(): " + it->first + " has a different major version than us");
+						throw Peer::NetworkError();
+					}
+
+					/*const auto banIt = banned.find(it->first);
+					if(banIt != banned.end()) {
+						if(banIt->second > static_cast<uint64_t>(std::time(nullptr))) {
+							log->printf(LOG_LEVEL_WARN,
+										"Network(): Disconnecting " + it->first + " for being banned");
+							throw Peer::NetworkError();
+						}
+					}*/
+
+					//it->second->info["height"] = info["tipHeight"].asUInt64();
+					it->second->setInfo("height", info["tipHeight"].asUInt64());
+
+					for(const Json::Value& peer : info["peers"]) {
+						sf::IpAddress addr(peer.asString());
+						if(addr != sf::IpAddress::None) {
+							if(!peers->get(dbTx.get(), addr.toString()).isObject()) {
+								log->printf(LOG_LEVEL_INFO, "Network(): Discovered new peer: " + addr.toString());
+								Json::Value newSeed;
+								newSeed["lastseen"] = 0;
+								newSeed["height"] = 1;
+								newSeed["score"] = 0;
+								peers->put(dbTx.get(), addr.toString(), newSeed);
+							}
+						} else {
+							changeScore(it->first, 10);
+							throw Peer::NetworkError();
+						}
+					}
+				} catch(const Json::Exception& e) {
+					changeScore(it->first, 50);
 					throw Peer::NetworkError();
 				}
 
-				/*const auto banIt = banned.find(it->first);
-				if(banIt != banned.end()) {
-					if(banIt->second > static_cast<uint64_t>(std::time(nullptr))) {
-						log->printf(LOG_LEVEL_WARN,
-									"Network(): Disconnecting " + it->first + " for being banned");
-						throw Peer::NetworkError();
-					}
-				}*/
-
-				//it->second->info["height"] = info["tipHeight"].asUInt64();
-				it->second->setInfo("height", info["tipHeight"].asUInt64());
-
-				for(const Json::Value& peer : info["peers"]) {
-					sf::IpAddress addr(peer.asString());
-					if(addr != sf::IpAddress::None) {
-						if(!peers->get(dbTx.get(), addr.toString()).isObject()) {
-							log->printf(LOG_LEVEL_INFO, "Network(): Discovered new peer: " + addr.toString());
-							Json::Value newSeed;
-							newSeed["lastseen"] = 0;
-							newSeed["height"] = 1;
-							newSeed["score"] = 0;
-							peers->put(dbTx.get(), addr.toString(), newSeed);
-						}
-					} else {
-						changeScore(it->first, 10);
-						throw Peer::NetworkError();
-					}
-				}
-			} catch(const Json::Exception& e) {
-				changeScore(it->first, 50);
-				throw Peer::NetworkError();
+				const std::time_t result = std::time(nullptr);
+				//it->second->info["lastseen"] = static_cast<uint64_t>(result);
+				it->second->setInfo("lastseen", static_cast<uint64_t>(result));
+			} catch(const Peer::NetworkError& e) {
+				log->printf(LOG_LEVEL_WARN,
+							"Network(): Failed to contact " + it->first + ", disconnecting it");
+				removals.insert(it->first);
 			}
-
-			const std::time_t result = std::time(nullptr);
-			//it->second->info["lastseen"] = static_cast<uint64_t>(result);
-			it->second->setInfo("lastseen", static_cast<uint64_t>(result));
-		} catch(const Peer::NetworkError& e) {
-			log->printf(LOG_LEVEL_WARN,
-						"Network(): Failed to contact " + it->first + ", disconnecting it");
-			removals.insert(it->first);
+			it->second->release();
 		}
 	}
 
-	for(const auto& peer : removals) {
+	/*for(const auto& peer : removals) {
 		const auto it = connected.find(peer);
 		peers->put(dbTx.get(), peer, it->second->getInfo());
 		if(connected.contains(it->first)) {
 			connected.erase(it);
 		}
-	}
+	}*/
 
 	dbTx->commit();
 }
@@ -299,9 +313,12 @@ void CryptoKernel::Network::networkFunc() {
         std::vector<std::string> keys = connected.keys();
         for(auto key : keys) {
         	auto it = connected.find(key); // todo, make sure it exists!
-            if(it->second->getInfo("height").asUInt64() > bestHeight) {
-                bestHeight = it->second->getInfo("height").asUInt64();
-            }
+        	if(it->second->acquire()) {
+        		if(it->second->getInfo("height").asUInt64() > bestHeight) {
+					bestHeight = it->second->getInfo("height").asUInt64();
+				}
+        		it->second->release();
+        	}
         }
 
         if(this->currentHeight > bestHeight) { // todo, protect this
@@ -323,129 +340,132 @@ void CryptoKernel::Network::networkFunc() {
             keys = connected.keys();
 			for(auto key : keys) {
 				auto it = connected.find(key);
-                if(it->second->getInfo("height").asUInt64() > currentHeight) {
-                    std::list<CryptoKernel::Blockchain::block> blocks;
+				if(it->second->acquire()) {
+					if(it->second->getInfo("height").asUInt64() > currentHeight) {
+						std::list<CryptoKernel::Blockchain::block> blocks;
 
-                    const std::string peerUrl = it->first;
+						const std::string peerUrl = it->first;
 
-                    if(currentHeight == startHeight) {
-                        auto nBlocks = 0;
-                        do {
-                            log->printf(LOG_LEVEL_INFO,
-                                        "Network(): Downloading blocks " + std::to_string(currentHeight + 1) + " to " +
-                                        std::to_string(currentHeight + 6));
-                            try {
-                                const auto newBlocks = it->second->getBlocks(currentHeight + 1, currentHeight + 6);
-                                nBlocks = newBlocks.size();
-                                blocks.insert(blocks.end(), newBlocks.rbegin(), newBlocks.rend());
-                                if(nBlocks > 0) {
-                                    madeProgress = true;
-                                } else {
-                                    log->printf(LOG_LEVEL_WARN, "Network(): Peer responded with no blocks");
-                                }
-                            } catch(Peer::NetworkError& e) {
-                                log->printf(LOG_LEVEL_WARN,
-                                            "Network(): Failed to contact " + it->first + " " + e.what() +
-                                            " while downloading blocks");
-                                it++;
-                                break;
-                            }
+						if(currentHeight == startHeight) {
+							auto nBlocks = 0;
+							do {
+								log->printf(LOG_LEVEL_INFO,
+											"Network(): Downloading blocks " + std::to_string(currentHeight + 1) + " to " +
+											std::to_string(currentHeight + 6));
+								try {
+									const auto newBlocks = it->second->getBlocks(currentHeight + 1, currentHeight + 6);
+									nBlocks = newBlocks.size();
+									blocks.insert(blocks.end(), newBlocks.rbegin(), newBlocks.rend());
+									if(nBlocks > 0) {
+										madeProgress = true;
+									} else {
+										log->printf(LOG_LEVEL_WARN, "Network(): Peer responded with no blocks");
+									}
+								} catch(Peer::NetworkError& e) {
+									log->printf(LOG_LEVEL_WARN,
+												"Network(): Failed to contact " + it->first + " " + e.what() +
+												" while downloading blocks");
+									it++;
+									break;
+								}
 
-                            log->printf(LOG_LEVEL_INFO, "Network(): Testing if we have block " + std::to_string(blocks.rbegin()->getHeight() - 1));
+								log->printf(LOG_LEVEL_INFO, "Network(): Testing if we have block " + std::to_string(blocks.rbegin()->getHeight() - 1));
 
-                            try {
-                                blockchain->getBlockDB(blocks.rbegin()->getPreviousBlockId().toString());
-                            } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
-                                if(currentHeight == 1) {
-                                    // This peer has a different genesis block to us
-                                    changeScore(it->first, 250);
-                                    it++;
-                                    break;
-                                } else {
-                                    log->printf(LOG_LEVEL_INFO, "Network(): got block h: " + std::to_string(blocks.rbegin()->getHeight()) + " with prevBlock: " + blocks.rbegin()->getPreviousBlockId().toString() + " prev not found");
+								try {
+									blockchain->getBlockDB(blocks.rbegin()->getPreviousBlockId().toString());
+								} catch(const CryptoKernel::Blockchain::NotFoundException& e) {
+									if(currentHeight == 1) {
+										// This peer has a different genesis block to us
+										changeScore(it->first, 250);
+										it++;
+										break;
+									} else {
+										log->printf(LOG_LEVEL_INFO, "Network(): got block h: " + std::to_string(blocks.rbegin()->getHeight()) + " with prevBlock: " + blocks.rbegin()->getPreviousBlockId().toString() + " prev not found");
 
 
-                                    currentHeight = std::max(1, (int)currentHeight - nBlocks);
-                                    continue;
-                                }
-                            }
+										currentHeight = std::max(1, (int)currentHeight - nBlocks);
+										continue;
+									}
+								}
 
-                            break;
-                        } while(running);
+								break;
+							} while(running);
 
-                        currentHeight += nBlocks;
-                    }
+							currentHeight += nBlocks;
+						}
 
-                    log->printf(LOG_LEVEL_INFO, "Network(): Found common block " + std::to_string(currentHeight-1) + " with peer, starting block download");
+						log->printf(LOG_LEVEL_INFO, "Network(): Found common block " + std::to_string(currentHeight-1) + " with peer, starting block download");
 
-                    while(blocks.size() < 2000 && running && !failure && currentHeight < bestHeight) {
-                        log->printf(LOG_LEVEL_INFO,
-                                    "Network(): Downloading blocks " + std::to_string(currentHeight + 1) + " to " +
-                                    std::to_string(currentHeight + 6));
+						while(blocks.size() < 2000 && running && !failure && currentHeight < bestHeight) {
+							log->printf(LOG_LEVEL_INFO,
+										"Network(): Downloading blocks " + std::to_string(currentHeight + 1) + " to " +
+										std::to_string(currentHeight + 6));
 
-                        auto nBlocks = 0;
-                        try {
-                            const auto newBlocks = it->second->getBlocks(currentHeight + 1, currentHeight + 6);
-                            nBlocks = newBlocks.size();
-                            blocks.insert(blocks.begin(), newBlocks.rbegin(), newBlocks.rend());
-                            if(nBlocks > 0) {
-                                madeProgress = true;
-                            } else {
-                                log->printf(LOG_LEVEL_WARN, "Network(): Peer responded with no blocks");
-                                break;
-                            }
-                        } catch(Peer::NetworkError& e) {
-                            log->printf(LOG_LEVEL_WARN,
-                                        "Network(): Failed to contact " + it->first + " " + e.what() +
-                                        " while downloading blocks");
-                            it++;
-                            break;
-                        }
+							auto nBlocks = 0;
+							try {
+								const auto newBlocks = it->second->getBlocks(currentHeight + 1, currentHeight + 6);
+								nBlocks = newBlocks.size();
+								blocks.insert(blocks.begin(), newBlocks.rbegin(), newBlocks.rend());
+								if(nBlocks > 0) {
+									madeProgress = true;
+								} else {
+									log->printf(LOG_LEVEL_WARN, "Network(): Peer responded with no blocks");
+									break;
+								}
+							} catch(Peer::NetworkError& e) {
+								log->printf(LOG_LEVEL_WARN,
+											"Network(): Failed to contact " + it->first + " " + e.what() +
+											" while downloading blocks");
+								it++;
+								break;
+							}
 
-                        currentHeight = std::min(currentHeight + std::max(nBlocks, 1), bestHeight);
-                    }
+							currentHeight = std::min(currentHeight + std::max(nBlocks, 1), bestHeight);
+						}
 
-                    if(blockProcessor) {
-                        log->printf(LOG_LEVEL_INFO, "Network(): Waiting for previous block processor thread to finish");
-                        blockProcessor->join();
-                        blockProcessor.reset();
+						if(blockProcessor) {
+							log->printf(LOG_LEVEL_INFO, "Network(): Waiting for previous block processor thread to finish");
+							blockProcessor->join();
+							blockProcessor.reset();
 
-                        if(failure) {
-                            log->printf(LOG_LEVEL_WARN, "Network(): Failure processing blocks");
-                            blocks.clear();
-                            currentHeight = blockchain->getBlockDB("tip").getHeight();
-                            this->currentHeight = currentHeight;
-                            startHeight = currentHeight;
-                            bestHeight = currentHeight;
-                            it++;
-                            failure = false;
-                            break;
-                        }
-                    }
+							if(failure) {
+								log->printf(LOG_LEVEL_WARN, "Network(): Failure processing blocks");
+								blocks.clear();
+								currentHeight = blockchain->getBlockDB("tip").getHeight();
+								this->currentHeight = currentHeight;
+								startHeight = currentHeight;
+								bestHeight = currentHeight;
+								it++;
+								failure = false;
+								break;
+							}
+						}
 
-                    blockProcessor.reset(new std::thread([&, blocks](const std::string& peer){
-                        failure = false;
+						blockProcessor.reset(new std::thread([&, blocks](const std::string& peer){
+							failure = false;
 
-                        log->printf(LOG_LEVEL_INFO, "Network(): Submitting " + std::to_string(blocks.size()) + " blocks to blockchain");
+							log->printf(LOG_LEVEL_INFO, "Network(): Submitting " + std::to_string(blocks.size()) + " blocks to blockchain");
 
-                        for(auto rit = blocks.rbegin(); rit != blocks.rend() && running; ++rit) {
-                            const auto blockResult = blockchain->submitBlock(*rit);
+							for(auto rit = blocks.rbegin(); rit != blocks.rend() && running; ++rit) {
+								const auto blockResult = blockchain->submitBlock(*rit);
 
-                            if(std::get<1>(blockResult)) {
-                                changeScore(peer, 50);
-                            }
+								if(std::get<1>(blockResult)) {
+									changeScore(peer, 50);
+								}
 
-                            if(!std::get<0>(blockResult)) {
-                                failure = true;
-                                changeScore(peer, 25);
-                                log->printf(LOG_LEVEL_WARN, "Network(): offending block: " + rit->toJson().toStyledString());
-                                break;
-                            }
-                        }
-                    }, peerUrl));
-                } else {
-                    it++;
-                }
+								if(!std::get<0>(blockResult)) {
+									failure = true;
+									changeScore(peer, 25);
+									log->printf(LOG_LEVEL_WARN, "Network(): offending block: " + rit->toJson().toStyledString());
+									break;
+								}
+							}
+						}, peerUrl));
+					} else {
+						//it++;
+					}
+					it->second->release();
+				}
             }
 
             //connectedMutex.unlock();
