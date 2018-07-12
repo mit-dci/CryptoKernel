@@ -165,7 +165,7 @@ CryptoKernel::Network::~Network() {
 void CryptoKernel::Network::makeOutgoingConnectionsWrapper() {
 	while(running) {
 		makeOutgoingConnections();
-		std::this_thread::sleep_for(std::chrono::milliseconds(20));
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 }
 
