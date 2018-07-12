@@ -3,6 +3,9 @@
 #include "version.h"
 
 #include <list>
+#include <algorithm>
+#include <cstdlib>
+#include <ctime>
 
 CryptoKernel::Network::Connection::Connection() {
 
@@ -133,6 +136,8 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
 
     running = true;
 
+    std::srand(std::time(0));
+
     listener.setBlocking(false);
 
     // Start connection thread
@@ -249,7 +254,8 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 
 	std::set<std::string> removals;
 
-	auto keys = connected.keys();
+	std::vector<std::string> keys = connected.keys();
+	std::random_shuffle(keys.begin(), keys.end());
 	for(auto key: keys) {
 		auto it = connected.find(key);
 		if(it != connected.end() && it->second->acquire()) {
@@ -332,6 +338,7 @@ void CryptoKernel::Network::networkFunc() {
         uint64_t bestHeight = currentHeight;
 
         std::vector<std::string> keys = connected.keys();
+        std::random_shuffle(keys.begin(), keys.end());
         for(auto key : keys) {
         	auto it = connected.find(key);
         	if(it != connected.end() && it->second->acquire()) {
@@ -358,6 +365,7 @@ void CryptoKernel::Network::networkFunc() {
             //connectedMutex.lock();
 
             keys = connected.keys();
+            std::random_shuffle(keys.begin(), keys.end());
 			for(auto key : keys) {
 				auto it = connected.find(key);
 				if(it != connected.end() && it->second->acquire()) {
@@ -588,6 +596,7 @@ unsigned int CryptoKernel::Network::getConnections() {
 void CryptoKernel::Network::broadcastTransactions(const
         std::vector<CryptoKernel::Blockchain::transaction> transactions) {
 	std::vector<std::string> keys = connected.keys();
+	std::random_shuffle(keys.begin(), keys.end());
 	for(std::string key : keys) {
 		auto it = connected.find(key);
 		if(it != connected.end() && it->second->acquire()) {
@@ -602,6 +611,7 @@ void CryptoKernel::Network::broadcastTransactions(const
 
 void CryptoKernel::Network::broadcastBlock(const CryptoKernel::Blockchain::block block) {
 	std::vector<std::string> keys = connected.keys();
+	std::random_shuffle(keys.begin(), keys.end());
     for(std::string key : keys) {
     	auto it = connected.find(key);
     	if(it != connected.end() && it->second->acquire()) {
@@ -638,6 +648,7 @@ void CryptoKernel::Network::changeScore(const std::string& url, const uint64_t s
 std::set<std::string> CryptoKernel::Network::getConnectedPeers() {
     std::set<std::string> peerUrls;
     std::vector<std::string> keys = connected.keys();
+    std::random_shuffle(keys.begin(), keys.end());
     for(auto& peer : keys) {
     	peerUrls.insert(peer);
     }
