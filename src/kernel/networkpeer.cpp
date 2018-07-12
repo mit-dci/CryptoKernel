@@ -241,7 +241,7 @@ void CryptoKernel::Network::Peer::requestFunc() {
                     if(it != requests.end()) {
                         responses[request["nonce"].asUInt64()] = request["data"];
                         requests.erase(it);
-                        responseReady.notify_one();
+                        responseReady.notify_all();
                     } else {
                         network->changeScore(client->getRemoteAddress().toString(), 50);
                     }

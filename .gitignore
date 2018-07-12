@@ -25,7 +25,16 @@ test-ck
 .cproject
 *.make
 Makefile
+<<<<<<< HEAD
 core
 vgcore.*
 genesistest.json
 testblockdb/*
+=======
+test.make
+Default/*
+.cproject
+.project
+core
+vgcore.*
+>>>>>>> upstream/master
