@@ -251,7 +251,6 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 
 	auto keys = connected.keys();
 	for(auto key: keys) {
-		log->printf(LOG_LEVEL_INFO, "WE HAVE KEY " + key);
 		auto it = connected.find(key);
 		if(it != connected.end() && it->second->acquire()) {
 			try {
