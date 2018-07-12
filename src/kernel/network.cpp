@@ -232,7 +232,7 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 	for(auto key: keys) {
 		log->printf(LOG_LEVEL_INFO, "WE HAVE KEY " + key);
 		auto it = connected.find(key);
-		if(it->second->acquire()) {
+		if(it != connected.end() && it->second->acquire()) {
 			try {
 				const Json::Value info = it->second->getInfo();
 				try {
@@ -283,6 +283,8 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 				log->printf(LOG_LEVEL_WARN,
 							"Network(): Failed to contact " + it->first + ", disconnecting it");
 				removals.insert(it->first);
+				connected.erase(it);
+				continue;
 			}
 			it->second->release();
 		}
@@ -314,7 +316,7 @@ void CryptoKernel::Network::networkFunc() {
         std::vector<std::string> keys = connected.keys();
         for(auto key : keys) {
         	auto it = connected.find(key); // todo, make sure it exists!
-        	if(it->second->acquire()) {
+        	if(it != connected.end() && it->second->acquire()) {
         		if(it->second->getInfo("height").asUInt64() > bestHeight) {
 					bestHeight = it->second->getInfo("height").asUInt64();
 				}
@@ -341,7 +343,7 @@ void CryptoKernel::Network::networkFunc() {
             keys = connected.keys();
 			for(auto key : keys) {
 				auto it = connected.find(key);
-				if(it->second->acquire()) {
+				if(it != connected.end() && it->second->acquire()) {
 					if(it->second->getInfo("height").asUInt64() > currentHeight) {
 						std::list<CryptoKernel::Blockchain::block> blocks;
 
@@ -578,7 +580,7 @@ void CryptoKernel::Network::broadcastTransactions(const
 	std::vector<std::string> keys = connected.keys();
 	for(std::string key : keys) {
 		auto it = connected.find(key);
-		if(it->second->acquire()) {
+		if(it != connected.end() && it->second->acquire()) {
 			try {
 				it->second->sendTransactions(transactions);
 			} catch(CryptoKernel::Network::Peer::NetworkError& err) {
@@ -592,7 +594,7 @@ void CryptoKernel::Network::broadcastBlock(const CryptoKernel::Blockchain::block
 	std::vector<std::string> keys = connected.keys();
     for(std::string key : keys) {
     	auto it = connected.find(key);
-    	if(it->second->acquire()) {
+    	if(it != connected.end() && it->second->acquire()) {
     		try {
 				it->second->sendBlock(block);
 			} catch(CryptoKernel::Network::Peer::NetworkError& err) {
