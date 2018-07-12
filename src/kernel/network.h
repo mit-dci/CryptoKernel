@@ -156,6 +156,7 @@ private:
     	std::unique_ptr<Peer> peer;
 		Json::Value info;
 		std::mutex peerMutex;
+		std::mutex modMutex;
 		std::mutex infoMutex;
 	};
 

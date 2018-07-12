@@ -9,39 +9,39 @@ CryptoKernel::Network::Connection::Connection() {
 }
 
 Json::Value CryptoKernel::Network::Connection::getInfo() {
-	//std::lock_guard<std::mutex> pm(peerMutex);
+	std::lock_guard<std::mutex> mm(modMutex);
 	return peer->getInfo();
 }
 
 void CryptoKernel::Network::Connection::sendTransactions(const std::vector<CryptoKernel::Blockchain::transaction>&
 					  transactions) {
-	//std::lock_guard<std::mutex> pm(peerMutex);
+	std::lock_guard<std::mutex> mm(modMutex);
 	peer->sendTransactions(transactions);
 }
 
 void CryptoKernel::Network::Connection::sendBlock(const CryptoKernel::Blockchain::block& block) {
-	//std::lock_guard<std::mutex> pm(peerMutex);
+	std::lock_guard<std::mutex> mm(modMutex);
 	peer->sendBlock(block);
 }
 
 std::vector<CryptoKernel::Blockchain::transaction> CryptoKernel::Network::Connection::getUnconfirmedTransactions() {
-	//std::lock_guard<std::mutex> pm(peerMutex);
+	std::lock_guard<std::mutex> mm(modMutex);
 	return peer->getUnconfirmedTransactions();
 }
 
 CryptoKernel::Blockchain::block CryptoKernel::Network::Connection::getBlock(const uint64_t height, const std::string& id) {
-	//std::lock_guard<std::mutex> pm(peerMutex);
+	std::lock_guard<std::mutex> mm(modMutex);
 	return peer->getBlock(height, id);
 }
 
 std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Connection::getBlocks(const uint64_t start,
 													   const uint64_t end) {
-	//std::lock_guard<std::mutex> pm(peerMutex);
+	std::lock_guard<std::mutex> mm(modMutex);
 	return peer->getBlocks(start, end);
 }
 
 void CryptoKernel::Network::Connection::setPeer(CryptoKernel::Network::Peer* peer) {
-	//std::lock_guard<std::mutex> pm(peerMutex);
+	std::lock_guard<std::mutex> mm(modMutex);
 	this->peer.reset(peer);
 }
 
@@ -575,32 +575,38 @@ unsigned int CryptoKernel::Network::getConnections() {
 
 void CryptoKernel::Network::broadcastTransactions(const
         std::vector<CryptoKernel::Blockchain::transaction> transactions) {
-    /*for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin();
-            it != connected.end(); it++) {
-        try {
-            it->second->peer->sendTransactions(transactions);
-        } catch(CryptoKernel::Network::Peer::NetworkError& err) {
-            log->printf(LOG_LEVEL_WARN, "Network::broadcastTransactions(): Failed to contact peer");
-        }
-    }*/
+	std::vector<std::string> keys = connected.keys();
+	for(std::string key : keys) {
+		auto it = connected.find(key);
+		if(it->second->acquire()) {
+			try {
+				it->second->sendTransactions(transactions);
+			} catch(CryptoKernel::Network::Peer::NetworkError& err) {
+				log->printf(LOG_LEVEL_WARN, "Network::broadcastTransactions(): Failed to contact peer");
+			}
+		}
+    }
 }
 
 void CryptoKernel::Network::broadcastBlock(const CryptoKernel::Blockchain::block block) {
-    /*for(std::map<std::string, std::unique_ptr<PeerInfo>>::iterator it = connected.begin();
-            it != connected.end(); it++) {
-        try {
-            it->second->peer->sendBlock(block);
-        } catch(CryptoKernel::Network::Peer::NetworkError& err) {
-            log->printf(LOG_LEVEL_WARN, "Network::broadcastBlock(): Failed to contact peer");
-        }
-    }*/
+	std::vector<std::string> keys = connected.keys();
+    for(std::string key : keys) {
+    	auto it = connected.find(key);
+    	if(it->second->acquire()) {
+    		try {
+				it->second->sendBlock(block);
+			} catch(CryptoKernel::Network::Peer::NetworkError& err) {
+				log->printf(LOG_LEVEL_WARN, "Network::broadcastBlock(): Failed to contact peer");
+			}
+			it->second->release();
+    	}
+    }
 }
 
 double CryptoKernel::Network::syncProgress() {
     return (double)(currentHeight)/(double)(bestHeight);
 }
 
-// ONLY CALL THIS IF YOU ALREADY HAVE A LOCK
 void CryptoKernel::Network::changeScore(const std::string& url, const uint64_t score) {
     if(connected.contains(url)) { // this check isn't necessary
     	//connected.find(url)->second;
