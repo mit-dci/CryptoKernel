@@ -321,21 +321,12 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 				log->printf(LOG_LEVEL_WARN,
 							"Network(): Failed to contact " + it->first + ", disconnecting it");
 
-				//removals.insert(it->first);
 				connected.erase(it);
 				continue;
 			}
 			it->second->release();
 		}
 	}
-
-	/*for(const auto& peer : removals) {
-		const auto it = connected.find(peer);
-		peers->put(dbTx.get(), peer, it->second->getInfo()); // how did this work???  this only winds up getting called if info wasn't fetched in the first place
-		if(connected.contains(it->first)) {
-			connected.erase(it);
-		}
-	}*/
 
 	connectedStats.clear();
 	keys = connected.keys();
@@ -389,8 +380,6 @@ void CryptoKernel::Network::networkFunc() {
 
         //Detect if we are behind
         if(bestHeight > currentHeight) {
-            //connectedMutex.lock();
-
             keys = connected.keys();
             std::random_shuffle(keys.begin(), keys.end());
 			for(auto key : keys) {
