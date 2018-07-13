@@ -20,21 +20,12 @@ addressesdb
 peers
 /.vscode/
 test-ck
-/Default/
 .project
 .cproject
 *.make
 Makefile
-<<<<<<< HEAD
-core
-vgcore.*
-genesistest.json
-testblockdb/*
-=======
-test.make
 Default/*
 .cproject
 .project
 core
 vgcore.*
->>>>>>> upstream/master

@@ -169,21 +169,25 @@ CryptoKernel::Network::~Network() {
 
 void CryptoKernel::Network::makeOutgoingConnectionsWrapper() {
 	while(running) {
-		makeOutgoingConnections();
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		bool wait = false;
+		makeOutgoingConnections(wait);
+		if(wait) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(20));
+		}
+		else {
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		}
 	}
 }
 
 void CryptoKernel::Network::infoOutgoingConnectionsWrapper() {
 	while(running) {
-		bool wait = false;
-
 		infoOutgoingConnections();
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 }
 
-void CryptoKernel::Network::makeOutgoingConnections() {
+void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 	std::map<std::string, Json::Value> peersToTry;
 	{
 		CryptoKernel::Storage::Table::Iterator* it = new CryptoKernel::Storage::Table::Iterator(
@@ -191,7 +195,8 @@ void CryptoKernel::Network::makeOutgoingConnections() {
 
 		for(it->SeekToFirst(); it->Valid(); it->Next()) {
 			if(connected.size() >= 8) { // honestly, this is enough
-				std::this_thread::sleep_for(std::chrono::seconds(20)); // so stop looking for a while
+				wait = true;
+				return;
 			}
 
 			Json::Value peerInfo = it->value();
