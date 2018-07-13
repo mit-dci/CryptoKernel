@@ -344,7 +344,7 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 	dbTx->commit();
 
 	connectedStats.clear();
-	std::vector<std::string> keys = connected.keys();
+	keys = connected.keys();
 	std::random_shuffle(keys.begin(), keys.end());
 	for(const std::string key : keys) {
 		auto it = connected.find(key);
