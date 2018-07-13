@@ -1,5 +1,5 @@
 /*
- * ConcMap.h
+ * ConcurrentMap.h
  *
  *  Created on: Jul 11, 2018
  *      Author: Luke Horgan
@@ -14,8 +14,7 @@
 
 template <class KEY, class VAL> class ConcurrentMap {
 public:
-	ConcurrentMap() {
-	}
+	ConcurrentMap() {};
 
 	std::size_t size() {
 		mapMutex.lock();
@@ -32,7 +31,10 @@ public:
 	}
 
 	VAL& at(KEY key) {
-		return map[key];
+		mapMutex.lock();
+		VAL& res = map[key];
+		mapMutex.unlock();
+		return res;
 	}
 
 	bool contains(KEY key) {
@@ -75,10 +77,26 @@ public:
 		mapMutex.unlock();
 	}
 
+	void clear() {
+		mapMutex.lock();
+		map.clear();
+		mapMutex.unlock();
+	}
+
 	void insert(KEY key, VAL val) {
 		mapMutex.lock();
 		map[key] = val;
 		mapMutex.unlock();
+	}
+
+	std::map<KEY, VAL> copyMap() {
+		std::map<KEY, VAL> mapCopy;
+		mapMutex.lock();
+		for(auto it = map.begin(); it != map.end(); it++) {
+			mapCopy[it->first] = it->second;
+		}
+		mapMutex.unlock();
+		return mapCopy;
 	}
 
 	virtual ~ConcurrentMap() {};

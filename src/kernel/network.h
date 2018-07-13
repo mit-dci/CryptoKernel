@@ -109,6 +109,7 @@ private:
 		std::vector<CryptoKernel::Blockchain::transaction> getUnconfirmedTransactions();
 		CryptoKernel::Blockchain::block getBlock(const uint64_t height, const std::string& id);
 		std::vector<CryptoKernel::Blockchain::block> getBlocks(const uint64_t start, const uint64_t end);
+		Network::peerStats getPeerStats();
 
 		bool acquire();
 		void release();
@@ -134,7 +135,7 @@ private:
     ConcurrentMap<std::string, std::unique_ptr<Connection>> connected;
     std::recursive_mutex connectedMutex;
 
-    std::map<std::string, peerStats> connectedStats;
+    ConcurrentMap<std::string, peerStats> connectedStats;
     std::mutex connectedStatsMutex;
 
     CryptoKernel::Log* log;

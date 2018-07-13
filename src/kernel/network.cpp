@@ -43,6 +43,11 @@ std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Connection::
 	return peer->getBlocks(start, end);
 }
 
+CryptoKernel::Network::peerStats CryptoKernel::Network::Connection::getPeerStats() {
+	std::lock_guard<std::mutex> mm(modMutex);
+    return this->getPeerStats();
+}
+
 void CryptoKernel::Network::Connection::setPeer(CryptoKernel::Network::Peer* peer) {
 	std::lock_guard<std::mutex> mm(modMutex);
 	this->peer.reset(peer);
@@ -322,6 +327,19 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 			connected.erase(it);
 		}
 	}*/
+
+	connectedStats.clear();
+	keys = connected.keys();
+	std::random_shuffle(keys.begin(), keys.end());
+	for(const std::string key : keys) {
+		auto it = connected.find(key);
+		if(it != connected.end() && it->second->acquire()) {
+			peerStats stats = it->second->getPeerStats();
+			stats.version = it->second->getInfo("version").asString();
+			stats.blockHeight = it->second->getInfo("height").asUInt64();
+			connectedStats.insert(it->first, stats);
+		}
+	}
 
 	dbTx->commit();
 }
@@ -662,7 +680,5 @@ uint64_t CryptoKernel::Network::getCurrentHeight() {
 
 std::map<std::string, CryptoKernel::Network::peerStats>
 CryptoKernel::Network::getPeerStats() {
-    std::lock_guard<std::mutex> lock(connectedStatsMutex);
-
-    return connectedStats;
+    return connectedStats.copyMap();
 }
