@@ -43,8 +43,12 @@ std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Connection::
 	return peer->getBlocks(start, end);
 }
 
+<<<<<<< HEAD
 CryptoKernel::Network::peerStats CryptoKernel::Network::Connection::getPeerStats() {
 	std::lock_guard<std::mutex> mm(modMutex);
+=======
+CryptoKernel::Network::peerStats CryptoKernel::Network::Connection::getPeerStats() const {
+>>>>>>> muool
     return this->getPeerStats();
 }
 
@@ -342,6 +346,19 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 	}
 
 	dbTx->commit();
+
+	connectedStats.clear();
+	std::vector<std::string> keys = connected.keys();
+	std::random_shuffle(keys.begin(), keys.end());
+	for(const std::string key : keys) {
+		auto it = connected.find(key);
+		if(it != connected.end() && it->second->acquire()) {
+			peerStats stats = it->second->getPeerStats();
+			stats.version = it->second->getInfo("version").asString();
+			stats.blockHeight = it->second->getInfo("height").asUInt64();
+			connectedStats.insert(it->first, stats);
+		}
+	}
 }
 
 void CryptoKernel::Network::networkFunc() {
