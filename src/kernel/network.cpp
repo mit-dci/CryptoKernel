@@ -43,6 +43,10 @@ std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Connection::
 	return peer->getBlocks(start, end);
 }
 
+CryptoKernel::Network::peerStats CryptoKernel::Network::Connection::getPeerStats() const {
+    return this->getPeerStats();
+}
+
 void CryptoKernel::Network::Connection::setPeer(CryptoKernel::Network::Peer* peer) {
 	std::lock_guard<std::mutex> mm(modMutex);
 	this->peer.reset(peer);
@@ -171,8 +175,6 @@ void CryptoKernel::Network::makeOutgoingConnectionsWrapper() {
 
 void CryptoKernel::Network::infoOutgoingConnectionsWrapper() {
 	while(running) {
-		bool wait = false;
-
 		infoOutgoingConnections();
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
@@ -224,8 +226,8 @@ void CryptoKernel::Network::makeOutgoingConnections() {
 		delete it;
 	}
 
-	// here, we only access local data (except where there are more locks)
-	for(std::map<std::string, Json::Value>::iterator entry = peersToTry.begin(); entry != peersToTry.end(); ++entry) {
+	std::random_shuffle(peersToTry.begin(), peersToTry.end());
+	for(auto entry = peersToTry.begin(); entry != peersToTry.end(); ++entry) {
 		std::string peerIp = entry->first;
 		Json::Value peerData = entry->second;
 
@@ -315,15 +317,20 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 		}
 	}
 
-	/*for(const auto& peer : removals) {
-		const auto it = connected.find(peer);
-		peers->put(dbTx.get(), peer, it->second->getInfo()); // how did this work???  this only winds up getting called if info wasn't fetched in the first place
-		if(connected.contains(it->first)) {
-			connected.erase(it);
-		}
-	}*/
-
 	dbTx->commit();
+
+	connectedStats.clear();
+	std::vector<std::string> keys = connected.keys();
+	std::random_shuffle(keys.begin(), keys.end());
+	for(const std::string key : keys) {
+		auto it = connected.find(key);
+		if(it != connected.end() && it->second->acquire()) {
+			peerStats stats = it->second->getPeerStats();
+			stats.version = it->second->getInfo("version").asString();
+			stats.blockHeight = it->second->getInfo("height").asUInt64();
+			connectedStats.insert(it->first, stats);
+		}
+	}
 }
 
 void CryptoKernel::Network::networkFunc() {
@@ -662,7 +669,5 @@ uint64_t CryptoKernel::Network::getCurrentHeight() {
 
 std::map<std::string, CryptoKernel::Network::peerStats>
 CryptoKernel::Network::getPeerStats() {
-    std::lock_guard<std::mutex> lock(connectedStatsMutex);
-
-    return connectedStats;
+    return connectedStats.copyMap();
 }

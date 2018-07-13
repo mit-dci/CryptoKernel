@@ -120,6 +120,7 @@ private:
 		void setInfo(Json::Value info);
 		Json::Value& getInfo(Json::ArrayIndex& key);
 		Json::Value& getInfo(std::string key);
+		Network::peerStats getPeerStats() const;
 
     	~Connection();
 
@@ -134,8 +135,7 @@ private:
     ConcurrentMap<std::string, std::unique_ptr<Connection>> connected;
     std::recursive_mutex connectedMutex;
 
-    std::map<std::string, peerStats> connectedStats;
-    std::mutex connectedStatsMutex;
+    ConcurrentMap<std::string, peerStats> connectedStats;
 
     CryptoKernel::Log* log;
     CryptoKernel::Blockchain* blockchain;
