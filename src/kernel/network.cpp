@@ -236,6 +236,9 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 
 	std::random_shuffle(peerIps.begin(), peerIps.end());
 	for(std::string peerIp : peerIps) {
+		if(!running) {
+			break;
+		}
 		auto entry = peersToTry.find(peerIp);
 		Json::Value peerData = entry->second;
 
