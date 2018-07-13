@@ -189,57 +189,58 @@ void CryptoKernel::Network::infoOutgoingConnectionsWrapper() {
 
 void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 	std::map<std::string, Json::Value> peersToTry;
-	{
-		CryptoKernel::Storage::Table::Iterator* it = new CryptoKernel::Storage::Table::Iterator(
-				peers.get(), networkdb.get());
+	std::vector<std::string> peerIps;
 
-		for(it->SeekToFirst(); it->Valid(); it->Next()) {
-			if(connected.size() >= 8) { // honestly, this is enough
-				wait = true;
-				return;
-			}
+	CryptoKernel::Storage::Table::Iterator* it = new CryptoKernel::Storage::Table::Iterator(
+			peers.get(), networkdb.get());
 
-			Json::Value peerInfo = it->value();
-
-			if(connected.contains(it->key())) {
-				continue;
-			}
-
-			std::time_t result = std::time(nullptr);
-
-			const auto banIt = banned.find(it->key());
-			if(banIt != banned.end()) {
-				if(banIt->second > static_cast<uint64_t>(result)) {
-					continue;
-				}
-			}
-
-			if(peerInfo["lastattempt"].asUInt64() + 5 * 60 > static_cast<unsigned long long int>
-					(result) && peerInfo["lastattempt"].asUInt64() != peerInfo["lastseen"].asUInt64()) {
-				continue;
-			}
-
-			sf::IpAddress addr(it->key());
-
-			if(addr == sf::IpAddress::getLocalAddress()
-					|| addr == myAddress
-					|| addr == sf::IpAddress::LocalHost
-					|| addr == sf::IpAddress::None) {
-				continue;
-			}
-
-			log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + it->key());
-			peersToTry.insert(std::pair<std::string, Json::Value>(it->key(), peerInfo));
+	for(it->SeekToFirst(); it->Valid(); it->Next()) {
+		if(connected.size() >= 8) { // honestly, this is enough
+			wait = true;
+			return;
 		}
-		delete it;
-	}
 
-	// here, we only access local data (except where there are more locks)
-	for(std::map<std::string, Json::Value>::iterator entry = peersToTry.begin(); entry != peersToTry.end(); ++entry) {
-		std::string peerIp = entry->first;
+		Json::Value peerInfo = it->value();
+
+		if(connected.contains(it->key())) {
+			continue;
+		}
+
+		std::time_t result = std::time(nullptr);
+
+		const auto banIt = banned.find(it->key());
+		if(banIt != banned.end()) {
+			if(banIt->second > static_cast<uint64_t>(result)) {
+				continue;
+			}
+		}
+
+		if(peerInfo["lastattempt"].asUInt64() + 5 * 60 > static_cast<unsigned long long int>
+				(result) && peerInfo["lastattempt"].asUInt64() != peerInfo["lastseen"].asUInt64()) {
+			continue;
+		}
+
+		sf::IpAddress addr(it->key());
+
+		if(addr == sf::IpAddress::getLocalAddress()
+				|| addr == myAddress
+				|| addr == sf::IpAddress::LocalHost
+				|| addr == sf::IpAddress::None) {
+			continue;
+		}
+
+		peersToTry.insert(std::pair<std::string, Json::Value>(it->key(), peerInfo));
+		peerIps.push_back(it->key());
+	}
+	delete it;
+
+	std::random_shuffle(peerIps.begin(), peerIps.end());
+	for(std::string peerIp : peerIps) {
+		auto entry = peersToTry.find(peerIp);
 		Json::Value peerData = entry->second;
 
 		sf::TcpSocket* socket = new sf::TcpSocket();
+		log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + peerIp);
 		if(socket->connect(peerIp, port, sf::seconds(3)) == sf::Socket::Done) {
 			log->printf(LOG_LEVEL_INFO, "Network(): Successfully connected to " + peerIp);
 			Connection* connection = new Connection;
