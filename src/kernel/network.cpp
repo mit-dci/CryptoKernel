@@ -43,12 +43,8 @@ std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Connection::
 	return peer->getBlocks(start, end);
 }
 
-<<<<<<< HEAD
 CryptoKernel::Network::peerStats CryptoKernel::Network::Connection::getPeerStats() {
 	std::lock_guard<std::mutex> mm(modMutex);
-=======
-CryptoKernel::Network::peerStats CryptoKernel::Network::Connection::getPeerStats() const {
->>>>>>> muool
     return this->getPeerStats();
 }
 
