@@ -24,6 +24,7 @@ workspace "CryptoKernel"
                  _OPTIONS["include-dir"]}
     libdirs {_OPTIONS["lib-dir"]}
     symbols "On"
+    linkoptions {"-rdynamic"}
 
     filter {"configurations:Debug"}
         optimize "Off"
