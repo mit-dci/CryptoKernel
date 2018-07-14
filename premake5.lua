@@ -31,7 +31,7 @@ workspace "CryptoKernel"
     filter {"configurations:Release"}
         optimize "Full"
 
-    filter "system:windows"
+    filter "system:linux"
         linkoptions {"-rdynamic"}
 
 cklibs = {"crypto", "sfml-network", 
