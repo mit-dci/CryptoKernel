@@ -69,11 +69,11 @@ WORKDIR ../
 
 RUN wget https://www.lua.org/ftp/lua-5.3.4.tar.gz && \
     tar xzvf lua-5.3.4.tar.gz
-WORKDIR lua-5.3.4
-RUN make generic && make local && cp -r install/lib/liblua.a /usr/local/lib/liblua5.3.a && \
-    cp -r install/include/* /usr/local/include/
+WORKDIR lua-5.3.4/src
+RUN make liblua.a SYSCFLAGS="-DLUA_USE_LINUX" && cp liblua.a /usr/local/lib/liblua5.3.a && \
+    mkdir /usr/include/lua5.3 && cp -r *.h /usr/include/lua5.3
 
-WORKDIR ../
+WORKDIR ../../
 
 RUN git clone https://github.com/metalicjames/selene.git
 RUN cp -r selene/include/* /usr/local/include
@@ -102,4 +102,4 @@ WORKDIR ../
 
 WORKDIR cryptokernel
 
-RUN premake5 gmake2 && make ckd
+RUN premake5 gmake2 --include-dir=/usr/include/lua5.3 && make ckd
