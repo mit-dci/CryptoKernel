@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <ctime>
+#include <openssl/rand.h>
 
 CryptoKernel::Network::Connection::Connection() {
 
@@ -45,7 +46,7 @@ std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Connection::
 
 CryptoKernel::Network::peerStats CryptoKernel::Network::Connection::getPeerStats() {
 	std::lock_guard<std::mutex> mm(modMutex);
-    return this->getPeerStats();
+	return peer->getPeerStats();
 }
 
 void CryptoKernel::Network::Connection::setPeer(CryptoKernel::Network::Peer* peer) {
@@ -141,7 +142,13 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
 
     running = true;
 
-    std::srand(std::time(0));
+	unsigned char seedBuf[64];
+	if(!RAND_bytes(seedBuf, sizeof(seedBuf))) {
+		throw std::runtime_error("Could not randomize connections");
+	}
+	uint64_t seed;
+	memcpy(&seed, seedBuf, sizeof(seedBuf) / 8);
+    std::srand(seed);
 
     listener.setBlocking(false);
 
@@ -172,7 +179,7 @@ void CryptoKernel::Network::makeOutgoingConnectionsWrapper() {
 		bool wait = false;
 		makeOutgoingConnections(wait);
 		if(wait) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(20));
+			std::this_thread::sleep_for(std::chrono::seconds(20)); // stop looking for a while
 		}
 		else {
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -191,12 +198,13 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 	std::map<std::string, Json::Value> peersToTry;
 	std::vector<std::string> peerIps;
 
-	CryptoKernel::Storage::Table::Iterator* it = new CryptoKernel::Storage::Table::Iterator(
-			peers.get(), networkdb.get());
+	std::unique_ptr<CryptoKernel::Storage::Table::Iterator> it(
+			new CryptoKernel::Storage::Table::Iterator(peers.get(), networkdb.get()));
 
 	for(it->SeekToFirst(); it->Valid(); it->Next()) {
 		if(connected.size() >= 8) { // honestly, this is enough
 			wait = true;
+			it.reset();
 			return;
 		}
 
@@ -229,10 +237,11 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 			continue;
 		}
 
+		log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + it->key());
 		peersToTry.insert(std::pair<std::string, Json::Value>(it->key(), peerInfo));
 		peerIps.push_back(it->key());
 	}
-	delete it;
+	it.reset();
 
 	std::random_shuffle(peerIps.begin(), peerIps.end());
 	for(std::string peerIp : peerIps) {
@@ -294,6 +303,12 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 
 					it->second->setInfo("height", info["tipHeight"].asUInt64());
 
+					// update connected stats
+					peerStats stats = it->second->getPeerStats();
+					stats.version = it->second->getInfo("version").asString();
+					stats.blockHeight = it->second->getInfo("height").asUInt64();
+					connectedStats.insert(std::make_pair(it->first, stats));
+
 					for(const Json::Value& peer : info["peers"]) {
 						sf::IpAddress addr(peer.asString());
 						if(addr != sf::IpAddress::None) {
@@ -321,23 +336,12 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 				log->printf(LOG_LEVEL_WARN,
 							"Network(): Failed to contact " + it->first + ", disconnecting it");
 
+				connectedStats.erase(it->first);
+				it->second->release();
 				connected.erase(it);
 				continue;
 			}
 			it->second->release();
-		}
-	}
-
-	connectedStats.clear();
-	keys = connected.keys();
-	std::random_shuffle(keys.begin(), keys.end());
-	for(const std::string key : keys) {
-		auto it = connected.find(key);
-		if(it != connected.end() && it->second->acquire()) {
-			peerStats stats = it->second->getPeerStats();
-			stats.version = it->second->getInfo("version").asString();
-			stats.blockHeight = it->second->getInfo("height").asUInt64();
-			connectedStats.insert(it->first, stats);
 		}
 	}
 

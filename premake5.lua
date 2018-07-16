@@ -31,6 +31,9 @@ workspace "CryptoKernel"
     filter {"configurations:Release"}
         optimize "Full"
 
+    filter "system:linux"
+        linkoptions {"-rdynamic"}
+
 cklibs = {"crypto", "sfml-network", 
 "sfml-system", "leveldb", "jsoncpp", "jsonrpccpp-server", 
 "jsonrpccpp-client", "jsonrpccpp-common", "microhttpd", "cschnorr"}

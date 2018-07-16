@@ -109,7 +109,7 @@ private:
 		std::vector<CryptoKernel::Blockchain::transaction> getUnconfirmedTransactions();
 		CryptoKernel::Blockchain::block getBlock(const uint64_t height, const std::string& id);
 		std::vector<CryptoKernel::Blockchain::block> getBlocks(const uint64_t start, const uint64_t end);
-		Network::peerStats getPeerStats();
+    CryptoKernel::Network::peerStats getPeerStats();
 
 		bool acquire();
 		void release();
