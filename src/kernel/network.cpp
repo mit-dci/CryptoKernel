@@ -309,6 +309,7 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 					it->second->setInfo("height", info["tipHeight"].asUInt64());
 
 					// update connected stats
+					log->printf(LOG_LEVEL_INFO, "Updating stats for " + it->first);
 					peerStats stats = it->second->getPeerStats();
 					stats.version = it->second->getInfo("version").asString();
 					stats.blockHeight = it->second->getInfo("height").asUInt64();
