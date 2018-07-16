@@ -170,7 +170,7 @@ CryptoKernel::Network::~Network() {
 void CryptoKernel::Network::makeOutgoingConnectionsWrapper() {
 	while(running) {
 		bool wait = false;
-		makeOutgoingConnections(&wait);
+		makeOutgoingConnections(wait);
 		if(wait) {
 			std::this_thread::sleep_for(std::chrono::seconds(20)); // stop looking for a while
 		}
@@ -187,7 +187,7 @@ void CryptoKernel::Network::infoOutgoingConnectionsWrapper() {
 	}
 }
 
-void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
+void CryptoKernel::Network::makeOutgoingConnections(bool& wai) {
 	std::map<std::string, Json::Value> peersToTry;
 
 	std::unique_ptr<CryptoKernel::Storage::Table::Iterator> it(
