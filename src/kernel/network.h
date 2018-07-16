@@ -151,7 +151,7 @@ private:
     void connectionFunc();
 	std::unique_ptr<std::thread> connectionThread;
 
-	void makeOutgoingConnections();
+	void makeOutgoingConnections(bool& wait);
 	void makeOutgoingConnectionsWrapper();
     std::unique_ptr<std::thread> makeOutgoingConnectionsThread;
 
