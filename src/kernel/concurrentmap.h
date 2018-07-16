@@ -69,6 +69,10 @@ public:
 		return keys;
 	}
 
+	void erase(KEY key) {
+		map.erase(key);
+	}
+
 	void erase(typename std::map<KEY, VAL>::iterator it) {
 		mapMutex.lock();
 		map.erase(it);
