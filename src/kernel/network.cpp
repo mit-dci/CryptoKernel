@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <ctime>
+#include <openssl/rand.h>
 
 CryptoKernel::Network::Connection::Connection() {
 
@@ -141,7 +142,13 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
 
     running = true;
 
-    std::srand(std::time(0));
+		unsigned char seedBuf[32];
+		if(!RAND_bytes(seedBuf, sizeof(seed))) {
+        throw std::runtime_error("Could not randomize connections");
+    }
+		unsigned int seed;
+		memcpy(&seed, seedBuf, sizeof(seedBuf));
+    std::srand(seed);
 
     listener.setBlocking(false);
 
