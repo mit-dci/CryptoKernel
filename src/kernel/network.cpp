@@ -341,6 +341,7 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 				log->printf(LOG_LEVEL_WARN,
 							"Network(): Failed to contact " + it->first + ", disconnecting it");
 
+				peers->put(dbTx.get(), it->first, it->second->getCachedInfo());
 				connectedStats.erase(it->first);
 				it->second->release();
 				connected.erase(it);
