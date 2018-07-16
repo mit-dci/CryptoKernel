@@ -204,11 +204,8 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 	std::vector<std::string> peerIps;
 
 	std::unique_ptr<Storage::Transaction> dbTx(networkdb->beginReadOnly());
-	//std::unique_ptr<CryptoKernel::Storage::Table::Iterator> it(new CryptoKernel::Storage::Table::Iterator(peers.get(), networkdb.get(), dbTx->snapshot));
 
 	std::unique_ptr<Storage::Table::Iterator> it(new Storage::Table::Iterator(peers.get(), networkdb.get(), dbTx->snapshot));
-
-	it->snapshot;
 
 	for(it->SeekToFirst(); it->Valid(); it->Next()) {
 		if(connected.size() >= 8) { // honestly, this is enough
