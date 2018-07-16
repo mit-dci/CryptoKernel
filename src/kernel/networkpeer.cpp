@@ -1,4 +1,5 @@
 #include <chrono>
+#include <iostream>
 
 #include "version.h"
 #include "networkpeer.h"
@@ -19,16 +20,18 @@ CryptoKernel::Network::Peer::Peer(sf::TcpSocket* client, CryptoKernel::Blockchai
     stats.transferDown = 0;
     stats.incoming = incoming;
 
+    client->setBlocking(true);
+
     requestThread.reset(new std::thread(&CryptoKernel::Network::Peer::requestFunc, this));
 }
 
 CryptoKernel::Network::Peer::~Peer() {
     running = false;
-    requestThread->join();
-    clientMutex.lock();
+    //clientMutex.lock();
     client->disconnect();
+    requestThread->join();
     delete client;
-    clientMutex.unlock();
+    //clientMutex.unlock();
 }
 
 Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request) {
@@ -43,20 +46,17 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request) {
     sf::Packet packet;
     packet << CryptoKernel::Storage::toString(modifiedRequest, false);
 
-    clientMutex.lock();
-
-    client->setBlocking(false);
+    //client->setBlocking(true);
 
     const uint64_t startTime = std::chrono::duration_cast<std::chrono::milliseconds>
                                (std::chrono::system_clock::now().time_since_epoch()).count();
     if(client->send(packet) != sf::Socket::Done) {
         running = false;
-        clientMutex.unlock();
         throw NetworkError();
     }
 
+    clientMutex.lock();
     stats.transferUp += packet.getDataSize();
-
     clientMutex.unlock();
 
     {
@@ -86,16 +86,13 @@ void CryptoKernel::Network::Peer::send(const Json::Value& response) {
     sf::Packet packet;
     packet << CryptoKernel::Storage::toString(response, false);
 
-    clientMutex.lock();
-    client->setBlocking(true);
     if(client->send(packet) != sf::Socket::Done) {
         running = false;
-        clientMutex.unlock();
         throw NetworkError();
     }
 
+    clientMutex.lock();
     stats.transferUp += packet.getDataSize();
-
     clientMutex.unlock();
 }
 
@@ -106,13 +103,15 @@ void CryptoKernel::Network::Peer::requestFunc() {
     while(running) {
         sf::Packet packet;
 
-        clientMutex.lock();
-        client->setBlocking(false);
+        //clientMutex.lock();
+        //client->setBlocking(true);
 
         if(client->receive(packet) == sf::Socket::Done) {
+            //std::cout << "Got a packet" << std::endl;
             nRequests++;
-            stats.transferDown += packet.getDataSize();
 
+            clientMutex.lock();
+            stats.transferDown += packet.getDataSize();
             clientMutex.unlock();
 
             // Don't allow packets bigger than 50MB
@@ -253,10 +252,10 @@ void CryptoKernel::Network::Peer::requestFunc() {
             } catch(const Json::Exception& e) {
                 network->changeScore(client->getRemoteAddress().toString(), 250);
             }
-        } else {
+        } /*else {
             clientMutex.unlock();
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
-        }
+        }*/
 
         const uint64_t timeElapsed = static_cast<uint64_t>(std::time(nullptr)) - startTime;
         if(timeElapsed >= 30 && (double)nRequests/(double)timeElapsed > 50.0) {
