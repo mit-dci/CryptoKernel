@@ -195,7 +195,7 @@ void CryptoKernel::Network::makeOutgoingConnectionsWrapper() {
 void CryptoKernel::Network::infoOutgoingConnectionsWrapper() {
 	while(running) {
 		infoOutgoingConnections();
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		std::this_thread::sleep_for(std::chrono::milliseconds(2000)); // just do this once every two seconds
 	}
 }
 
@@ -378,7 +378,7 @@ void CryptoKernel::Network::networkFunc() {
         	}
         }
 
-        if(this->currentHeight > bestHeight) { // todo, protect this
+        if(this->currentHeight > bestHeight) {
             bestHeight = this->currentHeight;
         }
         this->bestHeight = bestHeight;
@@ -577,7 +577,7 @@ void CryptoKernel::Network::connectionFunc() {
             log->printf(LOG_LEVEL_INFO,
                         "Network(): Peer connected from " + client->getRemoteAddress().toString() + ":" +
                         std::to_string(client->getRemotePort()));
-            Connection* connection = new Connection(); // todo check for thread safety (think it's okay)
+            Connection* connection = new Connection();
             connection->setPeer(new Peer(client, blockchain, this, true));
 
             Json::Value info;
