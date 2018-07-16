@@ -17,6 +17,11 @@ Json::Value CryptoKernel::Network::Connection::getInfo() {
 	return peer->getInfo();
 }
 
+Json::Value CryptoKernel::Network::Connection::getCachedInfo() {
+	std::lock_guard<std::mutex> im(infoMutex);
+	return this->info;
+}
+
 void CryptoKernel::Network::Connection::sendTransactions(const std::vector<CryptoKernel::Blockchain::transaction>&
 					  transactions) {
 	std::lock_guard<std::mutex> mm(modMutex);
@@ -606,14 +611,14 @@ void CryptoKernel::Network::connectionFunc() {
             }
 
             const std::time_t result = std::time(nullptr);
-            connection->setInfo("lastseen", static_cast<uint64_t>(result));
 
+            connection->setInfo("lastseen", static_cast<uint64_t>(result));
             connection->setInfo("score", 0);
 
             connected.at(client->getRemoteAddress().toString()).reset(connection);
 
             std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
-            peers->put(dbTx.get(), client->getRemoteAddress().toString(), connection->getInfo());
+            peers->put(dbTx.get(), client->getRemoteAddress().toString(), connection->getCachedInfo());
             dbTx->commit();
         } else {
             delete client;

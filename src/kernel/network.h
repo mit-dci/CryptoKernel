@@ -121,6 +121,7 @@ private:
 		void setInfo(Json::Value info);
 		Json::Value& getInfo(Json::ArrayIndex& key);
 		Json::Value& getInfo(std::string key);
+		Json::Value getCachedInfo();
 		Network::peerStats getPeerStats() const;
 
     	~Connection();
