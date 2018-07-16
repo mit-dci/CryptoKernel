@@ -232,7 +232,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 		log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + it->key());
 		peersToTry.insert(std::pair<std::string, Json::Value>(it->key(), peerInfo));
 	}
-	delete it;
+	it.reset();
 
 	// here, we only access local data (except where there are more locks)
 	for(std::map<std::string, Json::Value>::iterator entry = peersToTry.begin(); entry != peersToTry.end(); ++entry) {
