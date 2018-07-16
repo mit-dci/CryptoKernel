@@ -189,6 +189,7 @@ void CryptoKernel::Network::infoOutgoingConnectionsWrapper() {
 
 void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 	std::map<std::string, Json::Value> peersToTry;
+	std::vector<std::string> peerIps;
 
 	std::unique_ptr<CryptoKernel::Storage::Table::Iterator> it(
 			new CryptoKernel::Storage::Table::Iterator(peers.get(), networkdb.get()));
@@ -231,13 +232,17 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 
 		log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + it->key());
 		peersToTry.insert(std::pair<std::string, Json::Value>(it->key(), peerInfo));
+		peerIps.push_back(it->key());
 	}
 	it.reset();
 
-	// here, we only access local data (except where there are more locks)
-	for(std::map<std::string, Json::Value>::iterator entry = peersToTry.begin(); entry != peersToTry.end(); ++entry) {
-		std::string peerIp = entry->first;
-		Json::Value peerData = entry->second;
+	std::random_shuffle(peerIps.begin(), peerIps.end());
+	for(std::string peerIp : peerIps) {
+		if(!running) {
+			break;
+		}
+		auto entry = peersToTry.find(peerIp);
+		Json::Value peerData = entry->second
 
 		sf::TcpSocket* socket = new sf::TcpSocket();
 		if(socket->connect(peerIp, port, sf::seconds(3)) == sf::Socket::Done) {
