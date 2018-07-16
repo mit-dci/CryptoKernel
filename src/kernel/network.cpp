@@ -672,5 +672,5 @@ uint64_t CryptoKernel::Network::getCurrentHeight() {
 
 std::map<std::string, CryptoKernel::Network::peerStats>
 CryptoKernel::Network::getPeerStats() {
-    return connectedStats.copy();
+    return connectedStats.copyMap();
 }
