@@ -187,7 +187,7 @@ void CryptoKernel::Network::infoOutgoingConnectionsWrapper() {
 	}
 }
 
-void CryptoKernel::Network::makeOutgoingConnections(bool& wai) {
+void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 	std::map<std::string, Json::Value> peersToTry;
 
 	std::unique_ptr<CryptoKernel::Storage::Table::Iterator> it(
