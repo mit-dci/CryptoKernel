@@ -81,6 +81,22 @@ public:
 		mapMutex.unlock();
 	}
 
+	void insert(std::pair<KEY, VAL> pair) {
+		mapMutex.lock();
+		map.insert(pair);
+		mapMutex.unlock();
+	}
+
+	std::map<KEY, VAL> copyMap() {
+		std::map<KEY, VAL> mapCopy;
+		mapMutex.lock();
+		for(auto it = map.begin(); it != map.end(); it++) {
+			mapCopy[it->first] = it->second;
+		}
+		mapMutex.unlock();
+		return mapCopy;
+	}
+
 	virtual ~ConcurrentMap() {};
 
 private:
