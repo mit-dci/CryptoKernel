@@ -203,8 +203,11 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 	std::map<std::string, Json::Value> peersToTry;
 	std::vector<std::string> peerIps;
 
+	std::unique_ptr<Storage::Transaction> dbTx(networkdb->beginReadOnly());
 	std::unique_ptr<CryptoKernel::Storage::Table::Iterator> it(
-			new CryptoKernel::Storage::Table::Iterator(peers.get(), networkdb.get()));
+			new CryptoKernel::Storage::Table::Iterator(peers.get(), networkdb.get(), dbTx->snapshot));
+
+	it->snapshot;
 
 	for(it->SeekToFirst(); it->Valid(); it->Next()) {
 		if(connected.size() >= 8) { // honestly, this is enough
@@ -242,7 +245,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 			continue;
 		}
 
-		log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + it->key());
+		//log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + it->key());
 		peersToTry.insert(std::pair<std::string, Json::Value>(it->key(), peerInfo));
 		peerIps.push_back(it->key());
 	}
