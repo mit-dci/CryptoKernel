@@ -143,7 +143,7 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
     running = true;
 
 		unsigned char seedBuf[32];
-		if(!RAND_bytes(seedBuf, sizeof(seed))) {
+		if(!RAND_bytes(seedBuf, sizeof(seedBuf))) {
         throw std::runtime_error("Could not randomize connections");
     }
 		unsigned int seed;
