@@ -142,13 +142,12 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
 
     running = true;
 
-		unsigned char seedBuf[32];
+		unsigned char seedBuf[64];
 		if(!RAND_bytes(seedBuf, sizeof(seedBuf))) {
         throw std::runtime_error("Could not randomize connections");
     }
-		uint32_t seed;
-		memcpy(&seed, seedBuf, sizeof(seedBuf));
-		uint32_t seed = 12;
+		uint64_t seed;
+		memcpy(&seed, seedBuf, sizeof(seedBuf) / 8);
     std::srand(seed);
 
     listener.setBlocking(false);
