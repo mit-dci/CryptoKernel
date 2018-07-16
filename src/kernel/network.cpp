@@ -242,7 +242,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 			break;
 		}
 		auto entry = peersToTry.find(peerIp);
-		Json::Value peerData = entry->second
+		Json::Value peerData = entry->second;
 
 		sf::TcpSocket* socket = new sf::TcpSocket();
 		if(socket->connect(peerIp, port, sf::seconds(3)) == sf::Socket::Done) {
