@@ -351,19 +351,6 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 	}
 
 	dbTx->commit();
-
-	connectedStats.clear();
-	keys = connected.keys();
-	std::random_shuffle(keys.begin(), keys.end());
-	for(const std::string key : keys) {
-		auto it = connected.find(key);
-		if(it != connected.end() && it->second->acquire()) {
-			peerStats stats = it->second->getPeerStats();
-			stats.version = it->second->getInfo("version").asString();
-			stats.blockHeight = it->second->getInfo("height").asUInt64();
-			connectedStats.insert(it->first, stats);
-		}
-	}
 }
 
 void CryptoKernel::Network::networkFunc() {
