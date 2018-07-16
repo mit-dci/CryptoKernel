@@ -95,7 +95,7 @@ public:
 
 	void insert(std::pair<KEY, VAL> pair) {
 		mapMutex.lock();
-		map.insert(pair);
+		map[pair.first] = pair.second;
 		mapMutex.unlock();
 	}
 
