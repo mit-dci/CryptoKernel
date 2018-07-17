@@ -101,7 +101,8 @@ Json::Value& CryptoKernel::Network::Connection::getInfo(std::string key) {
 }
 
 CryptoKernel::Network::Connection::~Connection() {
-
+    std::lock_guard<std::mutex> im(infoMutex);
+    std::lock_guard<std::mutex> mm(modMutex);
 }
 
 CryptoKernel::Network::Network(CryptoKernel::Log* log,
