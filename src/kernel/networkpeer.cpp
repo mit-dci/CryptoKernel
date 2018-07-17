@@ -1,5 +1,4 @@
 #include <chrono>
-#include <iostream>
 
 #include "version.h"
 #include "networkpeer.h"
@@ -27,11 +26,9 @@ CryptoKernel::Network::Peer::Peer(sf::TcpSocket* client, CryptoKernel::Blockchai
 
 CryptoKernel::Network::Peer::~Peer() {
     running = false;
-    //clientMutex.lock();
     client->disconnect();
     requestThread->join();
     delete client;
-    //clientMutex.unlock();
 }
 
 Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request) {
@@ -46,13 +43,12 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request) {
     sf::Packet packet;
     packet << CryptoKernel::Storage::toString(modifiedRequest, false);
 
-    //client->setBlocking(true);
-
     const uint64_t startTime = std::chrono::duration_cast<std::chrono::milliseconds>
                                (std::chrono::system_clock::now().time_since_epoch()).count();
-    if(client->send(packet) != sf::Socket::Done) {
+    const auto status = client->send(packet);
+    if(status != sf::Socket::Done) {
         running = false;
-        throw NetworkError();
+        throw NetworkError("failed to send packet. Res: " + std::to_string(status));
     }
 
     clientMutex.lock();
@@ -77,7 +73,7 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request) {
 		else {
 			running = false;
 			cm.unlock();
-			throw NetworkError();
+			throw NetworkError("peer didn't respond in time");
 		}
     }
 }
@@ -86,9 +82,10 @@ void CryptoKernel::Network::Peer::send(const Json::Value& response) {
     sf::Packet packet;
     packet << CryptoKernel::Storage::toString(response, false);
 
-    if(client->send(packet) != sf::Socket::Done) {
+    const auto status = client->send(packet);
+    if(status != sf::Socket::Done) {
         running = false;
-        throw NetworkError();
+        throw NetworkError("failed to send packet. Res: " + std::to_string(status));
     }
 
     clientMutex.lock();
@@ -103,165 +100,165 @@ void CryptoKernel::Network::Peer::requestFunc() {
     while(running) {
         sf::Packet packet;
 
-        //clientMutex.lock();
-        //client->setBlocking(true);
+        sf::SocketSelector selector;
+        selector.add(*client);
+        if(selector.wait(sf::seconds(1))) {
+            const auto status = client->receive(packet);
+            if(status == sf::Socket::Done) {
+                nRequests++;
 
-        if(client->receive(packet) == sf::Socket::Done) {
-            //std::cout << "Got a packet" << std::endl;
-            nRequests++;
+                clientMutex.lock();
+                stats.transferDown += packet.getDataSize();
+                clientMutex.unlock();
 
-            clientMutex.lock();
-            stats.transferDown += packet.getDataSize();
-            clientMutex.unlock();
+                // Don't allow packets bigger than 50MB
+                if(packet.getDataSize() > 50 * 1024 * 1024) {
+                    network->changeScore(client->getRemoteAddress().toString(), 250);
+                    running = false;
+                    break;
+                }
 
-            // Don't allow packets bigger than 50MB
-            if(packet.getDataSize() > 50 * 1024 * 1024) {
-                network->changeScore(client->getRemoteAddress().toString(), 250);
-                running = false;
-                break;
-            }
+                std::string requestString;
+                packet >> requestString;
 
-            std::string requestString;
-            packet >> requestString;
+                // If this breaks, request will be null
+                const Json::Value request = CryptoKernel::Storage::toJson(requestString); // but this is the response....
 
-            // If this breaks, request will be null
-            const Json::Value request = CryptoKernel::Storage::toJson(requestString); // but this is the response....
+                try {
+                    if(!request["command"].empty()) {
+                        if(request["command"] == "info") {
+                            Json::Value response;
+                            response["data"]["version"] = version;
+                            response["data"]["tipHeight"] = network->getCurrentHeight();
+                            for(const auto& peer : network->getConnectedPeers()) {
+                                response["data"]["peers"].append(peer);
+                            }
+                            response["nonce"] = request["nonce"].asUInt64();
+                            send(response);
+                        } else if(request["command"] == "transactions") {
+                            std::vector<CryptoKernel::Blockchain::transaction> txs;
+                            for(unsigned int i = 0; i < request["data"].size(); i++) {
+                                const CryptoKernel::Blockchain::transaction tx = CryptoKernel::Blockchain::transaction(
+                                            request["data"][i]);
 
-            try {
-                if(!request["command"].empty()) {
-                    if(request["command"] == "info") {
-                        Json::Value response;
-                        response["data"]["version"] = version;
-                        response["data"]["tipHeight"] = network->getCurrentHeight();
-                        for(const auto& peer : network->getConnectedPeers()) {
-                            response["data"]["peers"].append(peer);
-                        }
-                        response["nonce"] = request["nonce"].asUInt64();
-                        send(response);
-                    } else if(request["command"] == "transactions") {
-						std::vector<CryptoKernel::Blockchain::transaction> txs;
-						for(unsigned int i = 0; i < request["data"].size(); i++) {
-							const CryptoKernel::Blockchain::transaction tx = CryptoKernel::Blockchain::transaction(
-										request["data"][i]);
+                                const auto txResult = blockchain->submitTransaction(tx);
 
-							const auto txResult = blockchain->submitTransaction(tx);
-
-							if(std::get<0>(txResult)) {
-								txs.push_back(tx);
-							} else if(std::get<1>(txResult)) {
-								network->changeScore(client->getRemoteAddress().toString(), 50);
-							}
-						}
-
-						if(txs.size() > 0) {
-							network->broadcastTransactions(txs);
-						}
-                    } else if(request["command"] == "block") {
-						const CryptoKernel::Blockchain::block block = CryptoKernel::Blockchain::block(
-									request["data"]);
-
-						// Don't accept blocks that are more than two hours away from the current time
-						const int64_t now = std::time(nullptr);
-						if(std::abs((int)(now - block.getTimestamp())) > 2 * 60 * 60) {
-							network->changeScore(client->getRemoteAddress().toString(), 50);
-						} else {
-							try {
-								blockchain->getBlockDB(block.getId().toString());
-							} catch(const CryptoKernel::Blockchain::NotFoundException& e) {
-								const auto blockResult = blockchain->submitBlock(block, false);
-								if(std::get<0>(blockResult)) {
-									network->broadcastBlock(block);
-								} else if(std::get<1>(blockResult)) {
-									network->changeScore(client->getRemoteAddress().toString(), 50);
-								}
-							}
-						}
-                    } else if(request["command"] == "getunconfirmed") {
-                        const std::set<CryptoKernel::Blockchain::transaction> unconfirmedTransactions =
-                            blockchain->getUnconfirmedTransactions();
-                        Json::Value response;
-                        for(const CryptoKernel::Blockchain::transaction& tx : unconfirmedTransactions) {
-                            response["data"].append(tx.toJson());
-                        }
-
-                        response["nonce"] = request["nonce"].asUInt64();
-
-                        send(response);
-                    } else if(request["command"] == "getblocks") {
-                        const uint64_t start = request["data"]["start"].asUInt64();
-                        const uint64_t end = request["data"]["end"].asUInt64();
-                        if(end > start && (end - start) <= 5) {
-                            Json::Value returning;
-                            for(unsigned int i = start; i < end; i++) {
-                                try {
-                                    returning["data"].append(blockchain->getBlockByHeight(i).toJson());
-                                } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
-                                    break;
+                                if(std::get<0>(txResult)) {
+                                    txs.push_back(tx);
+                                } else if(std::get<1>(txResult)) {
+                                    network->changeScore(client->getRemoteAddress().toString(), 50);
                                 }
                             }
 
-                            returning["nonce"] = request["nonce"].asUInt64();
+                            if(txs.size() > 0) {
+                                network->broadcastTransactions(txs);
+                            }
+                        } else if(request["command"] == "block") {
+                            const CryptoKernel::Blockchain::block block = CryptoKernel::Blockchain::block(
+                                        request["data"]);
 
-                            send(returning);
-                        } else {
+                            // Don't accept blocks that are more than two hours away from the current time
+                            const int64_t now = std::time(nullptr);
+                            if(std::abs((int)(now - block.getTimestamp())) > 2 * 60 * 60) {
+                                network->changeScore(client->getRemoteAddress().toString(), 50);
+                            } else {
+                                try {
+                                    blockchain->getBlockDB(block.getId().toString());
+                                } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
+                                    const auto blockResult = blockchain->submitBlock(block, false);
+                                    if(std::get<0>(blockResult)) {
+                                        network->broadcastBlock(block);
+                                    } else if(std::get<1>(blockResult)) {
+                                        network->changeScore(client->getRemoteAddress().toString(), 50);
+                                    }
+                                }
+                            }
+                        } else if(request["command"] == "getunconfirmed") {
+                            const std::set<CryptoKernel::Blockchain::transaction> unconfirmedTransactions =
+                                blockchain->getUnconfirmedTransactions();
                             Json::Value response;
-                            response["nonce"] = request["nonce"].asUInt64();
-                            send(response);
-                        }
-                    } else if(request["command"] == "getblock") {
-                        if(request["data"]["id"].empty()) {
-                            Json::Value response;
-                            try {
-                                response["data"] = blockchain->getBlockByHeight(
-                                                       request["data"]["height"].asUInt64()).toJson();
-                            } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
-                                response["data"] = Json::Value();
+                            for(const CryptoKernel::Blockchain::transaction& tx : unconfirmedTransactions) {
+                                response["data"].append(tx.toJson());
                             }
 
                             response["nonce"] = request["nonce"].asUInt64();
 
                             send(response);
-                        } else {
-                            Json::Value response;
-                            try {
-                                response["data"] = blockchain->getBlock(request["data"]["id"].asString()).toJson();
-                            } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
-                                response["data"] = Json::Value();
+                        } else if(request["command"] == "getblocks") {
+                            const uint64_t start = request["data"]["start"].asUInt64();
+                            const uint64_t end = request["data"]["end"].asUInt64();
+                            if(end > start && (end - start) <= 5) {
+                                Json::Value returning;
+                                for(unsigned int i = start; i < end; i++) {
+                                    try {
+                                        returning["data"].append(blockchain->getBlockByHeight(i).toJson());
+                                    } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
+                                        break;
+                                    }
+                                }
+
+                                returning["nonce"] = request["nonce"].asUInt64();
+
+                                send(returning);
+                            } else {
+                                Json::Value response;
+                                response["nonce"] = request["nonce"].asUInt64();
+                                send(response);
                             }
-                            response["nonce"] = request["nonce"].asUInt64();
-                            send(response);
+                        } else if(request["command"] == "getblock") {
+                            if(request["data"]["id"].empty()) {
+                                Json::Value response;
+                                try {
+                                    response["data"] = blockchain->getBlockByHeight(
+                                                        request["data"]["height"].asUInt64()).toJson();
+                                } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
+                                    response["data"] = Json::Value();
+                                }
+
+                                response["nonce"] = request["nonce"].asUInt64();
+
+                                send(response);
+                            } else {
+                                Json::Value response;
+                                try {
+                                    response["data"] = blockchain->getBlock(request["data"]["id"].asString()).toJson();
+                                } catch(const CryptoKernel::Blockchain::NotFoundException& e) {
+                                    response["data"] = Json::Value();
+                                }
+                                response["nonce"] = request["nonce"].asUInt64();
+                                send(response);
+                            }
+                        } else {
+                            network->changeScore(client->getRemoteAddress().toString(), 50);
                         }
-                    } else {
-                        network->changeScore(client->getRemoteAddress().toString(), 50);
+                    } else if(!request["nonce"].empty()) {
+                        std::lock_guard<std::mutex> lock(clientMutex);
+                        const auto it = requests.find(request["nonce"].asUInt64());
+                        if(it != requests.end()) {
+                            responses[request["nonce"].asUInt64()] = request["data"];
+                            requests.erase(it);
+                            responseReady.notify_all();
+                        } else {
+                            network->changeScore(client->getRemoteAddress().toString(), 50);
+                        }
                     }
-                } else if(!request["nonce"].empty()) {
-                    std::lock_guard<std::mutex> lock(clientMutex);
-                    const auto it = requests.find(request["nonce"].asUInt64());
-                    if(it != requests.end()) {
-                        responses[request["nonce"].asUInt64()] = request["data"];
-                        requests.erase(it);
-                        responseReady.notify_all();
-                    } else {
-                        network->changeScore(client->getRemoteAddress().toString(), 50);
-                    }
+                } catch(const NetworkError& e) {
+                    running = false;
+                } catch(const CryptoKernel::Blockchain::InvalidElementException& e) {
+                    network->changeScore(client->getRemoteAddress().toString(), 50);
+                } catch(const Json::Exception& e) {
+                    network->changeScore(client->getRemoteAddress().toString(), 250);
                 }
-            } catch(const NetworkError& e) {
-                running = false;
-            } catch(const CryptoKernel::Blockchain::InvalidElementException& e) {
-                network->changeScore(client->getRemoteAddress().toString(), 50);
-            } catch(const Json::Exception& e) {
-                network->changeScore(client->getRemoteAddress().toString(), 250);
+            } else if(status == sf::Socket::Disconnected || status == sf::Socket::Error) {
+                running = false;   
             }
-        } /*else {
-            clientMutex.unlock();
-            std::this_thread::sleep_for(std::chrono::milliseconds(5));
-        }*/
 
-        const uint64_t timeElapsed = static_cast<uint64_t>(std::time(nullptr)) - startTime;
-        if(timeElapsed >= 30 && (double)nRequests/(double)timeElapsed > 50.0) {
-            network->changeScore(client->getRemoteAddress().toString(), 20);
-            nRequests = 0;
-            startTime += timeElapsed;
+            const uint64_t timeElapsed = static_cast<uint64_t>(std::time(nullptr)) - startTime;
+            if(timeElapsed >= 30 && (double)nRequests/(double)timeElapsed > 50.0) {
+                network->changeScore(client->getRemoteAddress().toString(), 20);
+                nRequests = 0;
+                startTime += timeElapsed;
+            }
         }
     }
 }
@@ -305,7 +302,7 @@ CryptoKernel::Network::Peer::getUnconfirmedTransactions() {
             returning.push_back(CryptoKernel::Blockchain::transaction(unconfirmed[i]));
         } catch(const CryptoKernel::Blockchain::InvalidElementException& e) {
             network->changeScore(client->getRemoteAddress().toString(), 50);
-            throw NetworkError();
+            throw NetworkError("peer sent a malformed transaction");
         }
     }
 
@@ -329,7 +326,7 @@ CryptoKernel::Blockchain::block CryptoKernel::Network::Peer::getBlock(
         return CryptoKernel::Blockchain::block(block);
     } catch(const CryptoKernel::Blockchain::InvalidElementException& e) {
         network->changeScore(client->getRemoteAddress().toString(), 50);
-        throw NetworkError();
+        throw NetworkError("peer sent a malformed block");
     }
 }
 
@@ -347,7 +344,7 @@ std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Peer::getBlo
             returning.push_back(CryptoKernel::Blockchain::block(blocks[i]));
         } catch(const CryptoKernel::Blockchain::InvalidElementException& e) {
             network->changeScore(client->getRemoteAddress().toString(), 50);
-            throw NetworkError();
+            throw NetworkError("peer sent a malformed block");
         }
     }
 

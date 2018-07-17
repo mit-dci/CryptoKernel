@@ -27,9 +27,15 @@ public:
 
     class NetworkError : std::exception {
     public:
-        virtual const char* what() const throw() {
-            return "Error contacting peer";
+        NetworkError(const std::string& err) {
+            msg = err;
         }
+
+        virtual const char* what() const throw() {
+            return msg.c_str();
+        }
+    private:
+        std::string msg;
     };
 
 private:
