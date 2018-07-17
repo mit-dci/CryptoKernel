@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:16.04
 
 RUN apt update && apt dist-upgrade -y && \
     apt install -y make git cmake wget build-essential
@@ -94,7 +94,7 @@ RUN cp lua-lz4/lz4.so cryptokernel
 
 RUN git clone https://github.com/metalicjames/cschnorr.git
 WORKDIR cschnorr
-RUN premake5 gmake2 && make cschnorr && \
+RUN premake5 gmake2 && make config=release_static cschnorr && \
     mkdir /usr/local/include/cschnorr/ && \
     cp src/*.h /usr/local/include/cschnorr/ && \
     cp bin/Static/Debug/libcschnorr.a /usr/local/lib
@@ -102,4 +102,4 @@ WORKDIR ../
 
 WORKDIR cryptokernel
 
-RUN premake5 gmake2 --include-dir=/usr/include/lua5.3 && make ckd
+RUN premake5 gmake2 --include-dir=/usr/include/lua5.3 && make config=release_static ckd

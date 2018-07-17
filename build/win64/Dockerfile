@@ -108,7 +108,7 @@ RUN cp lua-lz4/lz4.dll cryptokernel
 
 RUN git clone https://github.com/metalicjames/cschnorr.git
 WORKDIR cschnorr
-RUN premake5 gmake2 --os=windows --include-dir=/usr/local/mingw/include && make cschnorr && \
+RUN premake5 gmake2 --os=windows --include-dir=/usr/local/mingw/include && make config=release_static cschnorr && \
     mkdir /usr/local/mingw/include/cschnorr/ && \
     cp src/*.h /usr/local/mingw/include/cschnorr/ && \
     cp bin/Static/Debug/cschnorr.lib /usr/local/mingw/lib
@@ -116,4 +116,4 @@ WORKDIR ../
 
 WORKDIR cryptokernel
 RUN premake5 gmake2 --os=windows --include-dir=/usr/local/mingw/include --lib-dir=/usr/local/mingw/lib
-RUN make ckd
+RUN make config=release_static ckd
