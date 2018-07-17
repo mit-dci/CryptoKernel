@@ -63,7 +63,7 @@ WORKDIR cschnorr
 RUN premake5 gmake2 --os=macosx --include-dir=/osxcross/target/macports/pkgs/opt/local/include && make config=release_static cschnorr && \
     mkdir /osxcross/target/macports/pkgs/opt/local/include/cschnorr/ && \
     cp src/*.h /osxcross/target/macports/pkgs/opt/local/include/cschnorr/ && \
-    cp bin/Static/Debug/libcschnorr.a /osxcross/target/macports/pkgs/opt/local/lib
+    cp bin/Static/Release/libcschnorr.a /osxcross/target/macports/pkgs/opt/local/lib
 WORKDIR ../
 
 WORKDIR cryptokernel

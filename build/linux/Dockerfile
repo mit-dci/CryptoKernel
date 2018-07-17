@@ -97,7 +97,7 @@ WORKDIR cschnorr
 RUN premake5 gmake2 && make config=release_static cschnorr && \
     mkdir /usr/local/include/cschnorr/ && \
     cp src/*.h /usr/local/include/cschnorr/ && \
-    cp bin/Static/Debug/libcschnorr.a /usr/local/lib
+    cp bin/Static/Release/libcschnorr.a /usr/local/lib
 WORKDIR ../
 
 WORKDIR cryptokernel
