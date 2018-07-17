@@ -72,4 +72,4 @@ RUN premake5 gmake2 --os=macosx --include-dir=/osxcross/target/macports/pkgs/opt
 
 RUN ln -s /osxcross/target/bin/x86_64-apple-darwin15-otool /osxcross/target/bin/otool && ln -s /osxcross/target/bin/x86_64-apple-darwin15-install_name_tool /osxcross/target/bin/install_name_tool && rm -r /opt && ln -s /osxcross/target/macports/pkgs/opt /opt
 
-RUN dylibbundler -b -x bin/Static/Debug/ckd -cd -i /usr/lib/ -p @executable_path/libs/
+RUN dylibbundler -b -x bin/Static/Release/ckd -cd -i /usr/lib/ -p @executable_path/libs/
