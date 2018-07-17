@@ -295,7 +295,7 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 					if(peerVersion.substr(0, peerVersion.find(".")) != version.substr(0, version.find("."))) {
 						log->printf(LOG_LEVEL_WARN,
 									"Network(): " + it->first + " has a different major version than us");
-						throw Peer::NetworkError();
+						throw Peer::NetworkError("peer has an incompatible major version");
 					}
 
 					const auto banIt = banned.find(it->first);
@@ -303,7 +303,7 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 						if(banIt->second > static_cast<uint64_t>(std::time(nullptr))) {
 							log->printf(LOG_LEVEL_WARN,
 										"Network(): Disconnecting " + it->first + " for being banned");
-							throw Peer::NetworkError();
+							throw Peer::NetworkError("peer is banned");
 						}
 					}
 
@@ -328,19 +328,19 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 							}
 						} else {
 							changeScore(it->first, 10);
-							throw Peer::NetworkError();
+							throw Peer::NetworkError("peer sent a malformed peer IP address");
 						}
 					}
 				} catch(const Json::Exception& e) {
 					changeScore(it->first, 50);
-					throw Peer::NetworkError();
+					throw Peer::NetworkError("peer sent a malformed info message");
 				}
 
 				const std::time_t result = std::time(nullptr);
 				it->second->setInfo("lastseen", static_cast<uint64_t>(result));
 			} catch(const Peer::NetworkError& e) {
 				log->printf(LOG_LEVEL_WARN,
-							"Network(): Failed to contact " + it->first + ", disconnecting it");
+							"Network(): Failed to contact " + it->first + ", disconnecting it for: " + e.what());
 
 				peers->put(dbTx.get(), it->first, it->second->getCachedInfo());
 				connectedStats.erase(it->first);
@@ -416,7 +416,7 @@ void CryptoKernel::Network::networkFunc() {
 									} else {
 										log->printf(LOG_LEVEL_WARN, "Network(): Peer responded with no blocks");
 									}
-								} catch(Peer::NetworkError& e) {
+								} catch(const Peer::NetworkError& e) {
 									log->printf(LOG_LEVEL_WARN,
 												"Network(): Failed to contact " + it->first + " " + e.what() +
 												" while downloading blocks");
@@ -467,7 +467,7 @@ void CryptoKernel::Network::networkFunc() {
 									log->printf(LOG_LEVEL_WARN, "Network(): Peer responded with no blocks");
 									break;
 								}
-							} catch(Peer::NetworkError& e) {
+							} catch(const Peer::NetworkError& e) {
 								log->printf(LOG_LEVEL_WARN,
 											"Network(): Failed to contact " + it->first + " " + e.what() +
 											" while downloading blocks");
@@ -585,7 +585,7 @@ void CryptoKernel::Network::connectionFunc() {
             try {
                 info = connection->getInfo();
             } catch(const Peer::NetworkError& e) {
-                log->printf(LOG_LEVEL_WARN, "Network(): Failed to get information from connecting peer");
+                log->printf(LOG_LEVEL_WARN, "Network(): Failed to get information from connecting peer: " + std::string(e.what()));
                 delete connection;
                 continue;
             }
@@ -629,8 +629,8 @@ void CryptoKernel::Network::broadcastTransactions(const
 		if(it != connected.end() && it->second->acquire()) {
 			try {
 				it->second->sendTransactions(transactions);
-			} catch(CryptoKernel::Network::Peer::NetworkError& err) {
-				log->printf(LOG_LEVEL_WARN, "Network::broadcastTransactions(): Failed to contact peer");
+			} catch(const Peer::NetworkError& err) {
+				log->printf(LOG_LEVEL_WARN, "Network::broadcastTransactions(): Failed to contact peer: " + std::string(err.what()));
 			}
 		}
     }
@@ -644,8 +644,8 @@ void CryptoKernel::Network::broadcastBlock(const CryptoKernel::Blockchain::block
     	if(it != connected.end() && it->second->acquire()) {
     		try {
 				it->second->sendBlock(block);
-			} catch(CryptoKernel::Network::Peer::NetworkError& err) {
-				log->printf(LOG_LEVEL_WARN, "Network::broadcastBlock(): Failed to contact peer");
+			} catch(const Peer::NetworkError& err) {
+				log->printf(LOG_LEVEL_WARN, "Network::broadcastBlock(): Failed to contact peer: " + std::string(err.what()));
 			}
 			it->second->release();
     	}
