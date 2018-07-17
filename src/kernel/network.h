@@ -7,6 +7,7 @@
 #include <SFML/Network.hpp>
 
 #include "blockchain.h"
+#include "concurrentmap.h"
 
 namespace CryptoKernel {
 /**
@@ -98,15 +99,45 @@ private:
 
     void changeScore(const std::string& url, const uint64_t score);
 
-    struct PeerInfo {
-        std::unique_ptr<Peer> peer;
-        Json::Value info;
-    };
-    std::map<std::string, std::unique_ptr<PeerInfo>> connected;
+    class Connection {
+    public:
+    	Connection();
+
+    	Json::Value getInfo();
+		void sendTransactions(const std::vector<CryptoKernel::Blockchain::transaction>& transactions);
+		void sendBlock(const CryptoKernel::Blockchain::block& block);
+		std::vector<CryptoKernel::Blockchain::transaction> getUnconfirmedTransactions();
+		CryptoKernel::Blockchain::block getBlock(const uint64_t height, const std::string& id);
+		std::vector<CryptoKernel::Blockchain::block> getBlocks(const uint64_t start, const uint64_t end);
+    CryptoKernel::Network::peerStats getPeerStats();
+
+		bool acquire();
+		void release();
+
+		void setPeer(Peer* peer);
+		void setInfo(Json::ArrayIndex& key, Json::Value& value);
+		void setInfo(std::string key, uint64_t value);
+		void setInfo(std::string key, std::string value);
+		void setInfo(Json::Value info);
+		Json::Value& getInfo(Json::ArrayIndex& key);
+		Json::Value& getInfo(std::string key);
+		Json::Value getCachedInfo();
+		Network::peerStats getPeerStats() const;
+
+    	~Connection();
+
+    private:
+    	std::unique_ptr<Peer> peer;
+		Json::Value info;
+		std::mutex peerMutex;
+		std::mutex modMutex;
+		std::mutex infoMutex;
+	};
+
+    ConcurrentMap<std::string, std::unique_ptr<Connection>> connected;
     std::recursive_mutex connectedMutex;
 
-    std::map<std::string, peerStats> connectedStats;
-    std::mutex connectedStatsMutex;
+    ConcurrentMap<std::string, peerStats> connectedStats;
 
     CryptoKernel::Log* log;
     CryptoKernel::Blockchain* blockchain;
@@ -120,14 +151,19 @@ private:
     std::unique_ptr<std::thread> networkThread;
 
     void connectionFunc();
-    std::unique_ptr<std::thread> connectionThread;
+	std::unique_ptr<std::thread> connectionThread;
 
-    void peerFunc();
-    std::unique_ptr<std::thread> peerThread;
+	void makeOutgoingConnections(bool& wait);
+	void makeOutgoingConnectionsWrapper();
+    std::unique_ptr<std::thread> makeOutgoingConnectionsThread;
+
+    void infoOutgoingConnections();
+    void infoOutgoingConnectionsWrapper();
+    std::unique_ptr<std::thread> infoOutgoingConnectionsThread;
 
     sf::TcpListener listener;
 
-    std::map<std::string, uint64_t> banned;
+    ConcurrentMap<std::string, uint64_t> banned;
 
     sf::IpAddress myAddress;
 
