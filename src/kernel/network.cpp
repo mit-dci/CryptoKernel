@@ -398,6 +398,7 @@ void CryptoKernel::Network::networkFunc() {
 			for(auto key : keys) {
 				auto it = connected.find(key);
 				if(it != connected.end() && it->second->acquire()) {
+                    defer d([&]{it->second->release();});
 					if(it->second->getInfo("height").asUInt64() > currentHeight) {
 						std::list<CryptoKernel::Blockchain::block> blocks;
 
@@ -519,7 +520,6 @@ void CryptoKernel::Network::networkFunc() {
 							}
 						}, peerUrl));
 					}
-					it->second->release();
 				}
             }
         }
