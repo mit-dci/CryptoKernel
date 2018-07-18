@@ -423,7 +423,6 @@ void CryptoKernel::Network::networkFunc() {
 									log->printf(LOG_LEVEL_WARN,
 												"Network(): Failed to contact " + it->first + " " + e.what() +
 												" while downloading blocks");
-									it++;
 									break;
 								}
 
@@ -435,7 +434,6 @@ void CryptoKernel::Network::networkFunc() {
 									if(currentHeight == 1) {
 										// This peer has a different genesis block to us
 										changeScore(it->first, 250);
-										it++;
 										break;
 									} else {
 										log->printf(LOG_LEVEL_INFO, "Network(): got block h: " + std::to_string(blocks.rbegin()->getHeight()) + " with prevBlock: " + blocks.rbegin()->getPreviousBlockId().toString() + " prev not found");
@@ -474,7 +472,6 @@ void CryptoKernel::Network::networkFunc() {
 								log->printf(LOG_LEVEL_WARN,
 											"Network(): Failed to contact " + it->first + " " + e.what() +
 											" while downloading blocks");
-								it++;
 								break;
 							}
 
@@ -493,7 +490,6 @@ void CryptoKernel::Network::networkFunc() {
 								this->currentHeight = currentHeight;
 								startHeight = currentHeight;
 								bestHeight = currentHeight;
-								it++;
 								failure = false;
 								break;
 							}
