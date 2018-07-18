@@ -172,6 +172,15 @@ private:
 
     unsigned int port;
 };
+
+class defer {
+    public:
+        defer(std::function<void()> &&f) : f(f) {}
+        ~defer() { f(); }
+    private:
+        std::function<void()> f;
+};
+
 }
 
 #endif // NETWORK_H_INCLUDED

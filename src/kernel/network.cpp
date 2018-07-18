@@ -101,7 +101,9 @@ Json::Value& CryptoKernel::Network::Connection::getInfo(std::string key) {
 }
 
 CryptoKernel::Network::Connection::~Connection() {
-
+    std::lock_guard<std::mutex> pm(peerMutex);
+    std::lock_guard<std::mutex> im(infoMutex);
+    std::lock_guard<std::mutex> mm(modMutex);
 }
 
 CryptoKernel::Network::Network(CryptoKernel::Log* log,
@@ -396,6 +398,7 @@ void CryptoKernel::Network::networkFunc() {
 			for(auto key : keys) {
 				auto it = connected.find(key);
 				if(it != connected.end() && it->second->acquire()) {
+                    defer d([&]{it->second->release();});
 					if(it->second->getInfo("height").asUInt64() > currentHeight) {
 						std::list<CryptoKernel::Blockchain::block> blocks;
 
@@ -420,7 +423,6 @@ void CryptoKernel::Network::networkFunc() {
 									log->printf(LOG_LEVEL_WARN,
 												"Network(): Failed to contact " + it->first + " " + e.what() +
 												" while downloading blocks");
-									it++;
 									break;
 								}
 
@@ -432,7 +434,6 @@ void CryptoKernel::Network::networkFunc() {
 									if(currentHeight == 1) {
 										// This peer has a different genesis block to us
 										changeScore(it->first, 250);
-										it++;
 										break;
 									} else {
 										log->printf(LOG_LEVEL_INFO, "Network(): got block h: " + std::to_string(blocks.rbegin()->getHeight()) + " with prevBlock: " + blocks.rbegin()->getPreviousBlockId().toString() + " prev not found");
@@ -471,7 +472,6 @@ void CryptoKernel::Network::networkFunc() {
 								log->printf(LOG_LEVEL_WARN,
 											"Network(): Failed to contact " + it->first + " " + e.what() +
 											" while downloading blocks");
-								it++;
 								break;
 							}
 
@@ -490,7 +490,6 @@ void CryptoKernel::Network::networkFunc() {
 								this->currentHeight = currentHeight;
 								startHeight = currentHeight;
 								bestHeight = currentHeight;
-								it++;
 								failure = false;
 								break;
 							}
@@ -517,7 +516,6 @@ void CryptoKernel::Network::networkFunc() {
 							}
 						}, peerUrl));
 					}
-					it->second->release();
 				}
             }
         }
