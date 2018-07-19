@@ -348,6 +348,13 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::verifyTransaction(Storage::Tran
                                 "blockchain::verifyTransaction(): Could not verify input signature");
                     return std::make_tuple(false, true);
                 }
+
+                for(const auto out : signs) {
+                    auto it = maybeAggregated.begin();
+                    std::advance(it, out);
+
+                    maybeAggregated.erase(it);
+                }
             }
         }
 
