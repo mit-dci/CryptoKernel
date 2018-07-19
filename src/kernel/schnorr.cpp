@@ -27,7 +27,17 @@ CryptoKernel::Schnorr::Schnorr() {
     ctx = schnorr_context_new();
     key = musig_key_new(ctx);
 
-    if (key == NULL) {
+    musig_pubkey* pkey;
+    musig_pubkey* keys[1];
+    keys[0] = key->pub;
+    if(musig_pubkey_aggregate(ctx, &pkey, keys, 1) != 1) {
+        throw std::runtime_error("Could not generate key pair");
+    }
+
+    EC_POINT_free(key->pub->A);
+    key->pub->A = pkey->A;
+
+    if(key == NULL) {
         throw std::runtime_error("Could not generate key pair");
     }
 }
@@ -76,16 +86,6 @@ bool CryptoKernel::Schnorr::verify(const std::string& message,
         return false;
     }
 
-    if (!EC_POINT_oct2point(
-        ctx->group,
-        key->pub->A,
-        (unsigned char*)decodedSignature.c_str() + 65,
-        33,
-        ctx->bn_ctx)) {
-        musig_sig_free(sig);
-        return false;
-    }
-
     if (musig_verify(
         ctx,
         sig,
@@ -120,7 +120,7 @@ std::string CryptoKernel::Schnorr::sign(const std::string& message) {
 
             throw std::runtime_error("Could not sign message");
         } else {
-            const unsigned int buf_len = 98;
+            const unsigned int buf_len = 65;
             std::unique_ptr<unsigned char> buf(new unsigned char[buf_len]);
 
             if (BN_bn2binpad(sig->s, buf.get(), 32) != 32) {
@@ -139,18 +139,6 @@ std::string CryptoKernel::Schnorr::sign(const std::string& message) {
                 musig_sig_free(sig);
                 musig_pubkey_free(pub);
                 throw std::runtime_error("Failed to encode R");
-            }
-
-            if (EC_POINT_point2oct(
-                    ctx->group,
-                    pub->A,
-                    POINT_CONVERSION_COMPRESSED,
-                    buf.get() + 65,
-                    33,
-                    ctx->bn_ctx) != 33) {
-                musig_sig_free(sig);
-                musig_pubkey_free(pub);
-                throw std::runtime_error("Failed to encode A");
             }
 
             const std::string returning = base64_encode(buf.get(), buf_len);
@@ -267,6 +255,17 @@ bool CryptoKernel::Schnorr::setPublicKey(const std::string& publicKey) {
             ctx->bn_ctx)) {
         return false;
     }
+
+    musig_pubkey* pkey;
+    musig_pubkey* keys[1];
+    keys[0] = key->pub;
+    if(musig_pubkey_aggregate(ctx, &pkey, keys, 1) != 1) {
+        return false;
+    }
+
+    EC_POINT_free(key->pub->A);
+    key->pub->A = pkey->A;
+
     return true;
 }
 
