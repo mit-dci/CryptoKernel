@@ -199,7 +199,7 @@ CryptoKernel::Network::~Network() {
 void CryptoKernel::Network::encryptionHandshakeFunc() {
 	log->printf(LOG_LEVEL_INFO, "encryption handshake thread started");
 
-	listener.listen(port + 10);
+	listener.listen(9999);
 	// Create a list to store the future clients
 	std::list<sf::TcpSocket*> clients;
 	// Create a selector
