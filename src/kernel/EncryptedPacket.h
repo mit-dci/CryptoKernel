@@ -10,18 +10,16 @@
 
 #include <SFML/Network.hpp>
 
-class EncryptedPacket : public sf::Packet
-{
+class EncryptedPacket : public sf::Packet {
     virtual const void* onSend(std::size_t& size) {
-        /*const void* srcData = getData();
+        const void* srcData = getData();
         std::size_t srcSize = getDataSize();
-        return compressTheData(srcData, srcSize, &size); // this is a fake function, of course :)*/
-    	return "hello";
+        return srcData;
     }
+
     virtual void onReceive(const void* data, std::size_t size) {
-        /*std::size_t dstSize;
-        const void* dstData = uncompressTheData(data, size, &dstSize); // this is a fake function, of course :)
-        append(dstData, dstSize);*/
+        std::size_t dstSize;
+        append(data, dstSize);
     }
 };
 

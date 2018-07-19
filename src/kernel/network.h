@@ -161,6 +161,9 @@ private:
     void infoOutgoingConnectionsWrapper();
     std::unique_ptr<std::thread> infoOutgoingConnectionsThread;
 
+    void encryptionHandshakeFunc();
+    std::unique_ptr<std::thread> encryptionHandshakeThread;
+
     sf::TcpListener listener;
 
     ConcurrentMap<std::string, uint64_t> banned;
@@ -171,6 +174,7 @@ private:
     uint64_t currentHeight;
 
     unsigned int port;
+    bool encrypt;
 };
 
 class defer {

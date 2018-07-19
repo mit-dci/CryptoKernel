@@ -115,6 +115,7 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
     this->port = port;
     bestHeight = 0;
     currentHeight = 0;
+    encrypt = true;
 
     myAddress = sf::IpAddress::getPublicAddress();
 
@@ -146,6 +147,10 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
     if(listener.listen(port) != sf::Socket::Done) {
         log->printf(LOG_LEVEL_ERR, "Network(): Could not bind to port " + std::to_string(port));
     }
+    if(listener.listen(port + 1) != sf::Socket::Done) {
+    	log->printf(LOG_LEVEL_ERR, "Network(): Could not bind to port " + std::to_string(port + 1) + ", encryption disabled");
+    	encrypt = false;
+    }
 
     running = true;
 
@@ -170,6 +175,10 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
 
     // Start peer thread
     infoOutgoingConnectionsThread.reset(new std::thread(&CryptoKernel::Network::infoOutgoingConnectionsWrapper, this));
+
+    if(encrypt) {
+    	encryptionHandshakeThread.reset(new std::thread(&CryptoKernel::Network::encryptionHandshakeFunc, this));
+    }
 }
 
 CryptoKernel::Network::~Network() {
@@ -178,7 +187,68 @@ CryptoKernel::Network::~Network() {
     networkThread->join();
     makeOutgoingConnectionsThread->join();
     infoOutgoingConnectionsThread->join();
+
+    if(encrypt) {
+    	encryptionHandshakeThread->join();
+    }
+
     listener.close();
+}
+
+void CryptoKernel::Network::encryptionHandshakeFunc() {
+	// Create a socket to listen to new connections
+	sf::TcpListener listener;
+	listener.listen(55001);
+	// Create a list to store the future clients
+	std::list<sf::TcpSocket*> clients;
+	// Create a selector
+	sf::SocketSelector selector;
+	// Add the listener to the selector
+	selector.add(listener);
+	// Endless loop that waits for new connections
+	while(running)
+	{
+	    // Make the selector wait for data on any socket
+	    if(selector.wait())
+	    {
+	        // Test the listener
+	        if(selector.isReady(listener))
+	        {
+	            // The listener is ready: there is a pending connection
+	            sf::TcpSocket* client = new sf::TcpSocket;
+	            if(listener.accept(*client) == sf::Socket::Done)
+	            {
+	                // Add the new client to the clients list
+	                clients.push_back(client);
+	                // Add the new client to the selector so that we will
+	                // be notified when he sends something
+	                selector.add(*client);
+	            }
+	            else
+	            {
+	                // Error, we won't get a new connection, delete the socket
+	                delete client;
+	            }
+	        }
+	        else
+	        {
+	            // The listener socket is not ready, test all other sockets (the clients)
+	            for (std::list<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
+	            {
+	                sf::TcpSocket& client = **it;
+	                if(selector.isReady(client))
+	                {
+	                    // The client has sent some data, we can receive it
+	                    sf::Packet packet;
+	                    if (client.receive(packet) == sf::Socket::Done)
+	                    {
+	                    	// grr
+	                    }
+	                }
+	            }
+	        }
+	    }
+	}
 }
 
 void CryptoKernel::Network::makeOutgoingConnectionsWrapper() {
@@ -261,6 +331,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 
 		sf::TcpSocket* socket = new sf::TcpSocket();
 		log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + peerIp);
+
 		if(socket->connect(peerIp, port, sf::seconds(3)) == sf::Socket::Done) {
 			log->printf(LOG_LEVEL_INFO, "Network(): Successfully connected to " + peerIp);
 			Connection* connection = new Connection;
