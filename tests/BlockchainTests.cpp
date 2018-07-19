@@ -1,6 +1,8 @@
 #include "BlockchainTests.h"
 
 #include "blockchain.h"
+#include "crypto.h"
+#include "schnorr.h"
 #include "consensus/regtest.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(BlockchainTest);
@@ -81,4 +83,54 @@ void BlockchainTest::testListUnspentOutputsFromCoinbase() {
         CPPUNIT_ASSERT_EQUAL(pubKey, out.getData()["publicKey"].asString());
         CPPUNIT_ASSERT_EQUAL(uint64_t(100000000), out.getValue());
     }
+}
+
+void BlockchainTest::testSingleSchnorrSignature() {
+    CryptoKernel::Crypto crypto(true);
+
+    const auto ECDSAPubKey = crypto.getPublicKey();
+
+    consensus->mineBlock(true, ECDSAPubKey);
+
+    const auto outs = blockchain->getUnspentOutputs(ECDSAPubKey);
+    const auto& out = *outs.begin();
+
+    CryptoKernel::Schnorr schnorr;
+
+    Json::Value outData;
+    outData["schnorrKey"] = schnorr.getPublicKey();
+
+    CryptoKernel::Blockchain::output out2(out.getValue() - 20000, 0, outData);
+
+    const std::string outputSetId = CryptoKernel::Blockchain::transaction::getOutputSetId({out2}).toString();
+
+    Json::Value spendData;
+    spendData["signature"] = crypto.sign(out.getId().toString() + outputSetId);
+
+    CryptoKernel::Blockchain::input inp(out.getId(), spendData);
+    CryptoKernel::Blockchain::transaction tx({inp}, {out2}, 1530888581);
+
+    const auto res = blockchain->submitTransaction(tx);
+    CPPUNIT_ASSERT(std::get<0>(res));
+
+    consensus->mineBlock(true, ECDSAPubKey);
+
+    Json::Value outData2;
+    outData2["publicKey"] = "BL2AcSzFw2+rGgQwJ25r7v/misIvr3t4JzkH3U1CCknchfkncSneKLBo6tjnKDhDxZUSPXEKMDtTU/YsvkwxJR8=";
+    CryptoKernel::Blockchain::output out3(out2.getValue() - 20000, 0, outData2);
+
+    const auto outputSetId2 = CryptoKernel::Blockchain::transaction::getOutputSetId({out3}).toString();
+
+    Json::Value spendData2;
+    spendData2["signature"] = schnorr.sign(out2.getId().toString() + outputSetId2);
+    CryptoKernel::Blockchain::input inp2(out2.getId(), spendData2);
+    CryptoKernel::Blockchain::transaction tx2({inp2}, {out3}, 1530888581);
+
+    const auto res2 = blockchain->submitTransaction(tx2);
+    CPPUNIT_ASSERT(std::get<0>(res2));
+
+    consensus->mineBlock(true, ECDSAPubKey);
+
+    const auto outs2 = blockchain->getUnspentOutputs(outData2["publicKey"].asString());
+    CPPUNIT_ASSERT_EQUAL(size_t(1), outs2.size());
 }
