@@ -177,6 +177,7 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
     infoOutgoingConnectionsThread.reset(new std::thread(&CryptoKernel::Network::infoOutgoingConnectionsWrapper, this));
 
     if(encrypt) {
+    	listener.listen(port + 1);
     	log->printf(LOG_LEVEL_INFO, "Encryption enabled");
     	encryptionHandshakeThread.reset(new std::thread(&CryptoKernel::Network::encryptionHandshakeFunc, this));
     }
@@ -199,7 +200,7 @@ CryptoKernel::Network::~Network() {
 void CryptoKernel::Network::encryptionHandshakeFunc() {
 	log->printf(LOG_LEVEL_INFO, "encryption handshake thread started");
 
-	listener.listen(9999);
+	//listener.listen(9999);
 	// Create a list to store the future clients
 	std::list<sf::TcpSocket*> clients;
 	// Create a selector
