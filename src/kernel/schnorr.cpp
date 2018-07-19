@@ -165,6 +165,57 @@ std::string CryptoKernel::Schnorr::sign(const std::string& message) {
     }
 }
 
+std::string CryptoKernel::Schnorr::pubkeyAggregate(const std::set<std::string>& pubkeys) {
+    std::unique_ptr<musig_pubkey> keys[pubkeys.size()];
+
+    unsigned int i = 0;
+    for(const auto& p : pubkeys) {
+        const std::string decodedKey = base64_decode(p);
+
+        keys[i].reset(new musig_pubkey);
+
+        if(!EC_POINT_oct2point(
+                ctx->group,
+                keys[i]->A,
+                (unsigned char*)decodedKey.c_str(),
+                decodedKey.size(),
+                ctx->bn_ctx)) {
+            return "";
+        }
+     
+        i++;
+    }    
+    
+    musig_pubkey* keysArr[pubkeys.size()];
+    i = 0;
+    for(const auto& p : keys) {
+        keysArr[i] = p.get();
+        i++;
+    }
+
+    musig_pubkey* pkey;
+    if(musig_pubkey_aggregate(ctx, &pkey, keysArr, pubkeys.size()) != 1) {
+        return "";
+    }
+
+    const unsigned int buf_len = 33;
+    std::unique_ptr<unsigned char> buf(new unsigned char[buf_len]);
+
+    if (EC_POINT_point2oct(
+            ctx->group,
+            key->pub->A,
+            POINT_CONVERSION_COMPRESSED,
+            buf.get(),
+            buf_len,
+            ctx->bn_ctx) != buf_len) {
+        return "";
+    }
+
+    const std::string returning = base64_encode(buf.get(), buf_len);
+
+    return returning;
+}
+
 std::string CryptoKernel::Schnorr::getPublicKey() {
     if (key != NULL) {
         const unsigned int buf_len = 33;

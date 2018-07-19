@@ -17,6 +17,7 @@ Copyright (C) 2016  James Lovejoy
 
 #include <string>
 #include <memory>
+#include <set>
 
 #include <cschnorr/multisig.h>
 #include <json/value.h>
@@ -63,6 +64,14 @@ public:
     * @return true if the signature is correctly verified against the message and public key, false otherwise
     */
     bool verify(const std::string& message, const std::string& signature);
+
+    /**
+     * Aggregates a set of public keys in to an aggregate public key.
+     * 
+     * @param pubkeys a set of pubkeys to be aggregated
+     * @return the aggregated pubkey if successful, empty string otherwise
+     */
+    std::string pubkeyAggregate(const std::set<std::string>& pubkeys);
 
     /**
     * Returns the public key of the instance
