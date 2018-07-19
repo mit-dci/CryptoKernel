@@ -30,22 +30,22 @@
 #include "ckmath.h"
 #include "crypto.h"
 #include "EncryptedPacket.h"
-//#include "wallet.h"
-//#include "network.h"
-//#include "cryptoclient.h"
-//#include "version.h"
-//#include "consensus/PoW.h"
-//#include "base64.h"
-//#include "multicoin.h"
+#include "wallet.h"
+#include "network.h"
+#include "cryptoclient.h"
+#include "version.h"
+#include "consensus/PoW.h"
+#include "base64.h"
+#include "multicoin.h"
 
 bool running;
 
 void startup(int argc, char* argv[]);
 
 int main(int argc, char* argv[]) {
-	//startup(argc, argv);
+	startup(argc, argv);
 
-	std::cout << "HELLO WORLD" << std::endl;
+	/*std::cout << "HELLO WORLD" << std::endl;
 	Json::Value yay;
 	yay = "hello";
 
@@ -53,12 +53,12 @@ int main(int argc, char* argv[]) {
 	std::string plaintext = "yaylife";
 
 	CryptoKernel::AES256 nifty(password, plaintext);
-	std::cout << nifty.decrypt("hello") << std::endl;
+	std::cout << nifty.decrypt("hello") << std::endl;*/
 
 	return 0;
 }
 
-/*void startup(int argc, char* argv[]) {
+void startup(int argc, char* argv[]) {
 	std::ifstream t("config.json");
 	if(!t.is_open()) {
 		throw std::runtime_error("Could not open config file");
@@ -234,4 +234,4 @@ int main(int argc, char* argv[]) {
 			std::cout << e.what() << std::endl;
 		}
 	}
-}*/
+}

@@ -147,10 +147,10 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
     if(listener.listen(port) != sf::Socket::Done) {
         log->printf(LOG_LEVEL_ERR, "Network(): Could not bind to port " + std::to_string(port));
     }
-    if(listener.listen(port + 1) != sf::Socket::Done) {
+    /*if(listener.listen(port + 1) != sf::Socket::Done) {
     	log->printf(LOG_LEVEL_ERR, "Network(): Could not bind to port " + std::to_string(port + 1) + ", encryption disabled");
     	encrypt = false;
-    }
+    }*/
 
     running = true;
 
@@ -177,6 +177,7 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
     infoOutgoingConnectionsThread.reset(new std::thread(&CryptoKernel::Network::infoOutgoingConnectionsWrapper, this));
 
     if(encrypt) {
+    	log->printf(LOG_LEVEL_INFO, "Encryption enabled");
     	encryptionHandshakeThread.reset(new std::thread(&CryptoKernel::Network::encryptionHandshakeFunc, this));
     }
 }
@@ -196,9 +197,9 @@ CryptoKernel::Network::~Network() {
 }
 
 void CryptoKernel::Network::encryptionHandshakeFunc() {
-	// Create a socket to listen to new connections
-	sf::TcpListener listener;
-	listener.listen(55001);
+	log->printf(LOG_LEVEL_INFO, "encryption handshake thread started");
+
+	listener.listen(port + 1);
 	// Create a list to store the future clients
 	std::list<sf::TcpSocket*> clients;
 	// Create a selector
@@ -206,6 +207,9 @@ void CryptoKernel::Network::encryptionHandshakeFunc() {
 	// Add the listener to the selector
 	selector.add(listener);
 	// Endless loop that waits for new connections
+
+	std::map<std::string, sf::TcpSocket*> pendingConnections;
+
 	while(running)
 	{
 	    // Make the selector wait for data on any socket
@@ -242,11 +246,36 @@ void CryptoKernel::Network::encryptionHandshakeFunc() {
 	                    sf::Packet packet;
 	                    if (client.receive(packet) == sf::Socket::Done)
 	                    {
-	                    	// grr
+	                    	std::string message;
+	                    	packet >> message;
+	                    	log->printf(LOG_LEVEL_INFO, "received message " + message);
 	                    }
 	                }
 	            }
 	        }
+	    }
+
+	    // let all of the encryption check ips know that I want to perform a handshake
+	    std::vector<std::string> addresses = peersToQuery.keys();
+	    std::random_shuffle(addresses.begin(), addresses.end());
+	    for(std::string addr : addresses) {
+	    	sf::TcpSocket* client = new sf::TcpSocket();
+			log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + addr + " to query encryption preference.");
+			client->connect(addr, port, sf::seconds(3));
+			pendingConnections.insert(std::make_pair(addr, client));
+	    }
+
+	    for(auto it = pendingConnections.begin(); it != pendingConnections.end();) {
+	    	sf::Packet packet;
+	    	packet << "test message";
+	    	if(it->second->send(packet) == sf::Socket::Done) {
+	    		log->printf(LOG_LEVEL_INFO, "Network(): Successfully sent info to " + it->first);
+	    		pendingConnections.erase(it++);
+	    	}
+	    	else {
+	    		it++;
+	    		// todo, check age of socket, and remove it from the list after three seconds
+	    	}
 	    }
 	}
 }
@@ -343,6 +372,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 			connection->setInfo(peerData);
 
 			connected.at(peerIp).reset(connection);
+			peersToQuery.insert(peerIp, socket);
 		}
 		else {
 			log->printf(LOG_LEVEL_WARN, "Network(): Failed to connect to " + peerIp);

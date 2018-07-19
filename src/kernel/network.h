@@ -167,6 +167,7 @@ private:
     sf::TcpListener listener;
 
     ConcurrentMap<std::string, uint64_t> banned;
+    ConcurrentMap<std::string, sf::TcpSocket*> peersToQuery; // regarding encryption, for now
 
     sf::IpAddress myAddress;
 
