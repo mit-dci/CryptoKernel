@@ -344,13 +344,13 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::verifyTransaction(Storage::Tran
             }
 
             std::set<std::string> pubkeys;
-            std::set<std::string> outputIds;
+            std::set<BigNum> outputIds;
             for(const auto out : signs) {
                 auto it = maybeAggregated.begin();
                 std::advance(it, out);
 
                 pubkeys.emplace(it->getData()["schnorrKey"].asString());
-                outputIds.emplace(it->getId().toString());
+                outputIds.emplace(it->getId());
             }
 
             CryptoKernel::Schnorr schnorr;
@@ -363,7 +363,7 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::verifyTransaction(Storage::Tran
 
             std::string signaturePayload;
             for(const auto& id : outputIds) {
-                signaturePayload += id;
+                signaturePayload += id.toString();
             }
             signaturePayload += outputHash.toString();
 
