@@ -177,10 +177,9 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
     infoOutgoingConnectionsThread.reset(new std::thread(&CryptoKernel::Network::infoOutgoingConnectionsWrapper, this));
 
     if(encrypt) {
-    	if(listener.listen(port + 1) != sf::Socket::Done) {
+    	/*if(listener.listen(port + 1) != sf::Socket::Done) {
 			log->printf(LOG_LEVEL_ERR, "Network(): Could not bind to port " + std::to_string(port + 1) + ", encryption disabled");
-			encrypt = false;
-		}
+		}*/
     	log->printf(LOG_LEVEL_INFO, "Encryption enabled");
     	encryptionHandshakeThread.reset(new std::thread(&CryptoKernel::Network::encryptionHandshakeFunc, this));
     }
@@ -203,13 +202,15 @@ CryptoKernel::Network::~Network() {
 void CryptoKernel::Network::encryptionHandshakeFunc() {
 	log->printf(LOG_LEVEL_INFO, "encryption handshake thread started");
 
+	sf::TcpListener ls;
+	ls.listen(port + 1);
 	//listener.listen(9999);
 	// Create a list to store the future clients
 	std::list<sf::TcpSocket*> clients;
 	// Create a selector
 	sf::SocketSelector selector;
 	// Add the listener to the selector
-	selector.add(listener);
+	selector.add(ls);
 	// Endless loop that waits for new connections
 
 	std::map<std::string, sf::TcpSocket*> pendingConnections;
@@ -220,11 +221,11 @@ void CryptoKernel::Network::encryptionHandshakeFunc() {
 	    if(selector.wait())
 	    {
 	        // Test the listener
-	        if(selector.isReady(listener))
+	        if(selector.isReady(ls))
 	        {
 	            // The listener is ready: there is a pending connection
 	            sf::TcpSocket* client = new sf::TcpSocket;
-	            if(listener.accept(*client) == sf::Socket::Done)
+	            if(ls.accept(*client) == sf::Socket::Done)
 	            {
 	                // Add the new client to the clients list
 	                clients.push_back(client);
