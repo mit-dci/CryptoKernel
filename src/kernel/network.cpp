@@ -177,7 +177,10 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
     infoOutgoingConnectionsThread.reset(new std::thread(&CryptoKernel::Network::infoOutgoingConnectionsWrapper, this));
 
     if(encrypt) {
-    	listener.listen(port + 1);
+    	if(listener.listen(port + 1) != sf::Socket::Done) {
+			log->printf(LOG_LEVEL_ERR, "Network(): Could not bind to port " + std::to_string(port + 1) + ", encryption disabled");
+			encrypt = false;
+		}
     	log->printf(LOG_LEVEL_INFO, "Encryption enabled");
     	encryptionHandshakeThread.reset(new std::thread(&CryptoKernel::Network::encryptionHandshakeFunc, this));
     }
