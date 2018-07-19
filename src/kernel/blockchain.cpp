@@ -295,66 +295,6 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::verifyTransaction(Storage::Tran
                                 "blockchain::verifyTransaction(): Could not verify input signature");
                     return std::make_tuple(false, true);
                 }
-            } else if(spendData["aggregateSignature"].isObject()) {
-                if(!spendData["aggregateSignature"]["signs"].isArray() || !spendData["aggregateSignature"]["signature"].isString()) {
-                    log->printf(LOG_LEVEL_INFO,
-                                "blockchain::verifyTransaction(): Aggregate signature malformed");
-                    return std::make_tuple(false, true);
-                }
-                
-                std::set<uint64_t> signs;
-                for(const auto& v : spendData["aggregateSignature"]["signs"]) {
-                    if(!v.isUInt64()) {
-                        log->printf(LOG_LEVEL_INFO,
-                                "blockchain::verifyTransaction(): Aggregate signature malformed");
-                        return std::make_tuple(false, true);
-                    }
-
-                    if(v.asUInt64() >= maybeAggregated.size()) {
-                        log->printf(LOG_LEVEL_INFO,
-                                "blockchain::verifyTransaction(): Aggregate signature malformed");
-                        return std::make_tuple(false, true);
-                    }
-
-                    signs.emplace(v.asUInt64());
-                }
-
-                std::set<std::string> pubkeys;
-                std::set<std::string> outputIds;
-                for(const auto out : signs) {
-                    auto it = maybeAggregated.begin();
-                    std::advance(it, out);
-
-                    pubkeys.emplace(it->getData()["schnorrKey"].asString());
-                    outputIds.emplace(it->getId().toString());
-                }
-
-                CryptoKernel::Schnorr schnorr;
-                const std::string aggregatedPubkey = schnorr.pubkeyAggregate(pubkeys);
-                if(!schnorr.setPublicKey(aggregatedPubkey)) {
-                    log->printf(LOG_LEVEL_INFO,
-                                "blockchain::verifyTransaction(): Aggregate signature malformed");
-                    return std::make_tuple(false, true);
-                }
-
-                std::string signaturePayload;
-                for(const auto& id : outputIds) {
-                    signaturePayload += id;
-                }
-                signaturePayload += outputHash.toString();
-
-                if(!schnorr.verify(signaturePayload, spendData["aggregateSignature"]["signature"].asString())) {
-                    log->printf(LOG_LEVEL_INFO,
-                                "blockchain::verifyTransaction(): Could not verify input signature");
-                    return std::make_tuple(false, true);
-                }
-
-                for(const auto out : signs) {
-                    auto it = maybeAggregated.begin();
-                    std::advance(it, out);
-
-                    maybeAggregated.erase(it);
-                }
             }
         }
 
@@ -373,6 +313,71 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::verifyTransaction(Storage::Tran
                 log->printf(LOG_LEVEL_INFO,
                             "blockchain::verifyTransaction(): Could not verify input signature");
                 return std::make_tuple(false, true);
+            }
+        }
+    }
+
+    for(const input& inp : tx.getInputs()) {
+        const Json::Value spendData = inp.getData();
+        if(spendData["aggregateSignature"].isObject()) {
+            if(!spendData["aggregateSignature"]["signs"].isArray() || !spendData["aggregateSignature"]["signature"].isString()) {
+                log->printf(LOG_LEVEL_INFO,
+                            "blockchain::verifyTransaction(): Aggregate signature malformed");
+                return std::make_tuple(false, true);
+            }
+            
+            std::set<uint64_t> signs;
+            for(const auto& v : spendData["aggregateSignature"]["signs"]) {
+                if(!v.isUInt64()) {
+                    log->printf(LOG_LEVEL_INFO,
+                            "blockchain::verifyTransaction(): Aggregate signature malformed");
+                    return std::make_tuple(false, true);
+                }
+
+                if(v.asUInt64() >= maybeAggregated.size()) {
+                    log->printf(LOG_LEVEL_INFO,
+                            "blockchain::verifyTransaction(): Aggregate signature malformed");
+                    return std::make_tuple(false, true);
+                }
+
+                signs.emplace(v.asUInt64());
+            }
+
+            std::set<std::string> pubkeys;
+            std::set<std::string> outputIds;
+            for(const auto out : signs) {
+                auto it = maybeAggregated.begin();
+                std::advance(it, out);
+
+                pubkeys.emplace(it->getData()["schnorrKey"].asString());
+                outputIds.emplace(it->getId().toString());
+            }
+
+            CryptoKernel::Schnorr schnorr;
+            const std::string aggregatedPubkey = schnorr.pubkeyAggregate(pubkeys);
+            if(!schnorr.setPublicKey(aggregatedPubkey)) {
+                log->printf(LOG_LEVEL_INFO,
+                            "blockchain::verifyTransaction(): Aggregate signature malformed");
+                return std::make_tuple(false, true);
+            }
+
+            std::string signaturePayload;
+            for(const auto& id : outputIds) {
+                signaturePayload += id;
+            }
+            signaturePayload += outputHash.toString();
+
+            if(!schnorr.verify(signaturePayload, spendData["aggregateSignature"]["signature"].asString())) {
+                log->printf(LOG_LEVEL_INFO,
+                            "blockchain::verifyTransaction(): Could not verify input signature");
+                return std::make_tuple(false, true);
+            }
+
+            for(const auto out : signs) {
+                auto it = maybeAggregated.begin();
+                std::advance(it, out);
+
+                maybeAggregated.erase(it);
             }
         }
     }
