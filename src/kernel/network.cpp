@@ -274,6 +274,7 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 			log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + addr + " to query encryption preference.");
 			client->connect(addr, port, sf::seconds(3));
 			pendingConnections.insert(std::make_pair(addr, client));
+			peersToQuery.erase(addr);
 		}
 
 		for(auto it = pendingConnections.begin(); it != pendingConnections.end();) {
