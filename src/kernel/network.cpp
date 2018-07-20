@@ -256,10 +256,10 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	                    sf::Packet packet;
 	                    if (client.receive(packet) == sf::Socket::Done)
 	                    {
-	                    	log->printf(LOG_LEVEL_INFO, "information has been received!");
-	                    	//std::string message;
-	                    	//packet >> message;
-	                    	//log->printf(LOG_LEVEL_INFO, "received message " + message);
+	                    	//log->printf(LOG_LEVEL_INFO, "information has been received!");
+	                    	std::string message;
+	                    	packet >> message;
+	                    	log->printf(LOG_LEVEL_INFO, "received message " + message);
 	                    }
 	                }
 	            }
