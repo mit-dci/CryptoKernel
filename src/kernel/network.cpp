@@ -181,7 +181,8 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
 			log->printf(LOG_LEVEL_ERR, "Network(): Could not bind to port " + std::to_string(port + 1) + ", encryption disabled");
 		}*/
     	log->printf(LOG_LEVEL_INFO, "Encryption enabled");
-    	encryptionHandshakeThread.reset(new std::thread(&CryptoKernel::Network::encryptionHandshakeFunc, this));
+    	incomingEncryptionHandshakeThread.reset(new std::thread(&CryptoKernel::Network::incomingEncryptionHandshakeFunc, this));
+    	outgoingEncryptionHandshakeThread.reset(new std::thread(&CryptoKernel::Network::outgoingEncryptionHandshakeFunc, this));
     }
 }
 
@@ -193,13 +194,14 @@ CryptoKernel::Network::~Network() {
     //infoOutgoingConnectionsThread->join();
 
     if(encrypt) {
-    	encryptionHandshakeThread->join();
+    	incomingEncryptionHandshakeThread->join();
+    	outgoingEncryptionHandshakeThread->join();
     }
 
     listener.close();
 }
 
-void CryptoKernel::Network::encryptionHandshakeFunc() {
+void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	log->printf(LOG_LEVEL_INFO, "encryption handshake thread started");
 
 	sf::TcpListener ls;
@@ -212,8 +214,6 @@ void CryptoKernel::Network::encryptionHandshakeFunc() {
 	// Add the listener to the selector
 	selector.add(ls);
 	// Endless loop that waits for new connections
-
-	std::map<std::string, sf::TcpSocket*> pendingConnections;
 
 	while(running)
 	{
@@ -259,29 +259,35 @@ void CryptoKernel::Network::encryptionHandshakeFunc() {
 	            }
 	        }
 	    }
+	}
+}
 
-	    // let all of the encryption check ips know that I want to perform a handshake
-	    std::vector<std::string> addresses = peersToQuery.keys();
-	    std::random_shuffle(addresses.begin(), addresses.end());
-	    for(std::string addr : addresses) {
-	    	sf::TcpSocket* client = new sf::TcpSocket();
+void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
+	std::map<std::string, sf::TcpSocket*> pendingConnections;
+
+	while(running) {
+		// let all of the encryption check ips know that I want to perform a handshake
+		std::vector<std::string> addresses = peersToQuery.keys();
+		std::random_shuffle(addresses.begin(), addresses.end());
+		for(std::string addr : addresses) {
+			sf::TcpSocket* client = new sf::TcpSocket();
 			log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + addr + " to query encryption preference.");
 			client->connect(addr, port, sf::seconds(3));
 			pendingConnections.insert(std::make_pair(addr, client));
-	    }
+		}
 
-	    for(auto it = pendingConnections.begin(); it != pendingConnections.end();) {
-	    	sf::Packet packet;
-	    	packet << "test message";
-	    	if(it->second->send(packet) == sf::Socket::Done) {
-	    		log->printf(LOG_LEVEL_INFO, "Network(): Successfully sent info to " + it->first);
-	    		pendingConnections.erase(it++);
-	    	}
-	    	else {
-	    		it++;
-	    		// todo, check age of socket, and remove it from the list after three seconds
-	    	}
-	    }
+		for(auto it = pendingConnections.begin(); it != pendingConnections.end();) {
+			sf::Packet packet;
+			packet << "test message";
+			if(it->second->send(packet) == sf::Socket::Done) {
+				log->printf(LOG_LEVEL_INFO, "Network(): Successfully sent info to " + it->first);
+				pendingConnections.erase(it++);
+			}
+			else {
+				it++;
+				// todo, check age of socket, and remove it from the list after three seconds
+			}
+		}
 	}
 }
 

@@ -161,8 +161,11 @@ private:
     void infoOutgoingConnectionsWrapper();
     std::unique_ptr<std::thread> infoOutgoingConnectionsThread;
 
-    void encryptionHandshakeFunc();
-    std::unique_ptr<std::thread> encryptionHandshakeThread;
+    void incomingEncryptionHandshakeFunc();
+    std::unique_ptr<std::thread> incomingEncryptionHandshakeThread;
+
+    void outgoingEncryptionHandshakeFunc();
+	std::unique_ptr<std::thread> outgoingEncryptionHandshakeThread;
 
     sf::TcpListener listener;
 
