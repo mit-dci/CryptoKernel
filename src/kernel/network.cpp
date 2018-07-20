@@ -227,6 +227,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	            sf::TcpSocket* client = new sf::TcpSocket;
 	            if(ls.accept(*client) == sf::Socket::Done)
 	            {
+	            	log->printf(LOG_LEVEL_INFO, "adding a client...");
 	                // Add the new client to the clients list
 	                clients.push_back(client);
 	                // Add the new client to the selector so that we will
@@ -251,9 +252,10 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	                    sf::Packet packet;
 	                    if (client.receive(packet) == sf::Socket::Done)
 	                    {
-	                    	std::string message;
-	                    	packet >> message;
-	                    	log->printf(LOG_LEVEL_INFO, "received message " + message);
+	                    	log->printf(LOG_LEVEL_INFO, "information has been received!");
+	                    	//std::string message;
+	                    	//packet >> message;
+	                    	//log->printf(LOG_LEVEL_INFO, "received message " + message);
 	                    }
 	                }
 	            }
