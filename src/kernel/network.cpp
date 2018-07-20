@@ -288,6 +288,8 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 				// todo, check age of socket, and remove it from the list after three seconds
 			}
 		}
+
+		std::this_thread::sleep_for(std::chrono::seconds(2));
 	}
 }
 
