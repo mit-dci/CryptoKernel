@@ -27,15 +27,11 @@ CryptoKernel::Schnorr::Schnorr() {
     ctx = schnorr_context_new();
     key = musig_key_new(ctx);
 
-    musig_pubkey* pkey;
-    musig_pubkey* keys[1];
-    keys[0] = key->pub;
-    if(musig_pubkey_aggregate(ctx, &pkey, keys, 1) != 1) {
+    musig_pubkey* pubkeys[1];
+    pubkeys[0] = key->pub;
+    if(musig_pubkey_aggregate(ctx, pubkeys, &pkey, 1) != 1) {
         throw std::runtime_error("Could not generate key pair");
     }
-
-    EC_POINT_free(key->pub->A);
-    key->pub->A = pkey->A;
 
     if(key == NULL) {
         throw std::runtime_error("Could not generate key pair");
@@ -45,6 +41,7 @@ CryptoKernel::Schnorr::Schnorr() {
 CryptoKernel::Schnorr::~Schnorr() {
     schnorr_context_free(ctx);
     musig_key_free(key);
+    musig_pubkey_free(pkey);
 }
 
 bool CryptoKernel::Schnorr::verify(const std::string& message,
@@ -89,12 +86,14 @@ bool CryptoKernel::Schnorr::verify(const std::string& message,
     if (musig_verify(
         ctx,
         sig,
-        key->pub,
+        pkey,
         (unsigned char*)message.c_str(),
         message.size()) != 1) {
         musig_sig_free(sig);
         return false;
     }
+
+    musig_sig_free(sig);
 
     return true;
 }
@@ -162,6 +161,8 @@ std::string CryptoKernel::Schnorr::pubkeyAggregate(const std::set<std::string>& 
 
         keys[i].reset(new musig_pubkey);
 
+        keys[i]->A = EC_POINT_new(ctx->group);
+
         if(!EC_POINT_oct2point(
                 ctx->group,
                 keys[i]->A,
@@ -170,10 +171,10 @@ std::string CryptoKernel::Schnorr::pubkeyAggregate(const std::set<std::string>& 
                 ctx->bn_ctx)) {
             return "";
         }
-     
+
         i++;
-    }    
-    
+    }
+
     musig_pubkey* keysArr[pubkeys.size()];
     i = 0;
     for(const auto& p : keys) {
@@ -181,8 +182,8 @@ std::string CryptoKernel::Schnorr::pubkeyAggregate(const std::set<std::string>& 
         i++;
     }
 
-    musig_pubkey* pkey;
-    if(musig_pubkey_aggregate(ctx, &pkey, keysArr, pubkeys.size()) != 1) {
+    musig_pubkey* pk;
+    if(musig_pubkey_aggregate(ctx, keysArr, &pk, pubkeys.size()) != 1) {
         return "";
     }
 
@@ -191,13 +192,15 @@ std::string CryptoKernel::Schnorr::pubkeyAggregate(const std::set<std::string>& 
 
     if (EC_POINT_point2oct(
             ctx->group,
-            key->pub->A,
+            pk->A,
             POINT_CONVERSION_COMPRESSED,
             buf.get(),
             buf_len,
             ctx->bn_ctx) != buf_len) {
         return "";
     }
+
+    musig_pubkey_free(pk);
 
     const std::string returning = base64_encode(buf.get(), buf_len);
 
@@ -211,7 +214,7 @@ std::string CryptoKernel::Schnorr::getPublicKey() {
 
         if (EC_POINT_point2oct(
                 ctx->group,
-                key->pub->A,
+                pkey->A,
                 POINT_CONVERSION_COMPRESSED,
                 buf.get(),
                 buf_len,
@@ -247,24 +250,14 @@ std::string CryptoKernel::Schnorr::getPrivateKey() {
 bool CryptoKernel::Schnorr::setPublicKey(const std::string& publicKey) {
     const std::string decodedKey = base64_decode(publicKey);
 
-    if (!EC_POINT_oct2point(
+    if(!EC_POINT_oct2point(
             ctx->group,
-            key->pub->A,
+            pkey->A,
             (unsigned char*)decodedKey.c_str(),
             decodedKey.size(),
             ctx->bn_ctx)) {
         return false;
     }
-
-    musig_pubkey* pkey;
-    musig_pubkey* keys[1];
-    keys[0] = key->pub;
-    if(musig_pubkey_aggregate(ctx, &pkey, keys, 1) != 1) {
-        return false;
-    }
-
-    EC_POINT_free(key->pub->A);
-    key->pub->A = pkey->A;
 
     return true;
 }
@@ -272,12 +265,13 @@ bool CryptoKernel::Schnorr::setPublicKey(const std::string& publicKey) {
 bool CryptoKernel::Schnorr::setPrivateKey(const std::string& privateKey) {
     const std::string decodedKey = base64_decode(privateKey);
 
-    if (!BN_bin2bn(
+    if(!BN_bin2bn(
             (unsigned char*)decodedKey.c_str(),
             (unsigned int)decodedKey.size(),
             key->a)) {
         return false;
     }
+
     return true;
 }
 

@@ -87,3 +87,10 @@ void SchnorrTest::testPermutedSigFail() {
     delete tempSchnorr;
 }
 
+void SchnorrTest::testSamePubkeyAfterSign() {
+    const std::string publicKey = schnorr->getPublicKey();
+
+    schnorr->sign(plainText);
+
+    CPPUNIT_ASSERT_EQUAL(publicKey, schnorr->getPublicKey());
+}

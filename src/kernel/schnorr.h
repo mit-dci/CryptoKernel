@@ -67,7 +67,7 @@ public:
 
     /**
      * Aggregates a set of public keys in to an aggregate public key.
-     * 
+     *
      * @param pubkeys a set of pubkeys to be aggregated
      * @return the aggregated pubkey if successful, empty string otherwise
      */
@@ -104,8 +104,9 @@ public:
     bool setPrivateKey(const std::string& privateKey);
 
 private:
-    musig_key *key;
-    schnorr_context *ctx;
+    musig_key* key;
+    musig_pubkey* pkey;
+    schnorr_context* ctx;
 };
 
 }
