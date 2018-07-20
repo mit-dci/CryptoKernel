@@ -278,7 +278,7 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 		for(std::string addr : addresses) {
 			sf::TcpSocket* client = new sf::TcpSocket();
 			log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + addr + " to query encryption preference.");
-			client->connect(addr, port, sf::seconds(3));
+			client->connect(addr, port + 1, sf::seconds(3));
 			pendingConnections.insert(std::make_pair(addr, client));
 			peersToQuery.erase(addr);
 		}
