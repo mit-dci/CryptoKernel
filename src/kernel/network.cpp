@@ -220,9 +220,11 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	    // Make the selector wait for data on any socket
 	    if(selector.wait())
 	    {
+	    	log->printf(LOG_LEVEL_INFO, "waiting......");
 	        // Test the listener
 	        if(selector.isReady(ls))
 	        {
+	        	log->printf(LOG_LEVEL_INFO, "selector ready");
 	            // The listener is ready: there is a pending connection
 	            sf::TcpSocket* client = new sf::TcpSocket;
 	            if(ls.accept(*client) == sf::Socket::Done)
@@ -242,6 +244,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	        }
 	        else
 	        {
+	        	log->printf(LOG_LEVEL_INFO, "selector not ready");
 	            // The listener socket is not ready, test all other sockets (the clients)
 	            for (std::list<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
 	            {
