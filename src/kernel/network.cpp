@@ -262,7 +262,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	                    	packet >> message;
 	                    	log->printf(LOG_LEVEL_INFO, "received message " + message);
 	                    }*/
-	                	NoiseConnectionClient ncc(client);
+	                	NoiseConnectionClient ncc(&client);
 	                	ncc.execHandshake();
 	                }
 	            }
