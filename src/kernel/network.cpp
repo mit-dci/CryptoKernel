@@ -207,6 +207,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 
 	sf::TcpSocket* client;
 	NoiseConnectionServer ncs(client, port + 1, log);
+	ncs.execHandshake();
 
 
 //	sf::TcpListener ls;
@@ -288,6 +289,7 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 			log->printf(LOG_LEVEL_INFO, "Attempting to connect to " + addr);
 			sf::TcpSocket* client;
 			NoiseConnectionClient ncc(client, addr, port + 1, log);
+			ncc.execHandshake();
 			keepGoing = false;
 			break;
 		}
