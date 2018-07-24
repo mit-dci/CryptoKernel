@@ -203,7 +203,7 @@ CryptoKernel::Network::~Network() {
 }
 
 void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
-	log->printf(LOG_LEVEL_INFO, "encryption handshake thread started");
+	log->printf(LOG_LEVEL_INFO, "incoming encryption handshake thread started");
 
 	sf::TcpSocket* client;
 	NoiseConnectionServer ncs(client, port + 1, log);
@@ -277,6 +277,8 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 }
 
 void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
+	log->printf(LOG_LEVEL_INFO, "outgoing encryption handshake started");
+
 	bool keepGoing = true;
 	while(running && keepGoing) {
 		std::vector<std::string> addresses = peersToQuery.keys();
