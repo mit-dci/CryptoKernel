@@ -262,6 +262,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	                    	packet >> message;
 	                    	log->printf(LOG_LEVEL_INFO, "received message " + message);
 	                    }*/
+	                	log->printf(LOG_LEVEL_INFO, "starting ncc");
 	                	NoiseConnectionClient ncc(&client, log);
 	                	ncc.execHandshake();
 	                }
@@ -297,6 +298,7 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 				it++;
 				// todo, check age of socket, and remove it from the list after three seconds
 			}*/
+			log->printf(LOG_LEVEL_INFO, "starting ncs");
 			NoiseConnectionServer ncs(it->second, log);
 			ncs.execHandshake();
 			pendingConnections.erase(it++);
