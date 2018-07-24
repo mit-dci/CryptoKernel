@@ -281,6 +281,7 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 
 	bool keepGoing = true;
 	while(running && keepGoing) {
+		log->printf(LOG_LEVEL_INFO, "we're running yay");
 		std::vector<std::string> addresses = peersToQuery.keys();
 		std::random_shuffle(addresses.begin(), addresses.end());
 		for(std::string addr : addresses) {
@@ -290,6 +291,7 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 			keepGoing = false;
 			break;
 		}
+		std::this_thread::sleep_for(std::chrono::seconds(2));
 	}
 //	std::map<std::string, sf::TcpSocket*> pendingConnections;
 //
