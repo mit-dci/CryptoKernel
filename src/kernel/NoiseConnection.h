@@ -69,8 +69,9 @@ static uint8_t message[MAX_MESSAGE_LEN + 2];
 
 class NoiseConnectionClient {
 public:
-	NoiseConnectionClient(sf::TcpSocket* server) {
+	NoiseConnectionClient(sf::TcpSocket* server, CryptoKernel::Log* log) {
 		this->server = server;
+		this->log = log;
 	}
 
 	int execHandshake() {
@@ -88,6 +89,7 @@ public:
 
 		err = noise_handshakestate_start(handshake);
 		if (err != NOISE_ERROR_NONE) {
+			log->printf(LOG_LEVEL_INFO, "CLIENT start handshake failed");
 			noise_perror("start handshake", err);
 			ok = 0;
 		}
@@ -100,6 +102,7 @@ public:
 				noise_buffer_set_output(mbuf, message + 2, sizeof(message) - 2);
 				err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
 				if (err != NOISE_ERROR_NONE) {
+					log->printf(LOG_LEVEL_INFO, "CLIENT write handshake failed");
 					noise_perror("write handshake", err);
 					ok = 0;
 					break;
@@ -135,6 +138,7 @@ public:
 				noise_buffer_set_input(mbuf, message + 2, message_size - 2);
 				err = noise_handshakestate_read_message(handshake, &mbuf, NULL);
 				if (err != NOISE_ERROR_NONE) {
+					log->printf(LOG_LEVEL_INFO, "CLIENT read handshake failed");
 					noise_perror("read handshake", err);
 					ok = 0;
 					break;
@@ -149,12 +153,14 @@ public:
 	}
 
 	sf::TcpSocket* server;
+	CryptoKernel::Log* log;
 };
 
 class NoiseConnectionServer {
 public:
-	NoiseConnectionServer(sf::TcpSocket* client) {
+	NoiseConnectionServer(sf::TcpSocket* client, CryptoKernel::Log* log) {
 		this->client = client;
+		this->log = log;
 	}
 
 	int execHandshake() {
@@ -177,26 +183,32 @@ public:
 
 		if (!echo_load_private_key
 				("server_key_25519", server_key_25519, sizeof(server_key_25519))) {
+			log->printf(LOG_LEVEL_INFO, "could not load server key 25519");
 			return 1;
 		}
 		if (!echo_load_private_key
 				("server_key_448", server_key_448, sizeof(server_key_448))) {
+			log->printf(LOG_LEVEL_INFO, "could not load server key 448");
 			return 1;
 		}
 		if (!echo_load_public_key
 				("client_key_25519.pub", client_key_25519, sizeof(client_key_25519))) {
+			log->printf(LOG_LEVEL_INFO, "could not load client key 25519");
 			return 1;
 		}
 		if (!echo_load_public_key
 				("client_key_448.pub", client_key_448, sizeof(client_key_448))) {
+			log->printf(LOG_LEVEL_INFO, "could not load client key 448");
 			return 1;
 		}
 		if (!echo_load_public_key("psk", psk, sizeof(psk))) {
+			log->printf(LOG_LEVEL_INFO, "could not load key psk");
 			return 1;
 		}
 
 		sf::Packet idBytes;
 		if(client->receive(idBytes) != sf::Socket::Done) {
+			log->printf(LOG_LEVEL_INFO, "Did not receive the echo protocol identifier");
 			fprintf(stderr, "Did not receive the echo protocol identifier\n");
 			ok = 0;
 		}
@@ -211,6 +223,7 @@ public:
 
 		/* Convert the echo protocol identifier into a Noise protocol identifier */
 		if (ok && !echo_to_noise_protocol_id(&nid, &id)) {
+			log->printf(LOG_LEVEL_INFO, "Unknown echo protocol identifier");
 			fprintf(stderr, "Unknown echo protocol identifier\n");
 			ok = 0;
 		}
@@ -220,6 +233,7 @@ public:
 			err = noise_handshakestate_new_by_id
 				(&handshake, &nid, NOISE_ROLE_RESPONDER);
 			if (err != NOISE_ERROR_NONE) {
+				log->printf(LOG_LEVEL_INFO, "well, couldn't create the handshake");
 				noise_perror("create handshake", err);
 				ok = 0;
 			}
@@ -228,6 +242,7 @@ public:
 		/* Set all keys that are needed by the client's requested echo protocol */
 		if (ok) {
 			if (!initialize_handshake(handshake, &nid, &id, sizeof(id))) {
+				log->printf(LOG_LEVEL_INFO, "couldn't initialize handshake");
 				ok = 0;
 			}
 		}
@@ -236,6 +251,7 @@ public:
 		if (ok) {
 			err = noise_handshakestate_start(handshake);
 			if (err != NOISE_ERROR_NONE) {
+				log->printf(LOG_LEVEL_INFO, "couldn't start handshake");
 				noise_perror("start handshake", err);
 				ok = 0;
 			}
@@ -249,6 +265,7 @@ public:
 				noise_buffer_set_output(mbuf, message + 2, sizeof(message) - 2);
 				err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
 				if (err != NOISE_ERROR_NONE) {
+					log->printf(LOG_LEVEL_INFO, "write handshake fail");
 					noise_perror("write handshake", err);
 					ok = 0;
 					break;
@@ -275,6 +292,7 @@ public:
 				noise_buffer_set_input(mbuf, message + 2, message_size - 2);
 				err = noise_handshakestate_read_message(handshake, &mbuf, NULL);
 				if (err != NOISE_ERROR_NONE) {
+					log->printf(LOG_LEVEL_INFO, "read handshake fail");
 					noise_perror("read handshake", err);
 					ok = 0;
 					break;
@@ -287,6 +305,7 @@ public:
 
 		/* If the action is not "split", then the handshake has failed */
 		if (ok && noise_handshakestate_get_action(handshake) != NOISE_ACTION_SPLIT) {
+			log->printf(LOG_LEVEL_INFO, "eh, the handshake failed");
 			fprintf(stderr, "protocol handshake failed\n");
 			ok = 0;
 		}
@@ -544,6 +563,7 @@ public:
 	uint8_t psk[32];
 
 	sf::TcpSocket* client;
+	CryptoKernel::Log* log;
 };
 
 
