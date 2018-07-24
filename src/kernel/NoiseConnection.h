@@ -69,9 +69,11 @@ static uint8_t message[MAX_MESSAGE_LEN + 2];
 
 class NoiseConnectionClient {
 public:
-	NoiseConnectionClient(sf::TcpSocket* server, CryptoKernel::Log* log) {
+	NoiseConnectionClient(sf::TcpSocket* server, std::string ipAddress, uint64_t port, CryptoKernel::Log* log) {
 		this->server = server;
 		this->log = log;
+		this->ipAddress = ipAddress;
+		this->port = port;
 	}
 
 	int execHandshake() {
@@ -93,6 +95,10 @@ public:
 			noise_perror("start handshake", err);
 			ok = 0;
 		}
+
+		log->printf(LOG_LEVEL_INFO, "attempting to connect to server");
+		server->connect(sf::IpAddress(ipAddress), port);
+		log->printf(LOG_LEVEL_INFO, "connected to server");
 
 		/* Run the handshake until we run out of things to read or write */
 		while(ok) {
@@ -154,13 +160,16 @@ public:
 
 	sf::TcpSocket* server;
 	CryptoKernel::Log* log;
+	std::string ipAddress;
+	uint64_t port;
 };
 
 class NoiseConnectionServer {
 public:
-	NoiseConnectionServer(sf::TcpSocket* client, CryptoKernel::Log* log) {
+	NoiseConnectionServer(sf::TcpSocket* client, uint64_t port, CryptoKernel::Log* log) {
 		this->client = client;
 		this->log = log;
+		this->port = port;
 	}
 
 	int execHandshake() {
@@ -204,6 +213,13 @@ public:
 		if (!echo_load_public_key("psk", psk, sizeof(psk))) {
 			log->printf(LOG_LEVEL_INFO, "could not load key psk");
 			return 1;
+		}
+
+		log->printf(LOG_LEVEL_INFO, "waiting for client to connect");
+		sf::TcpListener ls;
+		ls.listen(port);
+		if(ls.accept(*client) == sf::Socket::Done) {
+			log->printf(LOG_LEVEL_INFO, "client connected");
 		}
 
 		sf::Packet idBytes;
@@ -564,6 +580,7 @@ public:
 
 	sf::TcpSocket* client;
 	CryptoKernel::Log* log;
+	uint64_t port;
 };
 
 
