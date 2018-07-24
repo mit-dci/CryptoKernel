@@ -254,14 +254,16 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	                if(selector.isReady(client))
 	                {
 	                    // The client has sent some data, we can receive it
-	                    sf::Packet packet;
+	                    /*sf::Packet packet;
 	                    if (client.receive(packet) == sf::Socket::Done)
 	                    {
 	                    	//log->printf(LOG_LEVEL_INFO, "information has been received!");
 	                    	std::string message;
 	                    	packet >> message;
 	                    	log->printf(LOG_LEVEL_INFO, "received message " + message);
-	                    }
+	                    }*/
+	                	NoiseConnectionClient ncc(client);
+	                	ncc.execHandshake();
 	                }
 	            }
 	        }
@@ -285,7 +287,7 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 		}
 
 		for(auto it = pendingConnections.begin(); it != pendingConnections.end();) {
-			sf::Packet packet;
+			/*sf::Packet packet;
 			packet << "test message";
 			if(it->second->send(packet) == sf::Socket::Done) {
 				log->printf(LOG_LEVEL_INFO, "Network(): Successfully sent info to " + it->first);
@@ -294,7 +296,10 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 			else {
 				it++;
 				// todo, check age of socket, and remove it from the list after three seconds
-			}
+			}*/
+			NoiseConnectionServer ncs(it->second);
+			ncs.execHandshake();
+			pendingConnections.erase(it++);
 		}
 
 		std::this_thread::sleep_for(std::chrono::seconds(2));
