@@ -1,6 +1,7 @@
 #include "network.h"
 #include "networkpeer.h"
 #include "version.h"
+#include "NoiseConnection.h"
 
 #include <list>
 #include <algorithm>

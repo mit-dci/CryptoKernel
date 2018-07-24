@@ -130,7 +130,7 @@ public:
 					ok = 0;
 					break;
 				}*/
-				packet >> message;
+				packet >> (char*)&message[0];
 
 				noise_buffer_set_input(mbuf, message + 2, message_size - 2);
 				err = noise_handshakestate_read_message(handshake, &mbuf, NULL);
@@ -200,8 +200,8 @@ public:
 			fprintf(stderr, "Did not receive the echo protocol identifier\n");
 			ok = 0;
 		}
-		id = malloc(sizeof(EchoProtocolId));
-		idBytes >> id; // no way this works
+
+		idBytes >> (char*)&id; // no way this works
 
 		/* Read the echo protocol identifier sent by the client */
 		/*if (ok && !echo_recv_exact(fd, (uint8_t *)&id, sizeof(id))) {
@@ -266,7 +266,7 @@ public:
 				/* Read the next handshake message and discard the payload */
 				sf::Packet packet;
 				client->receive(packet);
-				packet >> message_size;
+				packet >> (char*)&message_size;
 				/*message_size = echo_recv(fd, message, sizeof(message));
 				if (!message_size) {
 					ok = 0;
