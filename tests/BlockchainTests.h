@@ -13,6 +13,7 @@ class BlockchainTest : public CPPUNIT_NS::TestFixture {
     CPPUNIT_TEST(testSingleSchnorrSignature);
     CPPUNIT_TEST(testAggregateSchnorrSignature);
     CPPUNIT_TEST(testAggregateSignatureWithUnsignedFail);
+    CPPUNIT_TEST(testAggregateMixSignature);
 
     CPPUNIT_TEST_SUITE_END();
 
@@ -38,6 +39,7 @@ private:
     void testSingleSchnorrSignature();
     void testAggregateSchnorrSignature();
     void testAggregateSignatureWithUnsignedFail();
+    void testAggregateMixSignature();
 
     std::unique_ptr<CryptoKernel::Blockchain> blockchain;
     std::unique_ptr<CryptoKernel::Log> log;
