@@ -617,7 +617,9 @@ public:
 				/* Read the next handshake message and discard the payload */
 				sf::Packet packet;
 				client->receive(packet);
-				packet >> (char*)&message_size;
+				//packet >> (char*)&message_size;
+				memcpy(message, packet.getData(), sizeof(message));
+				message_size = packet.getDataSize();
 				/*message_size = echo_recv(fd, message, sizeof(message));
 				if (!message_size) {
 					ok = 0;
