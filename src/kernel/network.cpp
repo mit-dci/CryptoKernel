@@ -205,82 +205,78 @@ CryptoKernel::Network::~Network() {
 void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	log->printf(LOG_LEVEL_INFO, "incoming encryption handshake thread started");
 
-	sf::TcpSocket* client = new sf::TcpSocket();
+	/*sf::TcpSocket* client = new sf::TcpSocket();
 	NoiseConnectionServer ncs(client, port + 1, log);
-	ncs.execHandshake();
+	ncs.execHandshake();*/
 
+	sf::TcpListener ls;
+	ls.listen(port + 1);
+	//listener.listen(9999);
+	// Create a list to store the future clients
+	std::list<sf::TcpSocket*> clients;
+	// Create a selector
+	sf::SocketSelector selector;
+	// Add the listener to the selector
+	selector.add(ls);
+	// Endless loop that waits for new connections
 
-//	sf::TcpListener ls;
-//	ls.listen(port + 1);
-//	//listener.listen(9999);
-//	// Create a list to store the future clients
-//	std::list<sf::TcpSocket*> clients;
-//	// Create a selector
-//	sf::SocketSelector selector;
-//	// Add the listener to the selector
-//	selector.add(ls);
-//	// Endless loop that waits for new connections
-//
-//	while(running)
-//	{
-//		log->printf(LOG_LEVEL_INFO, "spinning....");
-//	    // Make the selector wait for data on any socket
-//	    if(selector.wait())
-//	    {
-//	    	//log->printf(LOG_LEVEL_INFO, "waiting......");
-//	        // Test the listener
-//	        if(selector.isReady(ls))
-//	        {
-//	        	//log->printf(LOG_LEVEL_INFO, "selector ready");
-//	            // The listener is ready: there is a pending connection
-//	            sf::TcpSocket* client = new sf::TcpSocket;
-//	            if(ls.accept(*client) == sf::Socket::Done)
-//	            {
-//	            	log->printf(LOG_LEVEL_INFO, "adding a client...");
-//	                // Add the new client to the clients list
-//	                clients.push_back(client);
-//	                // Add the new client to the selector so that we will
-//	                // be notified when he sends something
-//	                selector.add(*client);
-//	            }
-//	            else
-//	            {
-//	                // Error, we won't get a new connection, delete the socket
-//	                delete client;
-//	            }
-//	        }
-//	        else
-//	        {
-//	        	//log->printf(LOG_LEVEL_INFO, "selector not ready");
-//	            // The listener socket is not ready, test all other sockets (the clients)
-//	            for (std::list<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
-//	            {
-//	                sf::TcpSocket& client = **it;
-//	                if(selector.isReady(client))
-//	                {
-//	                    // The client has sent some data, we can receive it
-//	                    /*sf::Packet packet;
-//	                    if (client.receive(packet) == sf::Socket::Done)
-//	                    {
-//	                    	//log->printf(LOG_LEVEL_INFO, "information has been received!");
-//	                    	std::string message;
-//	                    	packet >> message;
-//	                    	log->printf(LOG_LEVEL_INFO, "received message " + message);
-//	                    }*/
-//	                	log->printf(LOG_LEVEL_INFO, "starting ncs");
-//	                	NoiseConnectionServer ncs(&client, log);
-//	                	ncs.execHandshake();
-//	                }
-//	            }
-//	        }
-//	    }
-//	}
+	while(running)
+	{
+		log->printf(LOG_LEVEL_INFO, "spinning....");
+	    // Make the selector wait for data on any socket
+	    if(selector.wait())
+	    {
+	    	//log->printf(LOG_LEVEL_INFO, "waiting......");
+	        // Test the listener
+	        if(selector.isReady(ls))
+	        {
+	        	//log->printf(LOG_LEVEL_INFO, "selector ready");
+	            // The listener is ready: there is a pending connection
+	            sf::TcpSocket* client = new sf::TcpSocket;
+	            if(ls.accept(*client) == sf::Socket::Done)
+	            {
+	            	log->printf(LOG_LEVEL_INFO, "adding a client...");
+	                // Add the new client to the clients list
+	                clients.push_back(client);
+	                // Add the new client to the selector so that we will
+	                // be notified when he sends something
+	                selector.add(*client);
+	            }
+	            else
+	            {
+	                // Error, we won't get a new connection, delete the socket
+	                delete client;
+	            }
+	        }
+	        else
+	        {
+	        	//log->printf(LOG_LEVEL_INFO, "selector not ready");
+	            // The listener socket is not ready, test all other sockets (the clients)
+	            for (std::list<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
+	            {
+	                sf::TcpSocket& client = **it;
+	                if(selector.isReady(client))
+	                {
+	                    // The client has sent some data, we can receive it
+	                    sf::Packet packet;
+	                    if (client.receive(packet) == sf::Socket::Done)
+	                    {
+	                    	//log->printf(LOG_LEVEL_INFO, "information has been received!");
+	                    	std::string message;
+	                    	packet >> message;
+	                    	log->printf(LOG_LEVEL_INFO, "received message " + message);
+	                    }
+	                }
+	            }
+	        }
+	    }
+	}
 }
 
 void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 	log->printf(LOG_LEVEL_INFO, "outgoing encryption handshake started");
 
-	bool keepGoing = true;
+	/*bool keepGoing = true;
 	while(running && keepGoing) {
 		log->printf(LOG_LEVEL_INFO, "we're running yay");
 		std::vector<std::string> addresses = peersToQuery.keys();
@@ -294,40 +290,37 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 			break;
 		}
 		std::this_thread::sleep_for(std::chrono::seconds(2));
+	}*/
+
+	std::map<std::string, sf::TcpSocket*> pendingConnections;
+
+	while(running) {
+		// let all of the encryption check ips know that I want to perform a handshake
+		std::vector<std::string> addresses = peersToQuery.keys();
+		std::random_shuffle(addresses.begin(), addresses.end());
+		for(std::string addr : addresses) {
+			sf::TcpSocket* client = new sf::TcpSocket();
+			log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + addr + " to query encryption preference.");
+			client->connect(addr, port + 1, sf::seconds(3));
+			pendingConnections.insert(std::make_pair(addr, client));
+			peersToQuery.erase(addr);
+		}
+
+		for(auto it = pendingConnections.begin(); it != pendingConnections.end();) {
+			sf::Packet packet;
+			packet << "test message";
+			if(it->second->send(packet) == sf::Socket::Done) {
+				log->printf(LOG_LEVEL_INFO, "Network(): Successfully sent info to " + it->first);
+				pendingConnections.erase(it++);
+			}
+			else {
+				it++;
+				// todo, check age of socket, and remove it from the list after three seconds
+			}
+		}
+
+		std::this_thread::sleep_for(std::chrono::seconds(2));
 	}
-//	std::map<std::string, sf::TcpSocket*> pendingConnections;
-//
-//	while(running) {
-//		// let all of the encryption check ips know that I want to perform a handshake
-//		std::vector<std::string> addresses = peersToQuery.keys();
-//		std::random_shuffle(addresses.begin(), addresses.end());
-//		for(std::string addr : addresses) {
-//			sf::TcpSocket* client = new sf::TcpSocket();
-//			log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + addr + " to query encryption preference.");
-//			client->connect(addr, port + 1, sf::seconds(3));
-//			pendingConnections.insert(std::make_pair(addr, client));
-//			peersToQuery.erase(addr);
-//		}
-//
-//		for(auto it = pendingConnections.begin(); it != pendingConnections.end();) {
-//			/*sf::Packet packet;
-//			packet << "test message";
-//			if(it->second->send(packet) == sf::Socket::Done) {
-//				log->printf(LOG_LEVEL_INFO, "Network(): Successfully sent info to " + it->first);
-//				pendingConnections.erase(it++);
-//			}
-//			else {
-//				it++;
-//				// todo, check age of socket, and remove it from the list after three seconds
-//			}*/
-//			log->printf(LOG_LEVEL_INFO, "starting ncc");
-//			NoiseConnectionClient ncc(it->second, log);
-//			ncc.execHandshake();
-//			pendingConnections.erase(it++);
-//		}
-//
-//		std::this_thread::sleep_for(std::chrono::seconds(2));
-//	}
 }
 
 void CryptoKernel::Network::makeOutgoingConnectionsWrapper() {

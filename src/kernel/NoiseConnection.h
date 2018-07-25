@@ -179,26 +179,10 @@ public:
 		this->log = log;
 		this->ipAddress = ipAddress;
 		this->port = port;
-	}
-
-	int execHandshake() {
-		NoiseHandshakeState* handshake;
-		NoiseCipherState* send_cipher = 0;
-		NoiseCipherState* recv_cipher = 0;
-		NoiseRandState* rand = 0;
-		NoiseBuffer mbuf;
-		EchoProtocolId id;
-		int err, ok;
-		int action;
-		//int fd;
-		size_t message_size;
-		size_t max_line_len;
-
-		ok = 1;
 
 		if (noise_init() != NOISE_ERROR_NONE) {
 			fprintf(stderr, "Noise initialization failed\n");
-			return 1;
+			//return 1;
 		}
 
 		/* Check that the echo protocol supports the handshake protocol.
@@ -206,90 +190,183 @@ public:
 		std::string protocol = "Noise_NN_25519_AESGCM_SHA256";
 		if (!echo_get_protocol_id(&id, protocol.c_str())) {
 			fprintf(stderr, "%s: not supported by the echo protocol\n", protocol.c_str());
-			return 1;
+			//return 1;
 		}
 
 		/* Create a HandshakeState object for the protocol */
-		err = noise_handshakestate_new_by_name
+		int err = noise_handshakestate_new_by_name
 			(&handshake, protocol.c_str(), NOISE_ROLE_INITIATOR);
 		if (err != NOISE_ERROR_NONE) {
 			noise_perror(protocol.c_str(), err);
-			return 1;
+			//return 1;
 		}
 
 		/* Set the handshake options and verify that everything we need
 		   has been supplied on the command-line. */
 		if (!initialize_handshake(handshake, &id, sizeof(id))) {
 			noise_handshakestate_free(handshake);
-			return 1;
+			//return 1;
 		}
+	}
 
-		log->printf(LOG_LEVEL_INFO, "NOISE: attempting to connect to server......");
-		log->printf(LOG_LEVEL_INFO, "attempting to connect to server, " + ipAddress + ":" + std::to_string(port));
-		sf::IpAddress myaddr(ipAddress);
-		server->connect(myaddr, port);
-		log->printf(LOG_LEVEL_INFO, "connected to server");
+	void recievePacket() {
+		int action = noise_handshakestate_get_action(handshake);
+		NoiseBuffer mbuf;
+		int err, ok;
+		size_t message_size;
 
-		sf::Packet idPacket;
-		idPacket.append(&id, sizeof(id));
-		log->printf(LOG_LEVEL_INFO, "CLIENT appended " + std::to_string(sizeof(id)) + " bytes to packet for id");
-		server->send(idPacket); // this definitely isn't going to work
-
-		err = noise_handshakestate_start(handshake);
-		if (err != NOISE_ERROR_NONE) {
-			log->printf(LOG_LEVEL_INFO, "CLIENT start handshake failed");
-			noise_perror("start handshake", err);
-			ok = 0;
-		}
-
-		/* Run the handshake until we run out of things to read or write */
-		while (ok) {
-			action = noise_handshakestate_get_action(handshake);
-			if (action == NOISE_ACTION_WRITE_MESSAGE) {
-				/* Write the next handshake message with a zero-length payload */
-				noise_buffer_set_output(mbuf, message + 2, sizeof(message) - 2);
-				err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
-				if (err != NOISE_ERROR_NONE) {
-					noise_perror("write handshake", err);
-					ok = 0;
-					break;
-				}
-				message[0] = (uint8_t)(mbuf.size >> 8);
-				message[1] = (uint8_t)mbuf.size;
-				/*if (!echo_send(fd, message, mbuf.size + 2)) {
-					ok = 0;
-					break;
-				}*/
-				sf::Packet packet;
-				packet.append(message, mbuf.size + 2);
-				server->send(packet);
-			} else if (action == NOISE_ACTION_READ_MESSAGE) {
-				/* Read the next handshake message and discard the payload */
-				sf::Packet packet;
-				server->receive(packet);
-				message_size = packet.getDataSize();
-				memcpy(message, packet.getData(), packet.getDataSize());
-				/*message_size = echo_recv(fd, message, sizeof(message));
-				if (!message_size) {
-					ok = 0;
-					break;
-				}*/
-
-				noise_buffer_set_input(mbuf, message + 2, message_size - 2);
-				err = noise_handshakestate_read_message(handshake, &mbuf, NULL);
-				if (err != NOISE_ERROR_NONE) {
-					noise_perror("read handshake", err);
-					ok = 0;
-					break;
-				}
-			} else {
-				/* Either the handshake has finished or it has failed */
+		if(action == NOISE_ACTION_WRITE_MESSAGE) {
+			/* Write the next handshake message with a zero-length payload */
+			noise_buffer_set_output(mbuf, message + 2, sizeof(message) - 2);
+			err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
+			if (err != NOISE_ERROR_NONE) {
+				noise_perror("write handshake", err);
+				ok = 0;
+				//break;
+				return;
+			}
+			message[0] = (uint8_t)(mbuf.size >> 8);
+			message[1] = (uint8_t)mbuf.size;
+			/*if (!echo_send(fd, message, mbuf.size + 2)) {
+				ok = 0;
 				break;
+			}*/
+			sf::Packet packet;
+			packet.append(message, mbuf.size + 2);
+			server->send(packet);
+		}
+		else if(action == NOISE_ACTION_READ_MESSAGE) {
+			/* Read the next handshake message and discard the payload */
+			sf::Packet packet;
+			server->receive(packet);
+			message_size = packet.getDataSize();
+			memcpy(message, packet.getData(), packet.getDataSize());
+			/*message_size = echo_recv(fd, message, sizeof(message));
+			if (!message_size) {
+				ok = 0;
+				break;
+			}*/
+
+			noise_buffer_set_input(mbuf, message + 2, message_size - 2);
+			err = noise_handshakestate_read_message(handshake, &mbuf, NULL);
+			if (err != NOISE_ERROR_NONE) {
+				noise_perror("read handshake", err);
+				ok = 0;
+				//break;
+				return;
 			}
 		}
-
-		return 1;
 	}
+
+//	int execHandshake() {
+//		NoiseHandshakeState* handshake;
+//		NoiseCipherState* send_cipher = 0;
+//		NoiseCipherState* recv_cipher = 0;
+//		NoiseRandState* rand = 0;
+//		NoiseBuffer mbuf;
+//		EchoProtocolId id;
+//		int err, ok;
+//		int action;
+//		//int fd;
+//		size_t message_size;
+//		size_t max_line_len;
+//
+//		ok = 1;
+//
+//		if (noise_init() != NOISE_ERROR_NONE) {
+//			fprintf(stderr, "Noise initialization failed\n");
+//			return 1;
+//		}
+//
+//		/* Check that the echo protocol supports the handshake protocol.
+//		   One-way handshake patterns and XXfallback are not yet supported. */
+//		std::string protocol = "Noise_NN_25519_AESGCM_SHA256";
+//		if (!echo_get_protocol_id(&id, protocol.c_str())) {
+//			fprintf(stderr, "%s: not supported by the echo protocol\n", protocol.c_str());
+//			return 1;
+//		}
+//
+//		/* Create a HandshakeState object for the protocol */
+//		err = noise_handshakestate_new_by_name
+//			(&handshake, protocol.c_str(), NOISE_ROLE_INITIATOR);
+//		if (err != NOISE_ERROR_NONE) {
+//			noise_perror(protocol.c_str(), err);
+//			return 1;
+//		}
+//
+//		/* Set the handshake options and verify that everything we need
+//		   has been supplied on the command-line. */
+//		if (!initialize_handshake(handshake, &id, sizeof(id))) {
+//			noise_handshakestate_free(handshake);
+//			return 1;
+//		}
+//
+//		log->printf(LOG_LEVEL_INFO, "NOISE: attempting to connect to server......");
+//		log->printf(LOG_LEVEL_INFO, "attempting to connect to server, " + ipAddress + ":" + std::to_string(port));
+//		sf::IpAddress myaddr(ipAddress);
+//		server->connect(myaddr, port);
+//		log->printf(LOG_LEVEL_INFO, "connected to server");
+//
+//		sf::Packet idPacket;
+//		idPacket.append(&id, sizeof(id));
+//		log->printf(LOG_LEVEL_INFO, "CLIENT appended " + std::to_string(sizeof(id)) + " bytes to packet for id");
+//		server->send(idPacket); // this definitely isn't going to work
+//
+//		err = noise_handshakestate_start(handshake);
+//		if (err != NOISE_ERROR_NONE) {
+//			log->printf(LOG_LEVEL_INFO, "CLIENT start handshake failed");
+//			noise_perror("start handshake", err);
+//			ok = 0;
+//		}
+//
+//		/* Run the handshake until we run out of things to read or write */
+//		while (ok) {
+//			action = noise_handshakestate_get_action(handshake);
+//			if (action == NOISE_ACTION_WRITE_MESSAGE) {
+//				/* Write the next handshake message with a zero-length payload */
+//				noise_buffer_set_output(mbuf, message + 2, sizeof(message) - 2);
+//				err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
+//				if (err != NOISE_ERROR_NONE) {
+//					noise_perror("write handshake", err);
+//					ok = 0;
+//					break;
+//				}
+//				message[0] = (uint8_t)(mbuf.size >> 8);
+//				message[1] = (uint8_t)mbuf.size;
+//				/*if (!echo_send(fd, message, mbuf.size + 2)) {
+//					ok = 0;
+//					break;
+//				}*/
+//				sf::Packet packet;
+//				packet.append(message, mbuf.size + 2);
+//				server->send(packet);
+//			} else if (action == NOISE_ACTION_READ_MESSAGE) {
+//				/* Read the next handshake message and discard the payload */
+//				sf::Packet packet;
+//				server->receive(packet);
+//				message_size = packet.getDataSize();
+//				memcpy(message, packet.getData(), packet.getDataSize());
+//				/*message_size = echo_recv(fd, message, sizeof(message));
+//				if (!message_size) {
+//					ok = 0;
+//					break;
+//				}*/
+//
+//				noise_buffer_set_input(mbuf, message + 2, message_size - 2);
+//				err = noise_handshakestate_read_message(handshake, &mbuf, NULL);
+//				if (err != NOISE_ERROR_NONE) {
+//					noise_perror("read handshake", err);
+//					ok = 0;
+//					break;
+//				}
+//			} else {
+//				/* Either the handshake has finished or it has failed */
+//				break;
+//			}
+//		}
+//
+//		return 1;
+//	}
 
 	/* Convert a Noise handshake protocol name into an Echo protocol id */
 	int echo_get_protocol_id(EchoProtocolId *id, const char *name)
@@ -458,6 +535,9 @@ public:
 	std::string client_private_key;
 	std::string psk;
 	std::string psk_file;
+
+	NoiseHandshakeState* handshake;
+	EchoProtocolId id;
 };
 
 class NoiseConnectionServer {
