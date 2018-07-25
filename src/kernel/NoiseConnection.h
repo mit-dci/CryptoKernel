@@ -550,10 +550,10 @@ public:
 			ok = 0;
 		}*/
 		log->printf(LOG_LEVEL_INFO, "Server says the id pattern size is " + std::to_string(idBytes.getDataSize()));
-		void* cool = &id;
-		cool = (uint8_t*)idBytes.getData();
+		//void* cool = &id;
+		memcpy(&id, idBytes.getData(), (unsigned long int)idBytes.getDataSize());
 
-		log->printf(LOG_LEVEL_INFO, "Server says the id pattern itself is " + std::to_string(*(int*)cool));
+		log->printf(LOG_LEVEL_INFO, "Server says the id pattern itself is " + std::to_string(id.pattern));
 
 		/* Convert the echo protocol identifier into a Noise protocol identifier */
 		if (ok && !echo_to_noise_protocol_id(&nid, &id)) {
