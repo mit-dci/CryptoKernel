@@ -264,4 +264,12 @@ void BlockchainTest::testAggregateSchnorrSignature() {
 
     const auto outs2 = blockchain->getUnspentOutputs(outData3["publicKey"].asString());
     CPPUNIT_ASSERT_EQUAL(size_t(1), outs2.size());
+
+    musig_sig_free(sigAgg);
+    musig_sig_free(sig1);
+    musig_sig_free(sig2);
+    musig_pubkey_free(pub);
+    musig_key_free(key);
+    musig_key_free(key2);
+    schnorr_context_free(ctx);
 }
