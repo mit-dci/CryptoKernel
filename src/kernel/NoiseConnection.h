@@ -536,6 +536,10 @@ public:
 		}
 
 		idBytes >> (char*)&id; // no way this works
+		std::string idBytesString;
+		idBytes >> idBytesString;
+		log->printf(LOG_LEVEL_INFO, idBytesString);
+		log->printf(LOG_LEVEL_INFO, std::to_string(idBytesString.length()));
 
 		log->printf(LOG_LEVEL_INFO, "Server says the id pattern from the client is " + id.pattern);
 
