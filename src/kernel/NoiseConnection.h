@@ -537,6 +537,8 @@ public:
 
 		idBytes >> (char*)&id; // no way this works
 
+		log->printf(LOG_LEVEL_INFO, "Server says the id pattern from the client is " + id.pattern);
+
 		/* Read the echo protocol identifier sent by the client */
 		/*if (ok && !echo_recv_exact(fd, (uint8_t *)&id, sizeof(id))) {
 			fprintf(stderr, "Did not receive the echo protocol identifier\n");
