@@ -225,7 +225,8 @@ public:
 		}
 
 		log->printf(LOG_LEVEL_INFO, "attempting to connect to server");
-		server->connect(sf::IpAddress(ipAddress), port);
+		sf::IpAddress myaddr(ipAddress);
+		server->connect(myaddr, port);
 		log->printf(LOG_LEVEL_INFO, "connected to server");
 
 		sf::Packet idPacket;
