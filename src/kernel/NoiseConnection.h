@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <SFML/Network.hpp>
+#include "log.h"
 
 #define CURVE25519_KEY_LEN 32
 #define CURVE448_KEY_LEN 56
