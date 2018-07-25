@@ -535,7 +535,7 @@ public:
 			ok = 0;
 		}
 
-		idBytes >> (char*)&id; // no way this works
+		//idBytes >> (char*)&id; // no way this works
 		std::string idBytesString;
 		idBytes >> idBytesString;
 		log->printf(LOG_LEVEL_INFO, idBytesString);
