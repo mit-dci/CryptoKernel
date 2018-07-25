@@ -245,50 +245,41 @@ public:
 		}
 
 		/* Run the handshake until we run out of things to read or write */
-		while(ok) {
+		while (ok) {
 			action = noise_handshakestate_get_action(handshake);
 			if (action == NOISE_ACTION_WRITE_MESSAGE) {
 				/* Write the next handshake message with a zero-length payload */
 				noise_buffer_set_output(mbuf, message + 2, sizeof(message) - 2);
 				err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
 				if (err != NOISE_ERROR_NONE) {
-					log->printf(LOG_LEVEL_INFO, "CLIENT write handshake failed");
 					noise_perror("write handshake", err);
 					ok = 0;
 					break;
 				}
 				message[0] = (uint8_t)(mbuf.size >> 8);
 				message[1] = (uint8_t)mbuf.size;
-
-				sf::Packet packet;
-				packet << message;
-				if(server->send(packet) != sf::Socket::Done) {
-					ok = 0;
-					break;
-				}
-				// send the message using sfml
 				/*if (!echo_send(fd, message, mbuf.size + 2)) {
 					ok = 0;
 					break;
 				}*/
+				sf::Packet packet;
+				packet.append(message, mbuf.size + 2);
+				server->send(packet);
 			} else if (action == NOISE_ACTION_READ_MESSAGE) {
 				/* Read the next handshake message and discard the payload */
 				sf::Packet packet;
-				if(server->receive(packet) != sf::Socket::Done) {
-					ok = 0;
-					break;
-				}
+				server->receive(packet);
+				message_size = packet.getDataSize();
+				memcpy(message, packet.getData(), packet.getDataSize());
 				/*message_size = echo_recv(fd, message, sizeof(message));
 				if (!message_size) {
 					ok = 0;
 					break;
 				}*/
-				packet >> (char*)&message[0];
 
 				noise_buffer_set_input(mbuf, message + 2, message_size - 2);
 				err = noise_handshakestate_read_message(handshake, &mbuf, NULL);
 				if (err != NOISE_ERROR_NONE) {
-					log->printf(LOG_LEVEL_INFO, "CLIENT read handshake failed");
 					noise_perror("read handshake", err);
 					ok = 0;
 					break;
@@ -599,7 +590,6 @@ public:
 				noise_buffer_set_output(mbuf, message + 2, sizeof(message) - 2);
 				err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
 				if (err != NOISE_ERROR_NONE) {
-					log->printf(LOG_LEVEL_INFO, "write handshake fail");
 					noise_perror("write handshake", err);
 					ok = 0;
 					break;
@@ -610,25 +600,25 @@ public:
 					ok = 0;
 					break;
 				}*/
+
 				sf::Packet packet;
-				packet << message;
+				packet.append(message, mbuf.size + 2);
 				client->send(packet);
 			} else if (action == NOISE_ACTION_READ_MESSAGE) {
 				/* Read the next handshake message and discard the payload */
-				sf::Packet packet;
-				client->receive(packet);
-				//packet >> (char*)&message_size;
-				memcpy(message, packet.getData(), sizeof(message));
-				message_size = packet.getDataSize();
 				/*message_size = echo_recv(fd, message, sizeof(message));
 				if (!message_size) {
 					ok = 0;
 					break;
 				}*/
+				sf::Packet packet;
+				client->receive(packet);
+				message_size = packet.getDataSize();
+				memcpy(message, packet.getData(), packet.getDataSize());
+
 				noise_buffer_set_input(mbuf, message + 2, message_size - 2);
 				err = noise_handshakestate_read_message(handshake, &mbuf, NULL);
 				if (err != NOISE_ERROR_NONE) {
-					log->printf(LOG_LEVEL_INFO, "read handshake fail");
 					noise_perror("read handshake", err);
 					ok = 0;
 					break;
