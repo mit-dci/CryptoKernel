@@ -224,7 +224,8 @@ public:
 			return 1;
 		}
 
-		log->printf(LOG_LEVEL_INFO, "attempting to connect to server");
+		log->printf(LOG_LEVEL_INFO, "NOISE: attempting to connect to server......");
+		log->printf(LOG_LEVEL_INFO, "attempting to connect to server, " + ipAddress + ":" + std::to_string(port));
 		sf::IpAddress myaddr(ipAddress);
 		server->connect(myaddr, port);
 		log->printf(LOG_LEVEL_INFO, "connected to server");
