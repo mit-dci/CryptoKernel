@@ -207,38 +207,65 @@ public:
 			noise_handshakestate_free(handshake);
 			//return 1;
 		}
+		writeInfoThread.reset(new std::thread(&NoiseConnectionClient::writeInfo, this)); // start the write info thread
 	}
 
-	void recievePacket() {
+	~NoiseConnectionClient() {
+		writeInfoThread->join();
+	}
+
+	void writeInfo() {
 		int action = noise_handshakestate_get_action(handshake);
 		NoiseBuffer mbuf;
 		int err, ok;
 		size_t message_size;
 
-		if(action == NOISE_ACTION_WRITE_MESSAGE) {
-			/* Write the next handshake message with a zero-length payload */
-			noise_buffer_set_output(mbuf, message + 2, sizeof(message) - 2);
-			err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
-			if (err != NOISE_ERROR_NONE) {
-				noise_perror("write handshake", err);
-				ok = 0;
-				//break;
-				return;
+		while(true) {
+			handshakeMutex.lock();
+			int action = noise_handshakestate_get_action(handshake);
+			handshakeMutex.unlock();
+			if(action == NOISE_ACTION_WRITE_MESSAGE) {
+				/* Write the next handshake message with a zero-length payload */
+				handshakeMutex.lock();
+				noise_buffer_set_output(mbuf, message + 2, sizeof(message) - 2);
+				err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
+				if (err != NOISE_ERROR_NONE) {
+					noise_perror("write handshake", err);
+					ok = 0;
+					//break;
+					return;
+				}
+				message[0] = (uint8_t)(mbuf.size >> 8);
+				message[1] = (uint8_t)mbuf.size;
+				handshakeMutex.unlock();
+				/*if (!echo_send(fd, message, mbuf.size + 2)) {
+					ok = 0;
+					break;
+				}*/
+				sf::Packet packet;
+				packet.append(message, mbuf.size + 2);
+				server->send(packet);
 			}
-			message[0] = (uint8_t)(mbuf.size >> 8);
-			message[1] = (uint8_t)mbuf.size;
-			/*if (!echo_send(fd, message, mbuf.size + 2)) {
-				ok = 0;
-				break;
-			}*/
-			sf::Packet packet;
-			packet.append(message, mbuf.size + 2);
-			server->send(packet);
+
+			std::this_thread::sleep_for(std::chrono::milliseconds(50)); // again, totally arbitrary
 		}
-		else if(action == NOISE_ACTION_READ_MESSAGE) {
+	}
+
+	void recievePacket(sf::Packet packet) {
+		handshakeMutex.lock();
+		int action = noise_handshakestate_get_action(handshake);
+		handshakeMutex.unlock();
+		NoiseBuffer mbuf;
+		int err, ok;
+		size_t message_size;
+
+		if(action == NOISE_ACTION_READ_MESSAGE) {
+			std::lock_guard<std::mutex> hm(handshakeMutex);
+
 			/* Read the next handshake message and discard the payload */
-			sf::Packet packet;
-			server->receive(packet);
+			//sf::Packet packet;
+			//server->receive(packet);
+
 			message_size = packet.getDataSize();
 			memcpy(message, packet.getData(), packet.getDataSize());
 			/*message_size = echo_recv(fd, message, sizeof(message));
@@ -536,8 +563,11 @@ public:
 	std::string psk;
 	std::string psk_file;
 
+	std::mutex handshakeMutex;
+
 	NoiseHandshakeState* handshake;
 	EchoProtocolId id;
+	std::unique_ptr<std::thread> writeInfoThread;
 };
 
 class NoiseConnectionServer {
@@ -546,6 +576,122 @@ public:
 		this->client = client;
 		this->log = log;
 		this->port = port;
+
+		handshake = 0;
+		message_size = 0;
+		recievedId = false;
+
+		if (noise_init() != NOISE_ERROR_NONE) {
+			fprintf(stderr, "Noise initialization failed\n");
+			//return 1;
+		}
+
+		if (!echo_load_private_key
+				("server_key_25519", server_key_25519, sizeof(server_key_25519))) {
+			log->printf(LOG_LEVEL_INFO, "could not load server key 25519");
+			//return 1;
+		}
+		if (!echo_load_private_key
+				("server_key_448", server_key_448, sizeof(server_key_448))) {
+			log->printf(LOG_LEVEL_INFO, "could not load server key 448");
+			//return 1;
+		}
+		if (!echo_load_public_key
+				("client_key_25519.pub", client_key_25519, sizeof(client_key_25519))) {
+			log->printf(LOG_LEVEL_INFO, "could not load client key 25519");
+			//return 1;
+		}
+		if (!echo_load_public_key
+				("client_key_448.pub", client_key_448, sizeof(client_key_448))) {
+			log->printf(LOG_LEVEL_INFO, "could not load client key 448");
+			//return 1;
+		}
+		if (!echo_load_public_key("psk", psk, sizeof(psk))) {
+			log->printf(LOG_LEVEL_INFO, "could not load key psk");
+			//return 1;
+		}
+
+		writeInfoThread.reset(new std::thread(&NoiseConnectionServer::writeInfo, this)); // start the write info thread
+	}
+
+	~NoiseConnectionServer() {
+		writeInfoThread->join();
+	}
+
+	void writeInfo() {
+		while(true) {
+			handshakeMutex.lock();
+			int action = noise_handshakestate_get_action(handshake);
+			handshakeMutex.unlock();
+			if (action == NOISE_ACTION_WRITE_MESSAGE) {
+				/* Write the next handshake message with a zero-length payload */
+				noise_buffer_set_output(mbuf, message + 2, sizeof(message) - 2);
+				int err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
+				if (err != NOISE_ERROR_NONE) {
+					noise_perror("write handshake error!! ", err);
+					//ok = 0;
+					//break;
+				}
+				message[0] = (uint8_t)(mbuf.size >> 8);
+				message[1] = (uint8_t)mbuf.size;
+				/*if (!echo_send(fd, message, mbuf.size + 2)) {
+					ok = 0;
+					break;
+				}*/
+
+				sf::Packet packet;
+				packet.append(message, mbuf.size + 2);
+				client->send(packet);
+			}
+
+			std::this_thread::sleep_for(std::chrono::milliseconds(50)); // totally arbitrary
+		}
+	}
+
+	void recievePacket(sf::Packet packet) {
+		int err;
+
+		if(!recievedId) {
+			//sf::Packet idBytes;
+			/*if(client->receive(idBytes) != sf::Socket::Done) {
+				log->printf(LOG_LEVEL_INFO, "Did not receive the echo protocol identifier");
+				fprintf(stderr, "Did not receive the echo protocol identifier\n");
+				//ok = 0;
+			}*/
+
+			log->printf(LOG_LEVEL_INFO, "Server says the id pattern size is " + std::to_string(packet.getDataSize()));
+			//void* cool = &id;
+			memcpy(&id, packet.getData(), (unsigned long int)packet.getDataSize());
+
+			log->printf(LOG_LEVEL_INFO, "Server says the id pattern itself is " + std::to_string(id.pattern));
+		}
+		else {
+			handshakeMutex.lock();
+			int action = noise_handshakestate_get_action(handshake);
+
+			std::lock_guard<std::mutex> hm(handshakeMutex);
+			if(action == NOISE_ACTION_READ_MESSAGE) {
+				/* Read the next handshake message and discard the payload */
+				/*message_size = echo_recv(fd, message, sizeof(message));
+				if (!message_size) {
+					ok = 0;
+					break;
+				}*/
+
+				//sf::Packet packet;
+				//client->receive(packet);
+				message_size = packet.getDataSize();
+				memcpy(message, packet.getData(), packet.getDataSize());
+
+				noise_buffer_set_input(mbuf, message + 2, message_size - 2);
+				err = noise_handshakestate_read_message(handshake, &mbuf, NULL);
+				if (err != NOISE_ERROR_NONE) {
+					noise_perror("read handshake", err);
+					//ok = 0;
+					//break;
+				}
+			}
+		}
 	}
 
 	int execHandshake() {
@@ -865,6 +1011,15 @@ public:
 	sf::TcpSocket* client;
 	CryptoKernel::Log* log;
 	uint64_t port;
+
+	bool recievedId;
+	size_t message_size;
+	NoiseBuffer mbuf;
+	NoiseHandshakeState *handshake;
+	EchoProtocolId id;
+
+	std::mutex handshakeMutex;
+	std::unique_ptr<std::thread> writeInfoThread;
 };
 
 
