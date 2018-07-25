@@ -17,6 +17,7 @@ Copyright (C) 2016  James Lovejoy
 
 #include <string>
 #include <memory>
+#include <set>
 
 #include <cschnorr/multisig.h>
 #include <json/value.h>
@@ -51,9 +52,9 @@ public:
     * Generates an Schnorr signature from the given message.
     *
     * @param message the message to sign, must be non-empty
-    * @return the Schnorr signature of the message and public key as base64_encode(s + R + A)
+    * @return the Schnorr signature of the message and public key as base64_encode(s + R)
     */
-    std::string sign(const std::string& message);
+    std::string signSingle(const std::string& message);
 
     /**
     * Verifies a that a given signature verifies the given message with the public key of this class
@@ -63,6 +64,14 @@ public:
     * @return true if the signature is correctly verified against the message and public key, false otherwise
     */
     bool verify(const std::string& message, const std::string& signature);
+
+    /**
+     * Aggregates a set of public keys in to an aggregate public key.
+     *
+     * @param pubkeys a set of pubkeys to be aggregated
+     * @return the aggregated pubkey if successful, empty string otherwise
+     */
+    std::string pubkeyAggregate(const std::set<std::string>& pubkeys);
 
     /**
     * Returns the public key of the instance
@@ -95,8 +104,9 @@ public:
     bool setPrivateKey(const std::string& privateKey);
 
 private:
-    musig_key *key;
-    schnorr_context *ctx;
+    musig_key* key;
+    musig_pubkey* pkey;
+    schnorr_context* ctx;
 };
 
 }

@@ -257,6 +257,8 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::verifyTransaction(Storage::Tran
 
     const CryptoKernel::BigNum outputHash = tx.getOutputSetId();
 
+    std::set<dbOutput> maybeAggregated;
+
     for(const input& inp : tx.getInputs()) {
         const Json::Value outJson = utxos->get(dbTransaction, inp.getOutputId().toString());
         if(!outJson.isObject()) {
@@ -273,16 +275,20 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::verifyTransaction(Storage::Tran
         if(!outData["schnorrKey"].empty() && outData["contract"].empty()) {
             const Json::Value spendData = inp.getData();
             if(spendData["signature"].empty() || !spendData["signature"].isString()) {
-                log->printf(LOG_LEVEL_INFO,
-                            "blockchain::verifyTransaction(): Could not verify input signature");
-                return std::make_tuple(false, true);
+                maybeAggregated.emplace(out);
             }
 
             if(!outData["schnorrKey"].isString()) {
                 log->printf(LOG_LEVEL_WARN, "blockchain::verifyTransaction(): Output has a malformed schnorr key, not checking its signature");
-            } else {
+                maybeAggregated.erase(out);
+            } else if(spendData["signature"].isString()) {
                 CryptoKernel::Schnorr schnorr;
-                schnorr.setPublicKey(outData["schnorrKey"].asString());
+                if(!schnorr.setPublicKey(outData["schnorrKey"].asString())) {
+                    log->printf(LOG_LEVEL_INFO,
+                                "blockchain::verifyTransaction(): Schnorr key is malformed");
+                    return std::make_tuple(false, true);
+                }
+
                 if(!schnorr.verify(out.getId().toString() + outputHash.toString(),
                                 spendData["signature"].asString())) {
                     log->printf(LOG_LEVEL_INFO,
@@ -309,6 +315,82 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::verifyTransaction(Storage::Tran
                 return std::make_tuple(false, true);
             }
         }
+    }
+
+    for(const input& inp : tx.getInputs()) {
+        const Json::Value spendData = inp.getData();
+        if(spendData["aggregateSignature"].isObject()) {
+            if(!spendData["aggregateSignature"]["signs"].isArray() || !spendData["aggregateSignature"]["signature"].isString()) {
+                log->printf(LOG_LEVEL_INFO,
+                            "blockchain::verifyTransaction(): Aggregate signature malformed. Signs isn't an array or signature isn't a string");
+                return std::make_tuple(false, true);
+            }
+
+            std::set<uint64_t> signs;
+            for(const auto& v : spendData["aggregateSignature"]["signs"]) {
+                if(!v.isUInt64()) {
+                    log->printf(LOG_LEVEL_INFO,
+                            "blockchain::verifyTransaction(): Aggregate signature malformed. Signs array element isn't an integer");
+                    return std::make_tuple(false, true);
+                }
+
+                if(v.asUInt64() >= maybeAggregated.size()) {
+                    log->printf(LOG_LEVEL_INFO,
+                            "blockchain::verifyTransaction(): Aggregate signature malformed. Signs array value out of range");
+                    return std::make_tuple(false, true);
+                }
+
+                signs.emplace(v.asUInt64());
+            }
+
+            std::set<std::string> pubkeys;
+            std::set<BigNum> outputIds;
+            for(const auto out : signs) {
+                auto it = maybeAggregated.begin();
+                std::advance(it, out);
+
+                pubkeys.emplace(it->getData()["schnorrKey"].asString());
+                outputIds.emplace(it->getId());
+            }
+
+            CryptoKernel::Schnorr schnorr;
+            const std::string aggregatedPubkey = schnorr.pubkeyAggregate(pubkeys);
+            if(!schnorr.setPublicKey(aggregatedPubkey)) {
+                log->printf(LOG_LEVEL_INFO,
+                            "blockchain::verifyTransaction(): Aggregate signature malformed. Aggregated pubkey is invalid");
+                return std::make_tuple(false, true);
+            }
+
+            std::string signaturePayload;
+            for(const auto& id : outputIds) {
+                signaturePayload += id.toString();
+            }
+            signaturePayload += outputHash.toString();
+
+            if(!schnorr.verify(signaturePayload, spendData["aggregateSignature"]["signature"].asString())) {
+                log->printf(LOG_LEVEL_INFO,
+                            "blockchain::verifyTransaction(): Could not verify input signature");
+                return std::make_tuple(false, true);
+            }
+
+            std::set<dbOutput> removals;
+            for(const auto out : signs) {
+                auto it = maybeAggregated.begin();
+                std::advance(it, out);
+                removals.emplace(*it);
+            }
+
+            for(const auto& out : removals) {
+                maybeAggregated.erase(out);
+            }
+        }
+    }
+
+    // There are leftover inputs that weren't covered by an aggregate signature
+    if(!maybeAggregated.empty()) {
+        log->printf(LOG_LEVEL_INFO,
+                            "blockchain::verifyTransaction(): Could not verify input signature. Schnorr output not signed or covered by aggregate signature");
+        return std::make_tuple(false, true);
     }
 
     if(!coinbaseTx) {
