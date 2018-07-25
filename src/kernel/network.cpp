@@ -205,7 +205,7 @@ CryptoKernel::Network::~Network() {
 void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	log->printf(LOG_LEVEL_INFO, "incoming encryption handshake thread started");
 
-	sf::TcpSocket* client;
+	sf::TcpSocket* client = new sf::TcpSocket();
 	NoiseConnectionServer ncs(client, port + 1, log);
 	ncs.execHandshake();
 
@@ -287,7 +287,7 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 		std::random_shuffle(addresses.begin(), addresses.end());
 		for(std::string addr : addresses) {
 			log->printf(LOG_LEVEL_INFO, "Attempting to connect to " + addr);
-			sf::TcpSocket* client;
+			sf::TcpSocket* client = new sf::TcpSocket();
 			NoiseConnectionClient ncc(client, addr, port + 1, log);
 			ncc.execHandshake();
 			keepGoing = false;
