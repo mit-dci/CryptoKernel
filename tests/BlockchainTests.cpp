@@ -527,3 +527,127 @@ void BlockchainTest::testAggregateMixSignature() {
     musig_key_free(key2);
     schnorr_context_free(ctx);
 }
+
+void BlockchainTest::testSchnorrMultiSignature() {
+    CryptoKernel::Crypto crypto(true);
+
+    const auto ECDSAPubKey = crypto.getPublicKey();
+
+    consensus->mineBlock(true, ECDSAPubKey);
+
+    const auto outs = blockchain->getUnspentOutputs(ECDSAPubKey);
+    const auto& out = *outs.begin();
+
+    CryptoKernel::Schnorr schnorr;
+    CryptoKernel::Schnorr schnorr2;
+
+    const auto aggKey = schnorr.pubkeyAggregate({schnorr.getPublicKey(), schnorr2.getPublicKey()});
+
+    Json::Value outData;
+    outData["schnorrKey"] = aggKey;
+    CryptoKernel::Blockchain::output out2(out.getValue() - 20000, 0, outData);
+
+    const std::string outputSetId = CryptoKernel::Blockchain::transaction::getOutputSetId({out2}).toString();
+
+    Json::Value spendData;
+    spendData["signature"] = crypto.sign(out.getId().toString() + outputSetId);
+
+    CryptoKernel::Blockchain::input inp(out.getId(), spendData);
+    CryptoKernel::Blockchain::transaction tx({inp}, {out2}, 1530888581);
+
+    const auto res = blockchain->submitTransaction(tx);
+    CPPUNIT_ASSERT(std::get<0>(res));
+
+    consensus->mineBlock(true, ECDSAPubKey);
+
+    Json::Value outData3;
+    outData3["publicKey"] = "BL2AcSzFw2+rGgQwJ25r7v/misIvr3t4JzkH3U1CCknchfkncSneKLBo6tjnKDhDxZUSPXEKMDtTU/YsvkwxJR8=";
+    CryptoKernel::Blockchain::output out4(out2.getValue() - 60000, 0, outData3);
+
+    const auto outputSetId2 = CryptoKernel::Blockchain::transaction::getOutputSetId({out4}).toString();
+    const std::string msgPayload = out2.getId().toString() + outputSetId2;
+
+    schnorr_context* ctx = schnorr_context_new();
+
+    musig_key* key = musig_key_new(ctx);
+    musig_key* key2 = musig_key_new(ctx);
+
+    const std::string decodedKey = base64_decode(schnorr.getPrivateKey());
+
+    CPPUNIT_ASSERT(BN_bin2bn(
+            (unsigned char*)decodedKey.c_str(),
+            (unsigned int)decodedKey.size(),
+            key->a));
+
+    const std::string decodedKey2 = base64_decode(schnorr2.getPrivateKey());
+
+    CPPUNIT_ASSERT(BN_bin2bn(
+            (unsigned char*)decodedKey2.c_str(),
+            (unsigned int)decodedKey2.size(),
+            key2->a));
+
+    CPPUNIT_ASSERT(EC_POINT_mul(ctx->group, key->pub->A, NULL, ctx->G, key->a, ctx->bn_ctx));
+    CPPUNIT_ASSERT(EC_POINT_mul(ctx->group, key2->pub->A, NULL, ctx->G, key2->a, ctx->bn_ctx));
+
+    musig_pubkey* pubkeys[2];
+
+    std::set<std::string> pubkeySet({schnorr.getPublicKey(), schnorr2.getPublicKey()});
+    if(*pubkeySet.begin() == schnorr.getPublicKey()) {
+        pubkeys[0] = key->pub;
+        pubkeys[1] = key2->pub;
+    } else {
+        pubkeys[1] = key->pub;
+        pubkeys[0] = key2->pub;
+    }
+
+    musig_sig* sig1;
+    musig_sig* sig2;
+    musig_pubkey* pub;
+    CPPUNIT_ASSERT(musig_sign(ctx, &sig1, &pub, key, pubkeys, 2, (unsigned char*)msgPayload.c_str(), msgPayload.size()));
+    CPPUNIT_ASSERT(musig_sign(ctx, &sig2, &pub, key2, pubkeys, 2, (unsigned char*)msgPayload.c_str(), msgPayload.size()));
+
+    musig_sig* sigs[2];
+    sigs[0] = sig1;
+    sigs[1] = sig2;
+
+    musig_sig* sigAgg;
+    CPPUNIT_ASSERT(musig_aggregate(ctx, &sigAgg, sigs, 2));
+
+    const unsigned int buf_len = 65;
+    std::unique_ptr<unsigned char> buf(new unsigned char[buf_len]);
+
+    CPPUNIT_ASSERT_EQUAL(32, BN_bn2binpad(sigAgg->s, buf.get(), 32));
+
+    CPPUNIT_ASSERT_EQUAL(size_t(33), EC_POINT_point2oct(
+            ctx->group,
+            sigAgg->R,
+            POINT_CONVERSION_COMPRESSED,
+            buf.get() + 32,
+            33,
+            ctx->bn_ctx));
+
+    const std::string sigStr = base64_encode(buf.get(), buf_len);
+
+    Json::Value spendData2;
+    spendData2["signature"] = sigStr;
+
+    CryptoKernel::Blockchain::input inp2(out2.getId(), spendData2);
+    CryptoKernel::Blockchain::transaction tx2({inp2}, {out4}, 1530888581);
+
+    const auto res2 = blockchain->submitTransaction(tx2);
+    CPPUNIT_ASSERT(std::get<0>(res2));
+
+    consensus->mineBlock(true, ECDSAPubKey);
+
+    const auto outs2 = blockchain->getUnspentOutputs(outData3["publicKey"].asString());
+    CPPUNIT_ASSERT_EQUAL(size_t(1), outs2.size());
+
+    musig_sig_free(sigAgg);
+    musig_sig_free(sig1);
+    musig_sig_free(sig2);
+    musig_pubkey_free(pub);
+    musig_key_free(key);
+    musig_key_free(key2);
+    schnorr_context_free(ctx);
+}
+
