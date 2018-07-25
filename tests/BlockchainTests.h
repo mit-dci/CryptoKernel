@@ -12,6 +12,7 @@ class BlockchainTest : public CPPUNIT_NS::TestFixture {
     CPPUNIT_TEST(testListUnspentOutputsFromCoinbase);
     CPPUNIT_TEST(testSingleSchnorrSignature);
     CPPUNIT_TEST(testAggregateSchnorrSignature);
+    CPPUNIT_TEST(testAggregateSignatureWithUnsignedFail);
 
     CPPUNIT_TEST_SUITE_END();
 
@@ -36,6 +37,7 @@ private:
     void testListUnspentOutputsFromCoinbase();
     void testSingleSchnorrSignature();
     void testAggregateSchnorrSignature();
+    void testAggregateSignatureWithUnsignedFail();
 
     std::unique_ptr<CryptoKernel::Blockchain> blockchain;
     std::unique_ptr<CryptoKernel::Log> log;
