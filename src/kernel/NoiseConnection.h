@@ -90,16 +90,48 @@ public:
 		size_t message_size;
 		size_t max_line_len;
 
+		if (noise_init() != NOISE_ERROR_NONE) {
+			fprintf(stderr, "Noise initialization failed\n");
+			return 1;
+		}
+
+		/* Check that the echo protocol supports the handshake protocol.
+		   One-way handshake patterns and XXfallback are not yet supported. */
+		std::string protocol = "NoisePSK_KK_448_ChaChaPoly_BLAKE2b";
+		if (!echo_get_protocol_id(&id, protocol.c_str())) {
+			fprintf(stderr, "%s: not supported by the echo protocol\n", protocol.c_str());
+			return 1;
+		}
+
+		/* Create a HandshakeState object for the protocol */
+		err = noise_handshakestate_new_by_name
+			(&handshake, protocol.c_str(), NOISE_ROLE_INITIATOR);
+		if (err != NOISE_ERROR_NONE) {
+			noise_perror(protocol.c_str(), err);
+			return 1;
+		}
+
+		/* Set the handshake options and verify that everything we need
+		   has been supplied on the command-line. */
+		if (!initialize_handshake(handshake, &id, sizeof(id))) {
+			noise_handshakestate_free(handshake);
+			return 1;
+		}
+
+		log->printf(LOG_LEVEL_INFO, "attempting to connect to server");
+		server->connect(sf::IpAddress(ipAddress), port);
+		log->printf(LOG_LEVEL_INFO, "connected to server");
+
+		sf::Packet idPacket;
+		idPacket.append(&id, sizeof(id));
+		server->send(idPacket); // this definitely isn't going to work
+
 		err = noise_handshakestate_start(handshake);
 		if (err != NOISE_ERROR_NONE) {
 			log->printf(LOG_LEVEL_INFO, "CLIENT start handshake failed");
 			noise_perror("start handshake", err);
 			ok = 0;
 		}
-
-		log->printf(LOG_LEVEL_INFO, "attempting to connect to server");
-		server->connect(sf::IpAddress(ipAddress), port);
-		log->printf(LOG_LEVEL_INFO, "connected to server");
 
 		/* Run the handshake until we run out of things to read or write */
 		while(ok) {
@@ -157,6 +189,101 @@ public:
 		}
 
 		return 1;
+	}
+
+	/* Convert a Noise handshake protocol name into an Echo protocol id */
+	int echo_get_protocol_id(EchoProtocolId *id, const char *name)
+	{
+	    NoiseProtocolId nid;
+	    int ok = 1;
+	    memset(id, 0, sizeof(EchoProtocolId));
+	    if (noise_protocol_name_to_id(&nid, name, strlen(name)) != NOISE_ERROR_NONE)
+	        return 0;
+
+	    switch (nid.prefix_id) {
+	    case NOISE_PREFIX_STANDARD:     id->psk = ECHO_PSK_DISABLED; break;
+	    case NOISE_PREFIX_PSK:          id->psk = ECHO_PSK_ENABLED; break;
+	    default:                        ok = 0; break;
+	    }
+
+	    switch (nid.pattern_id) {
+	    case NOISE_PATTERN_NN:          id->pattern = ECHO_PATTERN_NN; break;
+	    case NOISE_PATTERN_KN:          id->pattern = ECHO_PATTERN_KN; break;
+	    case NOISE_PATTERN_NK:          id->pattern = ECHO_PATTERN_NK; break;
+	    case NOISE_PATTERN_KK:          id->pattern = ECHO_PATTERN_KK; break;
+	    case NOISE_PATTERN_NX:          id->pattern = ECHO_PATTERN_NX; break;
+	    case NOISE_PATTERN_KX:          id->pattern = ECHO_PATTERN_KX; break;
+	    case NOISE_PATTERN_XN:          id->pattern = ECHO_PATTERN_XN; break;
+	    case NOISE_PATTERN_IN:          id->pattern = ECHO_PATTERN_IN; break;
+	    case NOISE_PATTERN_XK:          id->pattern = ECHO_PATTERN_XK; break;
+	    case NOISE_PATTERN_IK:          id->pattern = ECHO_PATTERN_IK; break;
+	    case NOISE_PATTERN_XX:          id->pattern = ECHO_PATTERN_XX; break;
+	    case NOISE_PATTERN_IX:          id->pattern = ECHO_PATTERN_IX; break;
+	    case NOISE_PATTERN_NN_HFS:      id->pattern = ECHO_PATTERN_NN | ECHO_PATTERN_HFS; break;
+	    case NOISE_PATTERN_KN_HFS:      id->pattern = ECHO_PATTERN_KN | ECHO_PATTERN_HFS; break;
+	    case NOISE_PATTERN_NK_HFS:      id->pattern = ECHO_PATTERN_NK | ECHO_PATTERN_HFS; break;
+	    case NOISE_PATTERN_KK_HFS:      id->pattern = ECHO_PATTERN_KK | ECHO_PATTERN_HFS; break;
+	    case NOISE_PATTERN_NX_HFS:      id->pattern = ECHO_PATTERN_NX | ECHO_PATTERN_HFS; break;
+	    case NOISE_PATTERN_KX_HFS:      id->pattern = ECHO_PATTERN_KX | ECHO_PATTERN_HFS; break;
+	    case NOISE_PATTERN_XN_HFS:      id->pattern = ECHO_PATTERN_XN | ECHO_PATTERN_HFS; break;
+	    case NOISE_PATTERN_IN_HFS:      id->pattern = ECHO_PATTERN_IN | ECHO_PATTERN_HFS; break;
+	    case NOISE_PATTERN_XK_HFS:      id->pattern = ECHO_PATTERN_XK | ECHO_PATTERN_HFS; break;
+	    case NOISE_PATTERN_IK_HFS:      id->pattern = ECHO_PATTERN_IK | ECHO_PATTERN_HFS; break;
+	    case NOISE_PATTERN_XX_HFS:      id->pattern = ECHO_PATTERN_XX | ECHO_PATTERN_HFS; break;
+	    case NOISE_PATTERN_IX_HFS:      id->pattern = ECHO_PATTERN_IX | ECHO_PATTERN_HFS; break;
+	    default:                        ok = 0; break;
+	    }
+
+	    switch (nid.cipher_id) {
+	    case NOISE_CIPHER_CHACHAPOLY:   id->cipher = ECHO_CIPHER_CHACHAPOLY; break;
+	    case NOISE_CIPHER_AESGCM:       id->cipher = ECHO_CIPHER_AESGCM; break;
+	    default:                        ok = 0; break;
+	    }
+
+	    switch (nid.dh_id) {
+	    case NOISE_DH_CURVE25519:       id->dh = ECHO_DH_25519; break;
+	    case NOISE_DH_CURVE448:         id->dh = ECHO_DH_448; break;
+	    case NOISE_DH_NEWHOPE:          id->dh = ECHO_DH_NEWHOPE; break;
+	    default:                        ok = 0; break;
+	    }
+
+	    switch (nid.hybrid_id) {
+	    case NOISE_DH_CURVE25519:       id->dh |= ECHO_HYBRID_25519; break;
+	    case NOISE_DH_CURVE448:         id->dh |= ECHO_HYBRID_448; break;
+	    case NOISE_DH_NEWHOPE:          id->dh |= ECHO_HYBRID_NEWHOPE; break;
+	    case NOISE_DH_NONE:             break;
+	    default:                        ok = 0; break;
+	    }
+
+	    switch (nid.hash_id) {
+	    case NOISE_HASH_SHA256:         id->hash = ECHO_HASH_SHA256; break;
+	    case NOISE_HASH_SHA512:         id->hash = ECHO_HASH_SHA512; break;
+	    case NOISE_HASH_BLAKE2s:        id->hash = ECHO_HASH_BLAKE2s; break;
+	    case NOISE_HASH_BLAKE2b:        id->hash = ECHO_HASH_BLAKE2b; break;
+	    default:                        ok = 0; break;
+	    }
+
+	    return ok;
+	}
+
+	/* Initialize's the handshake using command-line options */
+	int initialize_handshake // this function likely needs attention
+	    (NoiseHandshakeState *handshake, const void *prologue, size_t prologue_len)
+	{
+	    NoiseDHState *dh;
+	    uint8_t *key = 0;
+	    size_t key_len = 0;
+	    int err;
+
+	    /* Set the prologue first */
+	    err = noise_handshakestate_set_prologue(handshake, prologue, prologue_len);
+	    if (err != NOISE_ERROR_NONE) {
+	        noise_perror("prologue", err);
+	        return 0;
+	    }
+
+	    /* Ready to go */
+	    return 1;
 	}
 
 	sf::TcpSocket* server;
