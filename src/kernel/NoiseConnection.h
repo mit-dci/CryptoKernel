@@ -234,7 +234,7 @@ public:
 
 		sf::Packet idPacket;
 		idPacket.append(&id, sizeof(id));
-		log->printf(LOG_LEVEL_INFO, "CLIENT appended " + std::to_string(sizeof(id)) + "bytes to packet for id");
+		log->printf(LOG_LEVEL_INFO, "CLIENT appended " + std::to_string(sizeof(id)) + " bytes to packet for id");
 		server->send(idPacket); // this definitely isn't going to work
 
 		err = noise_handshakestate_start(handshake);
@@ -549,7 +549,7 @@ public:
 			fprintf(stderr, "Did not receive the echo protocol identifier\n");
 			ok = 0;
 		}*/
-		log->printf(LOG_LEVEL_INFO, "Server says the id pattern size is " + idBytes.getDataSize());
+		log->printf(LOG_LEVEL_INFO, "Server says the id pattern size is " + std::to_string(idBytes.getDataSize()));
 		void* cool = &id;
 		cool = (uint8_t*)idBytes.getData();
 
