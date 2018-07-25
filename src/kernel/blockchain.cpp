@@ -355,7 +355,6 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::verifyTransaction(Storage::Tran
 
             CryptoKernel::Schnorr schnorr;
             const std::string aggregatedPubkey = schnorr.pubkeyAggregate(pubkeys);
-            log->printf(LOG_LEVEL_INFO, aggregatedPubkey);
             if(!schnorr.setPublicKey(aggregatedPubkey)) {
                 log->printf(LOG_LEVEL_INFO,
                             "blockchain::verifyTransaction(): Aggregate signature malformed. Aggregated pubkey is invalid");
@@ -367,8 +366,6 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::verifyTransaction(Storage::Tran
                 signaturePayload += id.toString();
             }
             signaturePayload += outputHash.toString();
-
-            log->printf(LOG_LEVEL_INFO, signaturePayload);
 
             if(!schnorr.verify(signaturePayload, spendData["aggregateSignature"]["signature"].asString())) {
                 log->printf(LOG_LEVEL_INFO,
