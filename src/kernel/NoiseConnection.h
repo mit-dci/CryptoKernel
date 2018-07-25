@@ -537,18 +537,21 @@ public:
 		}
 
 		//idBytes >> (char*)&id; // no way this works
-		std::string idBytesString;
+		/*std::string idBytesString;
 		idBytes >> idBytesString;
 		log->printf(LOG_LEVEL_INFO, idBytesString);
 		log->printf(LOG_LEVEL_INFO, std::to_string(idBytesString.length()));
 
-		log->printf(LOG_LEVEL_INFO, "Server says the id pattern from the client is " + id.pattern);
+		log->printf(LOG_LEVEL_INFO, "Server says the id pattern from the client is " + id.pattern);*/
 
 		/* Read the echo protocol identifier sent by the client */
 		/*if (ok && !echo_recv_exact(fd, (uint8_t *)&id, sizeof(id))) {
 			fprintf(stderr, "Did not receive the echo protocol identifier\n");
 			ok = 0;
 		}*/
+		log->printf(LOG_LEVEL_INFO, "Server says the id pattern size is " + idBytes.getDataSize());
+		void* cool = &id;
+		cool = (uint8_t*)idBytes.getData();
 
 		/* Convert the echo protocol identifier into a Noise protocol identifier */
 		if (ok && !echo_to_noise_protocol_id(&nid, &id)) {
