@@ -41,7 +41,7 @@ void SchnorrTest::testSignVerify() {
     const std::string privateKey = schnorr->getPrivateKey();
     const std::string publicKey = schnorr->getPublicKey();
 
-    const std::string signature = schnorr->sign(plainText);
+    const std::string signature = schnorr->signSingle(plainText);
 
     CPPUNIT_ASSERT(signature.size() > 0);
     CPPUNIT_ASSERT(schnorr->verify(plainText, signature));
@@ -53,7 +53,7 @@ void SchnorrTest::testSignVerify() {
 void SchnorrTest::testPassingKeys() {
     CryptoKernel::Schnorr *tempSchnorr = new CryptoKernel::Schnorr();
 
-    const std::string signature = tempSchnorr->sign(plainText);
+    const std::string signature = tempSchnorr->signSingle(plainText);
     CPPUNIT_ASSERT(signature.size() > 0);
 
     CPPUNIT_ASSERT(schnorr->setPublicKey(tempSchnorr->getPublicKey()));
@@ -68,7 +68,7 @@ void SchnorrTest::testPassingKeys() {
 void SchnorrTest::testPermutedSigFail() {
     CryptoKernel::Schnorr *tempSchnorr = new CryptoKernel::Schnorr();
 
-    std::string signature = tempSchnorr->sign(plainText);
+    std::string signature = tempSchnorr->signSingle(plainText);
     CPPUNIT_ASSERT(signature.size() > 0);
     const std::string pubKey = tempSchnorr->getPublicKey();
 
@@ -90,7 +90,7 @@ void SchnorrTest::testPermutedSigFail() {
 void SchnorrTest::testSamePubkeyAfterSign() {
     const std::string publicKey = schnorr->getPublicKey();
 
-    schnorr->sign(plainText);
+    schnorr->signSingle(plainText);
 
     CPPUNIT_ASSERT_EQUAL(publicKey, schnorr->getPublicKey());
 }

@@ -376,11 +376,15 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::verifyTransaction(Storage::Tran
                 return std::make_tuple(false, true);
             }
 
+            std::set<dbOutput> removals;
             for(const auto out : signs) {
                 auto it = maybeAggregated.begin();
                 std::advance(it, out);
+                removals.emplace(*it);
+            }
 
-                maybeAggregated.erase(it);
+            for(const auto& out : removals) {
+                maybeAggregated.erase(out);
             }
         }
     }

@@ -26,12 +26,7 @@
 CryptoKernel::Schnorr::Schnorr() {
     ctx = schnorr_context_new();
     key = musig_key_new(ctx);
-
-    musig_pubkey* pubkeys[1];
-    pubkeys[0] = key->pub;
-    if(musig_pubkey_aggregate(ctx, pubkeys, &pkey, 1) != 1) {
-        throw std::runtime_error("Could not generate key pair");
-    }
+    pkey = key->pub;
 
     if(key == NULL) {
         throw std::runtime_error("Could not generate key pair");
@@ -41,7 +36,6 @@ CryptoKernel::Schnorr::Schnorr() {
 CryptoKernel::Schnorr::~Schnorr() {
     schnorr_context_free(ctx);
     musig_key_free(key);
-    musig_pubkey_free(pkey);
 }
 
 bool CryptoKernel::Schnorr::verify(const std::string& message,
@@ -98,24 +92,17 @@ bool CryptoKernel::Schnorr::verify(const std::string& message,
     return true;
 }
 
-std::string CryptoKernel::Schnorr::sign(const std::string& message) {
+std::string CryptoKernel::Schnorr::signSingle(const std::string& message) {
     if (key != NULL) {
         musig_sig* sig;
-        musig_pubkey* pub;
-        musig_pubkey* pubkeys[1];
-        pubkeys[0] = key->pub;
 
-        if (musig_sign(
+        if (musig_sign_single(
             ctx,
             &sig,
-            &pub,
             key,
-            pubkeys,
-            1,
             (unsigned char*)message.c_str(),
             message.size()) == 0) {
             musig_sig_free(sig);
-            musig_pubkey_free(pub);
 
             throw std::runtime_error("Could not sign message");
         } else {
@@ -124,7 +111,6 @@ std::string CryptoKernel::Schnorr::sign(const std::string& message) {
 
             if (BN_bn2binpad(sig->s, buf.get(), 32) != 32) {
                 musig_sig_free(sig);
-                musig_pubkey_free(pub);
                 throw std::runtime_error("Failed to encode s");
             }
 
@@ -136,14 +122,12 @@ std::string CryptoKernel::Schnorr::sign(const std::string& message) {
                     33,
                     ctx->bn_ctx) != 33) {
                 musig_sig_free(sig);
-                musig_pubkey_free(pub);
                 throw std::runtime_error("Failed to encode R");
             }
 
             const std::string returning = base64_encode(buf.get(), buf_len);
 
             musig_sig_free(sig);
-            musig_pubkey_free(pub);
 
             return returning;
         }

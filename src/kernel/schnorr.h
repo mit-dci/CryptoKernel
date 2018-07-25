@@ -52,9 +52,9 @@ public:
     * Generates an Schnorr signature from the given message.
     *
     * @param message the message to sign, must be non-empty
-    * @return the Schnorr signature of the message and public key as base64_encode(s + R + A)
+    * @return the Schnorr signature of the message and public key as base64_encode(s + R)
     */
-    std::string sign(const std::string& message);
+    std::string signSingle(const std::string& message);
 
     /**
     * Verifies a that a given signature verifies the given message with the public key of this class

@@ -9,7 +9,7 @@
 CPPUNIT_TEST_SUITE_REGISTRATION(BlockchainTest);
 
 BlockchainTest::BlockchainTest() {
-    log.reset(new CryptoKernel::Log("tests.log", true));
+    log.reset(new CryptoKernel::Log("tests.log"));
 }
 
 BlockchainTest::~BlockchainTest() {}
@@ -123,7 +123,7 @@ void BlockchainTest::testSingleSchnorrSignature() {
     const auto outputSetId2 = CryptoKernel::Blockchain::transaction::getOutputSetId({out3}).toString();
 
     Json::Value spendData2;
-    spendData2["signature"] = schnorr.sign(out2.getId().toString() + outputSetId2);
+    spendData2["signature"] = schnorr.signSingle(out2.getId().toString() + outputSetId2);
     CryptoKernel::Blockchain::input inp2(out2.getId(), spendData2);
     CryptoKernel::Blockchain::transaction tx2({inp2}, {out3}, 1530888581);
 
@@ -184,8 +184,6 @@ void BlockchainTest::testAggregateSchnorrSignature() {
         msgPayload += o.getId().toString();
     }
     msgPayload += outputSetId2;
-
-    std::cout << msgPayload;
 
     schnorr_context* ctx = schnorr_context_new();
 
