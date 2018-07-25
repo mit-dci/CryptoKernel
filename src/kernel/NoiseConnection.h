@@ -179,8 +179,6 @@ public:
 		this->log = log;
 		this->ipAddress = ipAddress;
 		this->port = port;
-
-
 	}
 
 	int execHandshake() {
