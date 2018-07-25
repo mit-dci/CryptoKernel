@@ -234,6 +234,7 @@ public:
 
 		sf::Packet idPacket;
 		idPacket.append(&id, sizeof(id));
+		log->printf(LOG_LEVEL_INFO, "CLIENT appended " + std::to_string(sizeof(id)) + "bytes to packet for id");
 		server->send(idPacket); // this definitely isn't going to work
 
 		err = noise_handshakestate_start(handshake);
