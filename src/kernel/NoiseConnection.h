@@ -553,6 +553,8 @@ public:
 		void* cool = &id;
 		cool = (uint8_t*)idBytes.getData();
 
+		log->printf(LOG_LEVEL_INFO, "Server says the id pattern itself is " + std::to_string(id.pattern));
+
 		/* Convert the echo protocol identifier into a Noise protocol identifier */
 		if (ok && !echo_to_noise_protocol_id(&nid, &id)) {
 			log->printf(LOG_LEVEL_INFO, "Unknown echo protocol identifier");
