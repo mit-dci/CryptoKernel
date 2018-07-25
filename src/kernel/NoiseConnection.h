@@ -68,6 +68,110 @@ typedef struct
 #define MAX_MESSAGE_LEN 4096
 static uint8_t message[MAX_MESSAGE_LEN + 2];
 
+/* Loads a binary private key from a file.  Returns non-zero if OK. */
+int echo_load_private_key(const char *filename, uint8_t *key, size_t len)
+{
+	FILE *file = fopen(filename, "rb");
+	size_t posn = 0;
+	int ch;
+	if (len > MAX_DH_KEY_LEN) {
+		fprintf(stderr, "private key length is not supported\n");
+		return 0;
+	}
+	if (!file) {
+		perror(filename);
+		return 0;
+	}
+	while ((ch = getc(file)) != EOF) {
+		if (posn >= len) {
+			fclose(file);
+			fprintf(stderr, "%s: private key value is too long\n", filename);
+			return 0;
+		}
+		key[posn++] = (uint8_t)ch;
+	}
+	if (posn < len) {
+		fclose(file);
+		fprintf(stderr, "%s: private key value is too short\n", filename);
+		return 0;
+	}
+	fclose(file);
+	return 1;
+}
+
+/* Loads a base64-encoded public key from a file.  Returns non-zero if OK. */
+int echo_load_public_key(const char *filename, uint8_t *key, size_t len)
+{
+	FILE *file = fopen(filename, "rb");
+	uint32_t group = 0;
+	size_t group_size = 0;
+	uint32_t digit = 0;
+	size_t posn = 0;
+	int ch;
+	if (len > MAX_DH_KEY_LEN) {
+		fprintf(stderr, "public key length is not supported\n");
+		return 0;
+	}
+	if (!file) {
+		perror(filename);
+		return 0;
+	}
+	while ((ch = getc(file)) != EOF) {
+		if (ch >= 'A' && ch <= 'Z') {
+			digit = ch - 'A';
+		} else if (ch >= 'a' && ch <= 'z') {
+			digit = ch - 'a' + 26;
+		} else if (ch >= '0' && ch <= '9') {
+			digit = ch - '0' + 52;
+		} else if (ch == '+') {
+			digit = 62;
+		} else if (ch == '/') {
+			digit = 63;
+		} else if (ch == '=') {
+			break;
+		} else if (ch != ' ' && ch != '\t' && ch != '\r' && ch != '\n') {
+			fclose(file);
+			fprintf(stderr, "%s: invalid character in public key file\n", filename);
+			return 0;
+		}
+		group = (group << 6) | digit;
+		if (++group_size >= 4) {
+			if ((len - posn) < 3) {
+				fclose(file);
+				fprintf(stderr, "%s: public key value is too long\n", filename);
+				return 0;
+			}
+			group_size = 0;
+			key[posn++] = (uint8_t)(group >> 16);
+			key[posn++] = (uint8_t)(group >> 8);
+			key[posn++] = (uint8_t)group;
+		}
+	}
+	if (group_size == 3) {
+		if ((len - posn) < 2) {
+			fclose(file);
+			fprintf(stderr, "%s: public key value is too long\n", filename);
+			return 0;
+		}
+		key[posn++] = (uint8_t)(group >> 10);
+		key[posn++] = (uint8_t)(group >> 2);
+	} else if (group_size == 2) {
+		if ((len - posn) < 1) {
+			fclose(file);
+			fprintf(stderr, "%s: public key value is too long\n", filename);
+			return 0;
+		}
+		key[posn++] = (uint8_t)(group >> 4);
+	}
+	if (posn < len) {
+		fclose(file);
+		fprintf(stderr, "%s: public key value is too short\n", filename);
+		return 0;
+	}
+	fclose(file);
+	return 1;
+}
+
 class NoiseConnectionClient {
 public:
 	NoiseConnectionClient(sf::TcpSocket* server, std::string ipAddress, uint64_t port, CryptoKernel::Log* log) {
@@ -75,6 +179,8 @@ public:
 		this->log = log;
 		this->ipAddress = ipAddress;
 		this->port = port;
+
+
 	}
 
 	int execHandshake() {
@@ -97,7 +203,7 @@ public:
 
 		/* Check that the echo protocol supports the handshake protocol.
 		   One-way handshake patterns and XXfallback are not yet supported. */
-		std::string protocol = "NoisePSK_KK_448_ChaChaPoly_BLAKE2b";
+		std::string protocol = "Noise_NN_25519_AESGCM_SHA256";
 		if (!echo_get_protocol_id(&id, protocol.c_str())) {
 			fprintf(stderr, "%s: not supported by the echo protocol\n", protocol.c_str());
 			return 1;
@@ -267,7 +373,7 @@ public:
 	}
 
 	/* Initialize's the handshake using command-line options */
-	int initialize_handshake // this function likely needs attention
+	int initialize_handshake
 	    (NoiseHandshakeState *handshake, const void *prologue, size_t prologue_len)
 	{
 	    NoiseDHState *dh;
@@ -282,6 +388,68 @@ public:
 	        return 0;
 	    }
 
+//	    /* Set the PSK if one is present.  This will fail if a PSK is not needed.
+//	       If a PSK is needed but it wasn't provided then the protocol will
+//	       fail later when noise_handshakestate_start() is called. */
+//	    if (psk_file && noise_handshakestate_needs_pre_shared_key(handshake)) {
+//	        if (!echo_load_public_key(psk_file.c_str(), (unsigned char*)psk.c_str(), sizeof(psk.c_str())))
+//	            return 0;
+//	        err = noise_handshakestate_set_pre_shared_key
+//	            (handshake, (const unsigned char*)psk.c_str(), sizeof(psk.c_str()));
+//	        if (err != NOISE_ERROR_NONE) {
+//	            noise_perror("psk", err);
+//	            return 0;
+//	        }
+//	    }
+//
+//	    /* Set the local keypair for the client */
+//	    if (noise_handshakestate_needs_local_keypair(handshake)) {
+//	        if (client_private_key) {
+//	            dh = noise_handshakestate_get_local_keypair_dh(handshake);
+//	            key_len = noise_dhstate_get_private_key_length(dh);
+//	            key = (uint8_t *)malloc(key_len);
+//	            if (!key)
+//	                return 0;
+//	            if (!echo_load_private_key(client_private_key.c_str(), key, key_len)) {
+//	                noise_free(key, key_len);
+//	                return 0;
+//	            }
+//	            err = noise_dhstate_set_keypair_private(dh, key, key_len);
+//	            noise_free(key, key_len);
+//	            if (err != NOISE_ERROR_NONE) {
+//	                noise_perror("set client private key", err);
+//	                return 0;
+//	            }
+//	        } else {
+//	            fprintf(stderr, "Client private key required, but not provided.\n");
+//	            return 0;
+//	        }
+//	    }
+//
+//	    /* Set the remote public key for the server */
+//	    if (noise_handshakestate_needs_remote_public_key(handshake)) {
+//	        if (server_public_key) {
+//	            dh = noise_handshakestate_get_remote_public_key_dh(handshake);
+//	            key_len = noise_dhstate_get_public_key_length(dh);
+//	            key = (uint8_t *)malloc(key_len);
+//	            if (!key)
+//	                return 0;
+//	            if (!echo_load_public_key(server_public_key.c_str(), key, key_len)) {
+//	                noise_free(key, key_len);
+//	                return 0;
+//	            }
+//	            err = noise_dhstate_set_public_key(dh, key, key_len);
+//	            noise_free(key, key_len);
+//	            if (err != NOISE_ERROR_NONE) {
+//	                noise_perror("set server public key", err);
+//	                return 0;
+//	            }
+//	        } else {
+//	            fprintf(stderr, "Server public key required, but not provided.\n");
+//	            return 0;
+//	        }
+//	    }
+
 	    /* Ready to go */
 	    return 1;
 	}
@@ -290,6 +458,12 @@ public:
 	CryptoKernel::Log* log;
 	std::string ipAddress;
 	uint64_t port;
+
+	std::string client_public_key;
+	std::string server_public_key;
+	std::string client_private_key;
+	std::string psk;
+	std::string psk_file;
 };
 
 class NoiseConnectionServer {
@@ -520,110 +694,6 @@ public:
 	    }
 
 	    /* Ready to go */
-	    return 1;
-	}
-
-	/* Loads a binary private key from a file.  Returns non-zero if OK. */
-	int echo_load_private_key(const char *filename, uint8_t *key, size_t len)
-	{
-	    FILE *file = fopen(filename, "rb");
-	    size_t posn = 0;
-	    int ch;
-	    if (len > MAX_DH_KEY_LEN) {
-	        fprintf(stderr, "private key length is not supported\n");
-	        return 0;
-	    }
-	    if (!file) {
-	        perror(filename);
-	        return 0;
-	    }
-	    while ((ch = getc(file)) != EOF) {
-	        if (posn >= len) {
-	            fclose(file);
-	            fprintf(stderr, "%s: private key value is too long\n", filename);
-	            return 0;
-	        }
-	        key[posn++] = (uint8_t)ch;
-	    }
-	    if (posn < len) {
-	        fclose(file);
-	        fprintf(stderr, "%s: private key value is too short\n", filename);
-	        return 0;
-	    }
-	    fclose(file);
-	    return 1;
-	}
-
-	/* Loads a base64-encoded public key from a file.  Returns non-zero if OK. */
-	int echo_load_public_key(const char *filename, uint8_t *key, size_t len)
-	{
-	    FILE *file = fopen(filename, "rb");
-	    uint32_t group = 0;
-	    size_t group_size = 0;
-	    uint32_t digit = 0;
-	    size_t posn = 0;
-	    int ch;
-	    if (len > MAX_DH_KEY_LEN) {
-	        fprintf(stderr, "public key length is not supported\n");
-	        return 0;
-	    }
-	    if (!file) {
-	        perror(filename);
-	        return 0;
-	    }
-	    while ((ch = getc(file)) != EOF) {
-	        if (ch >= 'A' && ch <= 'Z') {
-	            digit = ch - 'A';
-	        } else if (ch >= 'a' && ch <= 'z') {
-	            digit = ch - 'a' + 26;
-	        } else if (ch >= '0' && ch <= '9') {
-	            digit = ch - '0' + 52;
-	        } else if (ch == '+') {
-	            digit = 62;
-	        } else if (ch == '/') {
-	            digit = 63;
-	        } else if (ch == '=') {
-	            break;
-	        } else if (ch != ' ' && ch != '\t' && ch != '\r' && ch != '\n') {
-	            fclose(file);
-	            fprintf(stderr, "%s: invalid character in public key file\n", filename);
-	            return 0;
-	        }
-	        group = (group << 6) | digit;
-	        if (++group_size >= 4) {
-	            if ((len - posn) < 3) {
-	                fclose(file);
-	                fprintf(stderr, "%s: public key value is too long\n", filename);
-	                return 0;
-	            }
-	            group_size = 0;
-	            key[posn++] = (uint8_t)(group >> 16);
-	            key[posn++] = (uint8_t)(group >> 8);
-	            key[posn++] = (uint8_t)group;
-	        }
-	    }
-	    if (group_size == 3) {
-	        if ((len - posn) < 2) {
-	            fclose(file);
-	            fprintf(stderr, "%s: public key value is too long\n", filename);
-	            return 0;
-	        }
-	        key[posn++] = (uint8_t)(group >> 10);
-	        key[posn++] = (uint8_t)(group >> 2);
-	    } else if (group_size == 2) {
-	        if ((len - posn) < 1) {
-	            fclose(file);
-	            fprintf(stderr, "%s: public key value is too long\n", filename);
-	            return 0;
-	        }
-	        key[posn++] = (uint8_t)(group >> 4);
-	    }
-	    if (posn < len) {
-	        fclose(file);
-	        fprintf(stderr, "%s: public key value is too short\n", filename);
-	        return 0;
-	    }
-	    fclose(file);
 	    return 1;
 	}
 
