@@ -818,10 +818,8 @@ public:
 			}
 		}
 		else {
-			handshakeMutex.lock();
-			int action = noise_handshakestate_get_action(handshake);
-
 			std::lock_guard<std::mutex> hm(handshakeMutex);
+			int action = noise_handshakestate_get_action(handshake);
 			if(action == NOISE_ACTION_READ_MESSAGE) {
 				/* Read the next handshake message and discard the payload */
 				/*message_size = echo_recv(fd, message, sizeof(message));
