@@ -180,6 +180,9 @@ public:
 		this->ipAddress = ipAddress;
 		this->port = port;
 
+		send_cipher = 0;
+		recv_cipher = 0;
+
 		sentId = false;
 
 //		/* Check that the echo protocol supports the handshake protocol.
@@ -297,9 +300,48 @@ public:
 					packet.append(message, mbuf.size + 2);
 					server->send(packet);
 				}
+				else if(action != NOISE_ACTION_READ_MESSAGE) {
+					log->printf(LOG_LEVEL_INFO, "Either the handshake succeeded, or it failed");
+					break;
+				}
 			}
 
 			std::this_thread::sleep_for(std::chrono::milliseconds(50)); // again, totally arbitrary
+		}
+
+		/* If the action is not "split", then the handshake has failed */
+		if (ok && noise_handshakestate_get_action(handshake) != NOISE_ACTION_SPLIT) {
+			fprintf(stderr, "protocol handshake failed\n");
+			log->printf(LOG_LEVEL_INFO, "CLIENT protocol handshake failed :(");
+			ok = 0;
+		}
+
+		/* Split out the two CipherState objects for send and receive */
+		if (ok) {
+			err = noise_handshakestate_split(handshake, &send_cipher, &recv_cipher);
+			if (err != NOISE_ERROR_NONE) {
+				log->printf(LOG_LEVEL_INFO, "CLIENT error split to start data transfer");
+				noise_perror("split to start data transfer", err);
+				ok = 0;
+			}
+		}
+
+		/* We no longer need the HandshakeState */
+		noise_handshakestate_free(handshake);
+		handshake = 0;
+
+		/* If we will be padding messages, we will need a random number generator */
+		/*if (ok && padding) {
+			err = noise_randstate_new(&rand);
+			if (err != NOISE_ERROR_NONE) {
+				noise_perror("random number generator", err);
+				ok = 0;
+			}
+		}*/
+
+		/* Tell the user that the handshake has been successful */
+		if (ok) {
+			log->printf(LOG_LEVEL_INFO, "CLIENT Handshake complete!!");
 		}
 	}
 
@@ -623,6 +665,9 @@ public:
 	EchoProtocolId id;
 	std::unique_ptr<std::thread> writeInfoThread;
 	bool sentId;
+
+	NoiseCipherState* send_cipher;
+	NoiseCipherState* recv_cipher;
 };
 
 class NoiseConnectionServer {
@@ -804,6 +849,10 @@ public:
 				sf::Packet packet;
 				packet.append(message, mbuf.size + 2);
 				client->send(packet);
+			}
+			else if(action != NOISE_ACTION_READ_MESSAGE) {
+
+				break;
 			}
 
 			std::this_thread::sleep_for(std::chrono::milliseconds(50)); // totally arbitrary
