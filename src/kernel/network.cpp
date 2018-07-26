@@ -259,7 +259,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	        }
 	        else
 	        {
-	        	log->printf(LOG_LEVEL_INFO, "selector not ready");
+	        	//log->printf(LOG_LEVEL_INFO, "selector not ready");
 	            // The listener socket is not ready, test all other sockets (the clients)
 	            for(std::list<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
 	            {
@@ -274,13 +274,13 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	                }
 	            }
 
-	            log->printf(LOG_LEVEL_INFO, "Network(): About to loop through handshake client keys");
+	            //log->printf(LOG_LEVEL_INFO, "Network(): About to loop through handshake client keys");
 	        	std::vector<std::string> ncsKeys = handshakeClients.keys(); // this should not contain any of the same things as handshakeServers
 	        	for(std::string key : ncsKeys) {
 	        		log->printf(LOG_LEVEL_INFO, "NETWORK: CLIENT KEY " + key);
 	        		auto it = handshakeClients.find(key);
 	        		if(selector.isReady(*it->second->server)) {
-	        			log->printf(LOG_LEVEL_INFO, "NETWORK: " + key + " IS READY!!");
+	        			//log->printf(LOG_LEVEL_INFO, "NETWORK: " + key + " IS READY!!");
 	        			sf::Packet packet;
 	        			if(it->second->server->receive(packet) == sf::Socket::Done) {
 	        				it->second->recievePacket(packet);
