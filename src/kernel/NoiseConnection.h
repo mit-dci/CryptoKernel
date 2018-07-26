@@ -182,12 +182,46 @@ public:
 
 		sentId = false;
 
+//		/* Check that the echo protocol supports the handshake protocol.
+//		   One-way handshake patterns and XXfallback are not yet supported. */
+//		std::string protocol = "Noise_NN_25519_AESGCM_SHA256";
+//		if (!echo_get_protocol_id(&id, protocol.c_str())) {
+//			fprintf(stderr, "%s: not supported by the echo protocol\n", protocol.c_str());
+//			//return 1;
+//		}
+//
+//		/* Create a HandshakeState object for the protocol */
+//		int err = noise_handshakestate_new_by_name
+//			(&handshake, protocol.c_str(), NOISE_ROLE_INITIATOR);
+//		if (err != NOISE_ERROR_NONE) {
+//			noise_perror(protocol.c_str(), err);
+//			//return 1;
+//		}
+//
+//		/* Set the handshake options and verify that everything we need
+//		   has been supplied on the command-line. */
+//		if (!initialize_handshake(handshake, &id, sizeof(id))) {
+//			noise_handshakestate_free(handshake);
+//			//return 1;
+//		}
+//		if (noise_init() != NOISE_ERROR_NONE) {
+//			fprintf(stderr, "Noise initialization failed\n");
+//			//return 1;
+//		}
+
+
+
+		if (noise_init() != NOISE_ERROR_NONE) {
+			fprintf(stderr, "Noise initialization failed\n");
+			return;
+		}
+
 		/* Check that the echo protocol supports the handshake protocol.
 		   One-way handshake patterns and XXfallback are not yet supported. */
 		std::string protocol = "Noise_NN_25519_AESGCM_SHA256";
 		if (!echo_get_protocol_id(&id, protocol.c_str())) {
 			fprintf(stderr, "%s: not supported by the echo protocol\n", protocol.c_str());
-			//return 1;
+			return;
 		}
 
 		/* Create a HandshakeState object for the protocol */
@@ -195,18 +229,14 @@ public:
 			(&handshake, protocol.c_str(), NOISE_ROLE_INITIATOR);
 		if (err != NOISE_ERROR_NONE) {
 			noise_perror(protocol.c_str(), err);
-			//return 1;
+			return;
 		}
 
 		/* Set the handshake options and verify that everything we need
 		   has been supplied on the command-line. */
 		if (!initialize_handshake(handshake, &id, sizeof(id))) {
 			noise_handshakestate_free(handshake);
-			//return 1;
-		}
-		if (noise_init() != NOISE_ERROR_NONE) {
-			fprintf(stderr, "Noise initialization failed\n");
-			//return 1;
+			return;
 		}
 
 		writeInfoThread.reset(new std::thread(&NoiseConnectionClient::writeInfo, this)); // start the write info thread
@@ -237,6 +267,7 @@ public:
 					noise_perror("start handshake", err);
 					ok = 0;
 				}
+				sentId = true;
 			}
 			else {
 				handshakeMutex.lock();
