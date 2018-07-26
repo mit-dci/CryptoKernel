@@ -273,19 +273,19 @@ public:
 				sentId = true;
 			}
 			else {
-				handshakeMutex.lock();
+				//handshakeMutex.lock();
 				action = noise_handshakestate_get_action(handshake);
-				handshakeMutex.unlock();
+				//handshakeMutex.unlock();
 
 				if(action == NOISE_ACTION_WRITE_MESSAGE) {
 					log->printf(LOG_LEVEL_INFO, "CLIENT Well, waddya know, I'm gonna send a message, I thinK!");
 					/* Write the next handshake message with a zero-length payload */
-					handshakeMutex.lock();
+					//handshakeMutex.lock();
 					noise_buffer_set_output(mbuf, message + 2, sizeof(message) - 2);
 					err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
 					if (err != NOISE_ERROR_NONE) {
 						log->printf(LOG_LEVEL_INFO, "CLIENT WRITE HANDSHAKE FAILED");
-						handshakeMutex.unlock();
+						//handshakeMutex.unlock();
 						noise_perror("write handshake", err);
 						ok = 0;
 						//break;
@@ -293,7 +293,7 @@ public:
 					}
 					message[0] = (uint8_t)(mbuf.size >> 8);
 					message[1] = (uint8_t)mbuf.size;
-					handshakeMutex.unlock();
+					//handshakeMutex.unlock();
 					/*if (!echo_send(fd, message, mbuf.size + 2)) {
 						ok = 0;
 						break;
@@ -352,16 +352,16 @@ public:
 	void recievePacket(sf::Packet packet) {
 		log->printf(LOG_LEVEL_INFO, "CLIENT recieving packet");
 
-		handshakeMutex.lock();
+		//handshakeMutex.lock();
 		int action = noise_handshakestate_get_action(handshake);
-		handshakeMutex.unlock();
+		//handshakeMutex.unlock();
 		NoiseBuffer mbuf;
 		int err, ok;
 		size_t message_size;
 
 		if(action == NOISE_ACTION_READ_MESSAGE) {
 			log->printf(LOG_LEVEL_INFO, "CLIENT READING A MESSAGE!!");
-			std::lock_guard<std::mutex> hm(handshakeMutex);
+			//std::lock_guard<std::mutex> hm(handshakeMutex);
 
 			/* Read the next handshake message and discard the payload */
 			//sf::Packet packet;
@@ -831,9 +831,9 @@ public:
 		log->printf(LOG_LEVEL_INFO, "SERVER write info starting");
 
 		while(true) {
-			handshakeMutex.lock();
+			//handshakeMutex.lock();
 			int action = noise_handshakestate_get_action(handshake);
-			handshakeMutex.unlock();
+			//handshakeMutex.unlock();
 			if (action == NOISE_ACTION_WRITE_MESSAGE) {
 				log->printf(LOG_LEVEL_INFO, "hehe, SERVER looks like we're actually gonna write something");
 				/* Write the next handshake message with a zero-length payload */
@@ -922,7 +922,7 @@ public:
 			}
 		}
 		else {
-			std::lock_guard<std::mutex> hm(handshakeMutex);
+			//std::lock_guard<std::mutex> hm(handshakeMutex);
 			int action = noise_handshakestate_get_action(handshake);
 			if(action == NOISE_ACTION_READ_MESSAGE) {
 				log->printf(LOG_LEVEL_INFO, "SERVER READING MESSAGE!!!");
