@@ -273,7 +273,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	                    // The client has sent some data, we can receive it
 	                    sf::Packet packet;
 	                    if (client.receive(packet) == sf::Socket::Done) {
-	                    	//auto it = handshakeServers.find(client.getRemoteAddress().toString());
+	                    	auto it = handshakeServers.find(client.getRemoteAddress().toString());
 	                    	it->second->recievePacket(packet); // let the server know that the packet has been recieved
 	                    }
 	                }
