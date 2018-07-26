@@ -231,7 +231,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	        // Test the listener
 	        if(selector.isReady(ls))
 	        {
-	        	log->printf(LOG_LEVEL_INFO, "selector ready");
+	        	//log->printf(LOG_LEVEL_INFO, "selector ready");
 	            // The listener is ready: there is a pending connection
 	            sf::TcpSocket* client = new sf::TcpSocket;
 	            if(ls.accept(*client) == sf::Socket::Done)
@@ -264,7 +264,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	        }
 	        else
 	        {
-	        	log->printf(LOG_LEVEL_INFO, "selector not ready");
+	        	//log->printf(LOG_LEVEL_INFO, "selector not ready");
 	            // The listener socket is not ready, test all other sockets (the clients)
 	            for(std::list<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
 	            {
@@ -273,7 +273,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	                    // The client has sent some data, we can receive it
 	                    sf::Packet packet;
 	                    if (client.receive(packet) == sf::Socket::Done) {
-	                    	auto it = handshakeServers.find(client.getRemoteAddress().toString());
+	                    	//auto it = handshakeServers.find(client.getRemoteAddress().toString());
 	                    	it->second->recievePacket(packet); // let the server know that the packet has been recieved
 	                    }
 	                }
