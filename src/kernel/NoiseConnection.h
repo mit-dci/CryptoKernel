@@ -180,6 +180,8 @@ public:
 		this->ipAddress = ipAddress;
 		this->port = port;
 
+		sentId = false;
+
 		if (noise_init() != NOISE_ERROR_NONE) {
 			fprintf(stderr, "Noise initialization failed\n");
 			//return 1;
@@ -217,37 +219,53 @@ public:
 	void writeInfo() {
 		log->printf(LOG_LEVEL_INFO, "CLIENT writing info");
 
-		int action = noise_handshakestate_get_action(handshake);
+		int action;
 		NoiseBuffer mbuf;
 		int err, ok;
 		size_t message_size;
 
 		while(true) {
-			handshakeMutex.lock();
-			int action = noise_handshakestate_get_action(handshake);
-			handshakeMutex.unlock();
-			if(action == NOISE_ACTION_WRITE_MESSAGE) {
-				log->printf(LOG_LEVEL_INFO, "CLIENT Well, waddya know, I'm gonna send a message, I thinK!");
-				/* Write the next handshake message with a zero-length payload */
-				handshakeMutex.lock();
-				noise_buffer_set_output(mbuf, message + 2, sizeof(message) - 2);
-				err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
+			if(!sentId) {
+				sf::Packet idPacket;
+				idPacket.append(&id, sizeof(id));
+				log->printf(LOG_LEVEL_INFO, "CLIENT appended " + std::to_string(sizeof(id)) + " bytes to packet for id");
+				server->send(idPacket); // this definitely isn't going to work
+
+				err = noise_handshakestate_start(handshake);
 				if (err != NOISE_ERROR_NONE) {
-					noise_perror("write handshake", err);
+					log->printf(LOG_LEVEL_INFO, "CLIENT start handshake failed");
+					noise_perror("start handshake", err);
 					ok = 0;
-					//break;
-					return;
 				}
-				message[0] = (uint8_t)(mbuf.size >> 8);
-				message[1] = (uint8_t)mbuf.size;
+			}
+			else {
+				handshakeMutex.lock();
+				action = noise_handshakestate_get_action(handshake);
 				handshakeMutex.unlock();
-				/*if (!echo_send(fd, message, mbuf.size + 2)) {
-					ok = 0;
-					break;
-				}*/
-				sf::Packet packet;
-				packet.append(message, mbuf.size + 2);
-				server->send(packet);
+
+				if(action == NOISE_ACTION_WRITE_MESSAGE) {
+					log->printf(LOG_LEVEL_INFO, "CLIENT Well, waddya know, I'm gonna send a message, I thinK!");
+					/* Write the next handshake message with a zero-length payload */
+					handshakeMutex.lock();
+					noise_buffer_set_output(mbuf, message + 2, sizeof(message) - 2);
+					err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
+					if (err != NOISE_ERROR_NONE) {
+						noise_perror("write handshake", err);
+						ok = 0;
+						//break;
+						return;
+					}
+					message[0] = (uint8_t)(mbuf.size >> 8);
+					message[1] = (uint8_t)mbuf.size;
+					handshakeMutex.unlock();
+					/*if (!echo_send(fd, message, mbuf.size + 2)) {
+						ok = 0;
+						break;
+					}*/
+					sf::Packet packet;
+					packet.append(message, mbuf.size + 2);
+					server->send(packet);
+				}
 			}
 
 			std::this_thread::sleep_for(std::chrono::milliseconds(50)); // again, totally arbitrary
@@ -573,6 +591,7 @@ public:
 	NoiseHandshakeState* handshake;
 	EchoProtocolId id;
 	std::unique_ptr<std::thread> writeInfoThread;
+	bool sentId;
 };
 
 class NoiseConnectionServer {
