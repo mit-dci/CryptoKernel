@@ -215,6 +215,8 @@ public:
 	}
 
 	void writeInfo() {
+		log->printf(LOG_LEVEL_INFO, "CLIENT writing info");
+
 		int action = noise_handshakestate_get_action(handshake);
 		NoiseBuffer mbuf;
 		int err, ok;
@@ -225,6 +227,7 @@ public:
 			int action = noise_handshakestate_get_action(handshake);
 			handshakeMutex.unlock();
 			if(action == NOISE_ACTION_WRITE_MESSAGE) {
+				log->printf(LOG_LEVEL_INFO, "CLIENT Well, waddya know, I'm gonna send a message, I thinK!");
 				/* Write the next handshake message with a zero-length payload */
 				handshakeMutex.lock();
 				noise_buffer_set_output(mbuf, message + 2, sizeof(message) - 2);
@@ -252,6 +255,8 @@ public:
 	}
 
 	void recievePacket(sf::Packet packet) {
+		log->printf(LOG_LEVEL_INFO, "CLIENT recieving packet");
+
 		handshakeMutex.lock();
 		int action = noise_handshakestate_get_action(handshake);
 		handshakeMutex.unlock();
@@ -723,11 +728,14 @@ public:
 	}
 
 	void writeInfo() {
+		log->printf(LOG_LEVEL_INFO, "SERVER write info starting");
+
 		while(true) {
 			handshakeMutex.lock();
 			int action = noise_handshakestate_get_action(handshake);
 			handshakeMutex.unlock();
 			if (action == NOISE_ACTION_WRITE_MESSAGE) {
+				log->printf(LOG_LEVEL_INFO, "hehe, SERVER looks like we're actually gonna write something");
 				/* Write the next handshake message with a zero-length payload */
 				noise_buffer_set_output(mbuf, message + 2, sizeof(message) - 2);
 				int err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
@@ -754,6 +762,7 @@ public:
 
 	void recievePacket(sf::Packet packet) {
 		int err;
+		log->printf(LOG_LEVEL_INFO, "SERVER HAHAHAHA RECIEVE PACKET STARTING");
 
 		if(!recievedId) {
 			//sf::Packet idBytes;
@@ -768,6 +777,7 @@ public:
 			memcpy(&id, packet.getData(), (unsigned long int)packet.getDataSize());
 
 			log->printf(LOG_LEVEL_INFO, "Server says the id pattern itself is " + std::to_string(id.pattern));
+			recievedId = true;
 		}
 		else {
 			handshakeMutex.lock();

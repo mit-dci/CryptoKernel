@@ -324,7 +324,7 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 		}
 
 		for(auto it = pendingConnections.begin(); it != pendingConnections.end();) {
-			if(!handshakeClients.contains(it->first)) {
+			if(!handshakeClients.contains(it->first) && !handshakeServers.contains(it->first)) {
 				NoiseConnectionClient* ncc = new NoiseConnectionClient(it->second, it->first, 88, log);
 				handshakeClients.at(it->first).reset(ncc);
 				selector.add(*it->second);
