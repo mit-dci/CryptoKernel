@@ -277,8 +277,10 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 
 	        	std::vector<std::string> ncsKeys = handshakeClients.keys(); // this should not contain any of the same things as handshakeServers
 	        	for(std::string key : ncsKeys) {
+	        		log->printf(LOG_LEVEL_INFO, "NETWORK: CLIENT KEY " + key);
 	        		auto it = handshakeClients.find(key);
 	        		if(selector.isReady(*it->second->server)) {
+	        			log->printf(LOG_LEVEL_INFO, "NETWORK: " + key + " IS READY!!");
 	        			sf::Packet packet;
 	        			if(it->second->server->receive(packet) == sf::Socket::Done) {
 	        				it->second->recievePacket(packet);
