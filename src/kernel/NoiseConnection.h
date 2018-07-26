@@ -182,11 +182,6 @@ public:
 
 		sentId = false;
 
-		if (noise_init() != NOISE_ERROR_NONE) {
-			fprintf(stderr, "Noise initialization failed\n");
-			//return 1;
-		}
-
 		/* Check that the echo protocol supports the handshake protocol.
 		   One-way handshake patterns and XXfallback are not yet supported. */
 		std::string protocol = "Noise_NN_25519_AESGCM_SHA256";
@@ -209,6 +204,11 @@ public:
 			noise_handshakestate_free(handshake);
 			//return 1;
 		}
+		if (noise_init() != NOISE_ERROR_NONE) {
+			fprintf(stderr, "Noise initialization failed\n");
+			//return 1;
+		}
+
 		writeInfoThread.reset(new std::thread(&NoiseConnectionClient::writeInfo, this)); // start the write info thread
 	}
 
