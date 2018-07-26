@@ -356,6 +356,7 @@ public:
 		size_t message_size;
 
 		if(action == NOISE_ACTION_READ_MESSAGE) {
+			log->printf(LOG_LEVEL_INFO, "CLIENT READING A MESSAGE!!");
 			std::lock_guard<std::mutex> hm(handshakeMutex);
 
 			/* Read the next handshake message and discard the payload */
@@ -920,6 +921,7 @@ public:
 			std::lock_guard<std::mutex> hm(handshakeMutex);
 			int action = noise_handshakestate_get_action(handshake);
 			if(action == NOISE_ACTION_READ_MESSAGE) {
+				log->printf(LOG_LEVEL_INFO, "SERVER READING MESSAGE!!!");
 				/* Read the next handshake message and discard the payload */
 				/*message_size = echo_recv(fd, message, sizeof(message));
 				if (!message_size) {
@@ -935,6 +937,7 @@ public:
 				noise_buffer_set_input(mbuf, message + 2, message_size - 2);
 				err = noise_handshakestate_read_message(handshake, &mbuf, NULL);
 				if (err != NOISE_ERROR_NONE) {
+					log->printf(LOG_LEVEL_INFO, "SERVER READ MESSAGE FAIL");
 					noise_perror("read handshake", err);
 					//ok = 0;
 					//break;
