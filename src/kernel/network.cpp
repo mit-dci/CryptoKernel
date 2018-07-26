@@ -274,7 +274,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	                }
 	            }
 
-
+	            log->printf(LOG_LEVEL_INFO, "Network(): About to loop through handshake client keys");
 	        	std::vector<std::string> ncsKeys = handshakeClients.keys(); // this should not contain any of the same things as handshakeServers
 	        	for(std::string key : ncsKeys) {
 	        		log->printf(LOG_LEVEL_INFO, "NETWORK: CLIENT KEY " + key);
@@ -329,6 +329,7 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 			if(!handshakeClients.contains(it->first) && !handshakeServers.contains(it->first)) {
 				NoiseConnectionClient* ncc = new NoiseConnectionClient(it->second, it->first, 88, log);
 				handshakeClients.at(it->first).reset(ncc);
+				log->printf(LOG_LEVEL_INFO, "NETWORK() added connection to handshake clients: " + it->first);
 				selector.add(*it->second);
 				//handshakeClients.insert(it->first, );
 			}
