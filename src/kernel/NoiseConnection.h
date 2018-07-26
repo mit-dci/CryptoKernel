@@ -284,6 +284,8 @@ public:
 					noise_buffer_set_output(mbuf, message + 2, sizeof(message) - 2);
 					err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
 					if (err != NOISE_ERROR_NONE) {
+						log->printf(LOG_LEVEL_INFO, "CLIENT WRITE HANDSHAKE FAILED");
+						handshakeMutex.unlock();
 						noise_perror("write handshake", err);
 						ok = 0;
 						//break;
@@ -296,6 +298,8 @@ public:
 						ok = 0;
 						break;
 					}*/
+
+					log->printf(LOG_LEVEL_INFO, "CLIENT WRITE INFO REALLY SENDING A PACKET FRIEND");
 					sf::Packet packet;
 					packet.append(message, mbuf.size + 2);
 					server->send(packet);
