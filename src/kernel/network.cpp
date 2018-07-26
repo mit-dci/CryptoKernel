@@ -341,6 +341,7 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 				selector.add(*it->second);
 				//handshakeClients.insert(it->first, );
 			}
+			it++;
 
 			/*sf::Packet packet;
 			packet << "test message";
