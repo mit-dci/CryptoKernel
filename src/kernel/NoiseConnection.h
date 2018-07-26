@@ -778,6 +778,44 @@ public:
 
 			log->printf(LOG_LEVEL_INFO, "Server says the id pattern itself is " + std::to_string(id.pattern));
 			recievedId = true;
+
+			/* Convert the echo protocol identifier into a Noise protocol identifier */
+			bool ok = true;
+			NoiseProtocolId nid;
+			if (ok && !echo_to_noise_protocol_id(&nid, &id)) {
+				log->printf(LOG_LEVEL_INFO, "Unknown echo protocol identifier");
+				fprintf(stderr, "Unknown echo protocol identifier\n");
+				ok = 0;
+			}
+
+			/* Create a HandshakeState object to manage the server's handshake */
+			if (ok) {
+				err = noise_handshakestate_new_by_id
+					(&handshake, &nid, NOISE_ROLE_RESPONDER);
+				if (err != NOISE_ERROR_NONE) {
+					log->printf(LOG_LEVEL_INFO, "well, couldn't create the handshake");
+					noise_perror("create handshake", err);
+					ok = 0;
+				}
+			}
+
+			/* Set all keys that are needed by the client's requested echo protocol */
+			if (ok) {
+				if (!initialize_handshake(handshake, &nid, &id, sizeof(id))) {
+					log->printf(LOG_LEVEL_INFO, "couldn't initialize handshake");
+					ok = 0;
+				}
+			}
+
+			/* Start the handshake */
+			if (ok) {
+				err = noise_handshakestate_start(handshake);
+				if (err != NOISE_ERROR_NONE) {
+					log->printf(LOG_LEVEL_INFO, "couldn't start handshake");
+					noise_perror("start handshake", err);
+					ok = 0;
+				}
+			}
 		}
 		else {
 			handshakeMutex.lock();
