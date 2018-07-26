@@ -231,11 +231,12 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	        // Test the listener
 	        if(selector.isReady(ls))
 	        {
-	        	//log->printf(LOG_LEVEL_INFO, "selector ready");
+	        	log->printf(LOG_LEVEL_INFO, "selector ready");
 	            // The listener is ready: there is a pending connection
 	            sf::TcpSocket* client = new sf::TcpSocket;
 	            if(ls.accept(*client) == sf::Socket::Done)
 	            {
+	            	log->printf(LOG_LEVEL_INFO, "We accepted a connection");
 	            	if(handshakeClients.contains(client->getRemoteAddress().toString())) {
 	            		log->printf(LOG_LEVEL_INFO, "We are already a SERVER for " + client->getRemoteAddress().toString());
 	            		delete client;
@@ -256,13 +257,14 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	            }
 	            else
 	            {
+	            	log->printf(LOG_LEVEL_INFO, "welp, something else happened idk");
 	                // Error, we won't get a new connection, delete the socket
 	                delete client;
 	            }
 	        }
 	        else
 	        {
-	        	//log->printf(LOG_LEVEL_INFO, "selector not ready");
+	        	log->printf(LOG_LEVEL_INFO, "selector not ready");
 	            // The listener socket is not ready, test all other sockets (the clients)
 	            for(std::list<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
 	            {
