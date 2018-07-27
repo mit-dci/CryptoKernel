@@ -859,7 +859,7 @@ public:
 				client->send(packet);
 
 				if(yippy) {
-					log->printf(LOG_LEVEL_INFO, "yippy happened, but we got back to this state??", LOG_LEVEL_INFO);
+					log->printf(LOG_LEVEL_INFO, "yippy happened, but we got back to this state??");
 				}
 			}
 			else if(action != NOISE_ACTION_READ_MESSAGE) {
