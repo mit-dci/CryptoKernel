@@ -182,6 +182,8 @@ private:
 
     sf::SocketSelector selector;
 
+    std::mutex selectorMutex;
+
     unsigned int port;
     bool encrypt;
 };
