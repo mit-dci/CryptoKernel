@@ -229,7 +229,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	    // Make the selector wait for data on any socket
 	    if(selector.wait())
 	    {
-	    	//log->printf(LOG_LEVEL_INFO, "waiting......");
+	    	log->printf(LOG_LEVEL_INFO, "waiting......");
 	        // Test the listener
 	        if(selector.isReady(ls))
 	        {
@@ -265,6 +265,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	                // Error, we won't get a new connection, delete the socket
 	                delete client;
 	            }
+	            log->printf(LOG_LEVEL_INFO, "AND WE PRINT THIS AS WELL");
 	        }
 	        else
 	        {
