@@ -209,7 +209,9 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	ncs.execHandshake();*/
 
 	sf::TcpListener ls;
-	ls.listen(port + 1);
+	if(listener.listen(port + 1) != sf::Socket::Done) {
+		log->printf(LOG_LEVEL_ERR, "Network(): Could not bind to port " + std::to_string(port));
+	}
 	//listener.listen(9999);
 	// Create a list to store the future clients
 	std::list<sf::TcpSocket*> clients;
