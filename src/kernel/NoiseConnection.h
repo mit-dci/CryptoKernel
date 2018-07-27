@@ -784,6 +784,9 @@ public:
 	}
 
 	NoiseConnectionServer(sf::TcpSocket* client, uint64_t port, CryptoKernel::Log* log) {
+		send_cipher = 0;
+		recv_cipher = 0;
+
 		this->client = client;
 		this->log = log;
 		this->port = port;
@@ -862,14 +865,38 @@ public:
 					log->printf(LOG_LEVEL_INFO, "yippy happened, but we got back to this state??");
 				}
 			}
-			else if(action != NOISE_ACTION_READ_MESSAGE) {
+			else if(action != NOISE_ACTION_READ_MESSAGE && action != NOISE_ACTION_NONE) { // for some reason, a noise action none fires
 				yippy = true;
 				log->printf(LOG_LEVEL_INFO, "SERVER yippy " + std::to_string(action));
-				//break;
+				break;
 			}
 
 			std::this_thread::sleep_for(std::chrono::milliseconds(50)); // totally arbitrary
 		}
+
+		/* If the action is not "split", then the handshake has failed */
+		int ok = 1;
+		if (ok && noise_handshakestate_get_action(handshake) != NOISE_ACTION_SPLIT) {
+			log->printf(LOG_LEVEL_INFO, "SERVER handshake failed");
+			fprintf(stderr, "protocol handshake failed\n");
+			ok = 0;
+		}
+
+		/* Split out the two CipherState objects for send and receive */
+		int err;
+		if (ok) {
+			err = noise_handshakestate_split(handshake, &send_cipher, &recv_cipher);
+			if (err != NOISE_ERROR_NONE) {
+				noise_perror("split to start data transfer", err);
+				ok = 0;
+			}
+		}
+
+		/* We no longer need the HandshakeState */
+		noise_handshakestate_free(handshake);
+		handshake = 0;
+
+		log->printf(LOG_LEVEL_INFO, "SERVER handshake succeeded!");
 	}
 
 	void recievePacket(sf::Packet packet) {
@@ -1284,6 +1311,9 @@ public:
 
 	std::mutex handshakeMutex;
 	std::unique_ptr<std::thread> writeInfoThread;
+
+	NoiseCipherState* send_cipher;
+	NoiseCipherState* recv_cipher;
 };
 
 
