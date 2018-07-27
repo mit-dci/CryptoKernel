@@ -288,7 +288,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	                }
 	            }
 
-	            //log->printf(LOG_LEVEL_INFO, "Network(): About to loop through handshake client keys");
+	            log->printf(LOG_LEVEL_INFO, "Network(): About to loop through handshake client keys");
 	        	std::vector<std::string> ncsKeys = handshakeClients.keys(); // this should not contain any of the same things as handshakeServers
 	        	for(std::string key : ncsKeys) {
 	        		log->printf(LOG_LEVEL_INFO, "NETWORK: CLIENT KEY " + key);
