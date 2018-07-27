@@ -185,6 +185,8 @@ public:
 
 		sentId = false;
 
+		log->printf(LOG_LEVEL_INFO, std::to_string(NOISE_ACTION_NONE) + ", " + std::to_string(NOISE_ACTION_WRITE_MESSAGE) + ", " + std::to_string(NOISE_ACTION_READ_MESSAGE) + ", " + std::to_string(NOISE_ACTION_FAILED) + ", " + std::to_string(NOISE_ACTION_SPLIT) + ", " + std::to_string(NOISE_ACTION_COMPLETE));
+
 //		/* Check that the echo protocol supports the handshake protocol.
 //		   One-way handshake patterns and XXfallback are not yet supported. */
 //		std::string protocol = "Noise_NN_25519_AESGCM_SHA256";
