@@ -344,7 +344,9 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 		}
 
 		for(auto it = pendingConnections.begin(); it != pendingConnections.end();) {
+			log->printf(LOG_LEVEL_INFO, "looking at in loop " + it->first);
 			if(!handshakeClients.contains(it->first) && !handshakeServers.contains(it->first)) {
+				log->printf(LOG_LEVEL_INFO, "Creating new noise connection client at " + it->first);
 				NoiseConnectionClient* ncc = new NoiseConnectionClient(it->second, it->first, 88, log);
 				handshakeClients.at(it->first).reset(ncc);
 				log->printf(LOG_LEVEL_INFO, "NETWORK() added connection to handshake clients: " + it->first);
