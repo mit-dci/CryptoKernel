@@ -831,6 +831,7 @@ public:
 
 	void writeInfo() {
 		log->printf(LOG_LEVEL_INFO, "SERVER write info starting");
+		bool yippy = false;
 
 		while(true) {
 			//handshakeMutex.lock();
@@ -856,8 +857,13 @@ public:
 				sf::Packet packet;
 				packet.append(message, mbuf.size + 2);
 				client->send(packet);
+
+				if(yippy) {
+					log->printf(LOG_LEVEL_INFO, "yippy happened, but we got back to this state??", LOG_LEVEL_INFO);
+				}
 			}
 			else if(action != NOISE_ACTION_READ_MESSAGE) {
+				yippy = true;
 				log->printf(LOG_LEVEL_INFO, "SERVER yippy " + std::to_string(action));
 				//break;
 			}
