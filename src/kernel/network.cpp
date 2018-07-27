@@ -229,7 +229,6 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	{
 		//log->printf(LOG_LEVEL_INFO, "spinning....");
 	    // Make the selector wait for data on any socket
-		selectorMutex.lock();
 	    if(selector.wait())
 	    {
 	    	log->printf(LOG_LEVEL_INFO, "waiting......");
