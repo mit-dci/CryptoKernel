@@ -1,6 +1,7 @@
 #include "network.h"
 #include "networkpeer.h"
 #include "version.h"
+#include "EncryptedPacket.h"
 
 #include <list>
 #include <algorithm>
@@ -104,6 +105,21 @@ CryptoKernel::Network::Connection::~Connection() {
     std::lock_guard<std::mutex> pm(peerMutex);
     std::lock_guard<std::mutex> im(infoMutex);
     std::lock_guard<std::mutex> mm(modMutex);
+}
+
+sf::Socket::Status CryptoKernel::Network::SocketManager::send(std::string addr, std::string& data) {
+	if(sockets.contains(addr)) {
+		auto entry = sockets.find(addr);
+
+		std::unique_ptr<sf::Packet> packet;
+		if(entry->second->send_cipher && entry->second->recv_cipher) {
+			packet.reset(new EncryptedPacket(entry->second->send_cipher, entry->second->recv_cipher));
+		}
+		packet->operator <<(data);
+
+		return entry->second->socket->send(*packet);
+	}
+	return sf::Socket::Error;
 }
 
 CryptoKernel::Network::Network(CryptoKernel::Log* log,

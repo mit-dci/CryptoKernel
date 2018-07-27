@@ -17,6 +17,11 @@ public:
 	NoiseCipherState* recv_cipher;
 
 public:
+	EncryptedPacket(NoiseCipherState* send_cipher, NoiseCipherState* recv_cipher) {
+		this->send_cipher = send_cipher;
+		this->recv_cipher = recv_cipher;
+	}
+
     virtual const void* onSend(std::size_t& size) {
     	NoiseBuffer mbuf;
 

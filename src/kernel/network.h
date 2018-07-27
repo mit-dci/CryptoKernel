@@ -135,6 +135,21 @@ private:
 		std::mutex infoMutex;
 	};
 
+    struct SocketInfo {
+		sf::TcpSocket* socket;
+		NoiseCipherState* send_cipher = 0;
+		NoiseCipherState* recv_cipher = 0;
+	};
+
+    class SocketManager {
+    public:
+    	ConcurrentMap<std::string, std::unique_ptr<SocketInfo>> sockets;
+
+    public:
+    	sf::Socket::Status send(std::string addr, std::string& data);
+    	sf::Socket::Status recieve(std::string addr);
+    };
+
     ConcurrentMap<std::string, std::unique_ptr<Connection>> connected;
     std::recursive_mutex connectedMutex;
 
