@@ -355,8 +355,9 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 				selector.add(*it->second);
 				selectorMutex.unlock();
 				//handshakeClients.insert(it->first, );
+				//pendingConnections.erase(it++);
 			}
-			it++;
+			pendingConnections.erase(it++);
 
 			/*sf::Packet packet;
 			packet << "test message";
