@@ -273,7 +273,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	        }
 	        else
 	        {
-	        	//log->printf(LOG_LEVEL_INFO, "selector not ready");
+	        	log->printf(LOG_LEVEL_INFO, "selector not ready");
 	            // The listener socket is not ready, test all other sockets (the clients)
 	            for(std::list<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
 	            {
@@ -302,6 +302,9 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	        		}
 	        	}
 	        }
+	    }
+	    else {
+	    	log->printf(LOG_LEVEL_INFO, "there's just nothing on the selector");
 	    }
 	}
 }
