@@ -259,6 +259,8 @@ public:
 		int err, ok;
 		size_t message_size;
 
+		ok = 1;
+
 		while(true) {
 			if(!sentId) {
 				sf::Packet idPacket;
@@ -348,6 +350,9 @@ public:
 		/* Tell the user that the handshake has been successful */
 		if (ok) {
 			log->printf(LOG_LEVEL_INFO, "CLIENT Handshake complete!!");
+		}
+		else {
+			log->printf(LOG_LEVEL_INFO, "CLIENT ok is 0, somehow, not sure where..., handshake failed");
 		}
 	}
 
