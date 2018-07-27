@@ -227,7 +227,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 
 	while(running)
 	{
-		//log->printf(LOG_LEVEL_INFO, "spinning....");
+		log->printf(LOG_LEVEL_INFO, "waiting for data on any socket...");
 	    // Make the selector wait for data on any socket
 	    if(selector.wait(sf::seconds(2)))
 	    {
