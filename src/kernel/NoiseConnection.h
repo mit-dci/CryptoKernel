@@ -267,7 +267,7 @@ public:
 				idPacket.append(&id, sizeof(id));
 				log->printf(LOG_LEVEL_INFO, "CLIENT appended " + std::to_string(sizeof(id)) + " bytes to packet for id");
 				if(server->send(idPacket) != sf::Socket::Done) {
-					continue;
+					continue; // keep sending the id until it goes through, necessary because we're not blocking
 				}
 
 				err = noise_handshakestate_start(handshake);
