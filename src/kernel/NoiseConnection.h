@@ -856,8 +856,8 @@ public:
 				client->send(packet);
 			}
 			else if(action != NOISE_ACTION_READ_MESSAGE) {
-
-				break;
+				log->printf(LOG_LEVEL_INFO, "SERVER yippy " + std::to_string(action));
+				//break;
 			}
 
 			std::this_thread::sleep_for(std::chrono::milliseconds(50)); // totally arbitrary
