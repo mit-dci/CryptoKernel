@@ -25,6 +25,9 @@ public:
     
     Network::peerStats getPeerStats() const;
 
+    sf::Socket::Status sendPacket(std::string& data);
+	sf::Socket::Status receivePacket(sf::Packet** packet);
+
     class NetworkError : std::exception {
     public:
         NetworkError(const std::string& err) {
@@ -57,6 +60,9 @@ private:
     std::default_random_engine generator;
     
     Network::peerStats stats;
+
+    NoiseCipherState* send_cipher = 0;
+	NoiseCipherState* recv_cipher = 0;
 };
 
 #endif // NETWORKPEER_H_INCLUDED

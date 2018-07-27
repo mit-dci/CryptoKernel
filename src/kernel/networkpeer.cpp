@@ -2,6 +2,7 @@
 
 #include "version.h"
 #include "networkpeer.h"
+#include "EncryptedPacket.h"
 
 CryptoKernel::Network::Peer::Peer(sf::TcpSocket* client, CryptoKernel::Blockchain* blockchain,
                                   CryptoKernel::Network* network, const bool incoming) {
@@ -40,19 +41,20 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request) {
     modifiedRequest["nonce"] = nonce;
     requests[nonce] = true;
 
-    sf::Packet packet;
-    packet << CryptoKernel::Storage::toString(modifiedRequest, false);
+    //sf::Packet packet;
+    //packet << CryptoKernel::Storage::toString(modifiedRequest, false);
+    std::string packetData = CryptoKernel::Storage::toString(modifiedRequest, false);
 
     const uint64_t startTime = std::chrono::duration_cast<std::chrono::milliseconds>
                                (std::chrono::system_clock::now().time_since_epoch()).count();
-    const auto status = client->send(packet);
+    const auto status = sendPacket(packetData);//client->send(packet);
     if(status != sf::Socket::Done) {
         running = false;
         throw NetworkError("failed to send packet. Res: " + std::to_string(status));
     }
 
     clientMutex.lock();
-    stats.transferUp += packet.getDataSize();
+    stats.transferUp += 5;//packet.getDataSize(); todo fix this!!!!
     clientMutex.unlock();
 
     {
@@ -79,17 +81,21 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request) {
 }
 
 void CryptoKernel::Network::Peer::send(const Json::Value& response) {
-    sf::Packet packet;
+    /*sf::Packet packet;
     packet << CryptoKernel::Storage::toString(response, false);
 
-    const auto status = client->send(packet);
+    const auto status = client->send(packet);*/
+
+	std::string packetData = CryptoKernel::Storage::toString(response, false);
+	const auto status = sendPacket(packetData);
+
     if(status != sf::Socket::Done) {
         running = false;
         throw NetworkError("failed to send packet. Res: " + std::to_string(status));
     }
 
     clientMutex.lock();
-    stats.transferUp += packet.getDataSize();
+    stats.transferUp += 5;//packet.getDataSize(); todo fix this too!!
     clientMutex.unlock();
 }
 
@@ -349,6 +355,30 @@ std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Peer::getBlo
     }
 
     return returning;
+}
+
+sf::Socket::Status CryptoKernel::Network::Peer::sendPacket(std::string& data) {
+	std::unique_ptr<sf::Packet> packet;
+	if(send_cipher && recv_cipher) {
+		packet.reset(new EncryptedPacket(send_cipher, recv_cipher));
+	}
+	else {
+		packet.reset(new sf::Packet);
+	}
+	packet->operator <<(data);
+
+	return client->send(*packet);
+}
+
+sf::Socket::Status CryptoKernel::Network::Peer::receivePacket(sf::Packet** packet) {
+	if(send_cipher && recv_cipher) {
+		*packet = new EncryptedPacket(send_cipher, recv_cipher);
+	}
+	else {
+		*packet = new sf::Packet;
+	}
+
+	return client->receive(**packet);
 }
 
 CryptoKernel::Network::peerStats CryptoKernel::Network::Peer::getPeerStats() const {

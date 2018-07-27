@@ -181,37 +181,37 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
     listener.setBlocking(false);
 
     // Start connection thread
-    //connectionThread.reset(new std::thread(&CryptoKernel::Network::connectionFunc, this));
+    connectionThread.reset(new std::thread(&CryptoKernel::Network::connectionFunc, this));
 
     // Start management thread
-    //networkThread.reset(new std::thread(&CryptoKernel::Network::networkFunc, this));
+    networkThread.reset(new std::thread(&CryptoKernel::Network::networkFunc, this));
 
     // Start peer thread
    	makeOutgoingConnectionsThread.reset(new std::thread(&CryptoKernel::Network::makeOutgoingConnectionsWrapper, this));
 
     // Start peer thread
-    //infoOutgoingConnectionsThread.reset(new std::thread(&CryptoKernel::Network::infoOutgoingConnectionsWrapper, this));
+    infoOutgoingConnectionsThread.reset(new std::thread(&CryptoKernel::Network::infoOutgoingConnectionsWrapper, this));
 
     if(encrypt) {
     	/*if(listener.listen(port + 1) != sf::Socket::Done) {
 			log->printf(LOG_LEVEL_ERR, "Network(): Could not bind to port " + std::to_string(port + 1) + ", encryption disabled");
 		}*/
     	log->printf(LOG_LEVEL_INFO, "Encryption enabled");
-    	incomingEncryptionHandshakeThread.reset(new std::thread(&CryptoKernel::Network::incomingEncryptionHandshakeFunc, this));
-    	outgoingEncryptionHandshakeThread.reset(new std::thread(&CryptoKernel::Network::outgoingEncryptionHandshakeFunc, this));
+    	//incomingEncryptionHandshakeThread.reset(new std::thread(&CryptoKernel::Network::incomingEncryptionHandshakeFunc, this));
+    	//outgoingEncryptionHandshakeThread.reset(new std::thread(&CryptoKernel::Network::outgoingEncryptionHandshakeFunc, this));
     }
 }
 
 CryptoKernel::Network::~Network() {
     running = false;
-    //connectionThread->join();
-    //networkThread->join();
+    connectionThread->join();
+    networkThread->join();
     makeOutgoingConnectionsThread->join();
-    //infoOutgoingConnectionsThread->join();
+    infoOutgoingConnectionsThread->join();
 
     if(encrypt) {
-    	incomingEncryptionHandshakeThread->join();
-    	outgoingEncryptionHandshakeThread->join();
+    	//incomingEncryptionHandshakeThread->join();
+    	//outgoingEncryptionHandshakeThread->join();
     }
 
     listener.close();
@@ -477,7 +477,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 
 		if(socket->connect(peerIp, port, sf::seconds(3)) == sf::Socket::Done) {
 			log->printf(LOG_LEVEL_INFO, "Network(): Successfully connected to " + peerIp);
-			Connection* connection = new Connection;
+			/*Connection* connection = new Connection;
 			connection->setPeer(new Peer(socket, blockchain, this, false));
 
 			peerData["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
@@ -485,7 +485,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 
 			connection->setInfo(peerData);
 
-			connected.at(peerIp).reset(connection);
+			connected.at(peerIp).reset(connection);*/
 			peersToQuery.insert(peerIp, socket);
 		}
 		else {

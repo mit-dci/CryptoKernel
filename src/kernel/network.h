@@ -110,7 +110,7 @@ private:
 		std::vector<CryptoKernel::Blockchain::transaction> getUnconfirmedTransactions();
 		CryptoKernel::Blockchain::block getBlock(const uint64_t height, const std::string& id);
 		std::vector<CryptoKernel::Blockchain::block> getBlocks(const uint64_t start, const uint64_t end);
-    CryptoKernel::Network::peerStats getPeerStats();
+		CryptoKernel::Network::peerStats getPeerStats();
 
 		bool acquire();
 		void release();
@@ -149,6 +149,8 @@ private:
     	sf::Socket::Status send(std::string addr, std::string& data);
     	sf::Socket::Status recieve(std::string addr);
     };
+
+    SocketManager socketManager;
 
     ConcurrentMap<std::string, std::unique_ptr<Connection>> connected;
     std::recursive_mutex connectedMutex;
