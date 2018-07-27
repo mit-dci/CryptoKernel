@@ -255,6 +255,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	            	else {
 	            		log->printf(LOG_LEVEL_INFO, "It would appear we are fielding another request from " + client->getRemoteAddress().toString() + "  Darn.");
 	            	}
+	            	log->printf(LOG_LEVEL_INFO, "And confusingly we do print this");
 	            }
 	            else
 	            {
