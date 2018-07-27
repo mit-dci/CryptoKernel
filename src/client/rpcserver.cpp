@@ -23,6 +23,8 @@
 #include "contract.h"
 #include "merkletree.h"
 
+const std::string noWalletError = "No wallet attached to this RPC server";
+
 CryptoServer::CryptoServer(jsonrpc::AbstractServerConnector &connector) : CryptoRPCServer(
         connector) {
 
@@ -43,10 +45,13 @@ Json::Value CryptoServer::getinfo() {
 
     returning["rpc_version"] = "0.0.2";
     returning["ck_version"] = version;
-    const long double balance = wallet->getTotalBalance() / 100000000.0;
+
     std::stringstream buffer;
-    buffer << std::setprecision(8) << std::fixed << balance;
-    returning["balance"] = buffer.str();
+    if(wallet != nullptr) {
+        const long double balance = wallet->getTotalBalance() / 100000000.0;
+        buffer << std::setprecision(8) << std::fixed << balance;
+        returning["balance"] = buffer.str();
+    }
     returning["height"] = blockchain->getBlockDB("tip").getHeight();
     returning["connections"] = network->getConnections();
     returning["mempool"]["count"] = blockchain->mempoolCount();
@@ -64,31 +69,35 @@ Json::Value CryptoServer::getinfo() {
 Json::Value CryptoServer::account(const std::string& account,
                                   const std::string& password) {
     Json::Value returning;
-    Json::Value accJson;
+    if(wallet != nullptr) {
+        Json::Value accJson;
 
-    try {
-        accJson = wallet->getAccountByName(account).toJson();
-    } catch(const CryptoKernel::Wallet::WalletException& e) {
         try {
-            accJson = wallet->newAccount(account, password).toJson();
+            accJson = wallet->getAccountByName(account).toJson();
         } catch(const CryptoKernel::Wallet::WalletException& e) {
-            return Json::Value(e.what());
+            try {
+                accJson = wallet->newAccount(account, password).toJson();
+            } catch(const CryptoKernel::Wallet::WalletException& e) {
+                return Json::Value(e.what());
+            }
         }
-    }
 
-    const auto newAccount = CryptoKernel::Wallet::Account(accJson);
+        const auto newAccount = CryptoKernel::Wallet::Account(accJson);
 
-    returning["name"] = newAccount.getName();
-    double balance = newAccount.getBalance() / 100000000.0;
-    std::stringstream buffer;
-    buffer << std::setprecision(8) << balance;
-    returning["balance"] = buffer.str();
+        returning["name"] = newAccount.getName();
+        double balance = newAccount.getBalance() / 100000000.0;
+        std::stringstream buffer;
+        buffer << std::setprecision(8) << balance;
+        returning["balance"] = buffer.str();
 
-    for(const auto& addr : newAccount.getKeys()) {
-        Json::Value keyPair;
-        keyPair["pubKey"] = addr.pubKey;
-        keyPair["privKey"] = addr.privKey->toJson();
-        returning["keys"].append(keyPair);
+        for(const auto& addr : newAccount.getKeys()) {
+            Json::Value keyPair;
+            keyPair["pubKey"] = addr.pubKey;
+            keyPair["privKey"] = addr.privKey->toJson();
+            returning["keys"].append(keyPair);
+        }
+    } else {
+        returning["error"] = noWalletError;
     }
 
     return returning;
@@ -96,8 +105,12 @@ Json::Value CryptoServer::account(const std::string& account,
 
 std::string CryptoServer::sendtoaddress(const std::string& address, double amount,
                                         const std::string& password) {
-    uint64_t Amount = amount * 100000000;
-    return wallet->sendToAddress(address, Amount, password);
+    if(wallet != nullptr) {
+        uint64_t Amount = amount * 100000000;
+        return wallet->sendToAddress(address, Amount, password);
+    } else {
+        return noWalletError;
+    }
 }
 
 bool CryptoServer::sendrawtransaction(const Json::Value tx) {
@@ -120,54 +133,62 @@ bool CryptoServer::sendrawtransaction(const Json::Value tx) {
 Json::Value CryptoServer::listaccounts() {
     Json::Value returning;
 
-    const std::set<CryptoKernel::Wallet::Account> accounts = wallet->listAccounts();
+    if(wallet != nullptr) {
+        const std::set<CryptoKernel::Wallet::Account> accounts = wallet->listAccounts();
 
-    returning["accounts"] = Json::Value();
+        returning["accounts"] = Json::Value();
 
-    for(const auto& acc : accounts) {
-        Json::Value account;
-        account["name"] = acc.getName();
-        double balance = acc.getBalance() / 100000000.0;
-        std::stringstream buffer;
-        buffer << std::setprecision(8) << balance;
-        account["balance"] = buffer.str();
+        for(const auto& acc : accounts) {
+            Json::Value account;
+            account["name"] = acc.getName();
+            double balance = acc.getBalance() / 100000000.0;
+            std::stringstream buffer;
+            buffer << std::setprecision(8) << balance;
+            account["balance"] = buffer.str();
 
-        for(const auto& addr : acc.getKeys()) {
-            Json::Value keyPair;
-            keyPair["pubKey"] = addr.pubKey;
-            keyPair["privKey"] = addr.privKey->toJson();
-            account["keys"].append(keyPair);
+            for(const auto& addr : acc.getKeys()) {
+                Json::Value keyPair;
+                keyPair["pubKey"] = addr.pubKey;
+                keyPair["privKey"] = addr.privKey->toJson();
+                account["keys"].append(keyPair);
+            }
+
+            returning["accounts"].append(account);
         }
-
-        returning["accounts"].append(account);
+    } else {
+        returning["error"] = noWalletError;
     }
 
     return returning;
 }
 
 Json::Value CryptoServer::listunspentoutputs(const std::string& account) {
-    try {
-        CryptoKernel::Wallet::Account acc = wallet->getAccountByName(account);
+    Json::Value returning;
 
-        std::set<CryptoKernel::Blockchain::dbOutput> utxos;
+    if(wallet != nullptr) {
+        try {
+            CryptoKernel::Wallet::Account acc = wallet->getAccountByName(account);
 
-        for(const auto& addr : acc.getKeys()) {
-            const auto unspent = blockchain->getUnspentOutputs(addr.pubKey);
-            utxos.insert(unspent.begin(), unspent.end());
+            std::set<CryptoKernel::Blockchain::dbOutput> utxos;
+
+            for(const auto& addr : acc.getKeys()) {
+                const auto unspent = blockchain->getUnspentOutputs(addr.pubKey);
+                utxos.insert(unspent.begin(), unspent.end());
+            }
+
+            for(const CryptoKernel::Blockchain::dbOutput& dbOutput : utxos) {
+                Json::Value out = dbOutput.toJson();
+                out["id"] = dbOutput.getId().toString();
+                returning["outputs"].append(out);
+            }
+        } catch(const CryptoKernel::Wallet::WalletException& e) {
+            return Json::Value();
         }
-
-        Json::Value returning;
-
-        for(const CryptoKernel::Blockchain::dbOutput& dbOutput : utxos) {
-            Json::Value out = dbOutput.toJson();
-            out["id"] = dbOutput.getId().toString();
-            returning["outputs"].append(out);
-        }
-
-        return returning;
-    } catch(const CryptoKernel::Wallet::WalletException& e) {
-        return Json::Value();
+    } else {
+        returning["error"] = noWalletError;
     }
+
+    return returning;
 }
 
 Json::Value CryptoServer::getpubkeyoutputs(const std::string& publickey) {
@@ -209,48 +230,58 @@ std::string CryptoServer::calculateoutputid(const Json::Value output) {
 
 Json::Value CryptoServer::signtransaction(const Json::Value& tx,
                                           const std::string& password) {
-    try {
-        const CryptoKernel::Blockchain::transaction transaction =
-            CryptoKernel::Blockchain::transaction(tx);
+    if(wallet != nullptr) {
+        try {
+            const CryptoKernel::Blockchain::transaction transaction =
+                CryptoKernel::Blockchain::transaction(tx);
 
-        return wallet->signTransaction(transaction, password).toJson();
-    } catch(const CryptoKernel::Blockchain::InvalidElementException& e) {
-        return Json::Value();
-    } catch(const CryptoKernel::Wallet::WalletException& e) {
-        return Json::Value(e.what());
+            return wallet->signTransaction(transaction, password).toJson();
+        } catch(const CryptoKernel::Blockchain::InvalidElementException& e) {
+            return Json::Value();
+        } catch(const CryptoKernel::Wallet::WalletException& e) {
+            return Json::Value(e.what());
+        }
+    } else {
+        Json::Value returning;
+        returning["error"] = noWalletError;
+        return returning;
     }
 }
 
 Json::Value CryptoServer::listtransactions() {
     Json::Value returning;
 
-    returning["transactions"] = Json::Value();
+    if(wallet != nullptr) {
+        returning["transactions"] = Json::Value();
 
-    const auto transactions =
-        wallet->listTransactions();
+        const auto transactions =
+            wallet->listTransactions();
 
-    returning["transactions"]["confirmed"] = Json::Value();
+        returning["transactions"]["confirmed"] = Json::Value();
 
-    for(const auto& tx : std::get<0>(transactions)) {
-        auto jsonTx = tx.toJson();
-        for(auto& output : jsonTx["outputs"]) {
-            CryptoKernel::Blockchain::output out(output);
-            output["id"] = out.getId().toString();
+        for(const auto& tx : std::get<0>(transactions)) {
+            auto jsonTx = tx.toJson();
+            for(auto& output : jsonTx["outputs"]) {
+                CryptoKernel::Blockchain::output out(output);
+                output["id"] = out.getId().toString();
+            }
+            jsonTx["id"] = tx.getId().toString();
+            returning["transactions"]["confirmed"].append(jsonTx);
         }
-        jsonTx["id"] = tx.getId().toString();
-        returning["transactions"]["confirmed"].append(jsonTx);
-    }
 
-    returning["transactions"]["unconfirmed"] = Json::Value();
+        returning["transactions"]["unconfirmed"] = Json::Value();
 
-    for(const auto& tx : std::get<1>(transactions)) {
-        auto jsonTx = tx.toJson();
-        for(auto& output : jsonTx["outputs"]) {
-            CryptoKernel::Blockchain::output out(output);
-            output["id"] = out.getId().toString();
+        for(const auto& tx : std::get<1>(transactions)) {
+            auto jsonTx = tx.toJson();
+            for(auto& output : jsonTx["outputs"]) {
+                CryptoKernel::Blockchain::output out(output);
+                output["id"] = out.getId().toString();
+            }
+            jsonTx["id"] = tx.getId().toString();
+            returning["transactions"]["unconfirmed"].append(jsonTx);
         }
-        jsonTx["id"] = tx.getId().toString();
-        returning["transactions"]["unconfirmed"].append(jsonTx);
+    } else {
+        returning["error"] = noWalletError;
     }
 
     return returning;
@@ -290,10 +321,16 @@ Json::Value CryptoServer::gettransaction(const std::string& id) {
 
 Json::Value CryptoServer::importprivkey(const std::string& name, const std::string& key,
                                         const std::string& password) {
-    try {
-        return wallet->importPrivKey(name, key, password).toJson();
-    } catch(const CryptoKernel::Wallet::WalletException& e) {
-        return Json::Value(e.what());
+    if(wallet != nullptr) {
+        try {
+            return wallet->importPrivKey(name, key, password).toJson();
+        } catch(const CryptoKernel::Wallet::WalletException& e) {
+            return Json::Value(e.what());
+        }
+    } else {
+        Json::Value returning;
+        returning["error"] = noWalletError;
+        return returning;
     }
 }
 
@@ -317,21 +354,25 @@ Json::Value CryptoServer::getpeerinfo() {
 
 Json::Value CryptoServer::dumpprivkeys(const std::string& account,
                                        const std::string& password) {
-    try {
-        const auto acc = wallet->getAccountByName(account);
-        Json::Value returning;
-        for(const auto& addr : acc.getKeys()) {
-            try {
-                returning[addr.pubKey] = addr.privKey->decrypt(password);
-            } catch(const std::runtime_error& e) {
-                return Json::Value(e.what());
+    Json::Value returning;
+    if(wallet != nullptr) {
+        try {
+            const auto acc = wallet->getAccountByName(account);
+            for(const auto& addr : acc.getKeys()) {
+                try {
+                    returning[addr.pubKey] = addr.privKey->decrypt(password);
+                } catch(const std::runtime_error& e) {
+                    return Json::Value(e.what());
+                }
             }
+        } catch(const CryptoKernel::Wallet::WalletException& e) {
+            return Json::Value(e.what());
         }
-
-        return returning;
-    } catch(const CryptoKernel::Wallet::WalletException& e) {
-        return Json::Value(e.what());
+    } else {
+        returning["error"] = noWalletError;
     }
+
+    return returning;
 }
 
 std::string CryptoServer::getoutputsetid(const Json::Value& outputs) {
