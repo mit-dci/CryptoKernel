@@ -477,12 +477,14 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 
 				connection->setInfo(peerInfo);
 
-				connected.at(it->key()).reset(connection);
-
 				connection->setSendCipher(entry->second->send_cipher);
 				connection->setRecvCipher(entry->second->recv_cipher);
 
+				connected.at(it->key()).reset(connection);
+
 				handshakeClients.erase(it->key());
+
+				continue;
 			}
 		}
 
@@ -503,6 +505,8 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 				connected.at(it->key()).reset(connection);
 
 				handshakeServers.erase(it->key());
+
+				continue;
 			}
 		}
 
