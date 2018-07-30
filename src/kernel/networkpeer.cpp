@@ -367,24 +367,28 @@ std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Peer::getBlo
 
 sf::Socket::Status CryptoKernel::Network::Peer::sendPacket(std::string& data) {
 	std::unique_ptr<sf::Packet> packet;
-	if(send_cipher && recv_cipher) {
+	/*if(send_cipher && recv_cipher) {
 		packet.reset(new EncryptedPacket(send_cipher, recv_cipher));
 	}
 	else {
 		packet.reset(new sf::Packet);
-	}
+	}*/
+	packet.reset(new sf::Packet);
+
+
 	packet->operator <<(data);
 
 	return client->send(*packet);
 }
 
 sf::Socket::Status CryptoKernel::Network::Peer::receivePacket(sf::Packet** packet) {
-	if(send_cipher && recv_cipher) {
+	/*if(send_cipher && recv_cipher) {
 		*packet = new EncryptedPacket(send_cipher, recv_cipher);
 	}
 	else {
 		*packet = new sf::Packet;
-	}
+	}*/
+	*packet = new sf::Packet;
 
 	return client->receive(**packet);
 }
