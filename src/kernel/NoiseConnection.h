@@ -185,6 +185,8 @@ public:
 
 		sentId = false;
 
+		handshakeComplete = true;
+
 		log->printf(LOG_LEVEL_INFO, std::to_string(NOISE_ACTION_NONE) + ", " + std::to_string(NOISE_ACTION_WRITE_MESSAGE) + ", " + std::to_string(NOISE_ACTION_READ_MESSAGE) + ", " + std::to_string(NOISE_ACTION_FAILED) + ", " + std::to_string(NOISE_ACTION_SPLIT) + ", " + std::to_string(NOISE_ACTION_COMPLETE));
 
 //		/* Check that the echo protocol supports the handshake protocol.
@@ -356,6 +358,19 @@ public:
 		else {
 			log->printf(LOG_LEVEL_INFO, "CLIENT ok is 0, somehow, not sure where..., handshake failed");
 		}
+
+		setHandshakeComplete(true);
+	}
+
+	bool handshakeComplete;
+	std::mutex handshakeCompleteMutex;
+	void setHandshakeComplete(bool complete) {
+		std::lock_guard<std::mutex> hcm(handshakeCompleteMutex);
+		handshakeComplete = complete;
+	}
+	bool getHandshakeComplete() {
+		std::lock_guard<std::mutex> hcm(handshakeCompleteMutex);
+		return handshakeComplete;
 	}
 
 	void recievePacket(sf::Packet packet) {
@@ -802,6 +817,8 @@ public:
 		message_size = 0;
 		recievedId = false;
 
+		handshakeComplete = true;
+
 		if (noise_init() != NOISE_ERROR_NONE) {
 			fprintf(stderr, "Noise initialization failed\n");
 			//return 1;
@@ -904,6 +921,20 @@ public:
 		handshake = 0;
 
 		log->printf(LOG_LEVEL_INFO, "SERVER handshake succeeded!");
+
+		setHandshakeComplete(true);
+		//handshakeSuccessful = true;
+	}
+
+	bool handshakeComplete;
+	std::mutex handshakeCompleteMutex;
+	void setHandshakeComplete(bool complete) {
+		std::lock_guard<std::mutex> hcm(handshakeCompleteMutex);
+		handshakeComplete = complete;
+	}
+	bool getHandshakeComplete() {
+		std::lock_guard<std::mutex> hcm(handshakeCompleteMutex);
+		return handshakeComplete;
 	}
 
 	void recievePacket(sf::Packet packet) {

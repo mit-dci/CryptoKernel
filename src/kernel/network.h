@@ -125,6 +125,9 @@ private:
 		Json::Value getCachedInfo();
 		Network::peerStats getPeerStats() const;
 
+		void setSendCipher(NoiseCipherState* cipher);
+		void setRecvCipher(NoiseCipherState* cipher);
+
     	~Connection();
 
     private:

@@ -101,6 +101,14 @@ Json::Value& CryptoKernel::Network::Connection::getInfo(std::string key) {
 	return this->info[key];
 }
 
+void CryptoKernel::Network::Connection::setSendCipher(NoiseCipherState* cipher) {
+	peer->setSendCipher(cipher);
+}
+
+void CryptoKernel::Network::Connection::setRecvCipher(NoiseCipherState* cipher) {
+	peer->setRecvCipher(cipher);
+}
+
 CryptoKernel::Network::Connection::~Connection() {
     std::lock_guard<std::mutex> pm(peerMutex);
     std::lock_guard<std::mutex> im(infoMutex);
@@ -197,8 +205,8 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
 			log->printf(LOG_LEVEL_ERR, "Network(): Could not bind to port " + std::to_string(port + 1) + ", encryption disabled");
 		}*/
     	log->printf(LOG_LEVEL_INFO, "Encryption enabled");
-    	//incomingEncryptionHandshakeThread.reset(new std::thread(&CryptoKernel::Network::incomingEncryptionHandshakeFunc, this));
-    	//outgoingEncryptionHandshakeThread.reset(new std::thread(&CryptoKernel::Network::outgoingEncryptionHandshakeFunc, this));
+    	incomingEncryptionHandshakeThread.reset(new std::thread(&CryptoKernel::Network::incomingEncryptionHandshakeFunc, this));
+    	outgoingEncryptionHandshakeThread.reset(new std::thread(&CryptoKernel::Network::outgoingEncryptionHandshakeFunc, this));
     }
 }
 
@@ -210,8 +218,8 @@ CryptoKernel::Network::~Network() {
     infoOutgoingConnectionsThread->join();
 
     if(encrypt) {
-    	//incomingEncryptionHandshakeThread->join();
-    	//outgoingEncryptionHandshakeThread->join();
+    	incomingEncryptionHandshakeThread->join();
+    	outgoingEncryptionHandshakeThread->join();
     }
 
     listener.close();
@@ -431,7 +439,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 
 		Json::Value peerInfo = it->value();
 
-		if(connected.contains(it->key())) {
+		if(connected.contains(it->key()) || peersToQuery.contains(it->key())) {
 			continue;
 		}
 
@@ -458,6 +466,46 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 			continue;
 		}
 
+		if(handshakeClients.contains(it->key())) {
+			auto entry = handshakeClients.find(it->key());
+			if(entry->second->getHandshakeComplete()) {
+				Connection* connection = new Connection;
+				connection->setPeer(new Peer(entry->second->server, blockchain, this, false));
+
+				peerInfo["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
+				peerInfo["score"] = 0;
+
+				connection->setInfo(peerInfo);
+
+				connected.at(it->key()).reset(connection);
+
+				connection->setSendCipher(entry->second->send_cipher);
+				connection->setRecvCipher(entry->second->recv_cipher);
+
+				handshakeClients.erase(it->key());
+			}
+		}
+
+		if(handshakeServers.contains(it->key())) {
+			auto entry = handshakeServers.find(it->key());
+			if(entry->second->getHandshakeComplete()) {
+				Connection* connection = new Connection;
+				connection->setPeer(new Peer(entry->second->client, blockchain, this, false));
+
+				peerInfo["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
+				peerInfo["score"] = 0;
+
+				connection->setInfo(peerInfo);
+
+				connection->setSendCipher(entry->second->send_cipher);
+				connection->setRecvCipher(entry->second->recv_cipher);
+
+				connected.at(it->key()).reset(connection);
+
+				handshakeServers.erase(it->key());
+			}
+		}
+
 		//log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + it->key());
 		peersToTry.insert(std::pair<std::string, Json::Value>(it->key(), peerInfo));
 		peerIps.push_back(it->key());
@@ -479,7 +527,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 			log->printf(LOG_LEVEL_INFO, "Network(): Successfully connected to " + peerIp);
 
 			// comment this out in the future luke, and do it elsewhere
-			Connection* connection = new Connection;
+			/*Connection* connection = new Connection;
 			connection->setPeer(new Peer(socket, blockchain, this, false));
 
 			peerData["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
@@ -487,7 +535,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 
 			connection->setInfo(peerData);
 
-			connected.at(peerIp).reset(connection);
+			connected.at(peerIp).reset(connection);*/
 			// end comment
 
 			peersToQuery.insert(peerIp, socket);

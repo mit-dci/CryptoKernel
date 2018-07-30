@@ -41,6 +41,9 @@ public:
         std::string msg;
     };
 
+    void setSendCipher(NoiseCipherState* cipher);
+    void setRecvCipher(NoiseCipherState* cipher);
+
 private:
     sf::TcpSocket* client;
     CryptoKernel::Blockchain* blockchain;

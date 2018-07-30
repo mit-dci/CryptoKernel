@@ -25,6 +25,14 @@ CryptoKernel::Network::Peer::Peer(sf::TcpSocket* client, CryptoKernel::Blockchai
     requestThread.reset(new std::thread(&CryptoKernel::Network::Peer::requestFunc, this));
 }
 
+void CryptoKernel::Network::Peer::setSendCipher(NoiseCipherState* cipher) {
+	this->send_cipher = cipher;
+}
+
+void CryptoKernel::Network::Peer::setRecvCipher(NoiseCipherState* cipher) {
+	this->recv_cipher = cipher;
+}
+
 CryptoKernel::Network::Peer::~Peer() {
     running = false;
     client->disconnect();
