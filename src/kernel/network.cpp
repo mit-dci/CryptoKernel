@@ -482,7 +482,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 
 				connected.at(it->key()).reset(connection);
 
-				handshakeClients.erase(it->key());
+				//handshakeClients.erase(it->key());
 
 				continue;
 			}
@@ -504,7 +504,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 
 				connected.at(it->key()).reset(connection);
 
-				handshakeServers.erase(it->key());
+				//handshakeServers.erase(it->key());
 
 				continue;
 			}
