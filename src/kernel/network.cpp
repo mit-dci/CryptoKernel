@@ -266,6 +266,11 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	            if(ls.accept(*client) == sf::Socket::Done)
 	            {
 	            	log->printf(LOG_LEVEL_INFO, "We accepted a connection");
+	            	if(connected.contains(client->getRemoteAddress().toString())) {
+	            		log->printf(LOG_LEVEL_INFO, "Actually, we are already conected to " + client->getRemoteAddress().toString());
+	            		continue;
+	            	}
+
 	            	if(handshakeClients.contains(client->getRemoteAddress().toString())) {
 	            		log->printf(LOG_LEVEL_INFO, "We are already a SERVER for " + client->getRemoteAddress().toString());
 	            		delete client;
