@@ -477,7 +477,9 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 
 		if(socket->connect(peerIp, port, sf::seconds(3)) == sf::Socket::Done) {
 			log->printf(LOG_LEVEL_INFO, "Network(): Successfully connected to " + peerIp);
-			/*Connection* connection = new Connection;
+
+			// comment this out in the future luke, and do it elsewhere
+			Connection* connection = new Connection;
 			connection->setPeer(new Peer(socket, blockchain, this, false));
 
 			peerData["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
@@ -485,7 +487,9 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 
 			connection->setInfo(peerData);
 
-			connected.at(peerIp).reset(connection);*/
+			connected.at(peerIp).reset(connection);
+			// end comment
+
 			peersToQuery.insert(peerIp, socket);
 		}
 		else {
