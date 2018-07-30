@@ -253,7 +253,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	{
 		log->printf(LOG_LEVEL_INFO, "waiting for data on any socket...");
 	    // Make the selector wait for data on any socket
-	    if(selector.wait(sf::seconds(2)))
+	    if(selector.wait())
 	    {
 	    	log->printf(LOG_LEVEL_INFO, "waiting......");
 	        // Test the listener
