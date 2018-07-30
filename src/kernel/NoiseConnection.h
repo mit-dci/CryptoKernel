@@ -185,7 +185,7 @@ public:
 
 		sentId = false;
 
-		handshakeComplete = true;
+		handshakeComplete = false;
 
 		log->printf(LOG_LEVEL_INFO, std::to_string(NOISE_ACTION_NONE) + ", " + std::to_string(NOISE_ACTION_WRITE_MESSAGE) + ", " + std::to_string(NOISE_ACTION_READ_MESSAGE) + ", " + std::to_string(NOISE_ACTION_FAILED) + ", " + std::to_string(NOISE_ACTION_SPLIT) + ", " + std::to_string(NOISE_ACTION_COMPLETE));
 
@@ -817,7 +817,7 @@ public:
 		message_size = 0;
 		recievedId = false;
 
-		handshakeComplete = true;
+		handshakeComplete = false;
 
 		if (noise_init() != NOISE_ERROR_NONE) {
 			fprintf(stderr, "Noise initialization failed\n");
