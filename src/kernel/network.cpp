@@ -469,6 +469,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 		if(handshakeClients.contains(it->key())) {
 			auto entry = handshakeClients.find(it->key());
 			if(entry->second->getHandshakeComplete()) {
+				log->printf(LOG_LEVEL_INFO, "the CLIENT handshake ic omplete, this can join our connections!!!!");
 				Connection* connection = new Connection;
 				connection->setPeer(new Peer(entry->second->server, blockchain, this, false));
 
@@ -491,6 +492,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 		if(handshakeServers.contains(it->key())) {
 			auto entry = handshakeServers.find(it->key());
 			if(entry->second->getHandshakeComplete()) {
+				log->printf(LOG_LEVEL_INFO, "the SERVER handshake ic omplete, this can join our connections!!!!");
 				Connection* connection = new Connection;
 				connection->setPeer(new Peer(entry->second->client, blockchain, this, false));
 
