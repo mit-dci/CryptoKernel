@@ -192,10 +192,10 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
     listener.setBlocking(false);
 
     // Start connection thread
-    //connectionThread.reset(new std::thread(&CryptoKernel::Network::connectionFunc, this));
+    connectionThread.reset(new std::thread(&CryptoKernel::Network::connectionFunc, this));
 
     // Start management thread
-    //networkThread.reset(new std::thread(&CryptoKernel::Network::networkFunc, this));
+    networkThread.reset(new std::thread(&CryptoKernel::Network::networkFunc, this));
 
     // Start peer thread
    	makeOutgoingConnectionsThread.reset(new std::thread(&CryptoKernel::Network::makeOutgoingConnectionsWrapper, this));
@@ -215,8 +215,8 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
 
 CryptoKernel::Network::~Network() {
     running = false;
-    //connectionThread->join();
-    //networkThread->join();
+    connectionThread->join();
+    networkThread->join();
     makeOutgoingConnectionsThread->join();
     infoOutgoingConnectionsThread->join();
 
@@ -888,6 +888,17 @@ void CryptoKernel::Network::connectionFunc() {
 
             connection->setInfo("lastseen", static_cast<uint64_t>(result));
             connection->setInfo("score", 0);
+
+            if(handshakeServers.contains(client->getRemoteAddress().toString())) {
+            	auto entry = handshakeServers.find(client->getRemoteAddress().toString());
+            	connection->setSendCipher(entry->second->send_cipher);
+            	connection->setRecvCipher(entry->second->recv_cipher);
+            }
+            if(handshakeClients.contains(client->getRemoteAddress().toString())) {
+				auto entry = handshakeClients.find(client->getRemoteAddress().toString());
+				connection->setSendCipher(entry->second->send_cipher);
+				connection->setRecvCipher(entry->second->recv_cipher);
+			}
 
             connected.at(client->getRemoteAddress().toString()).reset(connection);
 
