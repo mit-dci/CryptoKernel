@@ -37,9 +37,11 @@ public:
         size = mbuf.size;
         return mbuf.data;*/
 
+    	void* data2 = (void*)getData();
+
     	NoiseBuffer mbuf;
     	log->printf(LOG_LEVEL_INFO, "good here");
-    	noise_buffer_set_inout(mbuf, static_cast<uint8_t*>(getData()), getDataSize(), 4096);
+    	noise_buffer_set_inout(mbuf, static_cast<uint8_t*>(data2), getDataSize(), 4096);
     	log->printf(LOG_LEVEL_INFO, "good here too");
 		int err = noise_cipherstate_encrypt(send_cipher, &mbuf);
 		log->printf(LOG_LEVEL_INFO, "and good here as well");
@@ -60,7 +62,9 @@ public:
 
     	std::size_t dstSize = size;
 
-    	noise_buffer_set_inout(mbuf, static_cast<uint8_t*>(data), dstSize, dstSize);
+    	void* data2 = (void*)data;
+
+    	noise_buffer_set_inout(mbuf, static_cast<uint8_t*>(data2), dstSize, dstSize);
 		int err = noise_cipherstate_decrypt(recv_cipher, &mbuf);
 		if (err != NOISE_ERROR_NONE) {
 			log->printf(LOG_LEVEL_INFO, "!!!!!!!!!!!!!!!!!!!!!!!!! SOMETHING WENT WRONG");
