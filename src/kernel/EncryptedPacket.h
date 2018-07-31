@@ -23,7 +23,7 @@ public:
 	}
 
     virtual const void* onSend(std::size_t& size) {
-    	NoiseBuffer mbuf;
+    	/*NoiseBuffer mbuf;
 
     	const void* srcData = getData();
         std::size_t srcSize = getDataSize();
@@ -32,7 +32,18 @@ public:
         int err = noise_cipherstate_encrypt(send_cipher, &mbuf);
 
         size = mbuf.size;
-        return mbuf.data;
+        return mbuf.data;*/
+
+    	NoiseBuffer mbuf;
+    	noise_buffer_set_inout(mbuf, (uint8_t*)getData(), getDataSize(), 100000);
+		int err = noise_cipherstate_encrypt(send_cipher, &mbuf);
+		if (err != NOISE_ERROR_NONE) {
+			noise_perror("SOMETHING WENT WRONG" , err);
+			//break;
+			return 0;
+		}
+		size = mbuf.size;
+		return mbuf.data;
     }
 
     virtual void onReceive(const void* data, std::size_t size) {
