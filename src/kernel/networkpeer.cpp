@@ -379,7 +379,7 @@ sf::Socket::Status CryptoKernel::Network::Peer::sendPacket(std::string& data) {
 		log->printf(LOG_LEVEL_INFO, "sent UNENCRYPTED packet");
 		packet.reset(new sf::Packet);
 	}
-	packet.reset(new sf::Packet);
+	//packet.reset(new sf::Packet);
 
 
 	packet->operator <<(data);
@@ -396,7 +396,7 @@ sf::Socket::Status CryptoKernel::Network::Peer::receivePacket(sf::Packet** packe
 		log->printf(LOG_LEVEL_INFO, "received UNENCRYPTED packet");
 		*packet = new sf::Packet;
 	}
-	*packet = new sf::Packet;
+	//*packet = new sf::Packet;
 
 	return client->receive(**packet);
 }
