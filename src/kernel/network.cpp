@@ -862,7 +862,7 @@ void CryptoKernel::Network::connectionFunc() {
             log->printf(LOG_LEVEL_INFO,
                         "Network(): Peer connected from " + client->getRemoteAddress().toString() + ":" +
                         std::to_string(client->getRemotePort()));
-            Connection* connection = new Connection();
+            /*Connection* connection = new Connection();
             connection->setPeer(new Peer(client, blockchain, this, true));
 
             Json::Value info;
@@ -887,9 +887,9 @@ void CryptoKernel::Network::connectionFunc() {
             const std::time_t result = std::time(nullptr);
 
             connection->setInfo("lastseen", static_cast<uint64_t>(result));
-            connection->setInfo("score", 0);
+            connection->setInfo("score", 0);*/
 
-            if(handshakeServers.contains(client->getRemoteAddress().toString())) {
+            /*if(handshakeServers.contains(client->getRemoteAddress().toString())) {
             	auto entry = handshakeServers.find(client->getRemoteAddress().toString());
             	connection->setSendCipher(entry->second->send_cipher);
             	connection->setRecvCipher(entry->second->recv_cipher);
@@ -900,11 +900,14 @@ void CryptoKernel::Network::connectionFunc() {
 				connection->setRecvCipher(entry->second->recv_cipher);
 			}
 
-            connected.at(client->getRemoteAddress().toString()).reset(connection);
+            connected.at(client->getRemoteAddress().toString()).reset(connection);*/
 
-            std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
+
+            /*std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
             peers->put(dbTx.get(), client->getRemoteAddress().toString(), connection->getCachedInfo());
-            dbTx->commit();
+            dbTx->commit();*/
+
+            sockets.insert(client->getRemoteAddress().toString(), client);
         } else {
             delete client;
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
