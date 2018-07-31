@@ -58,9 +58,9 @@ public:
     virtual void onReceive(const void* data, std::size_t size) {
     	NoiseBuffer mbuf;
 
-    	std::size_t dstSize = size * 3;
+    	std::size_t dstSize = size;
 
-    	noise_buffer_set_inout(mbuf, (uint8_t*)data, dstSize, 4096);
+    	noise_buffer_set_inout(mbuf, (uint8_t*)data, dstSize, dstSize);
 		int err = noise_cipherstate_decrypt(recv_cipher, &mbuf);
 		if (err != NOISE_ERROR_NONE) {
 			log->printf(LOG_LEVEL_INFO, "!!!!!!!!!!!!!!!!!!!!!!!!! SOMETHING WENT WRONG");
