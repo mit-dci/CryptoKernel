@@ -66,7 +66,7 @@ public:
 			log->printf(LOG_LEVEL_INFO, "!!!!!!!!!!!!!!!!!!!!!!!!! SOMETHING WENT WRONG");
 			noise_perror("SOMETHING WENT WRONG ONRECEIVE" , err);
 			//break;
-			return 0;
+			return;
 		}
 
         append(mbuf.data, mbuf.size);
