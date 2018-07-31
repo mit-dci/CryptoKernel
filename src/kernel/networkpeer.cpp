@@ -373,7 +373,7 @@ sf::Socket::Status CryptoKernel::Network::Peer::sendPacket(std::string& data) {
 	std::unique_ptr<sf::Packet> packet;
 	if(send_cipher && recv_cipher) {
 		log->printf(LOG_LEVEL_INFO, "sent ENCRYPTED packet");
-		packet.reset(new EncryptedPacket(send_cipher, recv_cipher));
+		packet.reset(new EncryptedPacket(send_cipher, recv_cipher, log));
 	}
 	else {
 		log->printf(LOG_LEVEL_INFO, "sent UNENCRYPTED packet");
@@ -390,7 +390,7 @@ sf::Socket::Status CryptoKernel::Network::Peer::sendPacket(std::string& data) {
 sf::Socket::Status CryptoKernel::Network::Peer::receivePacket(sf::Packet** packet) {
 	if(send_cipher && recv_cipher) {
 		log->printf(LOG_LEVEL_INFO, "received ENCRYPTED packet");
-		*packet = new EncryptedPacket(send_cipher, recv_cipher);
+		*packet = new EncryptedPacket(send_cipher, recv_cipher, log);
 	}
 	else {
 		log->printf(LOG_LEVEL_INFO, "received UNENCRYPTED packet");
