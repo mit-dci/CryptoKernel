@@ -10,6 +10,7 @@
 
 #include <SFML/Network.hpp>
 #include <noise/protocol.h>
+#include "log.h"
 
 class EncryptedPacket : public sf::Packet {
 public:
