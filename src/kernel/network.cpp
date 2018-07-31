@@ -337,6 +337,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	    }
 	    else {
 	    	log->printf(LOG_LEVEL_INFO, "there's just nothing on the selector");
+	    	std::this_thread::sleep_for(std::chrono::seconds(2));
 	    }
 	}
 }
