@@ -487,20 +487,25 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 
 				if(sockets.contains(it->key())) {
 					sf::TcpSocket* socket = sockets.find(it->key())->second;
-					connection->setPeer(new Peer(socket, blockchain, this, false, log));
+					if(socket) {
+						connection->setPeer(new Peer(socket, blockchain, this, false, log));
 
-					peerInfo["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
-					peerInfo["score"] = 0;
+						peerInfo["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
+						peerInfo["score"] = 0;
 
-					connection->setInfo(peerInfo);
+						connection->setInfo(peerInfo);
 
-					connection->setSendCipher(entry->second->send_cipher);
-					connection->setRecvCipher(entry->second->recv_cipher);
+						connection->setSendCipher(entry->second->send_cipher);
+						connection->setRecvCipher(entry->second->recv_cipher);
 
-					connected.at(it->key()).reset(connection);
-					selector.remove(*entry->second->server);
+						connected.at(it->key()).reset(connection);
+						selector.remove(*entry->second->server);
 
-					handshakeClients.erase(it->key());
+						handshakeClients.erase(it->key());
+					}
+					else {
+						log->printf(LOG_LEVEL_INFO, "SOCKET NOT FOUND, OH NOOO");
+					}
 				}
 			}
 			continue;
@@ -513,20 +518,25 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 					log->printf(LOG_LEVEL_INFO, "the SERVER handshake is complete, this can join our connections!!!!");
 					Connection* connection = new Connection;
 					sf::TcpSocket* socket = sockets.find(it->key())->second;
-					connection->setPeer(new Peer(socket, blockchain, this, false, log));
+					if(socket) {
+						connection->setPeer(new Peer(socket, blockchain, this, false, log));
 
-					peerInfo["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
-					peerInfo["score"] = 0;
+						peerInfo["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
+						peerInfo["score"] = 0;
 
-					connection->setInfo(peerInfo);
+						connection->setInfo(peerInfo);
 
-					connection->setSendCipher(entry->second->send_cipher);
-					connection->setRecvCipher(entry->second->recv_cipher);
+						connection->setSendCipher(entry->second->send_cipher);
+						connection->setRecvCipher(entry->second->recv_cipher);
 
-					connected.at(it->key()).reset(connection);
-					selector.remove(*entry->second->client);
+						connected.at(it->key()).reset(connection);
+						selector.remove(*entry->second->client);
 
-					handshakeServers.erase(it->key());
+						handshakeServers.erase(it->key());
+					}
+					else {
+						log->printf(LOG_LEVEL_INFO, "SOCKET NOT FOUND OH NO");
+					}
 				}
 			}
 			continue;
