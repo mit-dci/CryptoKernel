@@ -44,6 +44,7 @@ public:
 		int err = noise_cipherstate_encrypt(send_cipher, &mbuf);
 		log->printf(LOG_LEVEL_INFO, "and good here as well");
 		if (err != NOISE_ERROR_NONE) {
+			log->printf(LOG_LEVEL_INFO, "!!!!!!!!!!!!!!!!!!!!!!!!! SOMETHING WENT WRONG");
 			noise_perror("SOMETHING WENT WRONG" , err);
 			//break;
 			return 0;
@@ -61,6 +62,12 @@ public:
 
     	noise_buffer_set_inout(mbuf, (uint8_t*)data, dstSize, 4096);
 		int err = noise_cipherstate_decrypt(recv_cipher, &mbuf);
+		if (err != NOISE_ERROR_NONE) {
+			log->printf(LOG_LEVEL_INFO, "!!!!!!!!!!!!!!!!!!!!!!!!! SOMETHING WENT WRONG");
+			noise_perror("SOMETHING WENT WRONG ONRECEIVE" , err);
+			//break;
+			return 0;
+		}
 
         append(mbuf.data, mbuf.size);
     }
