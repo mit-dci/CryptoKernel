@@ -311,6 +311,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	            {
 	                sf::TcpSocket& client = **it;
 	                if(selector.isReady(client)) {
+	                	log->printf(LOG_LEVEL_INFO, "Ah, so it's " + client.getRemoteAddress().toString() + " that is ready.");
 	                    // The client has sent some data, we can receive it
 	                    sf::Packet packet;
 	                    if (client.receive(packet) == sf::Socket::Done) {
@@ -326,7 +327,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	        		log->printf(LOG_LEVEL_INFO, "NETWORK: CLIENT KEY " + key);
 	        		auto it = handshakeClients.find(key);
 	        		if(selector.isReady(*it->second->server)) {
-	        			//log->printf(LOG_LEVEL_INFO, "NETWORK: " + key + " IS READY!!");
+	        			log->printf(LOG_LEVEL_INFO, "NETWORK: " + key + " IS READY!!");
 	        			sf::Packet packet;
 	        			if(it->second->server->receive(packet) == sf::Socket::Done) {
 	        				it->second->recievePacket(packet);
