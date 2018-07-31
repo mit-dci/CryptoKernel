@@ -331,7 +331,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	        			sf::Packet packet;
 	        			if(it->second->server->receive(packet) == sf::Socket::Done) {
 	        				std::string hooray;
-	        				hooray << packet;
+	        				packet >> hooray;
 	        				log->printf(LOG_LEVEL_INFO, "PACKET CONTENTS: " + hooray);
 	        				it->second->recievePacket(packet);
 	        			}
