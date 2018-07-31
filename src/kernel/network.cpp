@@ -633,6 +633,10 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 
 				peers->put(dbTx.get(), it->first, it->second->getCachedInfo());
 				connectedStats.erase(it->first);
+				handshakeServers.erase(it->first);
+				handshakeClients.erase(it->first);
+				sockets.erase(it->first);
+				peersToQuery.erase(it->first);
 				it->second->release();
 				connected.erase(it);
 				continue;
