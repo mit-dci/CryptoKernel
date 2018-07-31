@@ -493,6 +493,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 					connection->setRecvCipher(entry->second->recv_cipher);
 
 					connected.at(it->key()).reset(connection);
+					selector.remove(*socket);
 
 					handshakeClients.erase(it->key());
 				}
@@ -518,6 +519,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 					connection->setRecvCipher(entry->second->recv_cipher);
 
 					connected.at(it->key()).reset(connection);
+					selector.remove(*socket);
 
 					handshakeServers.erase(it->key());
 				}
@@ -635,7 +637,13 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 				connectedStats.erase(it->first);
 				handshakeServers.erase(it->first);
 				handshakeClients.erase(it->first);
-				sockets.erase(it->first);
+
+				if(sockets.contains(it->first)) {
+					auto entry = sockets.find(it->first);
+					selector.remove(*entry->second);
+					sockets.erase(it->first);
+				}
+
 				peersToQuery.erase(it->first);
 				it->second->release();
 				connected.erase(it);
