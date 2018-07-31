@@ -243,9 +243,9 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	// Create a list to store the future clients
 	std::list<sf::TcpSocket*> clients;
 
-	selectorMutex.lock();
+	//selectorMutex.lock();
 	selector.add(ls);
-	selectorMutex.unlock();
+	//selectorMutex.unlock();
 	// Create a selector
 	//sf::SocketSelector selector;
 	// Add the listener to the selector
@@ -286,9 +286,9 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 						handshakeServers.at(client->getRemoteAddress().toString()).reset(ncs);
 						// Add the new client to the selector so that we will
 						// be notified when it sends something
-						selectorMutex.lock();
+						//selectorMutex.lock();
 						selector.add(*client);
-						selectorMutex.unlock();
+						//selectorMutex.unlock();
 	            	}
 	            	else {
 	            		log->printf(LOG_LEVEL_INFO, "It would appear we are fielding another request from " + client->getRemoteAddress().toString() + "  Darn.");
@@ -386,9 +386,9 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 				handshakeClients.at(it->first).reset(ncc);
 				log->printf(LOG_LEVEL_INFO, "NETWORK() added connection to handshake clients: " + it->first);
 
-				selectorMutex.lock();
+				//selectorMutex.lock();
 				selector.add(*it->second);
-				selectorMutex.unlock();
+				//selectorMutex.unlock();
 				//handshakeClients.insert(it->first, );
 				//pendingConnections.erase(it++);
 			}
