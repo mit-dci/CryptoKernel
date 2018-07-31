@@ -5,7 +5,7 @@
 #include "EncryptedPacket.h"
 
 CryptoKernel::Network::Peer::Peer(sf::TcpSocket* client, CryptoKernel::Blockchain* blockchain,
-                                  CryptoKernel::Network* network, const bool incoming) {
+                                  CryptoKernel::Network* network, const bool incoming, CryptoKernel::Log* log) {
     this->client = client;
     this->blockchain = blockchain;
     this->network = network;
@@ -23,6 +23,8 @@ CryptoKernel::Network::Peer::Peer(sf::TcpSocket* client, CryptoKernel::Blockchai
     client->setBlocking(true);
 
     requestThread.reset(new std::thread(&CryptoKernel::Network::Peer::requestFunc, this));
+
+    this->log = log;
 }
 
 void CryptoKernel::Network::Peer::setSendCipher(NoiseCipherState* cipher) {
@@ -370,9 +372,11 @@ std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Peer::getBlo
 sf::Socket::Status CryptoKernel::Network::Peer::sendPacket(std::string& data) {
 	std::unique_ptr<sf::Packet> packet;
 	if(send_cipher && recv_cipher) {
+		log->printf(LOG_LEVEL_INFO, "sent ENCRYPTED packet");
 		packet.reset(new EncryptedPacket(send_cipher, recv_cipher));
 	}
 	else {
+		log->printf(LOG_LEVEL_INFO, "sent UNENCRYPTED packet");
 		packet.reset(new sf::Packet);
 	}
 	packet.reset(new sf::Packet);
@@ -385,9 +389,11 @@ sf::Socket::Status CryptoKernel::Network::Peer::sendPacket(std::string& data) {
 
 sf::Socket::Status CryptoKernel::Network::Peer::receivePacket(sf::Packet** packet) {
 	if(send_cipher && recv_cipher) {
+		log->printf(LOG_LEVEL_INFO, "received ENCRYPTED packet");
 		*packet = new EncryptedPacket(send_cipher, recv_cipher);
 	}
 	else {
+		log->printf(LOG_LEVEL_INFO, "received UNENCRYPTED packet");
 		*packet = new sf::Packet;
 	}
 	*packet = new sf::Packet;

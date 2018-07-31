@@ -487,7 +487,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 
 				if(sockets.contains(it->key())) {
 					sf::TcpSocket* socket = sockets.find(it->key())->second;
-					connection->setPeer(new Peer(socket, blockchain, this, false));
+					connection->setPeer(new Peer(socket, blockchain, this, false, log));
 
 					peerInfo["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
 					peerInfo["score"] = 0;
@@ -513,7 +513,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 					log->printf(LOG_LEVEL_INFO, "the SERVER handshake is complete, this can join our connections!!!!");
 					Connection* connection = new Connection;
 					sf::TcpSocket* socket = sockets.find(it->key())->second;
-					connection->setPeer(new Peer(socket, blockchain, this, false));
+					connection->setPeer(new Peer(socket, blockchain, this, false, log));
 
 					peerInfo["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
 					peerInfo["score"] = 0;

@@ -11,7 +11,7 @@
 class CryptoKernel::Network::Peer {
 public:
     Peer(sf::TcpSocket* client, CryptoKernel::Blockchain* blockchain,
-         CryptoKernel::Network* network, const bool incoming);
+         CryptoKernel::Network* network, const bool incoming, CryptoKernel::Log* log);
     ~Peer();
 
     Json::Value getInfo();
@@ -45,6 +45,7 @@ public:
     void setRecvCipher(NoiseCipherState* cipher);
 
 private:
+    CryptoKernel::Log* log;
     sf::TcpSocket* client;
     CryptoKernel::Blockchain* blockchain;
     CryptoKernel::Network* network;
