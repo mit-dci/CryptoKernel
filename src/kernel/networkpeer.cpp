@@ -112,28 +112,30 @@ void CryptoKernel::Network::Peer::requestFunc() {
     uint64_t startTime = static_cast<uint64_t>(std::time(nullptr));
 
     while(running) {
-        sf::Packet packet;
+        sf::Packet* packet = new sf::Packet;
 
         sf::SocketSelector selector;
         selector.add(*client);
         if(selector.wait(sf::seconds(1))) {
-            const auto status = client->receive(packet);
+        	//sf::Packet* packet = new sf::Packet;
+            const auto status = receivePacket(&packet);//client->receive(packet);
+
             if(status == sf::Socket::Done) {
                 nRequests++;
 
                 clientMutex.lock();
-                stats.transferDown += packet.getDataSize();
+                stats.transferDown += packet->getDataSize();
                 clientMutex.unlock();
 
                 // Don't allow packets bigger than 50MB
-                if(packet.getDataSize() > 50 * 1024 * 1024) {
+                if(packet->getDataSize() > 50 * 1024 * 1024) {
                     network->changeScore(client->getRemoteAddress().toString(), 250);
                     running = false;
                     break;
                 }
 
                 std::string requestString;
-                packet >> requestString;
+                (*packet) >> requestString;
 
                 // If this breaks, request will be null
                 const Json::Value request = CryptoKernel::Storage::toJson(requestString); // but this is the response....
