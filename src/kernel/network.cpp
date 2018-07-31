@@ -1,4 +1,3 @@
-#include "network.h"
 #include "networkpeer.h"
 #include "version.h"
 #include "EncryptedPacket.h"
@@ -8,6 +7,10 @@
 #include <cstdlib>
 #include <ctime>
 #include <openssl/rand.h>
+
+// the problem arises because of our misuse of the pendingConnections map
+// we're using the same socket, but we shouldn't be
+// also, only the party that initiated the contact will be ready to make a full connection, but both have the keys
 
 CryptoKernel::Network::Connection::Connection() {
 
@@ -474,47 +477,52 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 		if(handshakeClients.contains(it->key())) {
 			auto entry = handshakeClients.find(it->key());
 			if(entry->second->getHandshakeComplete()) {
-				log->printf(LOG_LEVEL_INFO, "the CLIENT handshake ic omplete, this can join our connections!!!!");
+				log->printf(LOG_LEVEL_INFO, "the CLIENT handshake is complete, this can join our connections!!!!");
 				Connection* connection = new Connection;
-				connection->setPeer(new Peer(entry->second->server, blockchain, this, false));
 
-				peerInfo["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
-				peerInfo["score"] = 0;
+				if(sockets.contains(it->key())) {
+					sf::TcpSocket* socket = sockets.find(it->key())->second;
+					connection->setPeer(new Peer(socket, blockchain, this, false));
 
-				connection->setInfo(peerInfo);
+					peerInfo["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
+					peerInfo["score"] = 0;
 
-				connection->setSendCipher(entry->second->send_cipher);
-				connection->setRecvCipher(entry->second->recv_cipher);
+					connection->setInfo(peerInfo);
 
-				connected.at(it->key()).reset(connection);
+					connection->setSendCipher(entry->second->send_cipher);
+					connection->setRecvCipher(entry->second->recv_cipher);
 
-				//handshakeClients.erase(it->key());
+					connected.at(it->key()).reset(connection);
 
-				continue;
+					//handshakeClients.erase(it->key());
+				}
 			}
+			continue;
 		}
 
 		if(handshakeServers.contains(it->key())) {
 			auto entry = handshakeServers.find(it->key());
 			if(entry->second->getHandshakeComplete()) {
-				log->printf(LOG_LEVEL_INFO, "the SERVER handshake ic omplete, this can join our connections!!!!");
-				Connection* connection = new Connection;
-				connection->setPeer(new Peer(entry->second->client, blockchain, this, false));
+				if(sockets.contains(it->key())) {
+					log->printf(LOG_LEVEL_INFO, "the SERVER handshake is complete, this can join our connections!!!!");
+					Connection* connection = new Connection;
+					sf::TcpSocket* socket = sockets.find(it->key())->second;
+					connection->setPeer(new Peer(socket, blockchain, this, false));
 
-				peerInfo["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
-				peerInfo["score"] = 0;
+					peerInfo["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
+					peerInfo["score"] = 0;
 
-				connection->setInfo(peerInfo);
+					connection->setInfo(peerInfo);
 
-				connection->setSendCipher(entry->second->send_cipher);
-				connection->setRecvCipher(entry->second->recv_cipher);
+					connection->setSendCipher(entry->second->send_cipher);
+					connection->setRecvCipher(entry->second->recv_cipher);
 
-				connected.at(it->key()).reset(connection);
+					connected.at(it->key()).reset(connection);
 
-				//handshakeServers.erase(it->key());
-
-				continue;
+					//handshakeServers.erase(it->key());
+				}
 			}
+			continue;
 		}
 
 		//log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + it->key());
@@ -549,7 +557,8 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 			connected.at(peerIp).reset(connection);*/
 			// end comment
 
-			peersToQuery.insert(peerIp, socket);
+			peersToQuery.insert(peerIp, true);
+			sockets.insert(peerIp, socket);
 		}
 		else {
 			log->printf(LOG_LEVEL_WARN, "Network(): Failed to connect to " + peerIp);
