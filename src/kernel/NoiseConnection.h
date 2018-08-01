@@ -180,6 +180,10 @@ public:
 		this->ipAddress = ipAddress;
 		this->port = port;
 
+		//echo_load_private_key("client_key_25519", client_private_key_25519, sizeof(client_private_key_25519));
+		client_private_key = "client_private_key_25519";
+
+
 		send_cipher = 0;
 		recv_cipher = 0;
 
@@ -626,28 +630,28 @@ public:
 //	    }
 //
 //	    /* Set the local keypair for the client */
-//	    if (noise_handshakestate_needs_local_keypair(handshake)) {
-//	        if (client_private_key) {
-//	            dh = noise_handshakestate_get_local_keypair_dh(handshake);
-//	            key_len = noise_dhstate_get_private_key_length(dh);
-//	            key = (uint8_t *)malloc(key_len);
-//	            if (!key)
-//	                return 0;
-//	            if (!echo_load_private_key(client_private_key.c_str(), key, key_len)) {
-//	                noise_free(key, key_len);
-//	                return 0;
-//	            }
-//	            err = noise_dhstate_set_keypair_private(dh, key, key_len);
-//	            noise_free(key, key_len);
-//	            if (err != NOISE_ERROR_NONE) {
-//	                noise_perror("set client private key", err);
-//	                return 0;
-//	            }
-//	        } else {
-//	            fprintf(stderr, "Client private key required, but not provided.\n");
-//	            return 0;
-//	        }
-//	    }
+	    if (noise_handshakestate_needs_local_keypair(handshake)) {
+	        if (client_private_key) {
+	            dh = noise_handshakestate_get_local_keypair_dh(handshake);
+	            key_len = noise_dhstate_get_private_key_length(dh);
+	            key = (uint8_t *)malloc(key_len);
+	            if (!key)
+	                return 0;
+	            if (!echo_load_private_key(client_private_key.c_str(), key, key_len)) {
+	                noise_free(key, key_len);
+	                return 0;
+	            }
+	            err = noise_dhstate_set_keypair_private(dh, key, key_len);
+	            noise_free(key, key_len);
+	            if (err != NOISE_ERROR_NONE) {
+	                noise_perror("set client private key", err);
+	                return 0;
+	            }
+	        } else {
+	            fprintf(stderr, "Client private key required, but not provided.\n");
+	            return 0;
+	        }
+	    }
 //
 //	    /* Set the remote public key for the server */
 //	    if (noise_handshakestate_needs_remote_public_key(handshake)) {
@@ -697,6 +701,9 @@ public:
 
 	NoiseCipherState* send_cipher;
 	NoiseCipherState* recv_cipher;
+
+	//uint8_t client_private_key_25519[CURVE25519_KEY_LEN];
+	std::string client_private_key;
 };
 
 class NoiseConnectionServer {
