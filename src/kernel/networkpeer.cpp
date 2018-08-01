@@ -28,11 +28,11 @@ CryptoKernel::Network::Peer::Peer(sf::TcpSocket* client, CryptoKernel::Blockchai
 }
 
 void CryptoKernel::Network::Peer::setSendCipher(NoiseCipherState* cipher) {
-	this->send_cipher = 0;//cipher;
+	this->send_cipher = cipher;
 }
 
 void CryptoKernel::Network::Peer::setRecvCipher(NoiseCipherState* cipher) {
-	this->recv_cipher = 0;//cipher;
+	this->recv_cipher = cipher;
 }
 
 CryptoKernel::Network::Peer::~Peer() {
