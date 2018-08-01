@@ -225,7 +225,7 @@ public:
 
 		/* Check that the echo protocol supports the handshake protocol.
 		   One-way handshake patterns and XXfallback are not yet supported. */
-		std::string protocol = "Noise_NN_25519_AESGCM_SHA256";
+		std::string protocol = "Noise_XX_25519_AESGCM, SHA256";//"Noise_NN_25519_AESGCM_SHA256";
 		if (!echo_get_protocol_id(&id, protocol.c_str())) {
 			fprintf(stderr, "%s: not supported by the echo protocol\n", protocol.c_str());
 			return;
