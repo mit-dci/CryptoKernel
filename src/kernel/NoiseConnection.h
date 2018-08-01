@@ -631,7 +631,7 @@ public:
 //
 //	    /* Set the local keypair for the client */
 	    if (noise_handshakestate_needs_local_keypair(handshake)) {
-	        if (client_private_key) {
+	        if (client_private_key.length() > 0) {
 	            dh = noise_handshakestate_get_local_keypair_dh(handshake);
 	            key_len = noise_dhstate_get_private_key_length(dh);
 	            key = (uint8_t *)malloc(key_len);
@@ -703,7 +703,7 @@ public:
 	NoiseCipherState* recv_cipher;
 
 	//uint8_t client_private_key_25519[CURVE25519_KEY_LEN];
-	std::string client_private_key;
+	//std::string client_private_key;
 };
 
 class NoiseConnectionServer {
