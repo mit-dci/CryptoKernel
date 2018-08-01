@@ -137,7 +137,18 @@ void CryptoKernel::Network::Peer::requestFunc() {
                 }
 
                 std::string requestString;
-                (*packet) >> requestString;
+
+                if(send_cipher && recv_cipher) {
+                	NoiseBuffer mbuf;
+                	mbuf.data = (uint8_t*)packet->getData();
+                	mbuf.size = packet->getDataSize();
+                	mbuf.max_size = 65536;
+                	noise_cipherstate_decrypt(recv_cipher, &mbuf);
+                	requestString.assign((const char*)mbuf.data);
+                }
+                else {
+                	(*packet) >> requestString;
+                }
 
                 // If this breaks, request will be null
                 const Json::Value request = CryptoKernel::Storage::toJson(requestString); // but this is the response....
@@ -371,32 +382,44 @@ std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Peer::getBlo
 
 sf::Socket::Status CryptoKernel::Network::Peer::sendPacket(std::string& data) {
 	std::unique_ptr<sf::Packet> packet;
-	if(send_cipher && recv_cipher) {
+	/*if(send_cipher && recv_cipher) {
 		log->printf(LOG_LEVEL_INFO, "sent ENCRYPTED packet");
 		packet.reset(new EncryptedPacket(send_cipher, recv_cipher, log));
 	}
 	else {
 		log->printf(LOG_LEVEL_INFO, "sent UNENCRYPTED packet");
 		packet.reset(new sf::Packet);
+	}*/
+	packet.reset(new sf::Packet);
+
+	if(send_cipher && recv_cipher) {
+		NoiseBuffer mbuf;
+		mbuf.data = (uint8_t*)data.c_str();
+		mbuf.size = data.size();
+		mbuf.max_size = 65536;
+		noise_cipherstate_encrypt(send_cipher, &mbuf);
+
+		packet->append(mbuf.data, mbuf.size);
 	}
-	//packet.reset(new sf::Packet);
-
-
-	packet->operator <<(data);
+	else {
+		packet->operator <<(data);
+	}
 
 	return client->send(*packet);
 }
 
 sf::Socket::Status CryptoKernel::Network::Peer::receivePacket(sf::Packet** packet) {
-	if(send_cipher && recv_cipher) {
+	/*if(send_cipher && recv_cipher) {
 		log->printf(LOG_LEVEL_INFO, "received ENCRYPTED packet");
 		*packet = new EncryptedPacket(send_cipher, recv_cipher, log);
 	}
 	else {
 		log->printf(LOG_LEVEL_INFO, "received UNENCRYPTED packet");
 		*packet = new sf::Packet;
-	}
-	//*packet = new sf::Packet;
+	}*/
+	*packet = new sf::Packet;
+
+
 
 	return client->receive(**packet);
 }
