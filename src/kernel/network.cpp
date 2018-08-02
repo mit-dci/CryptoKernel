@@ -418,7 +418,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 		if(handshakeClients.contains(it->key())) {
 			auto entry = handshakeClients.find(it->key());
 			if(entry->second->getHandshakeComplete()) {
-				log->printf(LOG_LEVEL_INFO, "the CLIENT handshake is complete, this can join our connections!!!!");
+				log->printf(LOG_LEVEL_INFO, "the CLIENT handshake is complete, this can join our connections!!!! " + entry->first);
 				Connection* connection = new Connection;
 
 				if(sockets.contains(it->key())) {
@@ -451,7 +451,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 			auto entry = handshakeServers.find(it->key());
 			if(entry->second->getHandshakeComplete()) {
 				if(sockets.contains(it->key())) {
-					log->printf(LOG_LEVEL_INFO, "the SERVER handshake is complete, this can join our connections!!!!");
+					log->printf(LOG_LEVEL_INFO, "the SERVER handshake is complete, this can join our connections!!!! " + entry->first);
 					Connection* connection = new Connection;
 					sf::TcpSocket* socket = sockets.find(it->key())->second;
 					if(socket) {
