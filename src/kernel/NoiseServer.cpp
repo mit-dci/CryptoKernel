@@ -48,9 +48,10 @@ NoiseServer::NoiseServer(sf::TcpSocket* client, uint64_t port, CryptoKernel::Log
 
 void NoiseServer::writeInfo() {
 	log->printf(LOG_LEVEL_INFO, "SERVER write info starting");
-	bool yippy = false;
 
 	uint8_t message[MAX_MESSAGE_LEN + 2];
+
+	int ok = 1;
 
 	while(true) {
 		//handshakeMutex.lock();
@@ -63,8 +64,8 @@ void NoiseServer::writeInfo() {
 			int err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
 			if (err != NOISE_ERROR_NONE) {
 				noise_perror("write handshake error!! ", err);
-				//ok = 0;
-				//break;
+				ok = 0;
+				break;
 			}
 			message[0] = (uint8_t)(mbuf.size >> 8);
 			message[1] = (uint8_t)mbuf.size;
@@ -75,15 +76,14 @@ void NoiseServer::writeInfo() {
 
 			sf::Packet packet;
 			packet.append(message, mbuf.size + 2);
-			client->send(packet);
 
-			if(yippy) {
-				log->printf(LOG_LEVEL_INFO, "yippy happened, but we got back to this state??");
+			if(client->send(packet) != sf::Socket::Done) {
+				log->printf(LOG_LEVEL_ERR, "something went wrong sending packet from client");
+				ok = 0;
+				break;
 			}
 		}
 		else if(action != NOISE_ACTION_READ_MESSAGE && action != NOISE_ACTION_NONE) { // for some reason, a noise action none fires
-			yippy = true;
-			log->printf(LOG_LEVEL_INFO, "SERVER yippy " + std::to_string(action));
 			break;
 		}
 
@@ -91,7 +91,6 @@ void NoiseServer::writeInfo() {
 	}
 
 	/* If the action is not "split", then the handshake has failed */
-	int ok = 1;
 	if (ok && noise_handshakestate_get_action(handshake) != NOISE_ACTION_SPLIT) {
 		log->printf(LOG_LEVEL_INFO, "SERVER handshake failed");
 		fprintf(stderr, "protocol handshake failed\n");
@@ -123,15 +122,7 @@ void NoiseServer::recievePacket(sf::Packet packet) {
 	uint8_t message[MAX_MESSAGE_LEN + 2];
 
 	if(!recievedId) {
-		//sf::Packet idBytes;
-		/*if(client->receive(idBytes) != sf::Socket::Done) {
-			log->printf(LOG_LEVEL_INFO, "Did not receive the echo protocol identifier");
-			fprintf(stderr, "Did not receive the echo protocol identifier\n");
-			//ok = 0;
-		}*/
-
 		log->printf(LOG_LEVEL_INFO, "Server says the id pattern size is " + std::to_string(packet.getDataSize()));
-		//void* cool = &id;
 		memcpy(&id, packet.getData(), (unsigned long int)packet.getDataSize());
 
 		log->printf(LOG_LEVEL_INFO, "Server says the id pattern itself is " + std::to_string(id.pattern));
@@ -180,15 +171,6 @@ void NoiseServer::recievePacket(sf::Packet packet) {
 		int action = noise_handshakestate_get_action(handshake);
 		if(action == NOISE_ACTION_READ_MESSAGE) {
 			log->printf(LOG_LEVEL_INFO, "SERVER READING MESSAGE!!!");
-			/* Read the next handshake message and discard the payload */
-			/*message_size = echo_recv(fd, message, sizeof(message));
-			if (!message_size) {
-				ok = 0;
-				break;
-			}*/
-
-			//sf::Packet packet;
-			//client->receive(packet);
 			message_size = packet.getDataSize();
 			memcpy(message, packet.getData(), packet.getDataSize());
 
@@ -198,7 +180,7 @@ void NoiseServer::recievePacket(sf::Packet packet) {
 				log->printf(LOG_LEVEL_INFO, "SERVER READ MESSAGE FAIL");
 				noise_perror("read handshake", err);
 				//ok = 0;
-				//break;
+				return;
 			}
 		}
 	}

@@ -13,7 +13,6 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t 
 	this->ipAddress = ipAddress;
 	this->port = port;
 
-	//echo_load_private_key("client_key_25519", client_private_key_25519, sizeof(client_private_key_25519));
 	client_private_key = "client_key_25519";
 
 	send_cipher = 0;
@@ -25,35 +24,6 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t 
 
 	log->printf(LOG_LEVEL_INFO, "Noise CLIENT !!!!!! started");
 	log->printf(LOG_LEVEL_INFO, std::to_string(NOISE_ACTION_NONE) + ", " + std::to_string(NOISE_ACTION_WRITE_MESSAGE) + ", " + std::to_string(NOISE_ACTION_READ_MESSAGE) + ", " + std::to_string(NOISE_ACTION_FAILED) + ", " + std::to_string(NOISE_ACTION_SPLIT) + ", " + std::to_string(NOISE_ACTION_COMPLETE));
-
-//		/* Check that the echo protocol supports the handshake protocol.
-//		   One-way handshake patterns and XXfallback are not yet supported. */
-//		std::string protocol = "Noise_NN_25519_AESGCM_SHA256";
-//		if (!echo_get_protocol_id(&id, protocol.c_str())) {
-//			fprintf(stderr, "%s: not supported by the echo protocol\n", protocol.c_str());
-//			//return 1;
-//		}
-//
-//		/* Create a HandshakeState object for the protocol */
-//		int err = noise_handshakestate_new_by_name
-//			(&handshake, protocol.c_str(), NOISE_ROLE_INITIATOR);
-//		if (err != NOISE_ERROR_NONE) {
-//			noise_perror(protocol.c_str(), err);
-//			//return 1;
-//		}
-//
-//		/* Set the handshake options and verify that everything we need
-//		   has been supplied on the command-line. */
-//		if (!initialize_handshake(handshake, &id, sizeof(id))) {
-//			noise_handshakestate_free(handshake);
-//			//return 1;
-//		}
-//		if (noise_init() != NOISE_ERROR_NONE) {
-//			fprintf(stderr, "Noise initialization failed\n");
-//			//return 1;
-//		}
-
-
 
 	if (noise_init() != NOISE_ERROR_NONE) {
 		log->printf(LOG_LEVEL_INFO, "Noise initialization failed");
@@ -140,16 +110,15 @@ void NoiseClient::writeInfo() {
 				}
 				message[0] = (uint8_t)(mbuf.size >> 8);
 				message[1] = (uint8_t)mbuf.size;
-				//handshakeMutex.unlock();
-				/*if (!echo_send(fd, message, mbuf.size + 2)) {
-					ok = 0;
-					break;
-				}*/
 
 				log->printf(LOG_LEVEL_INFO, "CLIENT WRITE INFO REALLY SENDING A PACKET FRIEND");
 				sf::Packet packet;
 				packet.append(message, mbuf.size + 2);
-				server->send(packet);
+				if(server->send(packet) != sf::Socket::Done) {
+					log->printf(LOG_LEVEL_ERR, "CLIENT couldn't send packet");
+					ok = 0;
+					break;
+				}
 			}
 			else if(action != NOISE_ACTION_READ_MESSAGE) {
 				log->printf(LOG_LEVEL_INFO, "Either the handshake succeeded, or it failed");
@@ -181,14 +150,7 @@ void NoiseClient::writeInfo() {
 	noise_handshakestate_free(handshake);
 	handshake = 0;
 
-	/* If we will be padding messages, we will need a random number generator */
-	/*if (ok && padding) {
-		err = noise_randstate_new(&rand);
-		if (err != NOISE_ERROR_NONE) {
-			noise_perror("random number generator", err);
-			ok = 0;
-		}
-	}*/
+	// padding would go here, if we used it
 
 	/* Tell the user that the handshake has been successful */
 	if (ok) {
@@ -215,26 +177,15 @@ void NoiseClient::recievePacket(sf::Packet packet) {
 
 	if(action == NOISE_ACTION_READ_MESSAGE) {
 		log->printf(LOG_LEVEL_INFO, "CLIENT READING A MESSAGE!!");
-		//std::lock_guard<std::mutex> hm(handshakeMutex);
-
-		/* Read the next handshake message and discard the payload */
-		//sf::Packet packet;
-		//server->receive(packet);
 
 		message_size = packet.getDataSize();
 		memcpy(message, packet.getData(), packet.getDataSize());
-		/*message_size = echo_recv(fd, message, sizeof(message));
-		if (!message_size) {
-			ok = 0;
-			break;
-		}*/
 
 		noise_buffer_set_input(mbuf, message + 2, message_size - 2);
 		err = noise_handshakestate_read_message(handshake, &mbuf, NULL);
 		if (err != NOISE_ERROR_NONE) {
 			noise_perror("read handshake", err);
 			ok = 0;
-			//break;
 			return;
 		}
 	}
@@ -265,21 +216,9 @@ int NoiseClient::initializeHandshake(NoiseHandshakeState *handshake, const void 
 		return 0;
 	}
 
-//	    /* Set the PSK if one is present.  This will fail if a PSK is not needed.
-//	       If a PSK is needed but it wasn't provided then the protocol will
-//	       fail later when noise_handshakestate_start() is called. */
-//	    if (psk_file && noise_handshakestate_needs_pre_shared_key(handshake)) {
-//	        if (!echo_load_public_key(psk_file.c_str(), (unsigned char*)psk.c_str(), sizeof(psk.c_str())))
-//	            return 0;
-//	        err = noise_handshakestate_set_pre_shared_key
-//	            (handshake, (const unsigned char*)psk.c_str(), sizeof(psk.c_str()));
-//	        if (err != NOISE_ERROR_NONE) {
-//	            noise_perror("psk", err);
-//	            return 0;
-//	        }
-//	    }
-//
-//	    /* Set the local keypair for the client */
+	// we are not using pre-shared keys, but they would be initialized right here
+
+	/* Set the local keypair for the client */
 	if (noise_handshakestate_needs_local_keypair(handshake)) {
 		if (client_private_key.length() > 0) {
 			dh = noise_handshakestate_get_local_keypair_dh(handshake);
@@ -306,30 +245,8 @@ int NoiseClient::initializeHandshake(NoiseHandshakeState *handshake, const void 
 			return 0;
 		}
 	}
-//
-//	    /* Set the remote public key for the server */
-//	    if (noise_handshakestate_needs_remote_public_key(handshake)) {
-//	        if (server_public_key) {
-//	            dh = noise_handshakestate_get_remote_public_key_dh(handshake);
-//	            key_len = noise_dhstate_get_public_key_length(dh);
-//	            key = (uint8_t *)malloc(key_len);
-//	            if (!key)
-//	                return 0;
-//	            if (!echo_load_public_key(server_public_key.c_str(), key, key_len)) {
-//	                noise_free(key, key_len);
-//	                return 0;
-//	            }
-//	            err = noise_dhstate_set_public_key(dh, key, key_len);
-//	            noise_free(key, key_len);
-//	            if (err != NOISE_ERROR_NONE) {
-//	                noise_perror("set server public key", err);
-//	                return 0;
-//	            }
-//	        } else {
-//	            fprintf(stderr, "Server public key required, but not provided.\n");
-//	            return 0;
-//	        }
-//	    }
+
+	// we are not using a remote public key for the server, but it would be initialized right here
 
 	/* Ready to go */
 	log->printf(LOG_LEVEL_INFO, "handshake initialization successful!");
