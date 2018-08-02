@@ -270,16 +270,22 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	        {
 	        	log->printf(LOG_LEVEL_INFO, "selector not ready");
 	            // The listener socket is not ready, test all other sockets (the clients)
-	            for(std::list<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
-	            {
-	                sf::TcpSocket& client = **it;
-	                if(selector.isReady(client)) {
-	                	log->printf(LOG_LEVEL_INFO, "Ah, so it's " + client.getRemoteAddress().toString() + " that is ready.");
+	        	std::vector<std::string> nccKeys = handshakeServers.keys(); // this should not contain any of the same things as handshakeClients
+				for(std::string key : nccKeys) {
+	                auto it = handshakeServers.find(key);
+	                if(selector.isReady(*it->second->client)) {
+	                	log->printf(LOG_LEVEL_INFO, "Ah, so it's " + it->second->client->getRemoteAddress().toString() + " that is ready.");
 	                    // The client has sent some data, we can receive it
 	                    sf::Packet packet;
-	                    if (client.receive(packet) == sf::Socket::Done) {
-	                    	auto it = handshakeServers.find(client.getRemoteAddress().toString());
-	                    	it->second->recievePacket(packet); // let the server know that the packet has been recieved
+	                    if(it->second->client->receive(packet) == sf::Socket::Done) {
+	                    	//auto it = handshakeServers.find(client.getRemoteAddress().toString());
+	                    	//it->second->recievePacket(packet); // let the server know that the packet has been recieved
+	                    	it->second->recievePacket(packet);
+	                    }
+	                    else {
+	                    	log->printf(LOG_LEVEL_INFO, "something went wrong receiving packet from " + it->second->client->getRemoteAddress().toString() + " disconnecting it.");
+	                    	selector.remove(*it->second->client);
+	                    	handshakeServers.erase(it->first);
 	                    }
 	                }
 	            }
@@ -297,6 +303,11 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	        				packet >> hooray;
 	        				log->printf(LOG_LEVEL_INFO, "PACKET CONTENTS: " + hooray);
 	        				it->second->recievePacket(packet);
+	        			}
+	        			else {
+	        				log->printf(LOG_LEVEL_INFO, "something went wrong receiving packet from " + it->second->server->getRemoteAddress().toString() + " disconnecting it.");
+							selector.remove(*it->second->server);
+							handshakeClients.erase(it->first);
 	        			}
 	        		}
 	        	}
