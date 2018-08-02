@@ -30,16 +30,8 @@ NoiseServer::NoiseServer(sf::TcpSocket* client, uint64_t port, CryptoKernel::Log
 		log->printf(LOG_LEVEL_INFO, "could not load server key 25519");
 		return;
 	}
-	if(!noiseUtil.loadPrivateKey("server_key_448", server_key_448, sizeof(server_key_448))) {
-		log->printf(LOG_LEVEL_INFO, "could not load server key 448");
-		return;
-	}
 	if(!noiseUtil.loadPublicKey("client_key_25519.pub", client_key_25519, sizeof(client_key_25519))) {
 		log->printf(LOG_LEVEL_INFO, "could not load client key 25519");
-		return;
-	}
-	if(!noiseUtil.loadPublicKey("client_key_448.pub", client_key_448, sizeof(client_key_448))) {
-		log->printf(LOG_LEVEL_INFO, "could not load client key 448");
 		return;
 	}
 
@@ -206,10 +198,8 @@ int NoiseServer::initializeHandshake(NoiseHandshakeState* handshake, const Noise
 		if (dh_id == NOISE_DH_CURVE25519) {
 			err = noise_dhstate_set_keypair_private
 				(dh, server_key_25519, sizeof(server_key_25519));
-		} else if (dh_id == NOISE_DH_CURVE448) {
-			err = noise_dhstate_set_keypair_private
-				(dh, server_key_448, sizeof(server_key_448));
-		} else {
+		}
+		else {
 			err = NOISE_ERROR_UNKNOWN_ID;
 		}
 		if (err != NOISE_ERROR_NONE) {
@@ -225,10 +215,8 @@ int NoiseServer::initializeHandshake(NoiseHandshakeState* handshake, const Noise
 		if (dh_id == NOISE_DH_CURVE25519) {
 			err = noise_dhstate_set_public_key
 				(dh, client_key_25519, sizeof(client_key_25519));
-		} else if (dh_id == NOISE_DH_CURVE448) {
-			err = noise_dhstate_set_public_key
-				(dh, client_key_448, sizeof(client_key_448));
-		} else {
+		}
+		else {
 			err = NOISE_ERROR_UNKNOWN_ID;
 		}
 		if (err != NOISE_ERROR_NONE) {
