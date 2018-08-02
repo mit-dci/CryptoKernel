@@ -260,6 +260,7 @@ int NoiseClient::initializeHandshake(NoiseHandshakeState *handshake, const void 
 	/* Set the prologue first */
 	err = noise_handshakestate_set_prologue(handshake, prologue, prologue_len);
 	if (err != NOISE_ERROR_NONE) {
+		log->printf(LOG_LEVEL_INFO, "CLIENT PROLOGUE FAILED");
 		noise_perror("prologue", err);
 		return 0;
 	}
@@ -284,8 +285,10 @@ int NoiseClient::initializeHandshake(NoiseHandshakeState *handshake, const void 
 			dh = noise_handshakestate_get_local_keypair_dh(handshake);
 			key_len = noise_dhstate_get_private_key_length(dh);
 			key = (uint8_t *)malloc(key_len);
-			if(!key)
+			if(!key) {
+				log->printf(LOG_LEVEL_INFO, "CLIENT KEY ERROR");
 				return 0;
+			}
 			if(noiseUtil.loadPrivateKey(client_private_key.c_str(), key, key_len)) {
 				noise_free(key, key_len);
 				return 0;
@@ -293,10 +296,12 @@ int NoiseClient::initializeHandshake(NoiseHandshakeState *handshake, const void 
 			err = noise_dhstate_set_keypair_private(dh, key, key_len);
 			noise_free(key, key_len);
 			if (err != NOISE_ERROR_NONE) {
+				log->printf(LOG_LEVEL_INFO, "SET CLIENT PRIVATE KEY ERROR");
 				noise_perror("set client private key", err);
 				return 0;
 			}
 		} else {
+			log->printf(LOG_LEVEL_INFO, "CLIENT private key required but not provided!!");
 			fprintf(stderr, "Client private key required, but not provided.\n");
 			return 0;
 		}
@@ -327,6 +332,7 @@ int NoiseClient::initializeHandshake(NoiseHandshakeState *handshake, const void 
 //	    }
 
 	/* Ready to go */
+	log->printf(LOG_LEVEL_INFO, "handshake initialization successful!");
 	return 1;
 }
 
