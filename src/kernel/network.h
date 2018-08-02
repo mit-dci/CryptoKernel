@@ -8,7 +8,8 @@
 
 #include "blockchain.h"
 #include "concurrentmap.h"
-#include "NoiseConnection.h"
+#include "NoiseServer.h"
+#include "NoiseClient.h"
 
 namespace CryptoKernel {
 /**
@@ -192,8 +193,8 @@ private:
 
     ConcurrentMap<std::string, uint64_t> banned;
     ConcurrentMap<std::string, bool> peersToQuery; // regarding encryption, for now
-    ConcurrentMap<std::string, std::unique_ptr<NoiseConnectionClient>> handshakeClients;
-    ConcurrentMap<std::string, std::unique_ptr<NoiseConnectionServer>> handshakeServers;
+    ConcurrentMap<std::string, std::unique_ptr<NoiseClient>> handshakeClients;
+    ConcurrentMap<std::string, std::unique_ptr<NoiseServer>> handshakeServers;
     ConcurrentMap<std::string, sf::TcpSocket*> sockets;
 
     sf::IpAddress myAddress;

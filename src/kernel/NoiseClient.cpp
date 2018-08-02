@@ -16,7 +16,6 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t 
 	//echo_load_private_key("client_key_25519", client_private_key_25519, sizeof(client_private_key_25519));
 	client_private_key = "client_key_25519";
 
-
 	send_cipher = 0;
 	recv_cipher = 0;
 

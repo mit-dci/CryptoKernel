@@ -282,7 +282,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	            		log->printf(LOG_LEVEL_INFO, "adding a client...");
 						// Add the new client to the clients list
 						clients.push_back(client);
-						NoiseConnectionServer* ncs = new NoiseConnectionServer(client, 8888, log);
+						NoiseServer* ncs = new NoiseServer(client, 8888, log);
 						handshakeServers.at(client->getRemoteAddress().toString()).reset(ncs);
 						// Add the new client to the selector so that we will
 						// be notified when it sends something
@@ -387,7 +387,7 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 			log->printf(LOG_LEVEL_INFO, "looking at in loop " + it->first);
 			if(!handshakeClients.contains(it->first) && !handshakeServers.contains(it->first)) {
 				log->printf(LOG_LEVEL_INFO, "Creating new noise connection client at " + it->first);
-				NoiseConnectionClient* ncc = new NoiseConnectionClient(it->second, it->first, 88, log);
+				NoiseClient* ncc = new NoiseClient(it->second, it->first, 88, log);
 				handshakeClients.at(it->first).reset(ncc);
 				log->printf(LOG_LEVEL_INFO, "NETWORK() added connection to handshake clients: " + it->first);
 
