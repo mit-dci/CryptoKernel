@@ -82,7 +82,7 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t 
 		return;
 	}
 
-	//writeInfoThread.reset(new std::thread(&NoiseConnectionClient::writeInfo, this)); // start the write info thread
+	writeInfoThread.reset(new std::thread(&NoiseClient::writeInfo, this)); // start the write info thread
 }
 
 void NoiseClient::writeInfo() {
