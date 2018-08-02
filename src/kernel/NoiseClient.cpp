@@ -23,6 +23,7 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t 
 
 	handshakeComplete = false;
 
+	log->printf(LOG_LEVEL_INFO, "Noise CLIENT !!!!!! started");
 	log->printf(LOG_LEVEL_INFO, std::to_string(NOISE_ACTION_NONE) + ", " + std::to_string(NOISE_ACTION_WRITE_MESSAGE) + ", " + std::to_string(NOISE_ACTION_READ_MESSAGE) + ", " + std::to_string(NOISE_ACTION_FAILED) + ", " + std::to_string(NOISE_ACTION_SPLIT) + ", " + std::to_string(NOISE_ACTION_COMPLETE));
 
 //		/* Check that the echo protocol supports the handshake protocol.
@@ -55,6 +56,7 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t 
 
 
 	if (noise_init() != NOISE_ERROR_NONE) {
+		log->printf(LOG_LEVEL_INFO, "Noise initialization failed");
 		fprintf(stderr, "Noise initialization failed\n");
 		return;
 	}
@@ -63,14 +65,15 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t 
 	   One-way handshake patterns and XXfallback are not yet supported. */
 	std::string protocol = "Noise_XX_25519_AESGCM_SHA256";//"Noise_NN_25519_AESGCM_SHA256";
 	if (!getProtocolId(&id, protocol.c_str())) {
+		log->printf(LOG_LEVEL_INFO, protocol.c_str() + " not supported by the echo protocol\n");
 		fprintf(stderr, "%s: not supported by the echo protocol\n", protocol.c_str());
 		return;
 	}
 
 	/* Create a HandshakeState object for the protocol */
-	int err = noise_handshakestate_new_by_name
-		(&handshake, protocol.c_str(), NOISE_ROLE_INITIATOR);
+	int err = noise_handshakestate_new_by_name(&handshake, protocol.c_str(), NOISE_ROLE_INITIATOR);
 	if (err != NOISE_ERROR_NONE) {
+		log->printf(LOG_LEVEL_INFO, "Noise error, line 76!");
 		noise_perror(protocol.c_str(), err);
 		return;
 	}
@@ -78,10 +81,12 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t 
 	/* Set the handshake options and verify that everything we need
 	   has been supplied on the command-line. */
 	if (!initializeHandshake(handshake, &id, sizeof(id))) {
+		log->printf(LOG_LEVEL_INFO, "NOISE ERROR, LINE 84");
 		noise_handshakestate_free(handshake);
 		return;
 	}
 
+	log->printf(LOG_LEVEL_INFO, "CLIENT Well, we got through the constructor.  Starting writeInfo.");
 	writeInfoThread.reset(new std::thread(&NoiseClient::writeInfo, this)); // start the write info thread
 }
 
