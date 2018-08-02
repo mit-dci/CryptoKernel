@@ -65,7 +65,7 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t 
 	   One-way handshake patterns and XXfallback are not yet supported. */
 	std::string protocol = "Noise_XX_25519_AESGCM_SHA256";//"Noise_NN_25519_AESGCM_SHA256";
 	if (!getProtocolId(&id, protocol.c_str())) {
-		log->printf(LOG_LEVEL_INFO, protocol.c_str() + " not supported by the echo protocol\n");
+		log->printf(LOG_LEVEL_INFO, protocol + " not supported by the echo protocol\n");
 		fprintf(stderr, "%s: not supported by the echo protocol\n", protocol.c_str());
 		return;
 	}
