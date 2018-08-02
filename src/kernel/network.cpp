@@ -8,12 +8,7 @@
 #include <ctime>
 #include <openssl/rand.h>
 
-// the problem arises because of our misuse of the pendingConnections map
-// we're using the same socket, but we shouldn't be
-// also, only the party that initiated the contact will be ready to make a full connection, but both have the keys
-
 CryptoKernel::Network::Connection::Connection() {
-
 }
 
 Json::Value CryptoKernel::Network::Connection::getInfo() {
