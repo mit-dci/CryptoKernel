@@ -817,6 +817,20 @@ void CryptoKernel::Network::connectionFunc() {
 
             // the connection code that was here previously is now handled in makeOutgoingConnections
             sockets.insert(client->getRemoteAddress().toString(), client);
+
+            std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
+            if(!peers->get(dbTx.get(), client->getRemoteAddress().toString()).isObject()) {
+            	log->printf(LOG_LEVEL_INFO, client->getRemoteAddress() + ", which just connected, is new to us!");
+				Json::Value newSeed;
+				newSeed["lastseen"] = 0;
+				newSeed["height"] = 1;
+				newSeed["score"] = 0;
+				peers->put(dbTx.get(), client->getRemoteAddress().toString(), newSeed);
+			}
+            else {
+            	// todo... something
+            }
+
         } else {
             delete client;
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
