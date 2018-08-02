@@ -381,6 +381,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 
 	for(it->SeekToFirst(); it->Valid(); it->Next()) {
 		if(connected.size() >= 8) { // honestly, this is enough
+			log->printf(LOG_LEVEL_INFO, "welp, we already have 8 connections, so we're gonna skip for now.");
 			wait = true;
 			it.reset();
 			return;
@@ -389,6 +390,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 		Json::Value peerInfo = it->value();
 
 		if(connected.contains(it->key()) || peersToQuery.contains(it->key())) {
+			log->printf(LOG_LEVEL_INFO, "connected/peersToQuery already contains " + it->key() + ", so we're not gonna deal with it!");
 			continue;
 		}
 
@@ -397,12 +399,14 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 		const auto banIt = banned.find(it->key());
 		if(banIt != banned.end()) {
 			if(banIt->second > static_cast<uint64_t>(result)) {
+				log->printf(LOG_LEVEL_INFO, it->key() + " is banned!");
 				continue;
 			}
 		}
 
 		if(peerInfo["lastattempt"].asUInt64() + 5 * 60 > static_cast<unsigned long long int>
 				(result) && peerInfo["lastattempt"].asUInt64() != peerInfo["lastseen"].asUInt64()) {
+			log->printf(LOG_LEVEL_INFO, it->key() + " attempted to connecte too recently!");
 			continue;
 		}
 
@@ -412,6 +416,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 				|| addr == myAddress
 				|| addr == sf::IpAddress::LocalHost
 				|| addr == sf::IpAddress::None) {
+			log->printf(LOG_LEVEL_INFO, it->key() + " is a local address!!!!");
 			continue;
 		}
 
