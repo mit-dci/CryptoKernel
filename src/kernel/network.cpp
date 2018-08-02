@@ -826,6 +826,7 @@ void CryptoKernel::Network::connectionFunc() {
 				newSeed["height"] = 1;
 				newSeed["score"] = 0;
 				peers->put(dbTx.get(), client->getRemoteAddress().toString(), newSeed);
+				dbTx->commit();
 			}
             else {
             	// todo... something
