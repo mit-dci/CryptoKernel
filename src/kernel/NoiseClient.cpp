@@ -289,7 +289,7 @@ int NoiseClient::initializeHandshake(NoiseHandshakeState *handshake, const void 
 				log->printf(LOG_LEVEL_INFO, "CLIENT KEY ERROR");
 				return 0;
 			}
-			if(noiseUtil.loadPrivateKey(client_private_key.c_str(), key, key_len)) {
+			if(!noiseUtil.loadPrivateKey(client_private_key.c_str(), key, key_len)) {
 				noise_free(key, key_len);
 				return 0;
 			}
