@@ -344,6 +344,8 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	    	std::this_thread::sleep_for(std::chrono::seconds(2));
 	    }
 	}
+
+	ls.close();
 }
 
 void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
