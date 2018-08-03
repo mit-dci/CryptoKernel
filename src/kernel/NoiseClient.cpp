@@ -185,7 +185,7 @@ void NoiseClient::writeInfo() {
 	setHandshakeComplete(true, ok);
 }
 
-void NoiseClient::recievePacket(sf::Packet packet) {
+void NoiseClient::receivePacket(sf::Packet packet) {
 	log->printf(LOG_LEVEL_INFO, "CLIENT recieving packet");
 
 	//handshakeMutex.lock();

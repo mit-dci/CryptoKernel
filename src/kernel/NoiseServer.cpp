@@ -17,7 +17,7 @@ NoiseServer::NoiseServer(sf::TcpSocket* client, uint64_t port, CryptoKernel::Log
 
 	handshake = 0;
 	message_size = 0;
-	recievedId = false;
+	receivedId = false;
 	receivedPubKey = false;
 
 	handshakeComplete = false;
@@ -32,14 +32,13 @@ NoiseServer::NoiseServer(sf::TcpSocket* client, uint64_t port, CryptoKernel::Log
 		log->printf(LOG_LEVEL_INFO, "could not load server key 25519");
 		uint8_t* server_pub_key;
 		uint8_t* server_priv_key;
-		noiseUtil.writeKeys("keys/server_key_25519.pub", "keys/server_key_25519", &server_pub_key, &server_priv_key);
+		if(!noiseUtil.writeKeys("keys/server_key_25519.pub", "keys/server_key_25519", &server_pub_key, &server_priv_key)) {
+			log->printf(LOG_LEVEL_INFO, "Could not write server keys.");
+			setHandshakeComplete(true, false);
+			return;
+		}
 		memcpy(server_key_25519, server_priv_key, CURVE25519_KEY_LEN); // put the new key in its proper place
-		//return;
 	}
-	/*if(!noiseUtil.loadPublicKey("keys/client_key_25519.pub", client_key_25519, sizeof(client_key_25519))) {
-		log->printf(LOG_LEVEL_INFO, "could not load client key 25519");
-		return;
-	}*/
 
 	writeInfoThread.reset(new std::thread(&NoiseServer::writeInfo, this)); // start the write info thread
 }
@@ -107,7 +106,7 @@ void NoiseServer::writeInfo() {
 	setHandshakeComplete(true, ok);
 }
 
-void NoiseServer::recievePacket(sf::Packet packet) {
+void NoiseServer::receivePacket(sf::Packet packet) {
 	int err;
 	log->printf(LOG_LEVEL_INFO, "SERVER HAHAHAHA RECEIVE PACKET STARTING");
 	uint8_t message[MAX_MESSAGE_LEN + 2];
@@ -117,12 +116,12 @@ void NoiseServer::recievePacket(sf::Packet packet) {
 		memcpy(client_key_25519, packet.getData(), packet.getDataSize());
 		receivedPubKey = true;
 	}
-	else if(!recievedId) {
+	else if(!receivedId) {
 		log->printf(LOG_LEVEL_INFO, "Server says the id pattern size is " + std::to_string(packet.getDataSize()));
 		memcpy(&id, packet.getData(), (unsigned long int)packet.getDataSize());
 
 		log->printf(LOG_LEVEL_INFO, "Server says the id pattern itself is " + std::to_string(id.pattern));
-		recievedId = true;
+		receivedId = true;
 
 		/* Convert the echo protocol identifier into a Noise protocol identifier */
 		bool ok = true;
@@ -258,4 +257,3 @@ NoiseServer::~NoiseServer() {
 	noise_cipherstate_free(recv_cipher);
 	writeInfoThread->join();
 }
-

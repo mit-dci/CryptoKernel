@@ -25,7 +25,7 @@ public:
 	CryptoKernel::Log* log;
 	uint64_t port;
 
-	bool recievedId;
+	bool receivedId;
 	bool receivedPubKey;
 	size_t message_size;
 	NoiseBuffer mbuf;
@@ -49,7 +49,7 @@ public:
 	NoiseServer(sf::TcpSocket* client, uint64_t port, CryptoKernel::Log* log);
 
 	void writeInfo();
-	void recievePacket(sf::Packet packet);
+	void receivePacket(sf::Packet packet);
 	void setHandshakeComplete(bool complete, bool success);
 	bool getHandshakeComplete();
 	bool getHandshakeSuccess();

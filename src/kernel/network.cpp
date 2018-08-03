@@ -279,8 +279,8 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	                    sf::Packet packet;
 	                    if(it->second->client->receive(packet) == sf::Socket::Done) {
 	                    	//auto it = handshakeServers.find(client.getRemoteAddress().toString());
-	                    	//it->second->recievePacket(packet); // let the server know that the packet has been recieved
-	                    	it->second->recievePacket(packet);
+	                    	//it->second->receivePacket(packet); // let the server know that the packet has been received
+	                    	it->second->receivePacket(packet);
 	                    }
 	                    else {
 	                    	log->printf(LOG_LEVEL_INFO, "something went wrong receiving packet from " + it->second->client->getRemoteAddress().toString() + " disconnecting it.");
@@ -302,7 +302,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	        				std::string hooray;
 	        				packet >> hooray;
 	        				log->printf(LOG_LEVEL_INFO, "PACKET CONTENTS: " + hooray);
-	        				it->second->recievePacket(packet);
+	        				it->second->receivePacket(packet);
 	        			}
 	        			else {
 	        				log->printf(LOG_LEVEL_INFO, "something went wrong receiving packet from " + it->second->server->getRemoteAddress().toString() + " disconnecting it.");

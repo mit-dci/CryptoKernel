@@ -55,7 +55,7 @@ public:
 	void writeInfo();
 	void setHandshakeComplete(bool complete, bool success);
 	bool getHandshakeComplete();
-	void recievePacket(sf::Packet packet);
+	void receivePacket(sf::Packet packet);
 	bool getHandshakeSuccess();
 
 	virtual ~NoiseClient();
