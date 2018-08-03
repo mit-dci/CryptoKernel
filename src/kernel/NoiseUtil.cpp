@@ -283,9 +283,9 @@ void NoiseUtil::writeKeys(const char* pubKeyName, const char* privKeyName, uint8
 
 	/* Save the keys */
 	if (ok)
-		ok = savePrivateKey("keys/client_key_25519", *priv_key, priv_key_len);
+		ok = savePrivateKey(privKeyName, *priv_key, priv_key_len);
 	if (ok)
-		ok = savePublicKey("keys/client_key_25519.pub", *pub_key, pub_key_len);
+		ok = savePublicKey(pubKeyName, *pub_key, pub_key_len);
 
 	/* Clean up */
 	noise_dhstate_free(dh);
@@ -296,8 +296,8 @@ void NoiseUtil::writeKeys(const char* pubKeyName, const char* privKeyName, uint8
 	//noise_free(pub_key, pub_key_len); // todo, free
 
 	if (!ok) {
-		unlink("keys/client_key_25519");
-		unlink("keys/client_key_25519.pub");
+		unlink(privKeyName);
+		unlink(pubKeyName);
 	}
 }
 
