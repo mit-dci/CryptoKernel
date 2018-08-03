@@ -292,8 +292,8 @@ void NoiseUtil::writeKeys(const char* pubKeyName, const char* privKeyName, uint8
 
 	//memcpy(clientKey25519, pub_key, pub_key_len); // put the new key in its proper place
 
-	noise_free(priv_key, priv_key_len);
-	noise_free(pub_key, pub_key_len);
+	//noise_free(priv_key, priv_key_len); // todo, free
+	//noise_free(pub_key, pub_key_len); // todo, free
 
 	if (!ok) {
 		unlink("keys/client_key_25519");
