@@ -135,6 +135,7 @@ void NoiseClient::writeInfo() {
 					//handshakeMutex.unlock();
 					noise_perror("write handshake", err);
 					setHandshakeComplete(true, false);
+					return;
 				}
 				message[0] = (uint8_t)(mbuf.size >> 8);
 				message[1] = (uint8_t)mbuf.size;

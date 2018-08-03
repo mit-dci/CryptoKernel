@@ -469,7 +469,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 
 		if(handshakeServers.contains(it->key())) {
 			auto entry = handshakeServers.find(it->key());
-			if(entry->second->getHandshakeComplete()) {
+			if(entry->second->getHandshakeSuccess()) {
 				if(sockets.contains(it->key())) {
 					log->printf(LOG_LEVEL_INFO, "the SERVER handshake is complete, this can join our connections!!!! " + entry->first);
 					Connection* connection = new Connection;
