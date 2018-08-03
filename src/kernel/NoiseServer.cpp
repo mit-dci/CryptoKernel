@@ -254,6 +254,8 @@ bool NoiseServer::getHandshakeComplete() {
 }
 
 NoiseServer::~NoiseServer() {
+	noise_cipherstate_free(send_cipher);
+	noise_cipherstate_free(recv_cipher);
 	writeInfoThread->join();
 }
 

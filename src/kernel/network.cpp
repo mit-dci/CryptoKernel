@@ -463,6 +463,11 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 			else if(entry->second->getHandshakeComplete() && !entry->second->getHandshakeSuccess()) {
 				// todo
 				log->printf(LOG_LEVEL_INFO, "CLIENT The handshake for " + it->key() + " failed.");
+
+				selector.remove(*entry->second->server);
+				handshakeClients.erase(it->key());
+				peersToQuery.erase(it->key());
+
 			}
 			continue;
 		}
@@ -498,6 +503,10 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 			else if(entry->second->getHandshakeComplete() && !entry->second->getHandshakeSuccess()) {
 				// todo
 				log->printf(LOG_LEVEL_INFO, "SERVER The handshake for " + it->key() + " failed.");
+
+				selector.remove(*entry->second->client);
+				handshakeServers.erase(it->key());
+				peersToQuery.erase(it->key());
 			}
 			continue;
 		}
