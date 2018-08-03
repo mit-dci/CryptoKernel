@@ -338,6 +338,7 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 			if(client->connect(addr, port + 1, sf::seconds(3)) != sf::Socket::Done) {
 				log->printf(LOG_LEVEL_INFO, "couldn't connect for encryption preference, oh well");
 				peersToQuery.erase(addr);
+				plaintextHosts.insert(addr, true);
 				continue;
 			}
 			log->printf(LOG_LEVEL_INFO, "Network(): Connection attempt to " + addr + " complete!");
