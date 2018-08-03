@@ -417,7 +417,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 
 		if(peerInfo["lastattempt"].asUInt64() + 5 * 60 > static_cast<unsigned long long int>
 				(result) && peerInfo["lastattempt"].asUInt64() != peerInfo["lastseen"].asUInt64()) {
-			log->printf(LOG_LEVEL_INFO, it->key() + " attempted to connecte too recently!");
+			log->printf(LOG_LEVEL_INFO, it->key() + " attempted to connect too recently!");
 			continue;
 		}
 

@@ -74,7 +74,7 @@ void NoiseClient::writeInfo() {
 
 	bool sentPubKey = false;
 
-	while(true) {
+	while(!getHandshakeComplete()) { // it might fail in another thread, and so become "complete"
 		if(!sentPubKey) { // we need to share our public key over the network
 			log->printf(LOG_LEVEL_INFO, "sending public key to " + server->getRemoteAddress().toString());
 			sf::Packet pubKeyPacket;

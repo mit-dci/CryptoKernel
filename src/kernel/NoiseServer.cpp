@@ -48,7 +48,7 @@ void NoiseServer::writeInfo() {
 
 	uint8_t message[MAX_MESSAGE_LEN + 2];
 
-	while(true) {
+	while(!getHandshakeComplete()) { // it might fail in another thread, and so become "complete"
 		//handshakeMutex.lock();
 		int action = noise_handshakestate_get_action(handshake);
 		//handshakeMutex.unlock();
