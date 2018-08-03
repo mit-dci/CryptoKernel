@@ -31,10 +31,10 @@ NoiseServer::NoiseServer(sf::TcpSocket* client, uint64_t port, CryptoKernel::Log
 		log->printf(LOG_LEVEL_INFO, "could not load server key 25519");
 		return;
 	}
-	if(!noiseUtil.loadPublicKey("keys/client_key_25519.pub", client_key_25519, sizeof(client_key_25519))) {
+	/*if(!noiseUtil.loadPublicKey("keys/client_key_25519.pub", client_key_25519, sizeof(client_key_25519))) {
 		log->printf(LOG_LEVEL_INFO, "could not load client key 25519");
 		return;
-	}
+	}*/
 
 	writeInfoThread.reset(new std::thread(&NoiseServer::writeInfo, this)); // start the write info thread
 }
@@ -116,7 +116,7 @@ void NoiseServer::recievePacket(sf::Packet packet) {
 
 	if(!receivedPubKey) {
 		log->printf(LOG_LEVEL_INFO, "received a packet, hopefully the public key!!");
-		//memcpy(client_key_25519, packet.getData(), packet.getDataSize());
+		memcpy(client_key_25519, packet.getData(), packet.getDataSize());
 		receivedPubKey = true;
 	}
 	else if(!recievedId) {

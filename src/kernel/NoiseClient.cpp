@@ -37,7 +37,7 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t 
 
 	// in the Echo example, this is accomplished by parsing the protocol string (ie 'Noise_XX_25519_AESGCM_SHA256') in echo_get_protocol_id
 	id.pattern = ECHO_PATTERN_XX;
-	id.psk = ECHO_PSK_ENABLED;
+	id.psk = ECHO_PSK_DISABLED;
 	id.cipher = ECHO_CIPHER_AESGCM;
 	id.hash = ECHO_HASH_SHA256;
 	id.dh = ECHO_DH_25519;
