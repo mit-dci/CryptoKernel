@@ -119,7 +119,7 @@ void NoiseServer::recievePacket(sf::Packet packet) {
 		memcpy(client_key_25519, packet.getData(), packet.getDataSize());
 		receivedPubKey = true;
 	}
-	if(!recievedId) {
+	else if(!recievedId) {
 		log->printf(LOG_LEVEL_INFO, "Server says the id pattern size is " + std::to_string(packet.getDataSize()));
 		memcpy(&id, packet.getData(), (unsigned long int)packet.getDataSize());
 
