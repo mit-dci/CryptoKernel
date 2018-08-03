@@ -77,7 +77,7 @@ void NoiseClient::writeInfo() {
 			if(!noiseUtil.loadPublicKey("keys/client_key_25519.pub", clientKey25519, sizeof(clientKey25519))) {
 				uint8_t* priv_key;
 				uint8_t* pub_key;
-				noiseUtil.writeKeys("keys/client_key_25519", "keys/client_key_25519.pub", &pub_key, &priv_key);
+				noiseUtil.writeKeys("keys/client_key_25519.pub", "keys/client_key_25519", &pub_key, &priv_key);
 				memcpy(clientKey25519, pub_key, CURVE25519_KEY_LEN); // put the new key in its proper place
 			}
 
