@@ -7,6 +7,9 @@
 
 #include "NoiseUtil.h"
 
+#include <unistd.h>
+#include <stdlib.h>
+
 NoiseUtil::NoiseUtil() {
 	// TODO Auto-generated constructor stub
 }
@@ -236,6 +239,66 @@ int NoiseUtil::savePublicKey(const char *filename, const uint8_t *key, size_t le
     }
     fclose(file);
     return 1;
+}
+
+// generate keys and write them to disk
+void NoiseUtil::writeKeys(const char* pubKeyName, const char* privKeyName, uint8_t** pub_key, uint8_t** priv_key) {
+	int ok = 1;
+	NoiseDHState* dh;
+	int err = noise_dhstate_new_by_name(&dh, "25519");
+	if(err != NOISE_ERROR_NONE) {
+		//log->printf(LOG_LEVEL_ERR, "Could not initialize dhstate");
+		ok = 0;
+		//break;
+		return;
+	}
+	err = noise_dhstate_generate_keypair(dh);
+	if(err != NOISE_ERROR_NONE) {
+		//log->printf(LOG_LEVEL_ERR, "Could not generate key pair!");
+		noise_dhstate_free(dh);
+		ok = 0;
+		//break;
+		return;
+	}
+
+	/* Fetch the keypair to be saved */
+	size_t priv_key_len = noise_dhstate_get_private_key_length(dh);
+	size_t pub_key_len = noise_dhstate_get_public_key_length(dh);
+
+	*priv_key = (uint8_t *)malloc(priv_key_len);
+	*pub_key = (uint8_t *)malloc(pub_key_len);
+
+	if (!priv_key || !pub_key) {
+		fprintf(stderr, "Out of memory\n");
+		ok = 0;
+		//break;
+		return;
+	}
+	err = noise_dhstate_get_keypair
+		(dh, *priv_key, priv_key_len, *pub_key, pub_key_len);
+	if (err != NOISE_ERROR_NONE) {
+		noise_perror("get keypair for saving", err);
+		ok = 0;
+	}
+
+	/* Save the keys */
+	if (ok)
+		ok = savePrivateKey("keys/client_key_25519", *priv_key, priv_key_len);
+	if (ok)
+		ok = savePublicKey("keys/client_key_25519.pub", *pub_key, pub_key_len);
+
+	/* Clean up */
+	noise_dhstate_free(dh);
+
+	//memcpy(clientKey25519, pub_key, pub_key_len); // put the new key in its proper place
+
+	noise_free(priv_key, priv_key_len);
+	noise_free(pub_key, pub_key_len);
+
+	if (!ok) {
+		unlink("keys/client_key_25519");
+		unlink("keys/client_key_25519.pub");
+	}
 }
 
 NoiseUtil::~NoiseUtil() {
