@@ -13,7 +13,7 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t 
 	this->ipAddress = ipAddress;
 	this->port = port;
 
-	client_private_key = "client_key_25519";
+	client_private_key = "keys/client_key_25519";
 
 	send_cipher = 0;
 	recv_cipher = 0;
@@ -74,8 +74,25 @@ void NoiseClient::writeInfo() {
 
 	ok = 1;
 
+	bool sentPubKey = false;
+
 	while(true) {
-		if(!sentId) {
+		if(!sentPubKey) { // we need to share our public key over the network
+			log->printf(LOG_LEVEL_INFO, "sending public key to " + server->getRemoteAddress().toString());
+			sf::Packet pubKeyPacket;
+			if(!noiseUtil.loadPublicKey("keys/client_key_25519.pub", clientKey25519, sizeof(clientKey25519))) {
+				log->printf(LOG_LEVEL_ERR, "Could not load public key");
+				ok = 0;
+				break;
+			}
+			pubKeyPacket.append(clientKey25519, sizeof(clientKey25519));
+
+			if(server->send(pubKeyPacket) != sf::Socket::Done) {
+				continue; // keep sending the public key until it goes through
+			}
+			sentPubKey = true;
+		}
+		else if(!sentId) {
 			sf::Packet idPacket;
 			idPacket.append(&id, sizeof(id));
 			log->printf(LOG_LEVEL_INFO, "CLIENT appended " + std::to_string(sizeof(id)) + " bytes to packet for id");

@@ -27,6 +27,8 @@ public:
 	std::string psk;
 	std::string psk_file;
 
+	uint8_t clientKey25519[CURVE25519_KEY_LEN];
+
 	std::mutex handshakeMutex;
 
 	NoiseHandshakeState* handshake;

@@ -26,6 +26,7 @@ public:
 	uint64_t port;
 
 	bool recievedId;
+	bool receivedPubKey;
 	size_t message_size;
 	NoiseBuffer mbuf;
 	NoiseHandshakeState *handshake;

@@ -185,6 +185,59 @@ int NoiseUtil::toNoiseProtocolId(NoiseProtocolId* nid, const EchoProtocolId* id)
 	return ok;
 }
 
+/* Saves a binary private key to a file.  Returns non-zero if OK. */
+int NoiseUtil::savePrivateKey(const char *filename, const uint8_t *key, size_t len) {
+    FILE *file = fopen(filename, "wb");
+    size_t posn;
+    if (!file) {
+        perror(filename);
+        return 0;
+    }
+    for (posn = 0; posn < len; ++posn)
+        putc(key[posn], file);
+    fclose(file);
+    return 1;
+}
+
+/* Saves a base64-encoded public key to a file.  Returns non-zero if OK. */
+int NoiseUtil::savePublicKey(const char *filename, const uint8_t *key, size_t len) {
+    static char const base64_chars[] =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    FILE *file = fopen(filename, "wb");
+    size_t posn = 0;
+    uint32_t group;
+    if (!file) {
+        perror(filename);
+        return 0;
+    }
+    while ((len - posn) >= 3) {
+        group = (((uint32_t)(key[posn])) << 16) |
+                (((uint32_t)(key[posn + 1])) << 8) |
+                 ((uint32_t)(key[posn + 2]));
+        putc(base64_chars[(group >> 18) & 0x3F], file);
+        putc(base64_chars[(group >> 12) & 0x3F], file);
+        putc(base64_chars[(group >> 6) & 0x3F], file);
+        putc(base64_chars[group & 0x3F], file);
+        posn += 3;
+    }
+    if ((len - posn) == 2) {
+        group = (((uint32_t)(key[posn])) << 16) |
+                (((uint32_t)(key[posn + 1])) << 8);
+        putc(base64_chars[(group >> 18) & 0x3F], file);
+        putc(base64_chars[(group >> 12) & 0x3F], file);
+        putc(base64_chars[(group >> 6) & 0x3F], file);
+        putc('=', file);
+    } else if ((len - posn) == 1) {
+        group = ((uint32_t)(key[posn])) << 16;
+        putc(base64_chars[(group >> 18) & 0x3F], file);
+        putc(base64_chars[(group >> 12) & 0x3F], file);
+        putc('=', file);
+        putc('=', file);
+    }
+    fclose(file);
+    return 1;
+}
+
 NoiseUtil::~NoiseUtil() {
 	// TODO Auto-generated destructor stub
 }

@@ -72,6 +72,8 @@ public:
 	int loadPrivateKey(const char* filename, uint8_t* key, size_t len);
 	int loadPublicKey(const char* filename, uint8_t* key, size_t len);
 	int toNoiseProtocolId(NoiseProtocolId* nid, const EchoProtocolId* id);
+	int savePrivateKey(const char *filename, const uint8_t *key, size_t len);
+	int savePublicKey(const char *filename, const uint8_t *key, size_t len);
 
 	virtual ~NoiseUtil();
 };
