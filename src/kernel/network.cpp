@@ -337,6 +337,8 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 			log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + addr + " to query encryption preference.");
 			if(client->connect(addr, port + 1, sf::seconds(3)) != sf::Socket::Done) {
 				log->printf(LOG_LEVEL_INFO, "couldn't connect for encryption preference, oh well");
+				peersToQuery.erase(addr);
+				continue;
 			}
 			log->printf(LOG_LEVEL_INFO, "Network(): Connection attempt to " + addr + " complete!");
 			pendingConnections.insert(std::make_pair(addr, client));
@@ -380,6 +382,21 @@ void CryptoKernel::Network::infoOutgoingConnectionsWrapper() {
 		infoOutgoingConnections();
 		std::this_thread::sleep_for(std::chrono::milliseconds(2000)); // just do this once every two seconds
 	}
+}
+
+void CryptoKernel::Network::addConnection(sf::TcpSocket* socket, Json::Value& peerInfo, NoiseCipherState* send_cipher, NoiseCipherState* recv_cipher) {
+	Connection* connection = new Connection;
+	connection->setPeer(new Peer(socket, blockchain, this, false, log));
+
+	peerInfo["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
+	peerInfo["score"] = 0;
+
+	connection->setInfo(peerInfo);
+
+	connection->setSendCipher(send_cipher);
+	connection->setRecvCipher(recv_cipher);
+
+	connected.at(socket->getRemoteAddress().toString()).reset(connection);
 }
 
 void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
@@ -435,24 +452,11 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 			auto entry = handshakeClients.find(it->key());
 			if(entry->second->getHandshakeSuccess()) {
 				log->printf(LOG_LEVEL_INFO, "the CLIENT handshake is complete, this can join our connections!!!! " + entry->first);
-				Connection* connection = new Connection;
-
 				if(sockets.contains(it->key())) {
 					sf::TcpSocket* socket = sockets.find(it->key())->second;
 					if(socket) {
-						connection->setPeer(new Peer(socket, blockchain, this, false, log));
-
-						peerInfo["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
-						peerInfo["score"] = 0;
-
-						connection->setInfo(peerInfo);
-
-						connection->setSendCipher(entry->second->send_cipher);
-						connection->setRecvCipher(entry->second->recv_cipher);
-
-						connected.at(it->key()).reset(connection);
+						addConnection(socket, peerInfo, entry->second->send_cipher, entry->second->recv_cipher);
 						selector.remove(*entry->second->server);
-
 						handshakeClients.erase(it->key());
 					}
 					else {
@@ -471,28 +475,15 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 			}
 			continue;
 		}
-
-		if(handshakeServers.contains(it->key())) {
+		else if(handshakeServers.contains(it->key())) {
 			auto entry = handshakeServers.find(it->key());
 			if(entry->second->getHandshakeSuccess()) {
 				if(sockets.contains(it->key())) {
 					log->printf(LOG_LEVEL_INFO, "the SERVER handshake is complete, this can join our connections!!!! " + entry->first);
-					Connection* connection = new Connection;
 					sf::TcpSocket* socket = sockets.find(it->key())->second;
 					if(socket) {
-						connection->setPeer(new Peer(socket, blockchain, this, false, log));
-
-						peerInfo["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
-						peerInfo["score"] = 0;
-
-						connection->setInfo(peerInfo);
-
-						connection->setSendCipher(entry->second->send_cipher);
-						connection->setRecvCipher(entry->second->recv_cipher);
-
-						connected.at(it->key()).reset(connection);
+						addConnection(socket, peerInfo, entry->second->send_cipher, entry->second->recv_cipher);
 						selector.remove(*entry->second->client);
-
 						handshakeServers.erase(it->key());
 					}
 					else {
@@ -509,6 +500,18 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 				peersToQuery.erase(it->key());
 			}
 			continue;
+		}
+		else if(plaintextHosts.contains(it->key())) { // connect over plaintext
+			if(sockets.contains(it->key())) {
+				log->printf(LOG_LEVEL_INFO, "making an unencrypted connection...");
+				sf::TcpSocket* socket = sockets.find(it->key())->second;
+				if(socket) {
+					addConnection(socket, peerInfo);
+				}
+				else {
+					log->printf(LOG_LEVEL_INFO, "SOCKET NOT FOUND OH NO");
+				}
+			}
 		}
 
 		//log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + it->key());

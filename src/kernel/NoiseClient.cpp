@@ -75,6 +75,12 @@ void NoiseClient::writeInfo() {
 	bool sentPubKey = false;
 
 	while(!getHandshakeComplete()) { // it might fail in another thread, and so become "complete"
+		if(server->getRemoteAddress() == sf::IpAddress::None) {
+			log->printf(LOG_LEVEL_ERR, "The remote port has been invalidated");
+			setHandshakeComplete(true, false);
+			return;
+		}
+
 		if(!sentPubKey) { // we need to share our public key over the network
 			log->printf(LOG_LEVEL_INFO, "sending public key to " + server->getRemoteAddress().toString());
 			sf::Packet pubKeyPacket;

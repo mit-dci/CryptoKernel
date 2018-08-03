@@ -78,6 +78,8 @@ public:
     */
     uint64_t getCurrentHeight();
 
+    void addConnection(sf::TcpSocket* socket, Json::Value& peerInfo, NoiseCipherState* send_cipher=0, NoiseCipherState* recv_cipher=0);
+
     struct peerStats {
         unsigned int ping;
         bool incoming;
@@ -184,6 +186,7 @@ private:
     ConcurrentMap<std::string, bool> peersToQuery; // regarding encryption, for now
     ConcurrentMap<std::string, std::unique_ptr<NoiseClient>> handshakeClients;
     ConcurrentMap<std::string, std::unique_ptr<NoiseServer>> handshakeServers;
+    ConcurrentMap<std::string, bool> plaintextHosts;
     ConcurrentMap<std::string, sf::TcpSocket*> sockets;
 
     sf::IpAddress myAddress;

@@ -298,6 +298,4 @@ int NoiseUtil::writeKeys(const char* pubKeyName, const char* privKeyName, uint8_
 }
 
 NoiseUtil::~NoiseUtil() {
-	// TODO Auto-generated destructor stub
 }
-
