@@ -23,6 +23,7 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t 
 	sentId = false;
 
 	handshakeComplete = false;
+	handshakeSuccess = false;
 
 	log->printf(LOG_LEVEL_INFO, "Noise CLIENT !!!!!! started");
 	log->printf(LOG_LEVEL_INFO, std::to_string(NOISE_ACTION_NONE) + ", " + std::to_string(NOISE_ACTION_WRITE_MESSAGE) + ", " + std::to_string(NOISE_ACTION_READ_MESSAGE) + ", " + std::to_string(NOISE_ACTION_FAILED) + ", " + std::to_string(NOISE_ACTION_SPLIT) + ", " + std::to_string(NOISE_ACTION_COMPLETE));
@@ -54,6 +55,9 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t 
 
 	log->printf(LOG_LEVEL_INFO, "CLIENT Well, we got through the constructor.  Starting writeInfo.");
 	writeInfoThread.reset(new std::thread(&NoiseClient::writeInfo, this)); // start the write info thread
+
+	priv_key = 0;
+	pub_key = 0;
 }
 
 void NoiseClient::writeInfo() {
@@ -75,9 +79,10 @@ void NoiseClient::writeInfo() {
 			log->printf(LOG_LEVEL_INFO, "sending public key to " + server->getRemoteAddress().toString());
 			sf::Packet pubKeyPacket;
 			if(!noiseUtil.loadPublicKey("keys/client_key_25519.pub", clientKey25519, sizeof(clientKey25519))) {
-				uint8_t* priv_key;
-				uint8_t* pub_key;
-				noiseUtil.writeKeys("keys/client_key_25519.pub", "keys/client_key_25519", &pub_key, &priv_key);
+				if(!noiseUtil.writeKeys("keys/client_key_25519.pub", "keys/client_key_25519", &pub_key, &priv_key)) {
+					setHandshakeComplete(true, false);
+					return;
+				}
 				memcpy(clientKey25519, pub_key, CURVE25519_KEY_LEN); // put the new key in its proper place
 			}
 
@@ -86,6 +91,7 @@ void NoiseClient::writeInfo() {
 			if (!initializeHandshake(handshake, &id, sizeof(id))) { // now that we have keys, initialize handshake
 				log->printf(LOG_LEVEL_INFO, "NOISE ERROR, LINE 84");
 				noise_handshakestate_free(handshake);
+				setHandshakeComplete(true, false);
 				return;
 			}
 
@@ -108,7 +114,8 @@ void NoiseClient::writeInfo() {
 			if (err != NOISE_ERROR_NONE) {
 				log->printf(LOG_LEVEL_INFO, "CLIENT start handshake failed");
 				noise_perror("start handshake", err);
-				ok = 0;
+				setHandshakeComplete(true, false);
+				return;
 			}
 			sentId = true;
 		}
@@ -127,9 +134,7 @@ void NoiseClient::writeInfo() {
 					log->printf(LOG_LEVEL_INFO, "CLIENT WRITE HANDSHAKE FAILED");
 					//handshakeMutex.unlock();
 					noise_perror("write handshake", err);
-					ok = 0;
-					//break;
-					return;
+					setHandshakeComplete(true, false);
 				}
 				message[0] = (uint8_t)(mbuf.size >> 8);
 				message[1] = (uint8_t)mbuf.size;
@@ -139,8 +144,8 @@ void NoiseClient::writeInfo() {
 				packet.append(message, mbuf.size + 2);
 				if(server->send(packet) != sf::Socket::Done) {
 					log->printf(LOG_LEVEL_ERR, "CLIENT couldn't send packet");
-					ok = 0;
-					break;
+					setHandshakeComplete(true, false);
+					return;
 				}
 			}
 			else if(action != NOISE_ACTION_READ_MESSAGE) {
@@ -153,14 +158,14 @@ void NoiseClient::writeInfo() {
 	}
 
 	/* If the action is not "split", then the handshake has failed */
-	if (ok && noise_handshakestate_get_action(handshake) != NOISE_ACTION_SPLIT) {
+	if(noise_handshakestate_get_action(handshake) != NOISE_ACTION_SPLIT) {
 		fprintf(stderr, "protocol handshake failed\n");
 		log->printf(LOG_LEVEL_INFO, "CLIENT protocol handshake failed :(");
 		ok = 0;
 	}
 
 	/* Split out the two CipherState objects for send and receive */
-	if (ok) {
+	if(ok) {
 		err = noise_handshakestate_split(handshake, &send_cipher, &recv_cipher);
 		if (err != NOISE_ERROR_NONE) {
 			log->printf(LOG_LEVEL_INFO, "CLIENT error split to start data transfer");
@@ -176,14 +181,7 @@ void NoiseClient::writeInfo() {
 	// padding would go here, if we used it
 
 	/* Tell the user that the handshake has been successful */
-	if (ok) {
-		log->printf(LOG_LEVEL_INFO, "CLIENT Handshake complete!!");
-	}
-	else {
-		log->printf(LOG_LEVEL_INFO, "CLIENT ok is 0, somehow, not sure where..., handshake failed");
-	}
-
-	setHandshakeComplete(true);
+	setHandshakeComplete(true, ok);
 }
 
 void NoiseClient::recievePacket(sf::Packet packet) {
@@ -208,20 +206,25 @@ void NoiseClient::recievePacket(sf::Packet packet) {
 		err = noise_handshakestate_read_message(handshake, &mbuf, NULL);
 		if (err != NOISE_ERROR_NONE) {
 			noise_perror("read handshake", err);
-			ok = 0;
-			return;
+			setHandshakeComplete(true, false);
 		}
 	}
 }
 
-void NoiseClient::setHandshakeComplete(bool complete) {
+void NoiseClient::setHandshakeComplete(bool complete, bool success) {
 	std::lock_guard<std::mutex> hcm(handshakeCompleteMutex);
 	handshakeComplete = complete;
+	handshakeSuccess = success;
 }
 
 bool NoiseClient::getHandshakeComplete() {
 	std::lock_guard<std::mutex> hcm(handshakeCompleteMutex);
 	return handshakeComplete;
+}
+
+bool NoiseClient::getHandshakeSuccess() {
+	std::lock_guard<std::mutex> hcm(handshakeCompleteMutex);
+	return handshakeSuccess;
 }
 
 /* Initialize's the handshake using command-line options */
@@ -279,4 +282,3 @@ int NoiseClient::initializeHandshake(NoiseHandshakeState *handshake, const void 
 NoiseClient::~NoiseClient() {
 	writeInfoThread->join();
 }
-

@@ -74,7 +74,7 @@ public:
 	int toNoiseProtocolId(NoiseProtocolId* nid, const EchoProtocolId* id);
 	int savePrivateKey(const char *filename, const uint8_t *key, size_t len);
 	int savePublicKey(const char *filename, const uint8_t *key, size_t len);
-	void writeKeys(const char* pubKeyName, const char* privKeyName, uint8_t** pub_key, uint8_t** priv_key);
+	int writeKeys(const char* pubKeyName, const char* privKeyName, uint8_t** pub_key, uint8_t** priv_key);
 
 	virtual ~NoiseUtil();
 };

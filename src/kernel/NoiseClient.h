@@ -36,6 +36,7 @@ public:
 	std::unique_ptr<std::thread> writeInfoThread;
 	bool sentId;
 	bool handshakeComplete;
+	bool handshakeSuccess;
 
 	NoiseCipherState* send_cipher;
 	NoiseCipherState* recv_cipher;
@@ -43,15 +44,19 @@ public:
 
 	NoiseUtil noiseUtil;
 
+	uint8_t* priv_key;
+	uint8_t* pub_key;
+
 public:
 	NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t port, CryptoKernel::Log* log);
 
 	int getProtocolId(EchoProtocolId* id, const char* name);
 	int initializeHandshake(NoiseHandshakeState *handshake, const void *prologue, size_t prologue_len);
 	void writeInfo();
-	void setHandshakeComplete(bool complete);
+	void setHandshakeComplete(bool complete, bool success);
 	bool getHandshakeComplete();
 	void recievePacket(sf::Packet packet);
+	bool getHandshakeSuccess();
 
 	virtual ~NoiseClient();
 };

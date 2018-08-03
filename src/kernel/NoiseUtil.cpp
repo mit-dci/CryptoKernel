@@ -242,23 +242,18 @@ int NoiseUtil::savePublicKey(const char *filename, const uint8_t *key, size_t le
 }
 
 // generate keys and write them to disk
-void NoiseUtil::writeKeys(const char* pubKeyName, const char* privKeyName, uint8_t** pub_key, uint8_t** priv_key) {
-	int ok = 1;
+int NoiseUtil::writeKeys(const char* pubKeyName, const char* privKeyName, uint8_t** pub_key, uint8_t** priv_key) {
 	NoiseDHState* dh;
 	int err = noise_dhstate_new_by_name(&dh, "25519");
 	if(err != NOISE_ERROR_NONE) {
 		//log->printf(LOG_LEVEL_ERR, "Could not initialize dhstate");
-		ok = 0;
-		//break;
-		return;
+		return 0;
 	}
 	err = noise_dhstate_generate_keypair(dh);
 	if(err != NOISE_ERROR_NONE) {
 		//log->printf(LOG_LEVEL_ERR, "Could not generate key pair!");
 		noise_dhstate_free(dh);
-		ok = 0;
-		//break;
-		return;
+		return 0;
 	}
 
 	/* Fetch the keypair to be saved */
@@ -270,20 +265,19 @@ void NoiseUtil::writeKeys(const char* pubKeyName, const char* privKeyName, uint8
 
 	if (!priv_key || !pub_key) {
 		fprintf(stderr, "Out of memory\n");
-		ok = 0;
-		//break;
-		return;
+		return 0;
 	}
 	err = noise_dhstate_get_keypair
 		(dh, *priv_key, priv_key_len, *pub_key, pub_key_len);
 	if (err != NOISE_ERROR_NONE) {
 		noise_perror("get keypair for saving", err);
-		ok = 0;
+		return 0;
 	}
 
+	int ok = 1;
+
 	/* Save the keys */
-	if (ok)
-		ok = savePrivateKey(privKeyName, *priv_key, priv_key_len);
+	ok = savePrivateKey(privKeyName, *priv_key, priv_key_len);
 	if (ok)
 		ok = savePublicKey(pubKeyName, *pub_key, pub_key_len);
 
@@ -299,6 +293,8 @@ void NoiseUtil::writeKeys(const char* pubKeyName, const char* privKeyName, uint8
 		unlink(privKeyName);
 		unlink(pubKeyName);
 	}
+
+	return ok;
 }
 
 NoiseUtil::~NoiseUtil() {

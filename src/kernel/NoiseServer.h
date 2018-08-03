@@ -42,6 +42,7 @@ public:
 	NoiseUtil noiseUtil;
 
 	bool handshakeComplete;
+	bool handshakeSuccess;
 	std::mutex handshakeCompleteMutex;
 
 public:

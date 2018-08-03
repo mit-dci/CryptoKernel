@@ -433,7 +433,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 
 		if(handshakeClients.contains(it->key())) {
 			auto entry = handshakeClients.find(it->key());
-			if(entry->second->getHandshakeComplete()) {
+			if(entry->second->getHandshakeSuccess()) {
 				log->printf(LOG_LEVEL_INFO, "the CLIENT handshake is complete, this can join our connections!!!! " + entry->first);
 				Connection* connection = new Connection;
 
@@ -459,6 +459,10 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 						log->printf(LOG_LEVEL_INFO, "SOCKET NOT FOUND, OH NOOO");
 					}
 				}
+			}
+			else if(entry->second->getHandshakeComplete() && !entry->second->getHandshakeSuccess()) {
+				// todo
+				log->printf(LOG_LEVEL_INFO, "CLIENT The handshake for " + it->key() + " failed.");
 			}
 			continue;
 		}

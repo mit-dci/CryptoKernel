@@ -21,6 +21,7 @@ NoiseServer::NoiseServer(sf::TcpSocket* client, uint64_t port, CryptoKernel::Log
 	receivedPubKey = false;
 
 	handshakeComplete = false;
+	handshakeSuccess = false;
 
 	if(noise_init() != NOISE_ERROR_NONE) {
 		fprintf(stderr, "Noise initialization failed\n");
