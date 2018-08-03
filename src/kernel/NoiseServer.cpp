@@ -29,7 +29,11 @@ NoiseServer::NoiseServer(sf::TcpSocket* client, uint64_t port, CryptoKernel::Log
 
 	if(!noiseUtil.loadPrivateKey("keys/server_key_25519", server_key_25519, sizeof(server_key_25519))) {
 		log->printf(LOG_LEVEL_INFO, "could not load server key 25519");
-		return;
+		uint8_t* server_pub_key;
+		uint8_t* server_priv_key;
+		noiseUtil.writeKeys("keys/server_key_25519", "keys/server_key_25519.pub", &server_pub_key, &server_priv_key);
+		memcpy(server_key_25519, server_priv_key, CURVE25519_KEY_LEN); // put the new key in its proper place
+		//return;
 	}
 	/*if(!noiseUtil.loadPublicKey("keys/client_key_25519.pub", client_key_25519, sizeof(client_key_25519))) {
 		log->printf(LOG_LEVEL_INFO, "could not load client key 25519");
