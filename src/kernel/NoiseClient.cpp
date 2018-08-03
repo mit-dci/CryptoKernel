@@ -52,14 +52,6 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t 
 		return;
 	}
 
-	/* Set the handshake options and verify that everything we need
-	   has been supplied on the command-line. */
-	if (!initializeHandshake(handshake, &id, sizeof(id))) {
-		log->printf(LOG_LEVEL_INFO, "NOISE ERROR, LINE 84");
-		noise_handshakestate_free(handshake);
-		return;
-	}
-
 	log->printf(LOG_LEVEL_INFO, "CLIENT Well, we got through the constructor.  Starting writeInfo.");
 	writeInfoThread.reset(new std::thread(&NoiseClient::writeInfo, this)); // start the write info thread
 }
@@ -134,6 +126,15 @@ void NoiseClient::writeInfo() {
 					unlink("keys/client_key_25519.pub");
 				}
 			}
+
+			/* Set the handshake options and verify that everything we need
+			   has been supplied on the command-line. */
+			if (!initializeHandshake(handshake, &id, sizeof(id))) { // now that we have keys, initialize handshake
+				log->printf(LOG_LEVEL_INFO, "NOISE ERROR, LINE 84");
+				noise_handshakestate_free(handshake);
+				return;
+			}
+
 			pubKeyPacket.append(clientKey25519, sizeof(clientKey25519));
 
 			if(server->send(pubKeyPacket) != sf::Socket::Done) {
