@@ -50,8 +50,9 @@ public:
 
 	void writeInfo();
 	void recievePacket(sf::Packet packet);
-	void setHandshakeComplete(bool complete);
+	void setHandshakeComplete(bool complete, bool success);
 	bool getHandshakeComplete();
+	bool getHandshakeSuccess();
 	int initializeHandshake(NoiseHandshakeState* handshake, const NoiseProtocolId* nid, const void* prologue, size_t prologue_len);
 
 	virtual ~NoiseServer();

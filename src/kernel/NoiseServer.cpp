@@ -49,8 +49,6 @@ void NoiseServer::writeInfo() {
 
 	uint8_t message[MAX_MESSAGE_LEN + 2];
 
-	int ok = 1;
-
 	while(true) {
 		//handshakeMutex.lock();
 		int action = noise_handshakestate_get_action(handshake);
@@ -62,23 +60,19 @@ void NoiseServer::writeInfo() {
 			int err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
 			if (err != NOISE_ERROR_NONE) {
 				noise_perror("write handshake error!! ", err);
-				ok = 0;
-				break;
+				setHandshakeComplete(true, false);
+				return;
 			}
 			message[0] = (uint8_t)(mbuf.size >> 8);
 			message[1] = (uint8_t)mbuf.size;
-			/*if (!echo_send(fd, message, mbuf.size + 2)) {
-				ok = 0;
-				break;
-			}*/
 
 			sf::Packet packet;
 			packet.append(message, mbuf.size + 2);
 
 			if(client->send(packet) != sf::Socket::Done) {
 				log->printf(LOG_LEVEL_ERR, "something went wrong sending packet from client");
-				ok = 0;
-				break;
+				setHandshakeComplete(true, false);
+				return;
 			}
 		}
 		else if(action != NOISE_ACTION_READ_MESSAGE && action != NOISE_ACTION_NONE) { // for some reason, a noise action none fires
@@ -88,8 +82,9 @@ void NoiseServer::writeInfo() {
 		std::this_thread::sleep_for(std::chrono::milliseconds(50)); // totally arbitrary
 	}
 
+	int ok = 1;
 	/* If the action is not "split", then the handshake has failed */
-	if (ok && noise_handshakestate_get_action(handshake) != NOISE_ACTION_SPLIT) {
+	if (noise_handshakestate_get_action(handshake) != NOISE_ACTION_SPLIT) {
 		log->printf(LOG_LEVEL_INFO, "SERVER handshake failed");
 		fprintf(stderr, "protocol handshake failed\n");
 		ok = 0;
@@ -109,9 +104,7 @@ void NoiseServer::writeInfo() {
 	noise_handshakestate_free(handshake);
 	handshake = 0;
 
-	log->printf(LOG_LEVEL_INFO, "SERVER handshake succeeded!");
-
-	setHandshakeComplete(true);
+	setHandshakeComplete(true, ok);
 }
 
 void NoiseServer::recievePacket(sf::Packet packet) {
@@ -137,7 +130,8 @@ void NoiseServer::recievePacket(sf::Packet packet) {
 		if (ok && !noiseUtil.toNoiseProtocolId(&nid, &id)) {
 			log->printf(LOG_LEVEL_INFO, "Unknown echo protocol identifier");
 			fprintf(stderr, "Unknown echo protocol identifier\n");
-			ok = 0;
+			setHandshakeComplete(true, false);
+			return;
 		}
 
 		/* Create a HandshakeState object to manage the server's handshake */
@@ -147,7 +141,8 @@ void NoiseServer::recievePacket(sf::Packet packet) {
 			if (err != NOISE_ERROR_NONE) {
 				log->printf(LOG_LEVEL_INFO, "well, couldn't create the handshake");
 				noise_perror("create handshake", err);
-				ok = 0;
+				setHandshakeComplete(true, false);
+				return;
 			}
 		}
 
@@ -155,7 +150,8 @@ void NoiseServer::recievePacket(sf::Packet packet) {
 		if (ok) {
 			if (!initializeHandshake(handshake, &nid, &id, sizeof(id))) {
 				log->printf(LOG_LEVEL_INFO, "couldn't initialize handshake");
-				ok = 0;
+				setHandshakeComplete(true, false);
+				return;
 			}
 		}
 
@@ -165,7 +161,8 @@ void NoiseServer::recievePacket(sf::Packet packet) {
 			if (err != NOISE_ERROR_NONE) {
 				log->printf(LOG_LEVEL_INFO, "couldn't start handshake");
 				noise_perror("start handshake", err);
-				ok = 0;
+				setHandshakeComplete(true, false);
+				return;
 			}
 		}
 	}
@@ -182,7 +179,7 @@ void NoiseServer::recievePacket(sf::Packet packet) {
 			if (err != NOISE_ERROR_NONE) {
 				log->printf(LOG_LEVEL_INFO, "SERVER READ MESSAGE FAIL");
 				noise_perror("read handshake", err);
-				//ok = 0;
+				setHandshakeComplete(true, false);
 				return;
 			}
 		}
@@ -240,9 +237,15 @@ int NoiseServer::initializeHandshake(NoiseHandshakeState* handshake, const Noise
 	return 1;
 }
 
-void NoiseServer::setHandshakeComplete(bool complete) {
+void NoiseServer::setHandshakeComplete(bool complete, bool success) {
 	std::lock_guard<std::mutex> hcm(handshakeCompleteMutex);
 	handshakeComplete = complete;
+	handshakeSuccess = success;
+}
+
+bool NoiseServer::getHandshakeSuccess() {
+	std::lock_guard<std::mutex> hcm(handshakeCompleteMutex);
+	return handshakeSuccess;
 }
 
 bool NoiseServer::getHandshakeComplete() {

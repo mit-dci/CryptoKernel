@@ -495,6 +495,10 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 					}
 				}
 			}
+			else if(entry->second->getHandshakeComplete() && !entry->second->getHandshakeSuccess()) {
+				// todo
+				log->printf(LOG_LEVEL_INFO, "SERVER The handshake for " + it->key() + " failed.");
+			}
 			continue;
 		}
 
