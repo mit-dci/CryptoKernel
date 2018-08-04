@@ -287,7 +287,5 @@ int NoiseClient::initializeHandshake(NoiseHandshakeState *handshake, const void 
 }
 
 NoiseClient::~NoiseClient() {
-	//noise_cipherstate_free(send_cipher);
-	//noise_cipherstate_free(recv_cipher);
 	writeInfoThread->join();
 }

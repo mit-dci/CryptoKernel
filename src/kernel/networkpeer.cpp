@@ -39,6 +39,8 @@ CryptoKernel::Network::Peer::~Peer() {
     running = false;
     client->disconnect();
     requestThread->join();
+	noise_cipherstate_free(send_cipher);
+	noise_cipherstate_free(recv_cipher);
     delete client;
 }
 
