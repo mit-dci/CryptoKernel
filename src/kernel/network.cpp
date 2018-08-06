@@ -1,6 +1,5 @@
 #include "networkpeer.h"
 #include "version.h"
-#include "EncryptedPacket.h"
 
 #include <list>
 #include <algorithm>
@@ -490,13 +489,13 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 		}
 		else if(plaintextHosts.contains(it->key())) { // connect over plaintext
 			if(sockets.contains(it->key())) {
-				log->printf(LOG_LEVEL_INFO, "making an unencrypted connection...");
+				log->printf(LOG_LEVEL_INFO, "Network(): Making an unencrypted connection to " + it->key());
 				sf::TcpSocket* socket = sockets.find(it->key())->second;
 				if(socket) {
 					addConnection(socket, peerInfo);
 				}
 				else {
-					log->printf(LOG_LEVEL_INFO, "SOCKET NOT FOUND OH NO");
+					log->printf(LOG_LEVEL_INFO, "Socket for " + it->key() + " not found.");
 				}
 			}
 		}

@@ -2,7 +2,6 @@
 
 #include "version.h"
 #include "networkpeer.h"
-#include "EncryptedPacket.h"
 
 CryptoKernel::Network::Peer::Peer(sf::TcpSocket* client, CryptoKernel::Blockchain* blockchain,
                                   CryptoKernel::Network* network, const bool incoming, CryptoKernel::Log* log) {
@@ -53,8 +52,6 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request) {
     modifiedRequest["nonce"] = nonce;
     requests[nonce] = true;
 
-    //sf::Packet packet;
-    //packet << CryptoKernel::Storage::toString(modifiedRequest, false);
     std::string packetData = CryptoKernel::Storage::toString(modifiedRequest, false);
 
     const uint64_t startTime = std::chrono::duration_cast<std::chrono::milliseconds>
@@ -93,11 +90,6 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request) {
 }
 
 void CryptoKernel::Network::Peer::send(const Json::Value& response) {
-    /*sf::Packet packet;
-    packet << CryptoKernel::Storage::toString(response, false);
-
-    const auto status = client->send(packet);*/
-
 	std::string packetData = CryptoKernel::Storage::toString(response, false);
 	const auto status = sendPacket(packetData);
 
@@ -121,7 +113,6 @@ void CryptoKernel::Network::Peer::requestFunc() {
         sf::SocketSelector selector;
         selector.add(*client);
         if(selector.wait(sf::seconds(1))) {
-        	//sf::Packet* packet = new sf::Packet;
             const auto status = receivePacket(&packet);//client->receive(packet);
 
             if(status == sf::Socket::Done) {
@@ -384,14 +375,6 @@ std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Peer::getBlo
 
 sf::Socket::Status CryptoKernel::Network::Peer::sendPacket(std::string& data) {
 	std::unique_ptr<sf::Packet> packet;
-	/*if(send_cipher && recv_cipher) {
-		log->printf(LOG_LEVEL_INFO, "sent ENCRYPTED packet");
-		packet.reset(new EncryptedPacket(send_cipher, recv_cipher, log));
-	}
-	else {
-		log->printf(LOG_LEVEL_INFO, "sent UNENCRYPTED packet");
-		packet.reset(new sf::Packet);
-	}*/
 	packet.reset(new sf::Packet);
 
 	if(send_cipher && recv_cipher) {
@@ -411,17 +394,7 @@ sf::Socket::Status CryptoKernel::Network::Peer::sendPacket(std::string& data) {
 }
 
 sf::Socket::Status CryptoKernel::Network::Peer::receivePacket(sf::Packet** packet) {
-	/*if(send_cipher && recv_cipher) {
-		log->printf(LOG_LEVEL_INFO, "received ENCRYPTED packet");
-		*packet = new EncryptedPacket(send_cipher, recv_cipher, log);
-	}
-	else {
-		log->printf(LOG_LEVEL_INFO, "received UNENCRYPTED packet");
-		*packet = new sf::Packet;
-	}*/
 	*packet = new sf::Packet;
-
-
 
 	return client->receive(**packet);
 }

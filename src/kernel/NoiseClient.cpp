@@ -28,12 +28,11 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t 
 	log->printf(LOG_LEVEL_INFO, std::to_string(NOISE_ACTION_NONE) + ", " + std::to_string(NOISE_ACTION_WRITE_MESSAGE) + ", " + std::to_string(NOISE_ACTION_READ_MESSAGE) + ", " + std::to_string(NOISE_ACTION_FAILED) + ", " + std::to_string(NOISE_ACTION_SPLIT) + ", " + std::to_string(NOISE_ACTION_COMPLETE));
 
 	if (noise_init() != NOISE_ERROR_NONE) {
-		log->printf(LOG_LEVEL_INFO, "Noise initialization failed");
-		fprintf(stderr, "Noise initialization failed\n");
+		log->printf(LOG_LEVEL_ERR, "Noise(): Initialization failed");
 		return;
 	}
 
-	std::string protocol = "Noise_XX_25519_AESGCM_SHA256";//"Noise_NN_25519_AESGCM_SHA256";
+	std::string protocol = "Noise_XX_25519_AESGCM_SHA256";
 
 	// in the Echo example, this is accomplished by parsing the protocol string (ie 'Noise_XX_25519_AESGCM_SHA256') in echo_get_protocol_id
 	id.pattern = ECHO_PATTERN_XX;
@@ -45,12 +44,10 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t 
 	/* Create a HandshakeState object for the protocol */
 	int err = noise_handshakestate_new_by_name(&handshake, protocol.c_str(), NOISE_ROLE_INITIATOR);
 	if (err != NOISE_ERROR_NONE) {
-		log->printf(LOG_LEVEL_INFO, "Noise error, line 76!");
-		noise_perror(protocol.c_str(), err);
+		log->printf(LOG_LEVEL_ERR, "Noise(): Handshake creation failed");
 		return;
 	}
 
-	log->printf(LOG_LEVEL_INFO, "CLIENT Well, we got through the constructor.  Starting writeInfo.");
 	writeInfoThread.reset(new std::thread(&NoiseClient::writeInfo, this)); // start the write info thread
 
 	priv_key = 0;
@@ -109,8 +106,7 @@ void NoiseClient::writeInfo() {
 
 			err = noise_handshakestate_start(handshake);
 			if (err != NOISE_ERROR_NONE) {
-				log->printf(LOG_LEVEL_INFO, "CLIENT start handshake failed");
-				noise_perror("start handshake", err);
+				log->printf(LOG_LEVEL_INFO, "Noise(): Client start handshake failed");
 				setHandshakeComplete(true, false);
 				return;
 			}
@@ -120,30 +116,27 @@ void NoiseClient::writeInfo() {
 			action = noise_handshakestate_get_action(handshake);
 
 			if(action == NOISE_ACTION_WRITE_MESSAGE) {
-				log->printf(LOG_LEVEL_INFO, "CLIENT Well, waddya know, I'm gonna send a message, I thinK!");
 				/* Write the next handshake message with a zero-length payload */
 				noise_buffer_set_output(mbuf, message + 2, sizeof(message) - 2);
 				err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
 				if (err != NOISE_ERROR_NONE) {
-					log->printf(LOG_LEVEL_INFO, "CLIENT WRITE HANDSHAKE FAILED");
-					noise_perror("write handshake", err);
+					log->printf(LOG_LEVEL_ERR, "Noise(): Client write info failed");
 					setHandshakeComplete(true, false);
 					return;
 				}
 				message[0] = (uint8_t)(mbuf.size >> 8);
 				message[1] = (uint8_t)mbuf.size;
 
-				log->printf(LOG_LEVEL_INFO, "CLIENT WRITE INFO REALLY SENDING A PACKET FRIEND");
 				sf::Packet packet;
 				packet.append(message, mbuf.size + 2);
 				if(server->send(packet) != sf::Socket::Done) {
-					log->printf(LOG_LEVEL_ERR, "CLIENT couldn't send packet");
+					log->printf(LOG_LEVEL_ERR, "Noise(): Client couldn't send packet");
 					setHandshakeComplete(true, false);
 					return;
 				}
 			}
 			else if(action != NOISE_ACTION_READ_MESSAGE) {
-				log->printf(LOG_LEVEL_INFO, "Either the handshake succeeded, or it failed");
+				log->printf(LOG_LEVEL_INFO, "Noise(): Client write info complete");
 				break;
 			}
 		}
@@ -153,8 +146,7 @@ void NoiseClient::writeInfo() {
 
 	/* If the action is not "split", then the handshake has failed */
 	if(noise_handshakestate_get_action(handshake) != NOISE_ACTION_SPLIT) {
-		fprintf(stderr, "protocol handshake failed\n");
-		log->printf(LOG_LEVEL_INFO, "CLIENT protocol handshake failed :(");
+		log->printf(LOG_LEVEL_INFO, "Noise(): Client protocol handshake failed");
 		ok = 0;
 	}
 
@@ -162,8 +154,7 @@ void NoiseClient::writeInfo() {
 	if(ok) {
 		err = noise_handshakestate_split(handshake, &send_cipher, &recv_cipher);
 		if (err != NOISE_ERROR_NONE) {
-			log->printf(LOG_LEVEL_INFO, "CLIENT error split to start data transfer");
-			noise_perror("split to start data transfer", err);
+			log->printf(LOG_LEVEL_ERR, "Noise(): Client handshake split failed");
 			ok = 0;
 		}
 	}
@@ -179,8 +170,6 @@ void NoiseClient::writeInfo() {
 }
 
 void NoiseClient::receivePacket(sf::Packet packet) {
-	log->printf(LOG_LEVEL_INFO, "CLIENT recieving packet");
-
 	int action = noise_handshakestate_get_action(handshake);
 	NoiseBuffer mbuf;
 	int err, ok;
@@ -189,15 +178,13 @@ void NoiseClient::receivePacket(sf::Packet packet) {
 	uint8_t message[MAX_MESSAGE_LEN + 2];
 
 	if(action == NOISE_ACTION_READ_MESSAGE) {
-		log->printf(LOG_LEVEL_INFO, "CLIENT READING A MESSAGE!!");
-
 		message_size = packet.getDataSize();
 		memcpy(message, packet.getData(), packet.getDataSize());
 
 		noise_buffer_set_input(mbuf, message + 2, message_size - 2);
 		err = noise_handshakestate_read_message(handshake, &mbuf, NULL);
 		if (err != NOISE_ERROR_NONE) {
-			noise_perror("read handshake", err);
+			log->printf(LOG_LEVEL_ERR, "Noise(): Client read message failed");
 			setHandshakeComplete(true, false);
 		}
 	}
@@ -229,8 +216,7 @@ int NoiseClient::initializeHandshake(NoiseHandshakeState *handshake, const void 
 	/* Set the prologue first */
 	err = noise_handshakestate_set_prologue(handshake, prologue, prologue_len);
 	if (err != NOISE_ERROR_NONE) {
-		log->printf(LOG_LEVEL_INFO, "CLIENT PROLOGUE FAILED");
-		noise_perror("prologue", err);
+		log->printf(LOG_LEVEL_INFO, "Noise(): Client prologue failed");
 		return 0;
 	}
 
@@ -253,13 +239,11 @@ int NoiseClient::initializeHandshake(NoiseHandshakeState *handshake, const void 
 			err = noise_dhstate_set_keypair_private(dh, key, key_len);
 			noise_free(key, key_len);
 			if (err != NOISE_ERROR_NONE) {
-				log->printf(LOG_LEVEL_INFO, "SET CLIENT PRIVATE KEY ERROR");
-				noise_perror("set client private key", err);
+				log->printf(LOG_LEVEL_ERR, "Noise(): Client private key err");
 				return 0;
 			}
 		} else {
-			log->printf(LOG_LEVEL_INFO, "CLIENT private key required but not provided!!");
-			fprintf(stderr, "Client private key required, but not provided.\n");
+			log->printf(LOG_LEVEL_INFO, "Noise(): Client private key required but not provided!");
 			return 0;
 		}
 	}
