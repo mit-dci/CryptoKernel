@@ -109,7 +109,7 @@ void NoiseServer::writeInfo() {
 
 void NoiseServer::receivePacket(sf::Packet packet) {
 	int err;
-	log->printf(LOG_LEVEL_INFO, "SERVER HAHAHAHA RECEIVE PACKET STARTING");
+	log->printf(LOG_LEVEL_INFO, "Noise(): Server, receiving a packet.");
 	uint8_t message[MAX_MESSAGE_LEN + 2];
 
 	if(!receivedPubKey) {

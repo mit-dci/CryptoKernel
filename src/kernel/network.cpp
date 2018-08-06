@@ -201,7 +201,7 @@ CryptoKernel::Network::~Network() {
 }
 
 void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
-	log->printf(LOG_LEVEL_INFO, "Incoming encryption handshake thread started");
+	log->printf(LOG_LEVEL_INFO, "Network(): Incoming encryption handshake thread started");
 
 	sf::TcpListener ls;
 	if(ls.listen(port + 1) != sf::Socket::Done) {
