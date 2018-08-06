@@ -32,8 +32,6 @@ public:
 	NoiseHandshakeState *handshake;
 	EchoProtocolId id;
 
-	std::mutex handshakeMutex;
-
 	std::unique_ptr<std::thread> writeInfoThread;
 
 	NoiseCipherState* send_cipher;

@@ -29,11 +29,11 @@ NoiseServer::NoiseServer(sf::TcpSocket* client, uint64_t port, CryptoKernel::Log
 	}
 
 	if(!noiseUtil.loadPrivateKey("keys/server_key_25519", server_key_25519, sizeof(server_key_25519))) {
-		log->printf(LOG_LEVEL_INFO, "could not load server key 25519");
+		log->printf(LOG_LEVEL_INFO, "Noise(): Could not load server keys.");
 		uint8_t* server_pub_key;
 		uint8_t* server_priv_key;
 		if(!noiseUtil.writeKeys("keys/server_key_25519.pub", "keys/server_key_25519", &server_pub_key, &server_priv_key)) {
-			log->printf(LOG_LEVEL_INFO, "Could not write server keys.");
+			log->printf(LOG_LEVEL_INFO, "Noise(): Could not write server keys.");
 			setHandshakeComplete(true, false);
 			return;
 		}
@@ -44,16 +44,11 @@ NoiseServer::NoiseServer(sf::TcpSocket* client, uint64_t port, CryptoKernel::Log
 }
 
 void NoiseServer::writeInfo() {
-	log->printf(LOG_LEVEL_INFO, "SERVER write info starting");
-
 	uint8_t message[MAX_MESSAGE_LEN + 2];
 
 	while(!getHandshakeComplete()) { // it might fail in another thread, and so become "complete"
-		//handshakeMutex.lock();
 		int action = noise_handshakestate_get_action(handshake);
-		//handshakeMutex.unlock();
 		if (action == NOISE_ACTION_WRITE_MESSAGE) {
-			log->printf(LOG_LEVEL_INFO, "hehe, SERVER looks like we're actually gonna write something");
 			/* Write the next handshake message with a zero-length payload */
 			noise_buffer_set_output(mbuf, message + 2, sizeof(message) - 2);
 			int err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
@@ -69,7 +64,7 @@ void NoiseServer::writeInfo() {
 			packet.append(message, mbuf.size + 2);
 
 			if(client->send(packet) != sf::Socket::Done) {
-				log->printf(LOG_LEVEL_ERR, "something went wrong sending packet from client");
+				log->printf(LOG_LEVEL_ERR, "Noise(): Server, something went wrong sending packet");
 				setHandshakeComplete(true, false);
 				return;
 			}
@@ -84,8 +79,7 @@ void NoiseServer::writeInfo() {
 	int ok = 1;
 	/* If the action is not "split", then the handshake has failed */
 	if (noise_handshakestate_get_action(handshake) != NOISE_ACTION_SPLIT) {
-		log->printf(LOG_LEVEL_INFO, "SERVER handshake failed");
-		fprintf(stderr, "protocol handshake failed\n");
+		log->printf(LOG_LEVEL_INFO, "Noise(): Server handshake failed.");
 		ok = 0;
 	}
 
@@ -108,7 +102,7 @@ void NoiseServer::writeInfo() {
 
 void NoiseServer::receivePacket(sf::Packet packet) {
 	int err;
-	log->printf(LOG_LEVEL_INFO, "SERVER HAHAHAHA RECEIVE PACKET STARTING");
+	log->printf(LOG_LEVEL_INFO, "Noise(): Sending packet from server");
 	uint8_t message[MAX_MESSAGE_LEN + 2];
 
 	if(!receivedPubKey) {
@@ -166,7 +160,6 @@ void NoiseServer::receivePacket(sf::Packet packet) {
 		}
 	}
 	else {
-		//std::lock_guard<std::mutex> hm(handshakeMutex);
 		int action = noise_handshakestate_get_action(handshake);
 		if(action == NOISE_ACTION_READ_MESSAGE) {
 			log->printf(LOG_LEVEL_INFO, "SERVER READING MESSAGE!!!");

@@ -25,7 +25,6 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t 
 	handshakeComplete = false;
 	handshakeSuccess = false;
 
-	log->printf(LOG_LEVEL_INFO, "Noise CLIENT !!!!!! started");
 	log->printf(LOG_LEVEL_INFO, std::to_string(NOISE_ACTION_NONE) + ", " + std::to_string(NOISE_ACTION_WRITE_MESSAGE) + ", " + std::to_string(NOISE_ACTION_READ_MESSAGE) + ", " + std::to_string(NOISE_ACTION_FAILED) + ", " + std::to_string(NOISE_ACTION_SPLIT) + ", " + std::to_string(NOISE_ACTION_COMPLETE));
 
 	if (noise_init() != NOISE_ERROR_NONE) {
@@ -34,8 +33,6 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t 
 		return;
 	}
 
-	/* Check that the echo protocol supports the handshake protocol.
-	   One-way handshake patterns and XXfallback are not yet supported. */
 	std::string protocol = "Noise_XX_25519_AESGCM_SHA256";//"Noise_NN_25519_AESGCM_SHA256";
 
 	// in the Echo example, this is accomplished by parsing the protocol string (ie 'Noise_XX_25519_AESGCM_SHA256') in echo_get_protocol_id
@@ -61,16 +58,10 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t 
 }
 
 void NoiseClient::writeInfo() {
-	log->printf(LOG_LEVEL_INFO, "CLIENT writing info");
-
-	int action;
-	NoiseBuffer mbuf;
-	int err, ok;
-	size_t message_size;
-
-	uint8_t message[MAX_MESSAGE_LEN + 2];
-
+	int err, action, ok;
 	ok = 1;
+	NoiseBuffer mbuf;
+	uint8_t message[MAX_MESSAGE_LEN + 2];
 
 	bool sentPubKey = false;
 
@@ -126,19 +117,15 @@ void NoiseClient::writeInfo() {
 			sentId = true;
 		}
 		else {
-			//handshakeMutex.lock();
 			action = noise_handshakestate_get_action(handshake);
-			//handshakeMutex.unlock();
 
 			if(action == NOISE_ACTION_WRITE_MESSAGE) {
 				log->printf(LOG_LEVEL_INFO, "CLIENT Well, waddya know, I'm gonna send a message, I thinK!");
 				/* Write the next handshake message with a zero-length payload */
-				//handshakeMutex.lock();
 				noise_buffer_set_output(mbuf, message + 2, sizeof(message) - 2);
 				err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
 				if (err != NOISE_ERROR_NONE) {
 					log->printf(LOG_LEVEL_INFO, "CLIENT WRITE HANDSHAKE FAILED");
-					//handshakeMutex.unlock();
 					noise_perror("write handshake", err);
 					setHandshakeComplete(true, false);
 					return;
@@ -194,9 +181,7 @@ void NoiseClient::writeInfo() {
 void NoiseClient::receivePacket(sf::Packet packet) {
 	log->printf(LOG_LEVEL_INFO, "CLIENT recieving packet");
 
-	//handshakeMutex.lock();
 	int action = noise_handshakestate_get_action(handshake);
-	//handshakeMutex.unlock();
 	NoiseBuffer mbuf;
 	int err, ok;
 	size_t message_size;
@@ -282,7 +267,7 @@ int NoiseClient::initializeHandshake(NoiseHandshakeState *handshake, const void 
 	// we are not using a remote public key for the server, but it would be initialized right here
 
 	/* Ready to go */
-	log->printf(LOG_LEVEL_INFO, "handshake initialization successful!");
+	log->printf(LOG_LEVEL_INFO, "Noise(): handshake initialization successful!");
 	return 1;
 }
 
