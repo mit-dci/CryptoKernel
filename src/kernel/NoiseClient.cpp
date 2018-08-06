@@ -171,8 +171,7 @@ void NoiseClient::writeInfo() {
 	if(ok) {
 		err = noise_handshakestate_split(handshake, &send_cipher, &recv_cipher);
 		if (err != NOISE_ERROR_NONE) {
-			log->printf(LOG_LEVEL_INFO, "CLIENT error split to start data transfer");
-			noise_perror("split to start data transfer", err);
+			log->printf(LOG_LEVEL_INFO, "Noise(): Client, split failed: " + noiseUtil.errToString(err));
 			ok = 0;
 		}
 	}
@@ -245,8 +244,8 @@ int NoiseClient::initializeHandshake(NoiseHandshakeState *handshake, const void 
 	/* Set the prologue first */
 	err = noise_handshakestate_set_prologue(handshake, prologue, prologue_len);
 	if (err != NOISE_ERROR_NONE) {
-		log->printf(LOG_LEVEL_INFO, "Noise(): Client prologue failed.");
-		noise_perror("prologue", err);
+		log->printf(LOG_LEVEL_INFO, "Noise(): Client prologue: " + noiseUtil.errToString(err));
+		//noise_perror("prologue", err);
 		return 0;
 	}
 
