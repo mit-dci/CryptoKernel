@@ -29,7 +29,6 @@
 
 #include "ckmath.h"
 #include "crypto.h"
-#include "EncryptedPacket.h"
 #include "wallet.h"
 #include "network.h"
 #include "cryptoclient.h"

@@ -1,6 +1,5 @@
 #include "networkpeer.h"
 #include "version.h"
-#include "EncryptedPacket.h"
 
 #include <list>
 #include <algorithm>

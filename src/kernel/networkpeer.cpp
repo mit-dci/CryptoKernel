@@ -2,7 +2,6 @@
 
 #include "version.h"
 #include "networkpeer.h"
-#include "EncryptedPacket.h"
 
 CryptoKernel::Network::Peer::Peer(sf::TcpSocket* client, CryptoKernel::Blockchain* blockchain,
                                   CryptoKernel::Network* network, const bool incoming, CryptoKernel::Log* log) {
