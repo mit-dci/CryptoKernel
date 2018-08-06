@@ -25,7 +25,7 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t 
 	handshakeComplete = false;
 	handshakeSuccess = false;
 
-	log->printf(LOG_LEVEL_INFO, "Noise CLIENT !!!!!! started");
+	log->printf(LOG_LEVEL_INFO, "Noise(): Client started");
 	log->printf(LOG_LEVEL_INFO, std::to_string(NOISE_ACTION_NONE) + ", " + std::to_string(NOISE_ACTION_WRITE_MESSAGE) + ", " + std::to_string(NOISE_ACTION_READ_MESSAGE) + ", " + std::to_string(NOISE_ACTION_FAILED) + ", " + std::to_string(NOISE_ACTION_SPLIT) + ", " + std::to_string(NOISE_ACTION_COMPLETE));
 
 	if (noise_init() != NOISE_ERROR_NONE) {
@@ -34,9 +34,7 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t 
 		return;
 	}
 
-	/* Check that the echo protocol supports the handshake protocol.
-	   One-way handshake patterns and XXfallback are not yet supported. */
-	std::string protocol = "Noise_XX_25519_AESGCM_SHA256";//"Noise_NN_25519_AESGCM_SHA256";
+	std::string protocol = "Noise_XX_25519_AESGCM_SHA256";
 
 	// in the Echo example, this is accomplished by parsing the protocol string (ie 'Noise_XX_25519_AESGCM_SHA256') in echo_get_protocol_id
 	id.pattern = ECHO_PATTERN_XX;
@@ -286,7 +284,7 @@ int NoiseClient::initializeHandshake(NoiseHandshakeState *handshake, const void 
 	// we are not using a remote public key for the server, but it would be initialized right here
 
 	/* Ready to go */
-	log->printf(LOG_LEVEL_INFO, "handshake initialization successful!");
+	log->printf(LOG_LEVEL_INFO, "Handshake initialization successful!");
 	return 1;
 }
 
