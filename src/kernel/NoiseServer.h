@@ -1,10 +1,3 @@
-/*
- * NoiseServer.h
- *
- *  Created on: Aug 2, 2018
- *      Author: luke
- */
-
 #ifndef SRC_KERNEL_NOISESERVER_H_
 #define SRC_KERNEL_NOISESERVER_H_
 
