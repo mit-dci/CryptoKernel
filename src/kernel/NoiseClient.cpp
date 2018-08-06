@@ -153,7 +153,7 @@ void NoiseClient::writeInfo() {
 				}
 			}
 			else if(action != NOISE_ACTION_READ_MESSAGE) {
-				log->printf(LOG_LEVEL_INFO, "Either the handshake succeeded, or it failed");
+				log->printf(LOG_LEVEL_INFO, "Noise(): Client, either the handshake succeeded, or it failed");
 				break;
 			}
 		}
@@ -171,7 +171,7 @@ void NoiseClient::writeInfo() {
 	if(ok) {
 		err = noise_handshakestate_split(handshake, &send_cipher, &recv_cipher);
 		if (err != NOISE_ERROR_NONE) {
-			log->printf(LOG_LEVEL_INFO, "Noise(): Client, split failed: " + noiseUtil.errToString(err));
+			log->printf(LOG_LEVEL_ERR, "Noise(): Client, split failed: " + noiseUtil.errToString(err));
 			ok = 0;
 		}
 	}
