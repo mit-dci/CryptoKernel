@@ -45,7 +45,7 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t 
 	/* Create a HandshakeState object for the protocol */
 	int err = noise_handshakestate_new_by_name(&handshake, protocol.c_str(), NOISE_ROLE_INITIATOR);
 	if(err != NOISE_ERROR_NONE) {
-		log->printf(LOG_LEVEL_ERR, "Client, error: " + noiseUtil.errToString(err));
+		//log->printf(LOG_LEVEL_ERR, "Client, error: " + noiseUtil.errToString(err));
 		return;
 	}
 
@@ -114,7 +114,7 @@ void NoiseClient::writeInfo() {
 
 			err = noise_handshakestate_start(handshake);
 			if (err != NOISE_ERROR_NONE) {
-				log->printf(LOG_LEVEL_ERR, "Noise(): Client start handshake error, " + noiseUtil.errToString(err));
+				//log->printf(LOG_LEVEL_ERR, "Noise(): Client start handshake error, " + noiseUtil.errToString(err));
 				setHandshakeComplete(true, false);
 				return;
 			}
@@ -130,7 +130,7 @@ void NoiseClient::writeInfo() {
 				noise_buffer_set_output(mbuf, message + 2, sizeof(message) - 2);
 				err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
 				if (err != NOISE_ERROR_NONE) {
-					log->printf(LOG_LEVEL_ERR, "Noise(): Client, handshake failed on write message: " + noiseUtil.errToString(err));
+					//log->printf(LOG_LEVEL_ERR, "Noise(): Client, handshake failed on write message: " + noiseUtil.errToString(err));
 					setHandshakeComplete(true, false);
 					return;
 				}
@@ -165,7 +165,7 @@ void NoiseClient::writeInfo() {
 	if(ok) {
 		err = noise_handshakestate_split(handshake, &send_cipher, &recv_cipher);
 		if (err != NOISE_ERROR_NONE) {
-			log->printf(LOG_LEVEL_ERR, "Noise(): Client, split failed: " + noiseUtil.errToString(err));
+			//log->printf(LOG_LEVEL_ERR, "Noise(): Client, split failed: " + noiseUtil.errToString(err));
 			ok = 0;
 		}
 	}
@@ -201,7 +201,7 @@ void NoiseClient::receivePacket(sf::Packet packet) {
 		noise_buffer_set_input(mbuf, message + 2, message_size - 2);
 		err = noise_handshakestate_read_message(handshake, &mbuf, NULL);
 		if (err != NOISE_ERROR_NONE) {
-			log->printf(LOG_LEVEL_ERR, "Noise(): Client, read handshake " + noiseUtil.errToString(err));
+			//log->printf(LOG_LEVEL_ERR, "Noise(): Client, read handshake " + noiseUtil.errToString(err));
 			setHandshakeComplete(true, false);
 		}
 	}
@@ -237,7 +237,7 @@ int NoiseClient::initializeHandshake(NoiseHandshakeState *handshake, const void 
 	/* Set the prologue first */
 	err = noise_handshakestate_set_prologue(handshake, prologue, prologue_len);
 	if (err != NOISE_ERROR_NONE) {
-		log->printf(LOG_LEVEL_INFO, "Noise(): Client prologue: " + noiseUtil.errToString(err));
+		//log->printf(LOG_LEVEL_INFO, "Noise(): Client prologue: " + noiseUtil.errToString(err));
 		return 0;
 	}
 
@@ -261,7 +261,7 @@ int NoiseClient::initializeHandshake(NoiseHandshakeState *handshake, const void 
 			err = noise_dhstate_set_keypair_private(dh, key, key_len);
 			noise_free(key, key_len);
 			if (err != NOISE_ERROR_NONE) {
-				log->printf(LOG_LEVEL_ERR, "Noise(): Set client private key " + noiseUtil.errToString(err));
+				//log->printf(LOG_LEVEL_ERR, "Noise(): Set client private key " + noiseUtil.errToString(err));
 				return 0;
 			}
 		} else {
