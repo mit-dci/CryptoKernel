@@ -12,7 +12,6 @@
 #include <string>
 
 NoiseUtil::NoiseUtil() {
-	// TODO Auto-generated constructor stub
 }
 
 /* Loads a binary private key from a file.  Returns non-zero if OK. */
@@ -247,12 +246,10 @@ int NoiseUtil::writeKeys(const char* pubKeyName, const char* privKeyName, uint8_
 	NoiseDHState* dh;
 	int err = noise_dhstate_new_by_name(&dh, "25519");
 	if(err != NOISE_ERROR_NONE) {
-		//log->printf(LOG_LEVEL_ERR, "Could not initialize dhstate");
 		return 0;
 	}
 	err = noise_dhstate_generate_keypair(dh);
 	if(err != NOISE_ERROR_NONE) {
-		//log->printf(LOG_LEVEL_ERR, "Could not generate key pair!");
 		noise_dhstate_free(dh);
 		return 0;
 	}
@@ -284,11 +281,6 @@ int NoiseUtil::writeKeys(const char* pubKeyName, const char* privKeyName, uint8_
 
 	/* Clean up */
 	noise_dhstate_free(dh);
-
-	//memcpy(clientKey25519, pub_key, pub_key_len); // put the new key in its proper place
-
-	//noise_free(priv_key, priv_key_len); // todo, free
-	//noise_free(pub_key, pub_key_len); // todo, free
 
 	if (!ok) {
 		unlink(privKeyName);
