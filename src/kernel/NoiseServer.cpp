@@ -95,7 +95,6 @@ void NoiseServer::writeInfo() {
 		err = noise_handshakestate_split(handshake, &send_cipher, &recv_cipher);
 		if (err != NOISE_ERROR_NONE) {
 			log->printf(LOG_LEVEL_ERR, "Noise(): Server, split failed: " + noiseUtil.errToString(err));
-			//noise_perror("split to start data transfer", err);
 			ok = 0;
 		}
 	}
@@ -159,7 +158,6 @@ void NoiseServer::receivePacket(sf::Packet packet) {
 			err = noise_handshakestate_start(handshake);
 			if (err != NOISE_ERROR_NONE) {
 				log->printf(LOG_LEVEL_INFO, "Noise(): Server, couldn't start handshake: " + noiseUtil.errToString(err));
-				//noise_perror("start handshake", err);
 				setHandshakeComplete(true, false);
 				return;
 			}
@@ -177,7 +175,6 @@ void NoiseServer::receivePacket(sf::Packet packet) {
 			err = noise_handshakestate_read_message(handshake, &mbuf, NULL);
 			if (err != NOISE_ERROR_NONE) {
 				log->printf(LOG_LEVEL_ERR, "Noise(): Server, read handshake error: " + noiseUtil.errToString(err));
-				//noise_perror("read handshake", err);
 				setHandshakeComplete(true, false);
 				return;
 			}
@@ -195,7 +192,6 @@ int NoiseServer::initializeHandshake(NoiseHandshakeState* handshake, const Noise
 	err = noise_handshakestate_set_prologue(handshake, prologue, prologue_len);
 	if (err != NOISE_ERROR_NONE) {
 		log->printf(LOG_LEVEL_ERR, "Noise(): Server, prologue error: " + noiseUtil.errToString(err));
-		//noise_perror("prologue", err);
 		return 0;
 	}
 
@@ -212,7 +208,6 @@ int NoiseServer::initializeHandshake(NoiseHandshakeState* handshake, const Noise
 		}
 		if (err != NOISE_ERROR_NONE) {
 			log->printf(LOG_LEVEL_ERR, "Noise(): Server, set private key error, " + noiseUtil.errToString(err));
-			//noise_perror("set server private key", err);
 			return 0;
 		}
 	}
@@ -230,7 +225,6 @@ int NoiseServer::initializeHandshake(NoiseHandshakeState* handshake, const Noise
 		}
 		if (err != NOISE_ERROR_NONE) {
 			log->printf(LOG_LEVEL_ERR, "Noise(): Server, set public key error, " + noiseUtil.errToString(err));
-			//noise_perror("set client public key", err);
 			return 0;
 		}
 	}

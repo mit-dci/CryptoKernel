@@ -46,7 +46,6 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t 
 	int err = noise_handshakestate_new_by_name(&handshake, protocol.c_str(), NOISE_ROLE_INITIATOR);
 	if(err != NOISE_ERROR_NONE) {
 		log->printf(LOG_LEVEL_ERR, "Client, error: " + noiseUtil.errToString(err));
-		//noise_perror(protocol.c_str(), err);
 		return;
 	}
 
@@ -116,7 +115,6 @@ void NoiseClient::writeInfo() {
 			err = noise_handshakestate_start(handshake);
 			if (err != NOISE_ERROR_NONE) {
 				log->printf(LOG_LEVEL_ERR, "Noise(): Client start handshake error, " + noiseUtil.errToString(err));
-				//noise_perror("start handshake", err);
 				setHandshakeComplete(true, false);
 				return;
 			}
@@ -128,15 +126,11 @@ void NoiseClient::writeInfo() {
 			//handshakeMutex.unlock();
 
 			if(action == NOISE_ACTION_WRITE_MESSAGE) {
-				log->printf(LOG_LEVEL_INFO, "CLIENT Well, waddya know, I'm gonna send a message, I thinK!");
 				/* Write the next handshake message with a zero-length payload */
-				//handshakeMutex.lock();
 				noise_buffer_set_output(mbuf, message + 2, sizeof(message) - 2);
 				err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
 				if (err != NOISE_ERROR_NONE) {
 					log->printf(LOG_LEVEL_ERR, "Noise(): Client, handshake failed on write message: " + noiseUtil.errToString(err));
-					//handshakeMutex.unlock();
-					//noise_perror("write handshake", err);
 					setHandshakeComplete(true, false);
 					return;
 				}
@@ -207,7 +201,6 @@ void NoiseClient::receivePacket(sf::Packet packet) {
 		noise_buffer_set_input(mbuf, message + 2, message_size - 2);
 		err = noise_handshakestate_read_message(handshake, &mbuf, NULL);
 		if (err != NOISE_ERROR_NONE) {
-			//noise_perror("read handshake", err);
 			log->printf(LOG_LEVEL_ERR, "Noise(): Client, read handshake " + noiseUtil.errToString(err));
 			setHandshakeComplete(true, false);
 		}
@@ -245,7 +238,6 @@ int NoiseClient::initializeHandshake(NoiseHandshakeState *handshake, const void 
 	err = noise_handshakestate_set_prologue(handshake, prologue, prologue_len);
 	if (err != NOISE_ERROR_NONE) {
 		log->printf(LOG_LEVEL_INFO, "Noise(): Client prologue: " + noiseUtil.errToString(err));
-		//noise_perror("prologue", err);
 		return 0;
 	}
 
@@ -270,7 +262,6 @@ int NoiseClient::initializeHandshake(NoiseHandshakeState *handshake, const void 
 			noise_free(key, key_len);
 			if (err != NOISE_ERROR_NONE) {
 				log->printf(LOG_LEVEL_ERR, "Noise(): Set client private key " + noiseUtil.errToString(err));
-				//noise_perror("set client private key", err);
 				return 0;
 			}
 		} else {
