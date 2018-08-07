@@ -74,7 +74,8 @@ void NoiseClient::writeInfo() {
 		if(server->getRemoteAddress() == sf::IpAddress::None) {
 			log->printf(LOG_LEVEL_ERR, "Noise(): Client, the remote port has been invalidated");
 			setHandshakeComplete(true, false);
-			return;
+			ok = 0;
+			continue;
 		}
 
 		if(!sentPubKey) { // we need to share our public key over the network
@@ -85,6 +86,8 @@ void NoiseClient::writeInfo() {
 					setHandshakeComplete(true, false);
 					//return;
 					ok = 0;
+					delete pub_key;
+					delete priv_key;
 					continue;
 				}
 				memcpy(clientKey25519, pub_key, CURVE25519_KEY_LEN); // put the new key in its proper place
