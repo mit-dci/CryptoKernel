@@ -279,5 +279,7 @@ int NoiseClient::initializeHandshake(NoiseHandshakeState *handshake, const void 
 }
 
 NoiseClient::~NoiseClient() {
+	log->printf(LOG_LEVEL_INFO, "Cleaning up noise client");
 	writeInfoThread->join();
+	server->close();
 }

@@ -254,5 +254,7 @@ bool NoiseServer::getHandshakeComplete() {
 }
 
 NoiseServer::~NoiseServer() {
+	log->printf(LOG_LEVEL_INFO, "Cleaning up noise server");
 	writeInfoThread->join();
+	client->close();
 }
