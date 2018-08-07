@@ -145,7 +145,8 @@ void CryptoKernel::Network::Peer::requestFunc() {
                 	mbuf.size = packet->getDataSize();
                 	mbuf.max_size = 65536;
                 	noise_cipherstate_decrypt(recv_cipher, &mbuf);
-                	requestString.assign((const char*)mbuf.data);
+                	//requestString.assign((const char*)mbuf.data);
+                	requestString = mbuf.data;
                 }
                 else {
                 	(*packet) >> requestString;
