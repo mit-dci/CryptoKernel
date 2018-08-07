@@ -175,8 +175,6 @@ void NoiseClient::writeInfo() {
 		std::this_thread::sleep_for(std::chrono::milliseconds(50)); // again, totally arbitrary
 	}
 
-	log->printf(LOG_LEVEL_INFO, "we are still alive 1");
-
 	/* If the action is not "split", then the handshake has failed */
 	handshakeMutex.lock();
 	if(ok && noise_handshakestate_get_action(handshake) != NOISE_ACTION_SPLIT) {
@@ -184,8 +182,6 @@ void NoiseClient::writeInfo() {
 		ok = 0;
 	}
 	handshakeMutex.unlock();
-
-	log->printf(LOG_LEVEL_INFO, "we are still alive 2");
 
 	/* Split out the two CipherState objects for send and receive */
 	if(ok) {
@@ -198,15 +194,11 @@ void NoiseClient::writeInfo() {
 		}
 	}
 
-	log->printf(LOG_LEVEL_INFO, "we are still alive 3");
-
 	/* We no longer need the HandshakeState */
 	handshakeMutex.lock();
 	noise_handshakestate_free(handshake);
 	handshakeMutex.unlock();
 	handshake = 0;
-
-	log->printf(LOG_LEVEL_INFO, "we are still alive 4");
 
 	// padding would go here, if we used it
 

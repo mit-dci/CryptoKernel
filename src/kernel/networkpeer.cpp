@@ -145,30 +145,20 @@ void CryptoKernel::Network::Peer::requestFunc() {
 
                 log->printf(LOG_LEVEL_INFO, "Peer(): Receiving packet");
                 if(send_cipher && recv_cipher) {
-                	log->printf(LOG_LEVEL_INFO, "alive 1");
                 	NoiseBuffer mbuf;
-                	log->printf(LOG_LEVEL_INFO, "alive 2");
                 	mbuf.data = (uint8_t*)malloc(packet->getDataSize());
-                	log->printf(LOG_LEVEL_INFO, "alive 3");
                 	memcpy(mbuf.data, packet->getData(), packet->getDataSize());
-                	log->printf(LOG_LEVEL_INFO, "alive 4");
                 	mbuf.size = packet->getDataSize();
-                	log->printf(LOG_LEVEL_INFO, "alive 5");
                 	mbuf.max_size = 65536;
-                	log->printf(LOG_LEVEL_INFO, "alive 6");
                 	noise_cipherstate_decrypt(recv_cipher, &mbuf);
-                	log->printf(LOG_LEVEL_INFO, "alive 7");
                 	//requestString.assign((const char*)mbuf.data);
                 	std::string nifty((const char*)mbuf.data);
                 	requestString = nifty;
-                	log->printf(LOG_LEVEL_INFO, "alive 8");
                 }
                 else {
                 	(*packet) >> requestString;
                 }
-                log->printf(LOG_LEVEL_INFO, "alive 9");
                 delete packet;
-                log->printf(LOG_LEVEL_INFO, "alive 10");
 
                 // If this breaks, request will be null
                 const Json::Value request = CryptoKernel::Storage::toJson(requestString); // but this is the response....
