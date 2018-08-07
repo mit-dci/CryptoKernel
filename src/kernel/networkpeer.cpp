@@ -158,7 +158,9 @@ void CryptoKernel::Network::Peer::requestFunc() {
                 	log->printf(LOG_LEVEL_INFO, "alive 6");
                 	noise_cipherstate_decrypt(recv_cipher, &mbuf);
                 	log->printf(LOG_LEVEL_INFO, "alive 7");
-                	requestString.assign((const char*)mbuf.data);
+                	//requestString.assign((const char*)mbuf.data);
+                	std::string nifty((const char*)mbuf.data);
+                	requestString = nifty;
                 	log->printf(LOG_LEVEL_INFO, "alive 8");
                 }
                 else {
