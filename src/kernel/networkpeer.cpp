@@ -141,12 +141,11 @@ void CryptoKernel::Network::Peer::requestFunc() {
 
                 if(send_cipher && recv_cipher) {
                 	NoiseBuffer mbuf;
-                	mbuf.data = (uint8_t*)packet->getData();
+                	memcpy(mbuf.data, (uint8_t*)packet->getData(), packet->getDataSize());
                 	mbuf.size = packet->getDataSize();
                 	mbuf.max_size = 65536;
                 	noise_cipherstate_decrypt(recv_cipher, &mbuf);
-                	//requestString.assign((const char*)mbuf.data);
-                	requestString = mbuf.data;
+                	requestString.assign((const char*)mbuf.data);
                 }
                 else {
                 	(*packet) >> requestString;
