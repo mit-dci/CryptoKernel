@@ -240,8 +240,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	            	else if(!handshakeServers.contains(client->getRemoteAddress().toString())) {
 	            		log->printf(LOG_LEVEL_INFO, "Network(): Adding a noise client (to handshakeServers), " + client->getRemoteAddress().toString());
 						// Add the new client to the clients list
-						NoiseServer* ncs = new NoiseServer(client, 8888, log);
-						handshakeServers.at(client->getRemoteAddress().toString()).reset(ncs);
+						handshakeServers.at(client->getRemoteAddress().toString()).reset(new NoiseServer(client, 8888, log));
 						// Add the new client to the selector so that we will
 						// be notified when it sends something
 						selectorMutex.lock();
@@ -344,8 +343,7 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 		for(auto it = pendingConnections.begin(); it != pendingConnections.end();) {
 			if(!handshakeClients.contains(it->first) && !handshakeServers.contains(it->first)) {
 				log->printf(LOG_LEVEL_INFO, "Creating new noise connection client at " + it->first);
-				NoiseClient* ncc = new NoiseClient(it->second, it->first, 88, log);
-				handshakeClients.at(it->first).reset(ncc);
+				handshakeClients.at(it->first).reset(new NoiseClient(it->second, it->first, 88, log));
 				log->printf(LOG_LEVEL_INFO, "Network(): Added connection to handshake clients: " + it->first);
 
 				selectorMutex.lock();
