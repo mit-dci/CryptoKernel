@@ -134,6 +134,7 @@ void CryptoKernel::Network::Peer::requestFunc() {
                 if(packet->getDataSize() > 50 * 1024 * 1024) {
                     network->changeScore(client->getRemoteAddress().toString(), 250);
                     running = false;
+                    delete packet;
                     break;
                 }
 
@@ -152,6 +153,7 @@ void CryptoKernel::Network::Peer::requestFunc() {
                 else {
                 	(*packet) >> requestString;
                 }
+                delete packet;
 
                 // If this breaks, request will be null
                 const Json::Value request = CryptoKernel::Storage::toJson(requestString); // but this is the response....
@@ -292,6 +294,8 @@ void CryptoKernel::Network::Peer::requestFunc() {
                 startTime += timeElapsed;
             }
         }
+        if(packet)
+        	delete packet;
     }
 }
 
