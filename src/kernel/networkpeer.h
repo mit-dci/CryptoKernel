@@ -65,8 +65,8 @@ private:
     
     Network::peerStats stats;
 
-    NoiseCipherState* send_cipher = 0;
-	NoiseCipherState* recv_cipher = 0;
+    NoiseCipherState* send_cipher;
+	NoiseCipherState* recv_cipher;
 };
 
 #endif // NETWORKPEER_H_INCLUDED
