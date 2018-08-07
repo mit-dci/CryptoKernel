@@ -307,8 +307,8 @@ void CryptoKernel::Network::Peer::requestFunc() {
                 startTime += timeElapsed;
             }
         }
-        if(packet)
-        	delete packet;
+        //if(packet)
+        //	delete packet;
     }
 }
 
