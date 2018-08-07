@@ -90,12 +90,15 @@ void NoiseClient::writeInfo() {
 
 			/* Set the handshake options and verify that everything we need
 			   has been supplied on the command-line. */
+			handshakeMutex.lock();
 			if (!initializeHandshake(handshake, &id, sizeof(id))) { // now that we have keys, initialize handshake
 				log->printf(LOG_LEVEL_ERR, "Noise(): Client, error initializing handshake.");
 				noise_handshakestate_free(handshake);
+				handshakeMutex.unlock();
 				setHandshakeComplete(true, false);
 				return;
 			}
+			handshakeMutex.unlock();
 
 			pubKeyPacket.append(clientKey25519, sizeof(clientKey25519));
 
@@ -121,14 +124,16 @@ void NoiseClient::writeInfo() {
 			sentId = true;
 		}
 		else {
-			//handshakeMutex.lock();
+			handshakeMutex.lock();
 			action = noise_handshakestate_get_action(handshake);
-			//handshakeMutex.unlock();
+			handshakeMutex.unlock();
 
 			if(action == NOISE_ACTION_WRITE_MESSAGE) {
 				/* Write the next handshake message with a zero-length payload */
 				noise_buffer_set_output(mbuf, message + 2, sizeof(message) - 2);
+				handshakeMutex.lock();
 				err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
+				handshakeMutex.unlock();
 				if (err != NOISE_ERROR_NONE) {
 					//log->printf(LOG_LEVEL_ERR, "Noise(): Client, handshake failed on write message: " + noiseUtil.errToString(err));
 					setHandshakeComplete(true, false);
@@ -156,14 +161,18 @@ void NoiseClient::writeInfo() {
 	}
 
 	/* If the action is not "split", then the handshake has failed */
+	handshakeMutex.lock();
 	if(noise_handshakestate_get_action(handshake) != NOISE_ACTION_SPLIT) {
 		log->printf(LOG_LEVEL_ERR, "Noise(): Client, protocol handshake failed");
 		ok = 0;
 	}
+	handshakeMutex.unlock();
 
 	/* Split out the two CipherState objects for send and receive */
 	if(ok) {
+		handshakeMutex.lock();
 		err = noise_handshakestate_split(handshake, &send_cipher, &recv_cipher);
+		handshakeMutex.unlock();
 		if (err != NOISE_ERROR_NONE) {
 			//log->printf(LOG_LEVEL_ERR, "Noise(): Client, split failed: " + noiseUtil.errToString(err));
 			ok = 0;
@@ -171,7 +180,9 @@ void NoiseClient::writeInfo() {
 	}
 
 	/* We no longer need the HandshakeState */
+	handshakeMutex.lock();
 	noise_handshakestate_free(handshake);
+	handshakeMutex.unlock();
 	handshake = 0;
 
 	// padding would go here, if we used it
@@ -183,9 +194,9 @@ void NoiseClient::writeInfo() {
 void NoiseClient::receivePacket(sf::Packet packet) {
 	log->printf(LOG_LEVEL_INFO, "Noise(): Client receiving a packet.");
 
-	//handshakeMutex.lock();
+	handshakeMutex.lock();
 	int action = noise_handshakestate_get_action(handshake);
-	//handshakeMutex.unlock();
+	handshakeMutex.unlock();
 	NoiseBuffer mbuf;
 	int err, ok;
 	size_t message_size;
@@ -199,7 +210,9 @@ void NoiseClient::receivePacket(sf::Packet packet) {
 		memcpy(message, packet.getData(), packet.getDataSize());
 
 		noise_buffer_set_input(mbuf, message + 2, message_size - 2);
+		handshakeMutex.lock();
 		err = noise_handshakestate_read_message(handshake, &mbuf, NULL);
+		handshakeMutex.unlock();
 		if (err != NOISE_ERROR_NONE) {
 			//log->printf(LOG_LEVEL_ERR, "Noise(): Client, read handshake " + noiseUtil.errToString(err));
 			setHandshakeComplete(true, false);

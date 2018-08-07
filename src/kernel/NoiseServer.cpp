@@ -50,14 +50,16 @@ void NoiseServer::writeInfo() {
 	uint8_t message[MAX_MESSAGE_LEN + 2];
 
 	while(!getHandshakeComplete()) { // it might fail in another thread, and so become "complete"
-		//handshakeMutex.lock();
+		handshakeMutex.lock();
 		int action = noise_handshakestate_get_action(handshake);
-		//handshakeMutex.unlock();
+		handshakeMutex.unlock();
 		if (action == NOISE_ACTION_WRITE_MESSAGE) {
 			log->printf(LOG_LEVEL_INFO, "Noise(): Server writing message.");
 			/* Write the next handshake message with a zero-length payload */
 			noise_buffer_set_output(mbuf, message + 2, sizeof(message) - 2);
+			handshakeMutex.lock();
 			int err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
+			handshakeMutex.unlock();
 			if (err != NOISE_ERROR_NONE) {
 				//log->printf(LOG_LEVEL_ERR, "Noise(): Server, error writing message: " + noiseUtil.errToString(err));
 				setHandshakeComplete(true, false);
@@ -84,19 +86,23 @@ void NoiseServer::writeInfo() {
 
 	int ok = 1;
 	/* If the action is not "split", then the handshake has failed */
+	handshakeMutex.lock();
 	if (noise_handshakestate_get_action(handshake) != NOISE_ACTION_SPLIT) {
 		log->printf(LOG_LEVEL_INFO, "Noise(): Server, handshake failed.");
 		ok = 0;
 	}
+	handshakeMutex.unlock();
 
 	/* Split out the two CipherState objects for send and receive */
 	int err;
 	if (ok) {
+		handshakeMutex.lock();
 		err = noise_handshakestate_split(handshake, &send_cipher, &recv_cipher);
 		if (err != NOISE_ERROR_NONE) {
 			//log->printf(LOG_LEVEL_ERR, "Noise(): Server, split failed: " + noiseUtil.errToString(err));
 			ok = 0;
 		}
+		handshakeMutex.unlock();
 	}
 
 	/* We no longer need the HandshakeState */
@@ -135,6 +141,7 @@ void NoiseServer::receivePacket(sf::Packet packet) {
 
 		/* Create a HandshakeState object to manage the server's handshake */
 		if (ok) {
+			std::lock_guard<std::mutex> hc(handshakeMutex);
 			err = noise_handshakestate_new_by_id
 				(&handshake, &nid, NOISE_ROLE_RESPONDER);
 			if (err != NOISE_ERROR_NONE) {
@@ -146,6 +153,7 @@ void NoiseServer::receivePacket(sf::Packet packet) {
 
 		/* Set all keys that are needed by the client's requested echo protocol */
 		if (ok) {
+			std::lock_guard<std::mutex> hm(handshakeMutex);
 			if (!initializeHandshake(handshake, &nid, &id, sizeof(id))) {
 				log->printf(LOG_LEVEL_ERR, "Noise(): Server, couldn't initialize handshake");
 				setHandshakeComplete(true, false);
@@ -155,6 +163,7 @@ void NoiseServer::receivePacket(sf::Packet packet) {
 
 		/* Start the handshake */
 		if (ok) {
+			std::lock_guard<std::mutex> hc(handshakeMutex);
 			err = noise_handshakestate_start(handshake);
 			if (err != NOISE_ERROR_NONE) {
 				//log->printf(LOG_LEVEL_INFO, "Noise(): Server, couldn't start handshake: " + noiseUtil.errToString(err));
@@ -164,7 +173,7 @@ void NoiseServer::receivePacket(sf::Packet packet) {
 		}
 	}
 	else {
-		//std::lock_guard<std::mutex> hm(handshakeMutex);
+		std::lock_guard<std::mutex> hm(handshakeMutex);
 		int action = noise_handshakestate_get_action(handshake);
 		if(action == NOISE_ACTION_READ_MESSAGE) {
 			log->printf(LOG_LEVEL_INFO, "Noise(): Server, reading message.");
