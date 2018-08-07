@@ -281,7 +281,9 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	                    else {
 	                    	log->printf(LOG_LEVEL_INFO, "Network(): Something went wrong receiving packet from "
 	                    			+ it->second->client->getRemoteAddress().toString() + ", disconnecting it.");
+	                    	selectorMutex.lock();
 	                    	selector.remove(*it->second->client);
+	                    	selectorMutex.unlock();
 	                    	handshakeServers.erase(it->first);
 	                    }
 	                }
@@ -300,7 +302,9 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	        			else {
 	        				log->printf(LOG_LEVEL_INFO, "Network(): Something went wrong receiving packet from "
 	        						+ it->second->server->getRemoteAddress().toString() + ", disconnecting it.");
+	        				selectorMutex.lock();
 							selector.remove(*it->second->server);
+							selectorMutex.unlock();
 							handshakeClients.erase(it->first);
 	        			}
 	        		}
