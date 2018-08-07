@@ -139,6 +139,7 @@ void CryptoKernel::Network::Peer::requestFunc() {
 
                 std::string requestString;
 
+                log->printf(LOG_LEVEL_INFO, "Peer(): Receiving packet");
                 if(send_cipher && recv_cipher) {
                 	NoiseBuffer mbuf;
                 	mbuf.data = (uint8_t*)malloc(packet->getDataSize());
