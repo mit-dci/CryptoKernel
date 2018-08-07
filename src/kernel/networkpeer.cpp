@@ -141,7 +141,8 @@ void CryptoKernel::Network::Peer::requestFunc() {
 
                 if(send_cipher && recv_cipher) {
                 	NoiseBuffer mbuf;
-                	memcpy(mbuf.data, (uint8_t*)packet->getData(), packet->getDataSize());
+                	mbuf.data = (uint8_t*)malloc(packet->getDataSize());
+                	memcpy(mbuf.data, packet->getData(), packet->getDataSize());
                 	mbuf.size = packet->getDataSize();
                 	mbuf.max_size = 65536;
                 	noise_cipherstate_decrypt(recv_cipher, &mbuf);
