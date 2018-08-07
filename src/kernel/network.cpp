@@ -339,7 +339,7 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 				plaintextHosts.insert(addr, true);
 				continue;
 			}
-			client->setBlocking(false);
+			//client->setBlocking(false);
 			log->printf(LOG_LEVEL_INFO, "Network(): Connection attempt to " + addr + " complete!");
 			pendingConnections.insert(std::make_pair(addr, client));
 			peersToQuery.erase(addr);
