@@ -208,9 +208,6 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 		log->printf(LOG_LEVEL_ERR, "Network(): Could not bind to port " + std::to_string(port + 1));
 	}
 
-	// Create a list to store the future clients
-	std::list<sf::TcpSocket*> clients;
-
 	selectorMutex.lock();
 	selector.add(ls);
 	selectorMutex.unlock();
@@ -226,9 +223,9 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	        {
 	        	//log->printf(LOG_LEVEL_INFO, "selector ready");
 	            // The listener is ready: there is a pending connection
-	            sf::TcpSocket* client = new sf::TcpSocket;
+	            std::shared_ptr<sf::TcpSocket> client(new sf::TcpSocket);
 	            //client->setBlocking(false);
-	            if(ls.accept(*client) == sf::Socket::Done)
+	            if(ls.accept(*client.get()) == sf::Socket::Done)
 	            {
 	            	log->printf(LOG_LEVEL_INFO, "Network(): Connection accepted from " + client->getRemoteAddress().toString());
 	            	if(connected.contains(client->getRemoteAddress().toString())) {
@@ -238,18 +235,17 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 
 	            	if(handshakeClients.contains(client->getRemoteAddress().toString())) {
 	            		log->printf(LOG_LEVEL_INFO, "Network(): We are already a noise SERVER for " + client->getRemoteAddress().toString());
-	            		delete client;
+	            		//delete client;
 	            	}
 	            	else if(!handshakeServers.contains(client->getRemoteAddress().toString())) {
 	            		log->printf(LOG_LEVEL_INFO, "Network(): Adding a noise client (to handshakeServers), " + client->getRemoteAddress().toString());
 						// Add the new client to the clients list
-						clients.push_back(client);
-						NoiseServer* ncs = new NoiseServer(client, 8888, log);
+						NoiseServer* ncs = new NoiseServer(client.get(), 8888, log);
 						handshakeServers.at(client->getRemoteAddress().toString()).reset(ncs);
 						// Add the new client to the selector so that we will
 						// be notified when it sends something
 						selectorMutex.lock();
-						selector.add(*client);
+						selector.add(*client.get());
 						selectorMutex.unlock();
 	            	}
 	            	else {
@@ -259,7 +255,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	            else
 	            {
 	                // Error, we won't get a new connection, delete the socket
-	                delete client;
+	                //delete client;
 	            }
 	        }
 	        else
@@ -269,7 +265,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	        	std::vector<std::string> nccKeys = handshakeServers.keys(); // this should not contain any of the same things as handshakeClients
 				for(std::string key : nccKeys) {
 	                auto it = handshakeServers.find(key);
-	                if(selector.isReady(*it->second->client)) {
+	                if(selector.isReady(*it->second->client.get())) {
 	                	log->printf(LOG_LEVEL_INFO, "Network(): " + it->second->client->getRemoteAddress().toString() + " is ready with data.");
 	                    // The client has sent some data, we can receive it
 	                    sf::Packet packet;
@@ -282,7 +278,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	                    	log->printf(LOG_LEVEL_INFO, "Network(): Something went wrong receiving packet from hs server "
 	                    			+ it->first + ", disconnecting it.");
 	                    	selectorMutex.lock();
-	                    	selector.remove(*it->second->client);
+	                    	selector.remove(*it->second->client.get());
 	                    	selectorMutex.unlock();
 	                    	handshakeServers.erase(it->first);
 	                    }
@@ -293,7 +289,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	        	std::vector<std::string> ncsKeys = handshakeClients.keys(); // this should not contain any of the same things as handshakeServers
 	        	for(std::string key : ncsKeys) {
 	        		auto it = handshakeClients.find(key);
-	        		if(selector.isReady(*it->second->server)) {
+	        		if(selector.isReady(*it->second->server.get())) {
 	        			log->printf(LOG_LEVEL_INFO, "Network(): " + key + " is ready with data.");
 	        			sf::Packet packet;
 	        			if(it->second->server->receive(packet) == sf::Socket::Done) {
@@ -303,7 +299,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	        				log->printf(LOG_LEVEL_INFO, "Network(): Something went wrong receiving packet from hs client "
 	        						+ it->first + ", disconnecting it.");
 	        				selectorMutex.lock();
-							selector.remove(*it->second->server);
+							selector.remove(*it->second->server.get());
 							selectorMutex.unlock();
 							handshakeClients.erase(it->first);
 	        			}
@@ -323,14 +319,14 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 	log->printf(LOG_LEVEL_INFO, "Network(): Outgoing encryption handshake started.");
 
-	std::map<std::string, sf::TcpSocket*> pendingConnections;
+	std::map<std::string, std::shared_ptr<sf::TcpSocket>> pendingConnections;
 
 	while(running) {
 		// let all of the encryption check ips know that I want to perform a handshake
 		std::vector<std::string> addresses = peersToQuery.keys();
 		std::random_shuffle(addresses.begin(), addresses.end());
 		for(std::string addr : addresses) {
-			sf::TcpSocket* client = new sf::TcpSocket();
+			std::shared_ptr<sf::TcpSocket> client(new sf::TcpSocket());
 			//client->setBlocking(false);
 			log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + addr + " to query encryption preference.");
 			if(client->connect(addr, port + 1, sf::seconds(3)) != sf::Socket::Done) {
@@ -348,12 +344,12 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 		for(auto it = pendingConnections.begin(); it != pendingConnections.end();) {
 			if(!handshakeClients.contains(it->first) && !handshakeServers.contains(it->first)) {
 				log->printf(LOG_LEVEL_INFO, "Creating new noise connection client at " + it->first);
-				NoiseClient* ncc = new NoiseClient(it->second, it->first, 88, log);
+				NoiseClient* ncc = new NoiseClient(it->second.get(), it->first, 88, log);
 				handshakeClients.at(it->first).reset(ncc);
 				log->printf(LOG_LEVEL_INFO, "Network(): Added connection to handshake clients: " + it->first);
 
 				selectorMutex.lock();
-				selector.add(*it->second);
+				selector.add(*it->second.get());
 				selectorMutex.unlock();
 			}
 			pendingConnections.erase(it++);

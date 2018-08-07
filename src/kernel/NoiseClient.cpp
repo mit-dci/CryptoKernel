@@ -10,7 +10,7 @@
 #include <stdlib.h>
 
 NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t port, CryptoKernel::Log* log) {
-	this->server = server;
+	this->server.reset(server);
 	this->log = log;
 	this->ipAddress = ipAddress;
 	this->port = port;
@@ -86,6 +86,8 @@ void NoiseClient::writeInfo() {
 					return;
 				}
 				memcpy(clientKey25519, pub_key, CURVE25519_KEY_LEN); // put the new key in its proper place
+				delete pub_key;
+				delete priv_key;
 			}
 
 			/* Set the handshake options and verify that everything we need
@@ -241,7 +243,7 @@ bool NoiseClient::getHandshakeSuccess() {
 }
 
 /* Initialize's the handshake using command-line options */
-int NoiseClient::initializeHandshake(NoiseHandshakeState *handshake, const void *prologue, size_t prologue_len) {
+int NoiseClient::initializeHandshake(NoiseHandshakeState* handshake, const void* prologue, size_t prologue_len) {
 	NoiseDHState *dh;
 	uint8_t *key = 0;
 	size_t key_len = 0;
@@ -297,5 +299,4 @@ NoiseClient::~NoiseClient() {
 		setHandshakeComplete(true, false);
 	}
 	writeInfoThread->join();
-	delete server;
 }

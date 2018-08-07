@@ -409,9 +409,6 @@ sf::Socket::Status CryptoKernel::Network::Peer::sendPacket(std::string& data) {
 
 sf::Socket::Status CryptoKernel::Network::Peer::receivePacket(sf::Packet** packet) {
 	*packet = new sf::Packet;
-
-
-
 	return client->receive(**packet);
 }
 

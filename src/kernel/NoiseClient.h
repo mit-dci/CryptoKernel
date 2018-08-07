@@ -16,7 +16,7 @@
 
 class NoiseClient {
 public:
-	sf::TcpSocket* server;
+	std::shared_ptr<sf::TcpSocket> server;
 	CryptoKernel::Log* log;
 	std::string ipAddress;
 	uint64_t port;

@@ -11,7 +11,7 @@ NoiseServer::NoiseServer(sf::TcpSocket* client, uint64_t port, CryptoKernel::Log
 	send_cipher = 0;
 	recv_cipher = 0;
 
-	this->client = client;
+	this->client.reset(client);
 	this->log = log;
 	this->port = port;
 
@@ -39,6 +39,8 @@ NoiseServer::NoiseServer(sf::TcpSocket* client, uint64_t port, CryptoKernel::Log
 			return;
 		}
 		memcpy(server_key_25519, server_priv_key, CURVE25519_KEY_LEN); // put the new key in its proper place
+		delete server_pub_key;
+		delete server_priv_key;
 	}
 
 	writeInfoThread.reset(new std::thread(&NoiseServer::writeInfo, this)); // start the write info thread
@@ -268,5 +270,4 @@ NoiseServer::~NoiseServer() {
 		setHandshakeComplete(true, false);
 	}
 	writeInfoThread->join();
-	delete client;
 }

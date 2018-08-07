@@ -21,7 +21,7 @@ public:
 	uint8_t client_key_448[CURVE448_KEY_LEN];
 	uint8_t server_key_448[CURVE448_KEY_LEN];
 
-	sf::TcpSocket* client;
+	std::shared_ptr<sf::TcpSocket> client;
 	CryptoKernel::Log* log;
 	uint64_t port;
 
