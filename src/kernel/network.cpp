@@ -224,7 +224,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	        	//log->printf(LOG_LEVEL_INFO, "selector ready");
 	            // The listener is ready: there is a pending connection
 	            std::shared_ptr<sf::TcpSocket> client(new sf::TcpSocket);
-	            //client->setBlocking(false);
+	            client->setBlocking(false);
 	            if(ls.accept(*client.get()) == sf::Socket::Done)
 	            {
 	            	log->printf(LOG_LEVEL_INFO, "Network(): Connection accepted from " + client->getRemoteAddress().toString());
@@ -334,7 +334,7 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 				plaintextHosts.insert(addr, true);
 				continue;
 			}
-			//client->setBlocking(false);
+			client->setBlocking(false);
 			log->printf(LOG_LEVEL_INFO, "Network(): Connection attempt to " + addr + " complete!");
 			pendingConnections.insert(std::make_pair(addr, client));
 			peersToQuery.erase(addr);
