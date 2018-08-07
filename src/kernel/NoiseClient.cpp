@@ -83,7 +83,9 @@ void NoiseClient::writeInfo() {
 			if(!noiseUtil.loadPublicKey("keys/client_key_25519.pub", clientKey25519, sizeof(clientKey25519))) {
 				if(!noiseUtil.writeKeys("keys/client_key_25519.pub", "keys/client_key_25519", &pub_key, &priv_key)) {
 					setHandshakeComplete(true, false);
-					return;
+					//return;
+					ok = 0;
+					continue;
 				}
 				memcpy(clientKey25519, pub_key, CURVE25519_KEY_LEN); // put the new key in its proper place
 				delete pub_key;
@@ -95,10 +97,12 @@ void NoiseClient::writeInfo() {
 			handshakeMutex.lock();
 			if (!initializeHandshake(handshake, &id, sizeof(id))) { // now that we have keys, initialize handshake
 				log->printf(LOG_LEVEL_ERR, "Noise(): Client, error initializing handshake.");
-				noise_handshakestate_free(handshake);
+				//noise_handshakestate_free(handshake);
+				ok = 0;
 				handshakeMutex.unlock();
 				setHandshakeComplete(true, false);
-				return;
+				continue;
+				//return;
 			}
 			handshakeMutex.unlock();
 
@@ -121,7 +125,9 @@ void NoiseClient::writeInfo() {
 			if (err != NOISE_ERROR_NONE) {
 				//log->printf(LOG_LEVEL_ERR, "Noise(): Client start handshake error, " + noiseUtil.errToString(err));
 				setHandshakeComplete(true, false);
-				return;
+				ok = 0;
+				continue;
+				//return;
 			}
 			sentId = true;
 		}
@@ -139,7 +145,9 @@ void NoiseClient::writeInfo() {
 				if (err != NOISE_ERROR_NONE) {
 					//log->printf(LOG_LEVEL_ERR, "Noise(): Client, handshake failed on write message: " + noiseUtil.errToString(err));
 					setHandshakeComplete(true, false);
-					return;
+					ok = 0;
+					continue;
+					//return;
 				}
 				message[0] = (uint8_t)(mbuf.size >> 8);
 				message[1] = (uint8_t)mbuf.size;
@@ -150,7 +158,9 @@ void NoiseClient::writeInfo() {
 				if(server->send(packet) != sf::Socket::Done) {
 					log->printf(LOG_LEVEL_ERR, "Noise(): Client couldn't send packet.");
 					setHandshakeComplete(true, false);
-					return;
+					ok = 0;
+					continue;
+					//return;
 				}
 			}
 			else if(action != NOISE_ACTION_READ_MESSAGE) {
@@ -164,7 +174,7 @@ void NoiseClient::writeInfo() {
 
 	/* If the action is not "split", then the handshake has failed */
 	handshakeMutex.lock();
-	if(noise_handshakestate_get_action(handshake) != NOISE_ACTION_SPLIT) {
+	if(ok && noise_handshakestate_get_action(handshake) != NOISE_ACTION_SPLIT) {
 		log->printf(LOG_LEVEL_ERR, "Noise(): Client, protocol handshake failed");
 		ok = 0;
 	}
