@@ -233,7 +233,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	            		continue;
 	            	}
 
-	            	if(handshakeClients.contains(client->getRemoteAddress().toString())) {
+	            	/*if(handshakeClients.contains(client->getRemoteAddress().toString())) {
 	            		log->printf(LOG_LEVEL_INFO, "Network(): We are already a noise SERVER for " + client->getRemoteAddress().toString());
 	            		//delete client;
 	            	}
@@ -246,7 +246,30 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 						selectorMutex.lock();
 						selector.add(*client.get());
 						selectorMutex.unlock();
+	            	}*/
+
+	            	if(!handshakeClients.contains(client->getRemoteAddress().toString()) && !handshakeServers.contains(client->getRemoteAddress().toString())) {
+	            		if(client->getRemoteAddress().toInteger() < sf::IpAddress::getPublicAddress().toInteger()) {
+	            			log->printf(LOG_LEVEL_INFO, "Network(): Adding a noise client (to handshakeServers), " + client->getRemoteAddress().toString());
+							// Add the new client to the clients list
+							handshakeServers.at(client->getRemoteAddress().toString()).reset(new NoiseServer(client, 8888, log));
+							// Add the new client to the selector so that we will
+							// be notified when it sends something
+							selectorMutex.lock();
+							selector.add(*client.get());
+							selectorMutex.unlock();
+	            		}
+	            		else {
+	            			log->printf(LOG_LEVEL_INFO, "Creating new noise connection client at " + client->getRemoteAddress().toString());
+							handshakeClients.at(client->getRemoteAddress().toString()).reset(new NoiseClient(client, client->getRemoteAddress().toString(), 88, log));
+							log->printf(LOG_LEVEL_INFO, "Network(): Added connection to handshake clients: " + client->getRemoteAddress().toString());
+
+							selectorMutex.lock();
+							selector.add(*client.get());
+							selectorMutex.unlock();
+	            		}
 	            	}
+
 	            	else {
 	            		log->printf(LOG_LEVEL_INFO, "Network(): We are fielding another request from " + client->getRemoteAddress().toString() + ".");
 	            	}
@@ -342,13 +365,24 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 
 		for(auto it = pendingConnections.begin(); it != pendingConnections.end();) {
 			if(!handshakeClients.contains(it->first) && !handshakeServers.contains(it->first)) {
-				log->printf(LOG_LEVEL_INFO, "Creating new noise connection client at " + it->first);
-				handshakeClients.at(it->first).reset(new NoiseClient(it->second, it->first, 88, log));
-				log->printf(LOG_LEVEL_INFO, "Network(): Added connection to handshake clients: " + it->first);
+				if(it->first < sf::IpAddress::getPublicAddress().toString()) {
+					log->printf(LOG_LEVEL_INFO, "Creating new noise connection client at " + it->first);
+					handshakeClients.at(it->first).reset(new NoiseClient(it->second, it->first, 88, log));
+					log->printf(LOG_LEVEL_INFO, "Network(): Added connection to handshake clients: " + it->first);
 
-				selectorMutex.lock();
-				selector.add(*it->second.get());
-				selectorMutex.unlock();
+					selectorMutex.lock();
+					selector.add(*it->second.get());
+					selectorMutex.unlock();
+				}
+				else {
+					log->printf(LOG_LEVEL_INFO, "Creating new noise connection server at " + it->first);
+					handshakeServers.at(it->first).reset(new NoiseServer(it->second, 8888, log));
+					log->printf(LOG_LEVEL_INFO, "Network(): Added connection to handshake servers: " + it->first);
+
+					selectorMutex.lock();
+					selector.add(*it->second.get());
+					selectorMutex.unlock();
+				}
 			}
 			pendingConnections.erase(it++);
 		}
