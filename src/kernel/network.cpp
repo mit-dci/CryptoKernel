@@ -227,7 +227,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	        	//log->printf(LOG_LEVEL_INFO, "selector ready");
 	            // The listener is ready: there is a pending connection
 	            sf::TcpSocket* client = new sf::TcpSocket;
-	            client->setBlocking(false);
+	            //client->setBlocking(false);
 	            if(ls.accept(*client) == sf::Socket::Done)
 	            {
 	            	log->printf(LOG_LEVEL_INFO, "Network(): Connection accepted from " + client->getRemoteAddress().toString());
