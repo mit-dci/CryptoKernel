@@ -9,8 +9,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t port, CryptoKernel::Log* log) {
-	this->server.reset(server);
+NoiseClient::NoiseClient(std::shared_ptr<sf::TcpSocket> server, std::string ipAddress, uint64_t port, CryptoKernel::Log* log) {
+	this->server = server;
 	this->log = log;
 	this->ipAddress = ipAddress;
 	this->port = port;

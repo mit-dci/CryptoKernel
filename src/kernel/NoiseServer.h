@@ -46,7 +46,7 @@ public:
 	std::mutex handshakeCompleteMutex;
 
 public:
-	NoiseServer(sf::TcpSocket* client, uint64_t port, CryptoKernel::Log* log);
+	NoiseServer(std::shared_ptr<sf::TcpSocket> client, uint64_t port, CryptoKernel::Log* log);
 
 	void writeInfo();
 	void receivePacket(sf::Packet packet);
