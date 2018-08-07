@@ -14,6 +14,11 @@ class MerkletreeTest : public CPPUNIT_NS::TestFixture {
     CPPUNIT_TEST(testMakeTreeFromPtr01);
     CPPUNIT_TEST(testMakeTreeFromPtr02);
     CPPUNIT_TEST(testMakeTreeFromLeaves);
+    CPPUNIT_TEST(testMakeProof);
+    CPPUNIT_TEST(testVerifyProof);
+    CPPUNIT_TEST(testProofSerialize);
+    CPPUNIT_TEST(testProofDeserialize);
+    CPPUNIT_TEST(testProofDeserializeInvalid);
 
     CPPUNIT_TEST_SUITE_END();
 
@@ -33,6 +38,11 @@ private:
     void testMakeTreeFromPtr01();
     void testMakeTreeFromPtr02();
     void testMakeTreeFromLeaves();
+    void testMakeProof();
+    void testVerifyProof();
+    void testProofSerialize();
+    void testProofDeserialize();
+    void testProofDeserializeInvalid();
 };
 
 #endif

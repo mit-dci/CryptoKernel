@@ -1,14 +1,21 @@
 #include <queue>
-
+#include <iostream>
 #include "merkletree.h"
 #include "crypto.h"
+
+
+CryptoKernel::MerkleNode::MerkleNode() {
+    leaf = true;
+    ancestor = nullptr;
+}
 
 CryptoKernel::MerkleNode::MerkleNode(const BigNum& left, const BigNum& right) {
     leaf = true;
     
     leftVal = left;
     rightVal = right;
-    
+    ancestor = nullptr;
+
     root = calcRoot(leftVal.toString(), rightVal.toString());
 }
 
@@ -22,7 +29,10 @@ CryptoKernel::MerkleNode::MerkleNode(const std::shared_ptr<MerkleNode> left,
     
     leftNode = left;
     rightNode = right;
-    
+    leftNode->ancestor = this;
+    rightNode->ancestor = this;
+    ancestor = nullptr;
+
     root = calcRoot(leftNode->getMerkleRoot().toString(), rightNode->getMerkleRoot().toString());
 }
 
@@ -51,10 +61,27 @@ CryptoKernel::BigNum CryptoKernel::MerkleNode::getRightVal() const {
     }
 }
 
+std::shared_ptr<CryptoKernel::MerkleNode> CryptoKernel::MerkleNode::getLeftNode() {
+    return leftNode;
+}
+
+std::shared_ptr<CryptoKernel::MerkleNode> CryptoKernel::MerkleNode::getRightNode() {
+    return rightNode;
+}
+
+CryptoKernel::MerkleNode* CryptoKernel::MerkleNode::getAncestor() {
+    return ancestor;
+}
+
 CryptoKernel::BigNum CryptoKernel::MerkleNode::calcRoot(const std::string& left,
                                                         const std::string& right) {
     CryptoKernel::Crypto crypto;
     return CryptoKernel::BigNum(crypto.sha256(left + right));
+}
+
+CryptoKernel::MerkleRootNode::MerkleRootNode(const BigNum& merkleRoot) {
+    leaf = true;
+    root = merkleRoot;
 }
 
 std::shared_ptr<CryptoKernel::MerkleNode> CryptoKernel::MerkleNode::makeMerkleTree(
@@ -101,4 +128,112 @@ std::shared_ptr<CryptoKernel::MerkleNode> CryptoKernel::MerkleNode::makeMerkleTr
     }
     
     return nodes[0];
+}
+
+CryptoKernel::MerkleNode* CryptoKernel::MerkleNode::findDescendant(BigNum needle) {
+    if(leftVal == needle || rightVal == needle) {
+        return this;
+    }
+    else if(leaf) { 
+        return nullptr; 
+    } else {
+        CryptoKernel::MerkleNode* find;
+        find = leftNode->findDescendant(needle);
+        if(find == nullptr) find = rightNode->findDescendant(needle);
+        return find;
+    }
+}
+
+std::shared_ptr<CryptoKernel::MerkleProof> CryptoKernel::MerkleNode::makeProof(BigNum proof) {
+    CryptoKernel::MerkleNode* proofNode = findDescendant(proof);
+    if(proofNode == nullptr) {
+        throw CryptoKernel::Blockchain::NotFoundException("Tree node " + proof.toString());
+    }
+    std::shared_ptr<CryptoKernel::MerkleProof> result = std::make_shared<CryptoKernel::MerkleProof>();
+    result->leaves.push_back(proof);
+    int level = 0;
+
+    while(proofNode) {
+        result->leaves.push_back((proofNode->getLeftVal() == proof) ? proofNode->getRightVal() : proofNode->getLeftVal());
+        if(!proofNode->getAncestor()) break; 
+        if(!(proofNode->getLeftVal() == proof)) result->positionInTotalSet += (1 << level);
+        proof = proofNode->getMerkleRoot();
+        proofNode = proofNode->getAncestor(); 
+        level++;
+    }
+
+    return result;
+}
+
+std::shared_ptr<CryptoKernel::MerkleNode> CryptoKernel::MerkleNode::makeMerkleTreeFromProof(std::shared_ptr<CryptoKernel::MerkleProof> proof) {
+    const BigNum& provingElement = proof->leaves.at(0);
+    // If the set size is just 1, it was a merkle tree of 1 node
+    if(proof->leaves.size() == 1) return std::make_shared<MerkleRootNode>(provingElement);
+
+    const BigNum& firstSibling = proof->leaves.at(1);
+
+    std::shared_ptr<CryptoKernel::MerkleNode> result;
+    
+    result = std::make_shared<CryptoKernel::MerkleNode>(
+            (proof->positionInTotalSet % 2 == 0) ? provingElement : firstSibling,
+            (proof->positionInTotalSet % 2 == 0) ? firstSibling : provingElement
+        );      
+  
+    if(proof->leaves.size() == 2) return result;    
+
+    int positionInLayer = (proof->positionInTotalSet/2);
+    std::set<BigNum>::iterator it;
+    for (int i = 2; i < proof->leaves.size(); i++)
+	{
+        const BigNum& siblingValue = proof->leaves.at(i);
+
+        std::shared_ptr<CryptoKernel::MerkleNode> sibling = std::make_shared<CryptoKernel::MerkleRootNode>(siblingValue);
+
+        result = std::make_shared<CryptoKernel::MerkleNode>(
+                (positionInLayer % 2 == 0) ? result : sibling,
+                (positionInLayer % 2 == 0) ? sibling : result
+            );
+
+        positionInLayer /= 2;
+	}
+ 
+    return result;
+}
+
+Json::Value CryptoKernel::MerkleProof::toJson() {
+    Json::Value result;
+
+    result["position"] = positionInTotalSet;
+    for(const BigNum& leaf : leaves) {
+        result["leaves"].append(leaf.toString());
+    }
+    return result;
+}
+
+CryptoKernel::MerkleProof::MerkleProof() {
+    positionInTotalSet = 0;
+    leaves = {};
+} 
+
+CryptoKernel::MerkleProof::MerkleProof(Json::Value& jsonProof) {
+    if(jsonProof["position"].isNull()){
+        throw CryptoKernel::Blockchain::InvalidElementException("Merkle proof JSON is malformed: Mandatory element 'position' is not found");
+    }
+    if(jsonProof["leaves"].isNull()){
+        throw CryptoKernel::Blockchain::InvalidElementException("Merkle proof JSON is malformed: Mandatory element 'leaves' is not found");
+    }
+    if(jsonProof["leaves"].empty()){
+        throw CryptoKernel::Blockchain::InvalidElementException("Merkle proof JSON is malformed: Mandatory element 'leaves' is empty");
+    }
+    
+    try {
+        
+        leaves = {};
+        positionInTotalSet = jsonProof["position"].asInt();
+        for(const Json::Value leaf : jsonProof["leaves"]) {
+            leaves.push_back(CryptoKernel::BigNum(leaf.asString()));
+        }
+    } catch(const Json::Exception& e) {
+        throw CryptoKernel::Blockchain::InvalidElementException("Merkle proof JSON is malformed");
+    }
 }
