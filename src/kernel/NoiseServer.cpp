@@ -24,7 +24,7 @@ NoiseServer::NoiseServer(std::shared_ptr<sf::TcpSocket> client, uint64_t port, C
 	handshakeSuccess = false;
 
 	if(noise_init() != NOISE_ERROR_NONE) {
-		log->printf(LOG_LEVEL_ERR, "Noise(): Server, noise initialization failed.");
+		log->printf(LOG_LEVEL_WARN, "Noise(): Server, noise initialization failed.");
 		//fprintf(stderr, "Noise initialization failed\n");
 		return;
 	}
@@ -63,7 +63,7 @@ void NoiseServer::writeInfo() {
 			int err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
 			handshakeMutex.unlock();
 			if (err != NOISE_ERROR_NONE) {
-				//log->printf(LOG_LEVEL_ERR, "Noise(): Server, error writing message: " + noiseUtil.errToString(err));
+				//log->printf(LOG_LEVEL_WARN, "Noise(): Server, error writing message: " + noiseUtil.errToString(err));
 				setHandshakeComplete(true, false);
 				return;
 			}
@@ -74,7 +74,7 @@ void NoiseServer::writeInfo() {
 			packet.append(message, mbuf.size + 2);
 
 			if(client->send(packet) != sf::Socket::Done) {
-				log->printf(LOG_LEVEL_ERR, "Noise(): Server, something went wrong sending packet to client.");
+				log->printf(LOG_LEVEL_WARN, "Noise(): Server, something went wrong sending packet to client.");
 				setHandshakeComplete(true, false);
 				return;
 			}
@@ -101,7 +101,7 @@ void NoiseServer::writeInfo() {
 		handshakeMutex.lock();
 		err = noise_handshakestate_split(handshake, &send_cipher, &recv_cipher);
 		if (err != NOISE_ERROR_NONE) {
-			//log->printf(LOG_LEVEL_ERR, "Noise(): Server, split failed: " + noiseUtil.errToString(err));
+			//log->printf(LOG_LEVEL_WARN, "Noise(): Server, split failed: " + noiseUtil.errToString(err));
 			ok = 0;
 		}
 		handshakeMutex.unlock();
@@ -135,7 +135,7 @@ void NoiseServer::receivePacket(sf::Packet packet) {
 		bool ok = true;
 		NoiseProtocolId nid;
 		if (ok && !noiseUtil.toNoiseProtocolId(&nid, &id)) {
-			log->printf(LOG_LEVEL_ERR, "Noise(): Unknown echo protocol identifier");
+			log->printf(LOG_LEVEL_WARN, "Noise(): Unknown echo protocol identifier");
 			//fprintf(stderr, "Unknown echo protocol identifier\n");
 			setHandshakeComplete(true, false);
 			return;
@@ -157,7 +157,7 @@ void NoiseServer::receivePacket(sf::Packet packet) {
 		if (ok) {
 			std::lock_guard<std::mutex> hm(handshakeMutex);
 			if (!initializeHandshake(handshake, &nid, &id, sizeof(id))) {
-				log->printf(LOG_LEVEL_ERR, "Noise(): Server, couldn't initialize handshake");
+				log->printf(LOG_LEVEL_WARN, "Noise(): Server, couldn't initialize handshake");
 				setHandshakeComplete(true, false);
 				return;
 			}
@@ -185,7 +185,7 @@ void NoiseServer::receivePacket(sf::Packet packet) {
 			noise_buffer_set_input(mbuf, message + 2, message_size - 2);
 			err = noise_handshakestate_read_message(handshake, &mbuf, NULL);
 			if (err != NOISE_ERROR_NONE) {
-				//log->printf(LOG_LEVEL_ERR, "Noise(): Server, read handshake error: " + noiseUtil.errToString(err));
+				//log->printf(LOG_LEVEL_WARN, "Noise(): Server, read handshake error: " + noiseUtil.errToString(err));
 				setHandshakeComplete(true, false);
 				return;
 			}
@@ -202,7 +202,7 @@ int NoiseServer::initializeHandshake(NoiseHandshakeState* handshake, const Noise
 	/* Set the prologue first */
 	err = noise_handshakestate_set_prologue(handshake, prologue, prologue_len);
 	if (err != NOISE_ERROR_NONE) {
-		//log->printf(LOG_LEVEL_ERR, "Noise(): Server, prologue error: " + noiseUtil.errToString(err));
+		//log->printf(LOG_LEVEL_WARN, "Noise(): Server, prologue error: " + noiseUtil.errToString(err));
 		return 0;
 	}
 
@@ -218,7 +218,7 @@ int NoiseServer::initializeHandshake(NoiseHandshakeState* handshake, const Noise
 			err = NOISE_ERROR_UNKNOWN_ID;
 		}
 		if (err != NOISE_ERROR_NONE) {
-			//log->printf(LOG_LEVEL_ERR, "Noise(): Server, set private key error, " + noiseUtil.errToString(err));
+			//log->printf(LOG_LEVEL_WARN, "Noise(): Server, set private key error, " + noiseUtil.errToString(err));
 			return 0;
 		}
 	}
@@ -235,7 +235,7 @@ int NoiseServer::initializeHandshake(NoiseHandshakeState* handshake, const Noise
 			err = NOISE_ERROR_UNKNOWN_ID;
 		}
 		if (err != NOISE_ERROR_NONE) {
-			//log->printf(LOG_LEVEL_ERR, "Noise(): Server, set public key error, " + noiseUtil.errToString(err));
+			//log->printf(LOG_LEVEL_WARN, "Noise(): Server, set public key error, " + noiseUtil.errToString(err));
 			return 0;
 		}
 	}
