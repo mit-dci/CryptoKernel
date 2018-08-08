@@ -34,13 +34,11 @@ NoiseClient::NoiseClient(std::shared_ptr<sf::TcpSocket> server, std::string ipAd
 	}
 
 	std::string protocol = "Noise_XX_25519_AESGCM_SHA256";
-
-	// in the Echo example, this is accomplished by parsing the protocol string (ie 'Noise_XX_25519_AESGCM_SHA256') in echo_get_protocol_id
-	id.pattern = ECHO_PATTERN_XX;
-	id.psk = ECHO_PSK_DISABLED;
-	id.cipher = ECHO_CIPHER_AESGCM;
-	id.hash = ECHO_HASH_SHA256;
-	id.dh = ECHO_DH_25519;
+	prologue.pattern = PATTERN_XX;
+	prologue.psk = PSK_DISABLED;
+	prologue.cipher = CIPHER_AESGCM;
+	prologue.hash = HASH_SHA256;
+	prologue.dh = DH_25519;
 
 	/* Create a HandshakeState object for the protocol */
 	int err = noise_handshakestate_new_by_name(&handshake, protocol.c_str(), NOISE_ROLE_INITIATOR);
@@ -98,7 +96,7 @@ void NoiseClient::writeInfo() {
 			/* Set the handshake options and verify that everything we need
 			   has been supplied on the command-line. */
 			handshakeMutex.lock();
-			if (!initializeHandshake(handshake, &id, sizeof(id))) { // now that we have keys, initialize handshake
+			if (!initializeHandshake(handshake, &prologue, sizeof(prologue))) { // now that we have keys, initialize handshake
 				log->printf(LOG_LEVEL_WARN, "Noise(): Client, error initializing handshake.");
 				//noise_handshakestate_free(handshake);
 				ok = 0;
@@ -122,7 +120,6 @@ void NoiseClient::writeInfo() {
 				setHandshakeComplete(true, false);
 				ok = 0;
 				continue;
-				//return;
 			}
 		}
 		else {

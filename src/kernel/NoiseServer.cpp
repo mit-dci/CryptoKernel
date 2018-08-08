@@ -8,15 +8,15 @@
 #include "NoiseServer.h"
 
 NoiseServer::NoiseServer(std::shared_ptr<sf::TcpSocket> client, uint64_t port, CryptoKernel::Log* log) {
-	send_cipher = 0;
-	recv_cipher = 0;
+	sendCipher = 0;
+	recvCipher = 0;
 
 	this->client = client;
 	this->log = log;
 	this->port = port;
 
 	handshake = 0;
-	message_size = 0;
+	messageSize = 0;
 	receivedId = false;
 	receivedPubKey = false;
 
@@ -43,6 +43,12 @@ NoiseServer::NoiseServer(std::shared_ptr<sf::TcpSocket> client, uint64_t port, C
 		delete server_priv_key;
 	}
 
+	prologue.pattern = PATTERN_XX;
+	prologue.psk = PSK_DISABLED;
+	prologue.cipher = CIPHER_AESGCM;
+	prologue.hash = HASH_SHA256;
+	prologue.dh = DH_25519;
+
 	writeInfoThread.reset(new std::thread(&NoiseServer::writeInfo, this)); // start the write info thread
 }
 
@@ -55,7 +61,7 @@ void NoiseServer::writeInfo() {
 		handshakeMutex.lock();
 		int action = noise_handshakestate_get_action(handshake);
 		handshakeMutex.unlock();
-		if (action == NOISE_ACTION_WRITE_MESSAGE) {
+		if(action == NOISE_ACTION_WRITE_MESSAGE) {
 			log->printf(LOG_LEVEL_INFO, "Noise(): Server writing message.");
 			/* Write the next handshake message with a zero-length payload */
 			noise_buffer_set_output(mbuf, message + 2, sizeof(message) - 2);
@@ -97,9 +103,9 @@ void NoiseServer::writeInfo() {
 
 	/* Split out the two CipherState objects for send and receive */
 	int err;
-	if (ok) {
+	if(ok) {
 		handshakeMutex.lock();
-		err = noise_handshakestate_split(handshake, &send_cipher, &recv_cipher);
+		err = noise_handshakestate_split(handshake, &sendCipher, &recvCipher);
 		if (err != NOISE_ERROR_NONE) {
 			log->printf(LOG_LEVEL_WARN, "Noise(): Server, split failed: " + noiseUtil.errToString(err));
 			ok = 0;
@@ -134,18 +140,12 @@ void NoiseServer::receivePacket(sf::Packet packet) {
 		nid.dh_id = NOISE_DH_CURVE25519;
 		nid.hash_id = NOISE_HASH_SHA256;
 
-		id.pattern = ECHO_PATTERN_XX;
-		id.psk = ECHO_PSK_DISABLED;
-		id.cipher = ECHO_CIPHER_AESGCM;
-		id.hash = ECHO_HASH_SHA256;
-		id.dh = ECHO_DH_25519;
-
 		/* Create a HandshakeState object to manage the server's handshake */
-		if (ok) {
+		if(ok) {
 			std::lock_guard<std::mutex> hc(handshakeMutex);
 			err = noise_handshakestate_new_by_id
 				(&handshake, &nid, NOISE_ROLE_RESPONDER);
-			if (err != NOISE_ERROR_NONE) {
+			if(err != NOISE_ERROR_NONE) {
 				log->printf(LOG_LEVEL_INFO, "Noise(): Server, create handshake: " + noiseUtil.errToString(err));
 				setHandshakeComplete(true, false);
 				return;
@@ -153,9 +153,9 @@ void NoiseServer::receivePacket(sf::Packet packet) {
 		}
 
 		/* Set all keys that are needed by the client's requested echo protocol */
-		if (ok) {
+		if(ok) {
 			std::lock_guard<std::mutex> hm(handshakeMutex);
-			if (!initializeHandshake(handshake, &nid, &id, sizeof(id))) {
+			if (!initializeHandshake(handshake, &nid, &prologue, sizeof(prologue))) {
 				log->printf(LOG_LEVEL_WARN, "Noise(): Server, couldn't initialize handshake");
 				setHandshakeComplete(true, false);
 				return;
@@ -163,7 +163,7 @@ void NoiseServer::receivePacket(sf::Packet packet) {
 		}
 
 		/* Start the handshake */
-		if (ok) {
+		if(ok) {
 			std::lock_guard<std::mutex> hc(handshakeMutex);
 			err = noise_handshakestate_start(handshake);
 			if (err != NOISE_ERROR_NONE) {
@@ -178,10 +178,10 @@ void NoiseServer::receivePacket(sf::Packet packet) {
 		int action = noise_handshakestate_get_action(handshake);
 		if(action == NOISE_ACTION_READ_MESSAGE) {
 			log->printf(LOG_LEVEL_INFO, "Noise(): Server, reading message.");
-			message_size = packet.getDataSize();
+			messageSize = packet.getDataSize();
 			memcpy(message, packet.getData(), packet.getDataSize());
 
-			noise_buffer_set_input(mbuf, message + 2, message_size - 2);
+			noise_buffer_set_input(mbuf, message + 2, messageSize - 2);
 			err = noise_handshakestate_read_message(handshake, &mbuf, NULL);
 			if (err != NOISE_ERROR_NONE) {
 				log->printf(LOG_LEVEL_WARN, "Noise(): Server, read handshake error: " + noiseUtil.errToString(err));
@@ -193,14 +193,14 @@ void NoiseServer::receivePacket(sf::Packet packet) {
 }
 
 /* Initialize's the handshake with all necessary keys */
-int NoiseServer::initializeHandshake(NoiseHandshakeState* handshake, const NoiseProtocolId* nid, const void* prologue, size_t prologue_len) {
+int NoiseServer::initializeHandshake(NoiseHandshakeState* handshake, const NoiseProtocolId* nid, const void* prologue, size_t prologueLen) {
 	NoiseDHState *dh;
-	int dh_id;
+	int dhId;
 	int err;
 
 	/* Set the prologue first */
-	err = noise_handshakestate_set_prologue(handshake, prologue, prologue_len);
-	if (err != NOISE_ERROR_NONE) {
+	err = noise_handshakestate_set_prologue(handshake, prologue, prologueLen);
+	if(err != NOISE_ERROR_NONE) {
 		log->printf(LOG_LEVEL_WARN, "Noise(): Server, prologue error: " + noiseUtil.errToString(err));
 		return 0;
 	}
@@ -208,15 +208,14 @@ int NoiseServer::initializeHandshake(NoiseHandshakeState* handshake, const Noise
 	/* Set the local keypair for the server based on the DH algorithm */
 	if(noise_handshakestate_needs_local_keypair(handshake)) {
 		dh = noise_handshakestate_get_local_keypair_dh(handshake);
-		dh_id = noise_dhstate_get_dh_id(dh);
-		if (dh_id == NOISE_DH_CURVE25519) {
-			err = noise_dhstate_set_keypair_private
-				(dh, server_key_25519, sizeof(server_key_25519));
+		dhId = noise_dhstate_get_dh_id(dh);
+		if(dhId == NOISE_DH_CURVE25519) {
+			err = noise_dhstate_set_keypair_private(dh, server_key_25519, sizeof(server_key_25519));
 		}
 		else {
 			err = NOISE_ERROR_UNKNOWN_ID;
 		}
-		if (err != NOISE_ERROR_NONE) {
+		if(err != NOISE_ERROR_NONE) {
 			log->printf(LOG_LEVEL_WARN, "Noise(): Server, set private key error, " + noiseUtil.errToString(err));
 			return 0;
 		}
@@ -225,15 +224,15 @@ int NoiseServer::initializeHandshake(NoiseHandshakeState* handshake, const Noise
 	/* Set the remote public key for the client */
 	if(noise_handshakestate_needs_remote_public_key(handshake)) {
 		dh = noise_handshakestate_get_remote_public_key_dh(handshake);
-		dh_id = noise_dhstate_get_dh_id(dh);
-		if (dh_id == NOISE_DH_CURVE25519) {
+		dhId = noise_dhstate_get_dh_id(dh);
+		if(dhId == NOISE_DH_CURVE25519) {
 			err = noise_dhstate_set_public_key
 				(dh, client_key_25519, sizeof(client_key_25519));
 		}
 		else {
 			err = NOISE_ERROR_UNKNOWN_ID;
 		}
-		if (err != NOISE_ERROR_NONE) {
+		if(err != NOISE_ERROR_NONE) {
 			log->printf(LOG_LEVEL_WARN, "Noise(): Server, set public key error, " + noiseUtil.errToString(err));
 			return 0;
 		}

@@ -32,7 +32,7 @@ public:
 	std::mutex handshakeMutex;
 
 	NoiseHandshakeState* handshake;
-	EchoProtocolId id;
+	Prologue prologue;
 	std::unique_ptr<std::thread> writeInfoThread;
 	bool sentId;
 	bool handshakeComplete;
@@ -50,7 +50,7 @@ public:
 public:
 	NoiseClient(std::shared_ptr<sf::TcpSocket> server, std::string ipAddress, uint64_t port, CryptoKernel::Log* log);
 
-	int getProtocolId(EchoProtocolId* id, const char* name);
+	int getProtocolId(Prologue* id, const char* name);
 	int initializeHandshake(NoiseHandshakeState *handshake, const void *prologue, size_t prologue_len);
 	void writeInfo();
 	void setHandshakeComplete(bool complete, bool success);

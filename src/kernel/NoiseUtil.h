@@ -15,55 +15,23 @@
 
 #define MAX_DH_KEY_LEN 2048
 #define CURVE25519_KEY_LEN 32
-#define CURVE448_KEY_LEN 56
 #define MAX_DH_KEY_LEN 2048
 #define MAX_MESSAGE_LEN 4096
 
-#define ECHO_PATTERN_NN             0x00
-#define ECHO_PATTERN_KN             0x01
-#define ECHO_PATTERN_NK             0x02
-#define ECHO_PATTERN_KK             0x03
-#define ECHO_PATTERN_NX             0x04
-#define ECHO_PATTERN_KX             0x05
-#define ECHO_PATTERN_XN             0x06
-#define ECHO_PATTERN_IN             0x07
-#define ECHO_PATTERN_XK             0x08
-#define ECHO_PATTERN_IK             0x09
-#define ECHO_PATTERN_XX             0x0A
-#define ECHO_PATTERN_IX             0x0B
-#define ECHO_PATTERN_HFS            0x80
+#define PATTERN_XX             0x0A
+#define CIPHER_AESGCM          0x01
+#define DH_25519               0x00
+#define HASH_SHA256            0x00
+#define PSK_DISABLED           0x00
 
-#define ECHO_CIPHER_CHACHAPOLY      0x00
-#define ECHO_CIPHER_AESGCM          0x01
-
-#define ECHO_DH_25519               0x00
-#define ECHO_DH_448                 0x01
-#define ECHO_DH_NEWHOPE             0x02
-#define ECHO_DH_MASK                0x0F
-
-#define ECHO_HYBRID_NONE            0x00
-#define ECHO_HYBRID_25519           0x10
-#define ECHO_HYBRID_448             0x20
-#define ECHO_HYBRID_NEWHOPE         0x30
-#define ECHO_HYBRID_MASK            0xF0
-
-#define ECHO_HASH_SHA256            0x00
-#define ECHO_HASH_SHA512            0x01
-#define ECHO_HASH_BLAKE2s           0x02
-#define ECHO_HASH_BLAKE2b           0x03
-
-#define ECHO_PSK_DISABLED           0x00
-#define ECHO_PSK_ENABLED            0x01
-
-typedef struct
-{
+struct Prologue {
     uint8_t psk;
     uint8_t pattern;
     uint8_t cipher;
     uint8_t dh;
     uint8_t hash;
 
-} EchoProtocolId;
+};
 
 class NoiseUtil {
 public:
@@ -71,9 +39,9 @@ public:
 
 	int loadPrivateKey(const char* filename, uint8_t* key, size_t len);
 	int loadPublicKey(const char* filename, uint8_t* key, size_t len);
-	int toNoiseProtocolId(NoiseProtocolId* nid, const EchoProtocolId* id);
-	int savePrivateKey(const char *filename, const uint8_t *key, size_t len);
-	int savePublicKey(const char *filename, const uint8_t *key, size_t len);
+	int toNoiseProtocolId(NoiseProtocolId* nid, const Prologue* id);
+	int savePrivateKey(const char* filename, const uint8_t* key, size_t len);
+	int savePublicKey(const char* filename, const uint8_t* key, size_t len);
 	int writeKeys(const char* pubKeyName, const char* privKeyName, uint8_t** pub_key, uint8_t** priv_key);
 	std::string errToString(int err);
 

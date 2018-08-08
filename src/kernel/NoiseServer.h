@@ -27,17 +27,17 @@ public:
 
 	bool receivedId;
 	bool receivedPubKey;
-	size_t message_size;
+	size_t messageSize;
 	NoiseBuffer mbuf;
 	NoiseHandshakeState *handshake;
-	EchoProtocolId id;
+	Prologue prologue;
 
 	std::mutex handshakeMutex;
 
 	std::unique_ptr<std::thread> writeInfoThread;
 
-	NoiseCipherState* send_cipher;
-	NoiseCipherState* recv_cipher;
+	NoiseCipherState* sendCipher;
+	NoiseCipherState* recvCipher;
 
 	NoiseUtil noiseUtil;
 
