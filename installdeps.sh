@@ -12,7 +12,8 @@ sudo apt-get update && sudo apt-get install -y \
     doxygen \
     libcppunit-dev \
     flex \
-    bison
+    bison \
+    autoconf
 
 cd /tmp
 wget https://www.openssl.org/source/openssl-1.1.0f.tar.gz
