@@ -25,7 +25,6 @@ NoiseServer::NoiseServer(std::shared_ptr<sf::TcpSocket> client, uint64_t port, C
 
 	if(noise_init() != NOISE_ERROR_NONE) {
 		log->printf(LOG_LEVEL_WARN, "Noise(): Server, noise initialization failed.");
-		//fprintf(stderr, "Noise initialization failed\n");
 		return;
 	}
 
@@ -56,6 +55,7 @@ void NoiseServer::writeInfo() {
 	log->printf(LOG_LEVEL_INFO, "SERVER write info starting");
 
 	uint8_t message[MAX_MESSAGE_LEN + 2];
+	unsigned int ok = 1;
 
 	while(!getHandshakeComplete()) { // it might fail in another thread, and so become "complete"
 		handshakeMutex.lock();
@@ -71,7 +71,7 @@ void NoiseServer::writeInfo() {
 			if (err != NOISE_ERROR_NONE) {
 				//log->printf(LOG_LEVEL_WARN, "Noise(): Server, error writing message: " + noiseUtil.errToString(err));
 				setHandshakeComplete(true, false);
-				return;
+				ok = 0;
 			}
 			message[0] = (uint8_t)(mbuf.size >> 8);
 			message[1] = (uint8_t)mbuf.size;
@@ -85,17 +85,16 @@ void NoiseServer::writeInfo() {
 				return;
 			}
 		}
-		else if(action != NOISE_ACTION_READ_MESSAGE && action != NOISE_ACTION_NONE) { // for some reason, a noise action none fires
+		else if(action != NOISE_ACTION_READ_MESSAGE && action != NOISE_ACTION_NONE) {
 			break;
 		}
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(50)); // totally arbitrary
 	}
 
-	int ok = 1;
 	/* If the action is not "split", then the handshake has failed */
 	handshakeMutex.lock();
-	if (noise_handshakestate_get_action(handshake) != NOISE_ACTION_SPLIT) {
+	if(ok && noise_handshakestate_get_action(handshake) != NOISE_ACTION_SPLIT) {
 		log->printf(LOG_LEVEL_INFO, "Noise(): Server, handshake failed.");
 		ok = 0;
 	}
