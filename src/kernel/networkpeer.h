@@ -25,8 +25,8 @@ public:
     
     Network::peerStats getPeerStats() const;
 
-    sf::Socket::Status sendPacket(std::string& data);
-	sf::Socket::Status receivePacket(sf::Packet** packet);
+    void prepPacket(sf::Packet& packet, std::string data);
+    sf::Packet decryptPacket(sf::Packet& packet);
 
     class NetworkError : std::exception {
     public:
