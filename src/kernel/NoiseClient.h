@@ -21,11 +21,7 @@ public:
 	std::string ipAddress;
 	uint64_t port;
 
-	std::string client_public_key;
-	std::string server_public_key;
-	std::string client_private_key;
-	std::string psk;
-	std::string psk_file;
+	std::string clientPrivateKey;
 
 	uint8_t clientKey25519[CURVE25519_KEY_LEN];
 
@@ -43,9 +39,6 @@ public:
 	std::mutex handshakeCompleteMutex;
 
 	NoiseUtil noiseUtil;
-
-	uint8_t* priv_key;
-	uint8_t* pub_key;
 
 public:
 	NoiseClient(std::shared_ptr<sf::TcpSocket> server, std::string ipAddress, uint64_t port, CryptoKernel::Log* log);

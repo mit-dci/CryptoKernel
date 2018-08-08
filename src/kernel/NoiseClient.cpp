@@ -15,7 +15,7 @@ NoiseClient::NoiseClient(std::shared_ptr<sf::TcpSocket> server, std::string ipAd
 	this->ipAddress = ipAddress;
 	this->port = port;
 
-	client_private_key = "keys/client_key_25519";
+	clientPrivateKey = "keys/client_key_25519";
 
 	send_cipher = 0;
 	recv_cipher = 0;
@@ -29,7 +29,6 @@ NoiseClient::NoiseClient(std::shared_ptr<sf::TcpSocket> server, std::string ipAd
 
 	if(noise_init() != NOISE_ERROR_NONE) {
 		log->printf(LOG_LEVEL_WARN, "Noise initialization failed");
-		//fprintf(stderr, "Noise initialization failed\n");
 		return;
 	}
 
@@ -43,15 +42,12 @@ NoiseClient::NoiseClient(std::shared_ptr<sf::TcpSocket> server, std::string ipAd
 	/* Create a HandshakeState object for the protocol */
 	int err = noise_handshakestate_new_by_name(&handshake, protocol.c_str(), NOISE_ROLE_INITIATOR);
 	if(err != NOISE_ERROR_NONE) {
-		//log->printf(LOG_LEVEL_WARN, "Client, error: " + noiseUtil.errToString(err));
+		log->printf(LOG_LEVEL_WARN, "Client, error: " + noiseUtil.errToString(err));
 		return;
 	}
 
 	log->printf(LOG_LEVEL_INFO, "Noise(): Client, starting writeInfo.");
 	writeInfoThread.reset(new std::thread(&NoiseClient::writeInfo, this)); // start the write info thread
-
-	priv_key = 0;
-	pub_key = 0;
 }
 
 void NoiseClient::writeInfo() {
@@ -80,23 +76,23 @@ void NoiseClient::writeInfo() {
 			log->printf(LOG_LEVEL_INFO, "Noise(): Client sending public key to " + server->getRemoteAddress().toString());
 			sf::Packet pubKeyPacket;
 			if(!noiseUtil.loadPublicKey("keys/client_key_25519.pub", clientKey25519, sizeof(clientKey25519))) {
-				if(!noiseUtil.writeKeys("keys/client_key_25519.pub", "keys/client_key_25519", &pub_key, &priv_key)) {
+				uint8_t* privKey = 0;
+				uint8_t* pubKey = 0;
+				if(!noiseUtil.writeKeys("keys/client_key_25519.pub", "keys/client_key_25519", &pubKey, &privKey)) {
 					setHandshakeComplete(true, false);
 					//return;
 					ok = 0;
-					delete pub_key;
-					delete priv_key;
+					delete pubKey;
+					delete privKey;
 					continue;
 				}
-				memcpy(clientKey25519, pub_key, CURVE25519_KEY_LEN); // put the new key in its proper place
-				delete pub_key;
-				delete priv_key;
+				memcpy(clientKey25519, pubKey, CURVE25519_KEY_LEN); // put the new key in its proper place
+				delete pubKey;
+				delete privKey;
 			}
 
-			/* Set the handshake options and verify that everything we need
-			   has been supplied on the command-line. */
 			handshakeMutex.lock();
-			if (!initializeHandshake(handshake, &prologue, sizeof(prologue))) { // now that we have keys, initialize handshake
+			if(!initializeHandshake(handshake, &prologue, sizeof(prologue))) { // now that we have keys, initialize handshake
 				log->printf(LOG_LEVEL_WARN, "Noise(): Client, error initializing handshake.");
 				//noise_handshakestate_free(handshake);
 				ok = 0;
@@ -115,8 +111,8 @@ void NoiseClient::writeInfo() {
 
 			sentPubKey = true;
 			err = noise_handshakestate_start(handshake);
-			if (err != NOISE_ERROR_NONE) {
-				//log->printf(LOG_LEVEL_WARN, "Noise(): Client start handshake error, " + noiseUtil.errToString(err));
+			if(err != NOISE_ERROR_NONE) {
+				log->printf(LOG_LEVEL_WARN, "Noise(): Client start handshake error, " + noiseUtil.errToString(err));
 				setHandshakeComplete(true, false);
 				ok = 0;
 				continue;
@@ -133,8 +129,8 @@ void NoiseClient::writeInfo() {
 				handshakeMutex.lock();
 				err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
 				handshakeMutex.unlock();
-				if (err != NOISE_ERROR_NONE) {
-					//log->printf(LOG_LEVEL_WARN, "Noise(): Client, handshake failed on write message: " + noiseUtil.errToString(err));
+				if(err != NOISE_ERROR_NONE) {
+					log->printf(LOG_LEVEL_WARN, "Noise(): Client, handshake failed on write message: " + noiseUtil.errToString(err));
 					setHandshakeComplete(true, false);
 					ok = 0;
 					continue;
@@ -176,8 +172,8 @@ void NoiseClient::writeInfo() {
 		handshakeMutex.lock();
 		err = noise_handshakestate_split(handshake, &send_cipher, &recv_cipher);
 		handshakeMutex.unlock();
-		if (err != NOISE_ERROR_NONE) {
-			//log->printf(LOG_LEVEL_WARN, "Noise(): Client, split failed: " + noiseUtil.errToString(err));
+		if(err != NOISE_ERROR_NONE) {
+			log->printf(LOG_LEVEL_WARN, "Noise(): Client, split failed: " + noiseUtil.errToString(err));
 			ok = 0;
 		}
 	}
@@ -216,8 +212,8 @@ void NoiseClient::receivePacket(sf::Packet packet) {
 		handshakeMutex.lock();
 		err = noise_handshakestate_read_message(handshake, &mbuf, NULL);
 		handshakeMutex.unlock();
-		if (err != NOISE_ERROR_NONE) {
-			//log->printf(LOG_LEVEL_WARN, "Noise(): Client, read handshake " + noiseUtil.errToString(err));
+		if(err != NOISE_ERROR_NONE) {
+			log->printf(LOG_LEVEL_WARN, "Noise(): Client, read handshake " + noiseUtil.errToString(err));
 			setHandshakeComplete(true, false);
 		}
 	}
@@ -247,42 +243,42 @@ bool NoiseClient::getHandshakeSuccess() {
 int NoiseClient::initializeHandshake(NoiseHandshakeState* handshake, const void* prologue, size_t prologue_len) {
 	NoiseDHState *dh;
 	uint8_t *key = 0;
-	size_t key_len = 0;
+	size_t keyLen = 0;
 	int err;
 
 	/* Set the prologue first */
 	err = noise_handshakestate_set_prologue(handshake, prologue, prologue_len);
-	if (err != NOISE_ERROR_NONE) {
-		//log->printf(LOG_LEVEL_INFO, "Noise(): Client prologue: " + noiseUtil.errToString(err));
+	if(err != NOISE_ERROR_NONE) {
+		log->printf(LOG_LEVEL_INFO, "Noise(): Client prologue: " + noiseUtil.errToString(err));
 		return 0;
 	}
 
 	// we are not using pre-shared keys, but they would be initialized right here
 
 	/* Set the local keypair for the client */
-	if (noise_handshakestate_needs_local_keypair(handshake)) {
-		if (client_private_key.length() > 0) {
+	if(noise_handshakestate_needs_local_keypair(handshake)) {
+		if(clientPrivateKey.length() > 0) {
 			dh = noise_handshakestate_get_local_keypair_dh(handshake);
-			key_len = noise_dhstate_get_private_key_length(dh);
-			key = (uint8_t*)malloc(key_len);
+			keyLen = noise_dhstate_get_private_key_length(dh);
+			key = (uint8_t*)malloc(keyLen);
 			if(!key) {
 				log->printf(LOG_LEVEL_INFO, "Noise(): Client, could not allocate space for key.");
 				return 0;
 			}
-			if(!noiseUtil.loadPrivateKey(client_private_key.c_str(), key, key_len)) {
+			if(!noiseUtil.loadPrivateKey(clientPrivateKey.c_str(), key, keyLen)) {
 				log->printf(LOG_LEVEL_WARN, "Noise(): Client, could not load private key.");
-				noise_free(key, key_len);
+				noise_free(key, keyLen);
 				return 0;
 			}
-			err = noise_dhstate_set_keypair_private(dh, key, key_len);
-			noise_free(key, key_len);
-			if (err != NOISE_ERROR_NONE) {
-				//log->printf(LOG_LEVEL_WARN, "Noise(): Set client private key " + noiseUtil.errToString(err));
+			err = noise_dhstate_set_keypair_private(dh, key, keyLen);
+			noise_free(key, keyLen);
+			if(err != NOISE_ERROR_NONE) {
+				log->printf(LOG_LEVEL_WARN, "Noise(): Set client private key " + noiseUtil.errToString(err));
 				return 0;
 			}
-		} else {
+		}
+		else {
 			log->printf(LOG_LEVEL_WARN, "Noise(): Client private key required but not provided.");
-			//fprintf(stderr, "Noise(): Client private key required, but not provided.\n");
 			return 0;
 		}
 	}
