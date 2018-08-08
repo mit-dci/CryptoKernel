@@ -10,7 +10,9 @@ sudo apt-get update && sudo apt-get install -y \
     cmake \
     libhiredis-dev \
     doxygen \
-    libcppunit-dev
+    libcppunit-dev \
+    flex \
+    bison
 
 cd /tmp
 wget https://www.openssl.org/source/openssl-1.1.0f.tar.gz
@@ -65,7 +67,7 @@ cd noisec
 autoreconf -i
 ./configure
 make
-cp src/protocol/libnoiseprotocol.a ../cryptokernel/src/kernel
+cp src/protocol/libnoiseprotocol.a ../src/kernel
 cd ../
 
 git clone https://github.com/metalicjames/cschnorr.git
