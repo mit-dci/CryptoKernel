@@ -71,6 +71,9 @@ make
 cp src/protocol/libnoiseprotocol.a ../src/kernel
 sudo mkdir /usr/local/include/noise/
 sudo cp -r include/noise/* /usr/local/include/noise/
+sudo cp src/keys/*.a /usr/local/lib
+sudo cp src/protobufs/*.a /usr/local/lib
+sudo cp src/protocol/*.a /usr/local/lib
 cd ../
 
 git clone https://github.com/metalicjames/cschnorr.git
