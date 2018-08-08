@@ -114,6 +114,11 @@ RUN premake5 gmake2 --os=windows --include-dir=/usr/local/mingw/include && make 
     cp bin/Static/Release/cschnorr.lib /usr/local/mingw/lib
 WORKDIR ../
 
+RUN git clone https://github.com/rweather/noise-c.git as noisec
+WORKDIR noisec
+RUN autoreconf -i && ./configure && make && cp src/protocol/libnoiseprotocol.a ../cryptokernel/src/kernel
+WORKDIR ../
+
 WORKDIR cryptokernel
 RUN premake5 gmake2 --os=windows --include-dir=/usr/local/mingw/include --lib-dir=/usr/local/mingw/lib
 RUN make config=release_static ckd
