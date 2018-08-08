@@ -6,8 +6,9 @@ ENV AR=x86_64-w64-mingw32-ar
 
 RUN apt update && apt dist-upgrade -y && \
     apt install -y make git cmake g++-mingw-w64-x86-64 \
-    binutils-mingw-w64-x86-64 wget \
-    apt-get install autoconf
+    binutils-mingw-w64-x86-64 wget
+    
+RUN sudo apt-get install autoconf
 
 RUN wget https://github.com/open-source-parsers/jsoncpp/archive/1.8.4.tar.gz \
     && tar -xzvf 1.8.4.tar.gz
