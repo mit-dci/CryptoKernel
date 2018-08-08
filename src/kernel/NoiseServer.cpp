@@ -84,7 +84,7 @@ void NoiseServer::writeInfo() {
 			int err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
 			handshakeMutex.unlock();
 			if (err != NOISE_ERROR_NONE) {
-				//log->printf(LOG_LEVEL_WARN, "Noise(): Server, error writing message: " + noiseUtil.errToString(err));
+				log->printf(LOG_LEVEL_WARN, "Noise(): Server, error writing message: " + noiseUtil.errToString(err));
 				setHandshakeComplete(true, false);
 				ok = 0;
 			}

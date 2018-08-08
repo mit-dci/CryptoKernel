@@ -95,7 +95,6 @@ void NoiseClient::writeInfo() {
 				uint8_t* pubKey = 0;
 				if(!noiseUtil.writeKeys("keys/client_key_25519.pub", "keys/client_key_25519", &pubKey, &privKey)) {
 					setHandshakeComplete(true, false);
-					//return;
 					ok = 0;
 					delete pubKey;
 					delete privKey;
@@ -109,12 +108,10 @@ void NoiseClient::writeInfo() {
 			handshakeMutex.lock();
 			if(!initializeHandshake(handshake, &prologue, sizeof(prologue))) { // now that we have keys, initialize handshake
 				log->printf(LOG_LEVEL_WARN, "Noise(): Client, error initializing handshake.");
-				//noise_handshakestate_free(handshake);
 				ok = 0;
 				handshakeMutex.unlock();
 				setHandshakeComplete(true, false);
 				continue;
-				//return;
 			}
 			handshakeMutex.unlock();
 
@@ -149,7 +146,6 @@ void NoiseClient::writeInfo() {
 					setHandshakeComplete(true, false);
 					ok = 0;
 					continue;
-					//return;
 				}
 				message[0] = (uint8_t)(mbuf.size >> 8);
 				message[1] = (uint8_t)mbuf.size;
@@ -162,7 +158,6 @@ void NoiseClient::writeInfo() {
 					setHandshakeComplete(true, false);
 					ok = 0;
 					continue;
-					//return;
 				}
 			}
 			else if(action != NOISE_ACTION_READ_MESSAGE) {
