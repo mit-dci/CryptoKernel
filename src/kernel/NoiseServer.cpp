@@ -123,8 +123,7 @@ void NoiseServer::receivePacket(sf::Packet packet) {
 		log->printf(LOG_LEVEL_INFO, "received a packet, hopefully the public key!!");
 		memcpy(client_key_25519, packet.getData(), packet.getDataSize());
 		receivedPubKey = true;
-	}
-	else if(!receivedId) {
+
 		log->printf(LOG_LEVEL_INFO, "Noise(): Server, id pattern size is " + std::to_string(packet.getDataSize()));
 		memcpy(&id, packet.getData(), (unsigned long int)packet.getDataSize());
 
@@ -134,12 +133,11 @@ void NoiseServer::receivePacket(sf::Packet packet) {
 		/* Convert the echo protocol identifier into a Noise protocol identifier */
 		bool ok = true;
 		NoiseProtocolId nid;
-		if (ok && !noiseUtil.toNoiseProtocolId(&nid, &id)) {
-			log->printf(LOG_LEVEL_WARN, "Noise(): Unknown echo protocol identifier");
-			//fprintf(stderr, "Unknown echo protocol identifier\n");
-			setHandshakeComplete(true, false);
-			return;
-		}
+		nid.prefix_id = NOISE_PREFIX_STANDARD;
+		nid.pattern_id = NOISE_PATTERN_XX;
+		nid.cipher_id = NOISE_CIPHER_AESGCM;
+		nid.dh_id = NOISE_DH_CURVE25519;
+		nid.hash_id = NOISE_HASH_SHA256;
 
 		/* Create a HandshakeState object to manage the server's handshake */
 		if (ok) {
