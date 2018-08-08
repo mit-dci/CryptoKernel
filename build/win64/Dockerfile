@@ -8,7 +8,7 @@ RUN apt update && apt dist-upgrade -y && \
     apt install -y make git cmake g++-mingw-w64-x86-64 \
     binutils-mingw-w64-x86-64 wget
     
-RUN apt-get install autoconf
+RUN apt-get install autoconf -y
 
 RUN wget https://github.com/open-source-parsers/jsoncpp/archive/1.8.4.tar.gz \
     && tar -xzvf 1.8.4.tar.gz
