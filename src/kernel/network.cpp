@@ -221,7 +221,6 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	        // Test the listener
 	        if(selector.isReady(ls))
 	        {
-	        	//log->printf(LOG_LEVEL_INFO, "selector ready");
 	            // The listener is ready: there is a pending connection
 	            std::shared_ptr<sf::TcpSocket> client(new sf::TcpSocket);
 	            client->setBlocking(false);
@@ -232,21 +231,6 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	            		log->printf(LOG_LEVEL_INFO, "Network(): We are already conected to " + client->getRemoteAddress().toString());
 	            		continue;
 	            	}
-
-	            	/*if(handshakeClients.contains(client->getRemoteAddress().toString())) {
-	            		log->printf(LOG_LEVEL_INFO, "Network(): We are already a noise SERVER for " + client->getRemoteAddress().toString());
-	            		//delete client;
-	            	}
-	            	else if(!handshakeServers.contains(client->getRemoteAddress().toString())) {
-	            		log->printf(LOG_LEVEL_INFO, "Network(): Adding a noise client (to handshakeServers), " + client->getRemoteAddress().toString());
-						// Add the new client to the clients list
-						handshakeServers.at(client->getRemoteAddress().toString()).reset(new NoiseServer(client, 8888, log));
-						// Add the new client to the selector so that we will
-						// be notified when it sends something
-						selectorMutex.lock();
-						selector.add(*client.get());
-						selectorMutex.unlock();
-	            	}*/
 
 	            	if(!handshakeClients.contains(client->getRemoteAddress().toString()) && !handshakeServers.contains(client->getRemoteAddress().toString())) {
 	            		if(client->getRemoteAddress().toString() < sf::IpAddress::getPublicAddress().toString()) {
@@ -274,11 +258,6 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	            		log->printf(LOG_LEVEL_INFO, "Network(): We are fielding another request from " + client->getRemoteAddress().toString() + ".");
 	            	}
 	            }
-	            else
-	            {
-	                // Error, we won't get a new connection, delete the socket
-	                //delete client;
-	            }
 	        }
 	        else
 	        {
@@ -292,8 +271,6 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc() {
 	                    // The client has sent some data, we can receive it
 	                    sf::Packet packet;
 	                    if(it->second->client->receive(packet) == sf::Socket::Done) {
-	                    	//auto it = handshakeServers.find(client.getRemoteAddress().toString());
-	                    	//it->second->receivePacket(packet); // let the server know that the packet has been received
 	                    	it->second->receivePacket(packet);
 	                    }
 	                    else {
@@ -349,7 +326,7 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 		std::random_shuffle(addresses.begin(), addresses.end());
 		for(std::string addr : addresses) {
 			std::shared_ptr<sf::TcpSocket> client(new sf::TcpSocket());
-			//client->setBlocking(false);
+			//client->setBlocking(false); // Ultimately, it would be better to do this HERE instead of below, but it makes things more complicated
 			log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + addr + " to query encryption preference.");
 			if(client->connect(addr, port + 1, sf::seconds(3)) != sf::Socket::Done) {
 				log->printf(LOG_LEVEL_INFO, "Network(): Couldn't query " + addr + " for encryption preference (it likely doesn't support encryption).");
@@ -445,7 +422,6 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 		Json::Value peerInfo = it->value();
 
 		if(connected.contains(it->key()) || peersToQuery.contains(it->key())) {
-			//log->printf(LOG_LEVEL_INFO, "Network(): Connected/peersToQuery already contains " + it->key() + ", skipping");
 			continue;
 		}
 
@@ -537,7 +513,6 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 			}
 		}
 
-		//log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + it->key());
 		peersToTry.insert(std::pair<std::string, Json::Value>(it->key(), peerInfo));
 		peerIps.push_back(it->key());
 	}
