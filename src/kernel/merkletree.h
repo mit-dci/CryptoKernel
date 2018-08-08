@@ -14,10 +14,10 @@ namespace CryptoKernel {
     class MerkleProof {
         public:
             MerkleProof();
-            MerkleProof(Json::Value& json);
+            MerkleProof(const Json::Value& json);
             int positionInTotalSet;
             std::vector<BigNum> leaves;
-            Json::Value toJson();
+            Json::Value toJson() const;
     };
 
     class MerkleNode {
@@ -42,7 +42,7 @@ namespace CryptoKernel {
             BigNum getRightVal() const;
             std::shared_ptr<MerkleNode>  getLeftNode();
             std::shared_ptr<MerkleNode>  getRightNode();
-            MerkleNode* getAncestor();
+            MerkleNode* getAncestor() const;
 
         private:
             MerkleNode* ancestor;
@@ -53,7 +53,7 @@ namespace CryptoKernel {
             BigNum leftVal;
             BigNum rightVal;
                         
-            CryptoKernel::MerkleNode* findDescendant(BigNum needle);
+            const CryptoKernel::MerkleNode* findDescendant(const BigNum& needle) const;
             static BigNum calcRoot(const std::string& left, const std::string& right);
 
         protected:

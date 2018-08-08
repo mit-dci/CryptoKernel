@@ -1,5 +1,4 @@
 #include "MerkletreeTests.h"
-#include <iostream>
 
 CPPUNIT_TEST_SUITE_REGISTRATION(MerkletreeTest);
 

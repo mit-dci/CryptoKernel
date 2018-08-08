@@ -1,5 +1,4 @@
 #include <queue>
-#include <iostream>
 #include "merkletree.h"
 #include "crypto.h"
 
@@ -69,7 +68,7 @@ std::shared_ptr<CryptoKernel::MerkleNode> CryptoKernel::MerkleNode::getRightNode
     return rightNode;
 }
 
-CryptoKernel::MerkleNode* CryptoKernel::MerkleNode::getAncestor() {
+CryptoKernel::MerkleNode* CryptoKernel::MerkleNode::getAncestor() const {
     return ancestor;
 }
 
@@ -130,22 +129,22 @@ std::shared_ptr<CryptoKernel::MerkleNode> CryptoKernel::MerkleNode::makeMerkleTr
     return nodes[0];
 }
 
-CryptoKernel::MerkleNode* CryptoKernel::MerkleNode::findDescendant(BigNum needle) {
+const CryptoKernel::MerkleNode* CryptoKernel::MerkleNode::findDescendant(const BigNum& needle) const{
     if(leftVal == needle || rightVal == needle) {
         return this;
     }
     else if(leaf) { 
         return nullptr; 
     } else {
-        CryptoKernel::MerkleNode* find;
-        find = leftNode->findDescendant(needle);
-        if(find == nullptr) find = rightNode->findDescendant(needle);
-        return find;
+        const CryptoKernel::MerkleNode* findLeft = leftNode->findDescendant(needle);
+        if(findLeft != nullptr) return findLeft;
+        const CryptoKernel::MerkleNode* findRight = rightNode->findDescendant(needle);
+        return findRight;
     }
 }
 
 std::shared_ptr<CryptoKernel::MerkleProof> CryptoKernel::MerkleNode::makeProof(BigNum proof) {
-    CryptoKernel::MerkleNode* proofNode = findDescendant(proof);
+    const CryptoKernel::MerkleNode* proofNode = findDescendant(proof);
     if(proofNode == nullptr) {
         throw CryptoKernel::Blockchain::NotFoundException("Tree node " + proof.toString());
     }
@@ -200,7 +199,7 @@ std::shared_ptr<CryptoKernel::MerkleNode> CryptoKernel::MerkleNode::makeMerkleTr
     return result;
 }
 
-Json::Value CryptoKernel::MerkleProof::toJson() {
+Json::Value CryptoKernel::MerkleProof::toJson() const {
     Json::Value result;
 
     result["position"] = positionInTotalSet;
@@ -215,7 +214,7 @@ CryptoKernel::MerkleProof::MerkleProof() {
     leaves = {};
 } 
 
-CryptoKernel::MerkleProof::MerkleProof(Json::Value& jsonProof) {
+CryptoKernel::MerkleProof::MerkleProof(const Json::Value& jsonProof) {
     if(jsonProof["position"].isNull()){
         throw CryptoKernel::Blockchain::InvalidElementException("Merkle proof JSON is malformed: Mandatory element 'position' is not found");
     }
