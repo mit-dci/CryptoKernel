@@ -651,3 +651,184 @@ void BlockchainTest::testSchnorrMultiSignature() {
     schnorr_context_free(ctx);
 }
 
+void BlockchainTest::testPayToMerkleRoot() {
+    CryptoKernel::Crypto crypto(true);
+    std::vector<std::string> spendKeys = {
+        "BltFHv7To7EGRpEsCJN4eZQhMUJyKHlSfbxRGKqCYe0=",
+        "jiKYKjVDWmEFIIC9VSNDREtVWyX1WgheVT2lS4B4qAE=",
+        "t6dSX0XrH330D86PX8HWemjI1f7sA3yfy3eu4HOJubA=",
+        "/zfwPyNuaULDkHr44mdOZu5XrM9BqKmXPSoh5kDY2hE="
+    };
+
+    std::vector<std::string> spendProofs = {
+        "{\"leaves\":[\"4c7f829a1a05269a786fcf8dc990d731a59707a7e1a09bf612b69de40bf6c445\",\"8ce6bc61261ba40e16d67e9f65c5fd983916af4bbb75ab7c7de82abb4b0867c6\",\"24fae9097ff35f6316081c9442f818014ca9ca37961132b251eab4b5458921b5\",\"260e008e75b82690c8c8172d1fbf1c76f5c5582e4a8aba8c06f7a706dd28c0db\"],\"position\":0}",
+        "{\"leaves\":[\"fdc9632027116368ddeded54d25809c304d8ac36dc359b4fd9071fa0edbab010\",\"eb9e5706419787823eefb582355b715539adeda7ecf2936eb734c37339ca76cb\",\"12a1df1437deec01365f10169a9994e5e3de2e4790465edbaa2008be4d1755af\",\"260e008e75b82690c8c8172d1fbf1c76f5c5582e4a8aba8c06f7a706dd28c0db\"],\"position\":3}",
+        "{\"leaves\":[\"eb9e5706419787823eefb582355b715539adeda7ecf2936eb734c37339ca76cb\",\"fdc9632027116368ddeded54d25809c304d8ac36dc359b4fd9071fa0edbab010\",\"12a1df1437deec01365f10169a9994e5e3de2e4790465edbaa2008be4d1755af\",\"260e008e75b82690c8c8172d1fbf1c76f5c5582e4a8aba8c06f7a706dd28c0db\"],\"position\":2}",
+        "{\"leaves\":[\"8ce6bc61261ba40e16d67e9f65c5fd983916af4bbb75ab7c7de82abb4b0867c6\",\"4c7f829a1a05269a786fcf8dc990d731a59707a7e1a09bf612b69de40bf6c445\",\"24fae9097ff35f6316081c9442f818014ca9ca37961132b251eab4b5458921b5\",\"260e008e75b82690c8c8172d1fbf1c76f5c5582e4a8aba8c06f7a706dd28c0db\"],\"position\":1}"
+    };
+
+    std::string merkleRoot = "2232b5914a58ec2ef52c2ac979cdbac5417b47f1a0ee01db3893eb140818198";
+
+    const auto ECDSAPubKey = crypto.getPublicKey();
+
+    consensus->mineBlock(true, ECDSAPubKey);
+
+    const auto outs = blockchain->getUnspentOutputs(ECDSAPubKey);
+    const auto& out = *outs.begin();
+
+    // First, spend our newly acquired coinbase output to
+    // a pay-to-merkleroot output
+    Json::Value outData;
+    outData["merkleRoot"] = merkleRoot;
+    uint64_t valuePerOutput = out.getValue() / spendKeys.size() - 20000;
+
+    std::set<CryptoKernel::Blockchain::output> p2mrouts = {};
+    for(int i = 0; i < spendKeys.size(); i++) {
+        CryptoKernel::Blockchain::output p2mrout(valuePerOutput, i, outData);
+        p2mrouts.insert(p2mrout);
+    }
+
+    const std::string outputSetId = CryptoKernel::Blockchain::transaction::getOutputSetId(p2mrouts).toString();
+
+    Json::Value spendData;
+    spendData["signature"] = crypto.sign(out.getId().toString() + outputSetId);
+
+    CryptoKernel::Blockchain::input inp(out.getId(), spendData);
+    CryptoKernel::Blockchain::transaction tx({inp}, p2mrouts, 1530888581);
+
+    const auto res = blockchain->submitTransaction(tx);
+    CPPUNIT_ASSERT_MESSAGE("Initial fanout transaction failed", std::get<0>(res));
+
+    consensus->mineBlock(true, ECDSAPubKey);
+
+    // Now, for each key we included in the merkleroot, verify
+    // a transaction spending it using that key, back to a pubkey output
+    for(int i = 0; i < spendKeys.size(); i++) {
+        CryptoKernel::Blockchain::output p2mrout = *std::next(p2mrouts.begin(),i);
+        CryptoKernel::Crypto spendCrypto(false);
+        spendCrypto.setPrivateKey(spendKeys.at(i));
+
+        Json::Value p2pkOutData;
+        p2pkOutData["publicKey"] = spendCrypto.getPublicKey();
+        CryptoKernel::Blockchain::output p2pkout(p2mrout.getValue() - 40000, 0, p2pkOutData);
+
+        Json::Value spendData;
+
+        // Parse spendProof
+        Json::Value merkleProof;
+        Json::CharReaderBuilder builder;
+        Json::CharReader* reader = builder.newCharReader();
+        std::string errors;
+        bool parsingSuccessful = reader->parse(
+            spendProofs.at(i).c_str(),
+            spendProofs.at(i).c_str() + spendProofs.at(i).size(),
+            &merkleProof,
+            &errors
+        );
+        delete reader;
+        CPPUNIT_ASSERT_MESSAGE("Failed parsing proof json", parsingSuccessful);
+
+        spendData["merkleProof"] = merkleProof;
+        spendData["pubKeyOrScript"] = spendCrypto.getPublicKey();
+        spendData["spendType"] = "pubkey";
+        
+        const std::string outputSetId = CryptoKernel::Blockchain::transaction::getOutputSetId({p2pkout}).toString();
+
+        spendData["signature"] = spendCrypto.sign(p2mrout.getId().toString() + outputSetId);
+
+        CryptoKernel::Blockchain::input p2mrinp(p2mrout.getId(), spendData);
+        CryptoKernel::Blockchain::transaction p2mrspendtx({p2mrinp}, {p2pkout}, 1530888581);
+
+        const auto res = blockchain->submitTransaction(p2mrspendtx);
+        CPPUNIT_ASSERT_MESSAGE("Spending p2mr output failed", std::get<0>(res));
+    }
+}
+
+void BlockchainTest::testPayToMerkleRootMalformed() {
+    std::string merkleRoot = "2232b5914a58ec2ef52c2ac979cdbac5417b47f1a0ee01db3893eb140818198";
+    std::string spendProof = "{\"leaves\":[\"4c7f829a1a05269a786fcf8dc990d731a59707a7e1a09bf612b69de40bf6c445\",\"8ce6bc61261ba40e16d67e9f65c5fd983916af4bbb75ab7c7de82abb4b0867c6\",\"24fae9097ff35f6316081c9442f818014ca9ca37961132b251eab4b5458921b5\",\"260e008e75b82690c8c8172d1fbf1c76f5c5582e4a8aba8c06f7a706dd28c0db\"],\"position\":0}";
+    std::string spendKey = "BltFHv7To7EGRpEsCJN4eZQhMUJyKHlSfbxRGKqCYe0=";
+
+    CryptoKernel::Crypto crypto(true);
+    
+    const auto ECDSAPubKey = crypto.getPublicKey();
+
+    consensus->mineBlock(true, ECDSAPubKey);
+
+    const auto outs = blockchain->getUnspentOutputs(ECDSAPubKey);
+    const auto& out = *outs.begin();
+
+    // First, spend our newly acquired coinbase output to
+    // a pay-to-merkleroot output
+    Json::Value outData;
+    outData["merkleRoot"] = merkleRoot;
+    CryptoKernel::Blockchain::output p2mrout(out.getValue() - 20000, 0, outData);
+
+    const std::string outputSetId = CryptoKernel::Blockchain::transaction::getOutputSetId({p2mrout}).toString();
+
+    Json::Value spendData;
+    spendData["signature"] = crypto.sign(out.getId().toString() + outputSetId);
+
+    CryptoKernel::Blockchain::input inp(out.getId(), spendData);
+    CryptoKernel::Blockchain::transaction tx({inp}, {p2mrout}, 1530888581);
+
+    const auto res = blockchain->submitTransaction(tx);
+    CPPUNIT_ASSERT_MESSAGE("Initial fanout transaction failed", std::get<0>(res));
+
+    consensus->mineBlock(true, ECDSAPubKey);
+
+    Json::Value p2pkOutData;
+    p2pkOutData["publicKey"] = crypto.getPublicKey();
+    CryptoKernel::Blockchain::output p2pkout(p2mrout.getValue() - 40000, 0, p2pkOutData);
+
+    
+    // Parse spendProof
+    Json::Value merkleProof;
+    Json::CharReaderBuilder builder;
+    Json::CharReader* reader = builder.newCharReader();
+    std::string errors;
+    bool parsingSuccessful = reader->parse(
+        spendProof.c_str(),
+        spendProof.c_str() + spendProof.size(),
+        &merkleProof,
+        &errors
+    );
+    delete reader;
+    CPPUNIT_ASSERT_MESSAGE("Failed parsing proof json", parsingSuccessful);
+
+    CryptoKernel::Crypto spendCrypto(false);
+    spendCrypto.setPrivateKey(spendKey);
+    
+    Json::Value validSpendData;
+    validSpendData["merkleProof"] = merkleProof;
+    validSpendData["pubKeyOrScript"] = spendCrypto.getPublicKey();
+    validSpendData["spendType"] = "pubkey";
+    const std::string outputSetId2 = CryptoKernel::Blockchain::transaction::getOutputSetId({p2pkout}).toString();
+    validSpendData["signature"] = spendCrypto.sign(p2mrout.getId().toString() + outputSetId2);
+
+    Json::Value invalidSpendData = validSpendData;
+    invalidSpendData["spendType"] = "bogus";
+    const auto res2 = blockchain->submitTransaction(CryptoKernel::Blockchain::transaction({CryptoKernel::Blockchain::input(p2mrout.getId(), invalidSpendData)}, {p2pkout}, 1530888581));
+    CPPUNIT_ASSERT_MESSAGE("Invalid spend type did not fail the transaction", !std::get<0>(res2));
+
+    invalidSpendData = validSpendData;
+    invalidSpendData["pubKeyOrScript"] = crypto.getPublicKey();
+    const auto res3 = blockchain->submitTransaction(CryptoKernel::Blockchain::transaction({CryptoKernel::Blockchain::input(p2mrout.getId(), invalidSpendData)}, {p2pkout}, 1530888581));
+    CPPUNIT_ASSERT_MESSAGE("Invalid pub key type did not fail the transaction", !std::get<0>(res3));
+
+    invalidSpendData = validSpendData;
+    invalidSpendData["signature"] = spendCrypto.sign("wow");
+    const auto res4 = blockchain->submitTransaction(CryptoKernel::Blockchain::transaction({CryptoKernel::Blockchain::input(p2mrout.getId(), invalidSpendData)}, {p2pkout}, 1530888581));
+    CPPUNIT_ASSERT_MESSAGE("Invalid signature did not fail the transaction", !std::get<0>(res4));
+
+    invalidSpendData = validSpendData;
+    invalidSpendData["merkleProof"]["leaves"][0] = "abcdef";
+    const auto res5 = blockchain->submitTransaction(CryptoKernel::Blockchain::transaction({CryptoKernel::Blockchain::input(p2mrout.getId(), invalidSpendData)}, {p2pkout}, 1530888581));
+    CPPUNIT_ASSERT_MESSAGE("Invalid merkleProof[0] did not fail the transaction", !std::get<0>(res5));
+
+    invalidSpendData = validSpendData;
+    invalidSpendData["merkleProof"]["leaves"][1] = "abcdef";
+    const auto res6 = blockchain->submitTransaction(CryptoKernel::Blockchain::transaction({CryptoKernel::Blockchain::input(p2mrout.getId(), invalidSpendData)}, {p2pkout}, 1530888581));
+    CPPUNIT_ASSERT_MESSAGE("Invalid merkleProof[1] did not fail the transaction", !std::get<0>(res6));
+
+}
