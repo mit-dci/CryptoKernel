@@ -218,13 +218,13 @@ int NoiseUtil::writeKeys(const char* pubKeyName, const char* privKeyName, uint8_
 	return ok;
 }
 
-/*std::string NoiseUtil::errToString(int err) {
+std::string NoiseUtil::errToString(int err) {
 	char* buf = new char[4096];
 	noise_strerror(err, buf, 4096);
 	std::string errString(buf);
 	delete buf;
 	return errString;
-}*/
+}
 
 NoiseUtil::~NoiseUtil() {
 }
