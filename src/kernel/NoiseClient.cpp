@@ -114,9 +114,8 @@ void NoiseClient::writeInfo() {
 			if(server->send(pubKeyPacket) != sf::Socket::Done) {
 				continue; // keep sending the public key until it goes through
 			}
+
 			sentPubKey = true;
-		}
-		else {
 			err = noise_handshakestate_start(handshake);
 			if (err != NOISE_ERROR_NONE) {
 				//log->printf(LOG_LEVEL_WARN, "Noise(): Client start handshake error, " + noiseUtil.errToString(err));
@@ -125,7 +124,8 @@ void NoiseClient::writeInfo() {
 				continue;
 				//return;
 			}
-
+		}
+		else {
 			handshakeMutex.lock();
 			action = noise_handshakestate_get_action(handshake);
 			handshakeMutex.unlock();
