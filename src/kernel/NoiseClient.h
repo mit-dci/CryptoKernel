@@ -2,7 +2,7 @@
  * NoiseClient.h
  *
  *  Created on: Aug 2, 2018
- *      Author: luke
+ *      Author: Luke Horgan
  */
 
 #ifndef SRC_KERNEL_NOISECLIENT_H_
