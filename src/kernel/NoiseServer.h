@@ -18,8 +18,6 @@ class NoiseServer {
 public:
 	uint8_t client_key_25519[CURVE25519_KEY_LEN];
 	uint8_t server_key_25519[CURVE25519_KEY_LEN];
-	uint8_t client_key_448[CURVE448_KEY_LEN];
-	uint8_t server_key_448[CURVE448_KEY_LEN];
 
 	std::shared_ptr<sf::TcpSocket> client;
 	CryptoKernel::Log* log;

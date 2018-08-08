@@ -506,7 +506,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 					log->printf(LOG_LEVEL_INFO, "Network(): Server handshake complete, " + entry->first);
 					sf::TcpSocket* socket = sockets.find(it->key())->second;
 					if(socket) {
-						addConnection(socket, peerInfo, entry->second->send_cipher, entry->second->recv_cipher);
+						addConnection(socket, peerInfo, entry->second->sendCipher, entry->second->recvCipher);
 						selector.remove(*entry->second->client);
 						handshakeServers.erase(it->key());
 					}
