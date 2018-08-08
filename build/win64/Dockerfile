@@ -123,7 +123,13 @@ WORKDIR noisec
 RUN autoreconf -i
 RUN ./configure --host=x86_64-w64-mingw32 --prefix=/usr/local/mingw \
     --disable-shared
-RUN make && cp src/protocol/libnoiseprotocol.a ../cryptokernel/src/kernel 
+RUN make
+RUN cp src/protocol/libnoiseprotocol.a ../cryptokernel/src/kernel
+RUN mkdir /usr/local/mingw/include/noise/
+RUN cp -r include/noise/* /usr/local/mingw/include/noise/
+RUN cp src/keys/*.a /usr/local/mingw/lib
+RUN cp src/protobufs/*.a /usr/local/mingw/lib
+RUN cp src/protocol/*.a /usr/local/mingw/lib
 WORKDIR ../
 
 WORKDIR cryptokernel
