@@ -69,6 +69,8 @@ autoreconf -i
 ./configure
 make
 cp src/protocol/libnoiseprotocol.a ../src/kernel
+sudo mkdir /usr/local/include/noise/
+sudo cp -r include/noise/* /usr/local/include/noise/
 cd ../
 
 git clone https://github.com/metalicjames/cschnorr.git
