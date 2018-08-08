@@ -118,7 +118,10 @@ WORKDIR ../
 
 RUN git clone https://github.com/rweather/noise-c.git noisec
 WORKDIR noisec
-RUN autoreconf -i && ./configure && make && cp src/protocol/libnoiseprotocol.a ../cryptokernel/src/kernel
+RUN autoreconf -i
+RUN ./configure --host=x86_64-w64-mingw32 --prefix=/usr/local/mingw \
+    --disable-shared
+RUN make && cp src/protocol/libnoiseprotocol.a ../cryptokernel/src/kernel 
 WORKDIR ../
 
 WORKDIR cryptokernel
