@@ -127,6 +127,7 @@ void NoiseServer::receivePacket(sf::Packet packet) {
 		/* Convert the echo protocol identifier into a Noise protocol identifier */
 		bool ok = true;
 		NoiseProtocolId nid;
+
 		nid.prefix_id = NOISE_PREFIX_STANDARD;
 		nid.pattern_id = NOISE_PATTERN_XX;
 		nid.cipher_id = NOISE_CIPHER_AESGCM;
