@@ -100,7 +100,7 @@ RUN premake5 gmake2 && make config=release_static cschnorr && \
     cp bin/Static/Release/libcschnorr.a /usr/local/lib
 WORKDIR ../
 
-RUN git clone https://github.com/rweather/noise-c.git as noisec
+RUN git clone https://github.com/rweather/noise-c.git noisec
 WORKDIR noisec
 RUN autoreconf -i && ./configure && make && cp src/protocol/libnoiseprotocol.a ../cryptokernel/src/kernel
 WORKDIR ../
