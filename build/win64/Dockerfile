@@ -11,6 +11,7 @@ RUN apt update && apt dist-upgrade -y && \
 RUN apt-get install autoconf -y
 RUN apt-get install flex -y
 RUN apt-get install bison -y
+RUN apt-get install libcrypto++-dev
 
 RUN wget https://github.com/open-source-parsers/jsoncpp/archive/1.8.4.tar.gz \
     && tar -xzvf 1.8.4.tar.gz
@@ -117,6 +118,8 @@ RUN premake5 gmake2 --os=windows --include-dir=/usr/local/mingw/include && make 
     cp src/*.h /usr/local/mingw/include/cschnorr/ && \
     cp bin/Static/Release/cschnorr.lib /usr/local/mingw/lib
 WORKDIR ../
+
+RUN cp /usr/local/lib/libcrypto.a /usr/local/mingw/lib
 
 RUN git clone https://github.com/lhorgan/noise-c.git noisec
 WORKDIR noisec
