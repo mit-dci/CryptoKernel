@@ -119,8 +119,6 @@ RUN premake5 gmake2 --os=windows --include-dir=/usr/local/mingw/include && make 
     cp bin/Static/Release/cschnorr.lib /usr/local/mingw/lib
 WORKDIR ../
 
-RUN cp /usr/local/lib/libcrypto.a /usr/local/mingw/lib
-
 RUN git clone https://github.com/lhorgan/noise-c.git noisec
 WORKDIR noisec
 RUN autoreconf -i
