@@ -64,8 +64,8 @@ bool CryptoKernel::Crypto::verify(std::string message,
     const std::string messageHash = sha256(message);
     const std::string decodedSignature = base64_decode(signature);
 
-    if(!ECDSA_verify(0, (unsigned char*)messageHash.c_str(), (int)messageHash.size(),
-                     (unsigned char*)decodedSignature.c_str(), (int)decodedSignature.size(), eckey)) {
+    if(ECDSA_verify(0, (unsigned char*)messageHash.c_str(), (int)messageHash.size(),
+                     (unsigned char*)decodedSignature.c_str(), (int)decodedSignature.size(), eckey) != 1) {
         return false;
     }
 
