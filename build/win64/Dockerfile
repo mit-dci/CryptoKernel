@@ -11,7 +11,6 @@ RUN apt update && apt dist-upgrade -y && \
 RUN apt-get install autoconf -y
 RUN apt-get install flex -y
 RUN apt-get install bison -y
-RUN apt-get install libcrypto++-dev -y
 
 RUN wget https://github.com/open-source-parsers/jsoncpp/archive/1.8.4.tar.gz \
     && tar -xzvf 1.8.4.tar.gz
@@ -122,7 +121,7 @@ WORKDIR ../
 RUN git clone https://github.com/lhorgan/noise-c.git noisec
 WORKDIR noisec
 RUN autoreconf -i
-RUN ./configure --with-openssl --host=x86_64-w64-mingw32 --prefix=/usr/local/mingw
+RUN ./configure --with-openssl --host=x86_64-w64-mingw32 --prefix=/usr/local/mingw --disable-shared --enable-static --disable-ldap
 RUN make
 RUN cp src/protocol/libnoiseprotocol.a ../cryptokernel/src/kernel
 RUN mkdir /usr/local/mingw/include/noise/
