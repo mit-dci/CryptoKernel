@@ -118,7 +118,7 @@ RUN premake5 gmake2 --os=windows --include-dir=/usr/local/mingw/include && make 
     cp bin/Static/Release/cschnorr.lib /usr/local/mingw/lib
 WORKDIR ../
 
-RUN apt-get install libssl-dev
+RUN apt-get install libssl-dev -y
 
 RUN whereis libcrypto
 
