@@ -118,11 +118,13 @@ RUN premake5 gmake2 --os=windows --include-dir=/usr/local/mingw/include && make 
     cp bin/Static/Release/cschnorr.lib /usr/local/mingw/lib
 WORKDIR ../
 
-RUN apt-get install libssl-dev -y
+#RUN apt-get install libssl-dev -y
 
-RUN whereis libcrypto
+#RUN whereis libcrypto
 
-RUN cp /usr/lib/x86_64-linux-gnu/libcrypto.a /usr/local/mingw/lib
+#RUN cp /usr/lib/x86_64-linux-gnu/libcrypto.a /usr/local/mingw/lib
+
+RUN find / -name "libcrypto.a"
 
 # https://stackoverflow.com/questions/16488629/undefined-references-when-building-openssl
 RUN git clone https://github.com/lhorgan/noise-c.git noisec
