@@ -118,11 +118,12 @@ RUN premake5 gmake2 --os=windows --include-dir=/usr/local/mingw/include && make 
     cp bin/Static/Release/cschnorr.lib /usr/local/mingw/lib
 WORKDIR ../
 
+RUN whereis libcrypto
+
 # https://stackoverflow.com/questions/16488629/undefined-references-when-building-openssl
 RUN git clone https://github.com/lhorgan/noise-c.git noisec
 WORKDIR noisec
 RUN autoreconf -i
-RUN make clean
 RUN ./configure --with-openssl --host=x86_64-w64-mingw32 --prefix=/usr/local/mingw --disable-shared --enable-static --disable-ldap
 RUN make
 RUN cp src/protocol/libnoiseprotocol.a ../cryptokernel/src/kernel
