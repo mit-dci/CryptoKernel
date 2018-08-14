@@ -130,7 +130,7 @@ RUN find / -name "libcrypto.a"
 RUN git clone https://github.com/lhorgan/noise-c.git noisec
 WORKDIR noisec
 RUN autoreconf -i
-RUN ./configure --with-openssl --host=x86_64-w64-mingw32 --prefix=/usr/local/mingw --disable-shared --enable-static --disable-ldap
+RUN ./configure --with-openssl --host=x86_64-w64-mingw32 --prefix=/usr/local/mingw
 RUN make
 RUN cp src/protocol/libnoiseprotocol.a ../cryptokernel/src/kernel
 RUN mkdir /usr/local/mingw/include/noise/
