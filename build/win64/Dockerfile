@@ -34,6 +34,8 @@ WORKDIR ../
 RUN wget https://download.libsodium.org/libsodium/releases/libsodium-1.0.13-mingw.tar.gz && \
     tar xzvf libsodium-1.0.13-mingw.tar.gz
 WORKDIR libsodium-1.0.13-mingw
+RUN pwd
+RUN ls
 RUN cp libsodium-win64/lib/libsodium.a /usr/local/mingw/lib
 WORKDIR ../
 
