@@ -42,10 +42,9 @@ RUN ls
 RUN find / -name "libsodium.a"
 RUN cp /libsodium-win64/lib/libsodium.a /usr/local/mingw/lib
 RUN export PKG_CONFIG_PATH=/usr/local/mingw/lib
-RUN cp /libsodium-win64/lib/pkgconfig/libsodium.pc /usr/local/lib/x86_64-linux-gnu/pkgconfig
-WORKDIR ../
-
 RUN pkg-config --list-all
+RUN cp /libsodium-win64/lib/pkgconfig/libsodium.pc /usr/local/lib/x86_64-linux-gnu/pkgconfig/libsodium.pc
+WORKDIR ../
 
 RUN wget https://curl.haxx.se/download/curl-7.59.0.tar.gz && \
     tar xzvf curl-7.59.0.tar.gz
