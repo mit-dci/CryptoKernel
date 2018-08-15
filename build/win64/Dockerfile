@@ -36,7 +36,8 @@ RUN wget https://download.libsodium.org/libsodium/releases/libsodium-1.0.13-ming
 WORKDIR libsodium-1.0.13-mingw
 RUN pwd
 RUN ls
-RUN cp libsodium-win64/lib/libsodium.a /usr/local/mingw/lib
+RUN find / -name "libsodium.a"
+RUN cp /libsodium-win64/lib/libsodium.a /usr/local/mingw/lib
 WORKDIR ../
 
 RUN wget https://curl.haxx.se/download/curl-7.59.0.tar.gz && \
