@@ -13,6 +13,8 @@ RUN apt-get install flex -y
 RUN apt-get install bison -y
 RUN apt-get install pkg-config -y
 
+RUN pkg-config --variable pc_path pkg-config
+
 RUN wget https://github.com/open-source-parsers/jsoncpp/archive/1.8.4.tar.gz \
     && tar -xzvf 1.8.4.tar.gz
 WORKDIR jsoncpp-1.8.4
