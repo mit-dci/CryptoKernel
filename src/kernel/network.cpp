@@ -309,6 +309,7 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 						}
 					}
 
+                    it->second->setInfo("version", info["version"].asString());
 					it->second->setInfo("height", info["tipHeight"].asUInt64());
 
 					// update connected stats
