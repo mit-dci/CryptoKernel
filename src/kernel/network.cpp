@@ -374,10 +374,10 @@ void CryptoKernel::Network::networkFunc() {
         for(auto key : keys) {
         	auto it = connected.find(key);
         	if(it != connected.end() && it->second->acquire()) {
+                defer d([&]{it->second->release();});
         		if(it->second->getInfo("height").asUInt64() > bestHeight) {
 					bestHeight = it->second->getInfo("height").asUInt64();
 				}
-        		it->second->release();
         	}
         }
 
@@ -626,6 +626,7 @@ void CryptoKernel::Network::broadcastTransactions(const
 	for(std::string key : keys) {
 		auto it = connected.find(key);
 		if(it != connected.end() && it->second->acquire()) {
+            defer d([&]{it->second->release();});
 			try {
 				it->second->sendTransactions(transactions);
 			} catch(const Peer::NetworkError& err) {
@@ -641,12 +642,12 @@ void CryptoKernel::Network::broadcastBlock(const CryptoKernel::Blockchain::block
     for(std::string key : keys) {
     	auto it = connected.find(key);
     	if(it != connected.end() && it->second->acquire()) {
+            defer d([&]{it->second->release();});
     		try {
 				it->second->sendBlock(block);
 			} catch(const Peer::NetworkError& err) {
 				log->printf(LOG_LEVEL_WARN, "Network::broadcastBlock(): Failed to contact peer: " + std::string(err.what()));
 			}
-			it->second->release();
     	}
     }
 }
