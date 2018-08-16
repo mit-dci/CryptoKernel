@@ -673,9 +673,7 @@ void CryptoKernel::Network::changeScore(const std::string& url, const uint64_t s
 
 std::set<std::string> CryptoKernel::Network::getConnectedPeers() {
     std::set<std::string> peerUrls;
-    std::vector<std::string> keys = connected.keys();
-    std::random_shuffle(keys.begin(), keys.end());
-    for(auto& peer : keys) {
+    for(const auto& peer : connected.keys()) {
     	peerUrls.insert(peer);
     }
 
