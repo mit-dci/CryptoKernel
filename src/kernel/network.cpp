@@ -577,6 +577,8 @@ void CryptoKernel::Network::connectionFunc() {
                         "Network(): Peer connected from " + client->getRemoteAddress().toString() + ":" +
                         std::to_string(client->getRemotePort()));
             Connection* connection = new Connection();
+			connection->acquire();
+			defer d([&]{connection->release();});
             connection->setPeer(new Peer(client, blockchain, this, true));
 
             Json::Value info;
@@ -610,7 +612,6 @@ void CryptoKernel::Network::connectionFunc() {
             dbTx->commit();
         } else {
             delete client;
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
     }
 }
