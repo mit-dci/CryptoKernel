@@ -157,8 +157,6 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
 	memcpy(&seed, seedBuf, sizeof(seedBuf) / 8);
     std::srand(seed);
 
-    listener.setBlocking(false);
-
     // Start connection thread
     connectionThread.reset(new std::thread(&CryptoKernel::Network::connectionFunc, this));
 
