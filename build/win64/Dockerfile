@@ -106,6 +106,7 @@ RUN wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha1
 COPY ./cryptokernel /cryptokernel
 
 RUN cp lua-lz4/lz4.dll cryptokernel
+RUN cp /usr/local/mingw/lib/liblua.dll cryptokernel/lua53.dll
 
 RUN git clone https://github.com/metalicjames/cschnorr.git
 WORKDIR cschnorr
