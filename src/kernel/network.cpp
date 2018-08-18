@@ -534,8 +534,15 @@ void CryptoKernel::Network::networkFunc() {
 
 void CryptoKernel::Network::connectionFunc() {
     while(running) {
+        sf::SocketSelector selector;
+        selector.add(listener);
         sf::TcpSocket* client = new sf::TcpSocket();
-        if(listener.accept(*client) == sf::Socket::Done) {
+        if(selector.wait(sf::seconds(2))) {
+            if(listener.accept(*client) != sf::Socket::Done) {
+                delete client;
+                continue;
+            }
+
             if(connected.contains(client->getRemoteAddress().toString())) {
                 log->printf(LOG_LEVEL_INFO,
                             "Network(): Incoming connection duplicates existing connection for " +
