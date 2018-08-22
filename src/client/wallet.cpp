@@ -261,9 +261,10 @@ void CryptoKernel::Wallet::rewindTx(const CryptoKernel::Blockchain::transaction&
                 } catch(const WalletException& e) {
                     continue;
                 }
+
+                const Txo newTxo = Txo(out.getId().toString(), out.getValue());
+                utxos->put(walletTx, out.getId().toString(), newTxo.toJson());
             }
-            const Txo newTxo = Txo(out.getId().toString(), out.getValue());
-            utxos->put(walletTx, out.getId().toString(), newTxo.toJson());
         }
     }
 }
