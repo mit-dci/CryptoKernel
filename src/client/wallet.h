@@ -132,6 +132,10 @@ public:
     CryptoKernel::Blockchain::transaction signTransaction(const
             CryptoKernel::Blockchain::transaction& tx, const std::string& password);
 
+    std::string signMessage(const std::string& message,
+                            const std::string& publicKey,
+                            const std::string& password);
+
 private:
     std::unique_ptr<CryptoKernel::Storage> walletdb;
     std::unique_ptr<CryptoKernel::Storage::Table> accounts;
