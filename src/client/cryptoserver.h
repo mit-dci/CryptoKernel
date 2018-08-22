@@ -82,6 +82,10 @@ public:
         this->bindAndAddMethod(jsonrpc::Procedure("getoutputsetid", jsonrpc::PARAMS_BY_NAME,
                                jsonrpc::JSON_STRING, "outputs", jsonrpc::JSON_ARRAY,
                                NULL), &CryptoRPCServer::getoutputsetidI);
+        this->bindAndAddMethod(jsonrpc::Procedure("signmessage", jsonrpc::PARAMS_BY_NAME,
+                               jsonrpc::JSON_STRING, "message",jsonrpc::JSON_STRING, 
+                               "password", jsonrpc::JSON_STRING, "publickey", jsonrpc::JSON_STRING, NULL),
+                                                  &CryptoRPCServer::signmessageI);
     }
 
     inline virtual void getinfoI(const Json::Value &request, Json::Value &response) {
@@ -149,6 +153,10 @@ public:
     inline virtual void getoutputsetidI(const Json::Value &request, Json::Value &response) {
         response = this->getoutputsetid(request["outputs"]);
     }
+    inline virtual void signmessageI(const Json::Value &request, Json::Value &response) {
+        response = this->signmessage(request["message"].asString(), request["publickey"].asString(),  
+                                         request["password"].asString());
+    }
     virtual Json::Value getinfo() = 0;
     virtual Json::Value account(const std::string& account, const std::string& password) = 0;
     virtual std::string sendtoaddress(const std::string& address, double amount,
@@ -171,6 +179,7 @@ public:
     virtual Json::Value getpeerinfo() = 0;
     virtual Json::Value dumpprivkeys(const std::string& account, const std::string& password) = 0;
     virtual std::string getoutputsetid(const Json::Value& outputs) = 0;
+    virtual std::string signmessage(const std::string& message, const std::string& publickey, const std::string& password) = 0;
 };
 
 class CryptoServer : public CryptoRPCServer {
@@ -201,6 +210,7 @@ public:
     virtual Json::Value getpeerinfo();
     virtual Json::Value dumpprivkeys(const std::string& account, const std::string& password);
     virtual std::string getoutputsetid(const Json::Value& outputs);
+    virtual std::string signmessage(const std::string& message, const std::string& publickey, const std::string& password);
 
 private:
     CryptoKernel::Wallet* wallet;
