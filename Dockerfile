@@ -29,5 +29,5 @@ COPY config.json /app/bin
 COPY peers.txt /app/bin 
 COPY genesisblock.json /app/bin 
 COPY *.lua /app/bin/
-RUN cp /usr/bin/lz4.so /app/bin/
+RUN cp /usr/lib/lz4.so /app/bin/
 CMD ["/app/bin/ckd"]
