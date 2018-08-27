@@ -16,6 +16,7 @@ class BlockchainTest : public CPPUNIT_NS::TestFixture {
     CPPUNIT_TEST(testAggregateMixSignature);
     CPPUNIT_TEST(testSchnorrMultiSignature);
     CPPUNIT_TEST(testPayToMerkleRoot);
+    CPPUNIT_TEST(testPayToMerkleRootScript);
     CPPUNIT_TEST(testPayToMerkleRootMalformed);
     CPPUNIT_TEST_SUITE_END();
 
@@ -44,6 +45,7 @@ private:
     void testAggregateMixSignature();
     void testSchnorrMultiSignature();
     void testPayToMerkleRoot();
+    void testPayToMerkleRootScript();
     void testPayToMerkleRootMalformed();
     
     std::unique_ptr<CryptoKernel::Blockchain> blockchain;

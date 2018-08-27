@@ -5,6 +5,8 @@
 #include "crypto.h"
 #include "schnorr.h"
 #include "consensus/regtest.h"
+#include "contract.h"
+#include "merkletree.h"
 
 CPPUNIT_TEST_SUITE_REGISTRATION(BlockchainTest);
 
@@ -742,6 +744,91 @@ void BlockchainTest::testPayToMerkleRoot() {
         const auto res = blockchain->submitTransaction(p2mrspendtx);
         CPPUNIT_ASSERT_MESSAGE("Spending p2mr output failed", std::get<0>(res));
     }
+}
+
+void BlockchainTest::testPayToMerkleRootScript() {
+    CryptoKernel::Crypto crypto(true);
+    std::vector<std::string> spendKeys = {
+        "BltFHv7To7EGRpEsCJN4eZQhMUJyKHlSfbxRGKqCYe0=",
+        "jiKYKjVDWmEFIIC9VSNDREtVWyX1WgheVT2lS4B4qAE=",
+        "t6dSX0XrH330D86PX8HWemjI1f7sA3yfy3eu4HOJubA="
+    };
+
+    std::string spendScript = "BCJNGGBAggEBAAD2BRtMdWFTABmTDQoaCgQIBAgIeFYAAQD1aCh3QAFzcmV0dXJuIHNoYTI1Nih0aGlzSW5wdXRbImRhdGEiXVsicHJlaW1hZ2UiXSkgPT0gIjAzNjc1YWM1M2ZmOWNkMTUzNWNjYzdkZmNkZmEyYzQ1OGM1MjE4MzcxZjQxOGRjMTM2ZjJkMTlhYzFmYmU4YTUigADyKQICCwAAAAYAQABGQEAAR4DAAEfAwAAkgAABXwBBAB4AAIADQAAAAwCAACYAAAEmAIAABQAAAAQHrAAlBAqtACAEBa0AJAQJqwAvFEGlAC1RAQAAAAGlABMLCgAPBAAVAAEAkAEAAAAFX0VOVgAAAAA=";
+
+    std::vector<std::string> spendProofs = {
+        "{\"leaves\":[\"97a3d1eaa28520cfd071c92c70e0403d75facf556033d82428eaa2c06942490f\",\"838ea982f21743fb39bfba0e5118351391c5da23902c4d7274668e5be0acc863\",\"d5a2a56f15256cea9205b5a49b0b1b3be695b0b570ce20997eb825933cf9f14f\",\"bb7e85f4193838c48cec68b1bd6b73f0db5e980015e020f0b52e6f2b56c8c3d9\"],\"position\":3}",
+        "{\"leaves\":[\"375d47937216d63d0348b55fd32c4d5241a024db8efc7cbd933023026072687f\",\"50b9b6a91268b83e3b04a395b625b573fa43f211b5ad4547451199ab20f214a7\",\"c66ad1cdbe04114a01becfb93b3c6585aa9875bc4eedb78637191eaac9041807\",\"bb7e85f4193838c48cec68b1bd6b73f0db5e980015e020f0b52e6f2b56c8c3d9\"],\"position\":0}",
+        "{\"leaves\":[\"50b9b6a91268b83e3b04a395b625b573fa43f211b5ad4547451199ab20f214a7\",\"375d47937216d63d0348b55fd32c4d5241a024db8efc7cbd933023026072687f\",\"c66ad1cdbe04114a01becfb93b3c6585aa9875bc4eedb78637191eaac9041807\",\"bb7e85f4193838c48cec68b1bd6b73f0db5e980015e020f0b52e6f2b56c8c3d9\"],\"position\":1}",
+        "{\"leaves\":[\"838ea982f21743fb39bfba0e5118351391c5da23902c4d7274668e5be0acc863\",\"97a3d1eaa28520cfd071c92c70e0403d75facf556033d82428eaa2c06942490f\",\"d5a2a56f15256cea9205b5a49b0b1b3be695b0b570ce20997eb825933cf9f14f\",\"bb7e85f4193838c48cec68b1bd6b73f0db5e980015e020f0b52e6f2b56c8c3d9\"],\"position\":2}"
+    };
+
+    std::string merkleRoot = "bb7e85f4193838c48cec68b1bd6b73f0db5e980015e020f0b52e6f2b56c8c3d9";
+
+    const auto ECDSAPubKey = crypto.getPublicKey();
+
+    consensus->mineBlock(true, ECDSAPubKey);
+
+    const auto outs = blockchain->getUnspentOutputs(ECDSAPubKey);
+    const auto& out = *outs.begin();
+
+    // First, spend our newly acquired coinbase output to
+    // a pay-to-merkleroot output
+    Json::Value outData;
+    outData["merkleRoot"] = merkleRoot;
+    uint64_t valuePerOutput = out.getValue() / 4 - 20000;
+
+    std::set<CryptoKernel::Blockchain::output> p2mrouts = {};
+    for(int i = 0; i < 4; i++) {
+        CryptoKernel::Blockchain::output p2mrout(valuePerOutput, i, outData);
+        p2mrouts.insert(p2mrout);
+    }
+
+    const std::string outputSetId = CryptoKernel::Blockchain::transaction::getOutputSetId(p2mrouts).toString();
+
+    Json::Value spendData;
+    spendData["signature"] = crypto.sign(out.getId().toString() + outputSetId);
+
+    CryptoKernel::Blockchain::input inp(out.getId(), spendData);
+    CryptoKernel::Blockchain::transaction tx({inp}, p2mrouts, 1530888581);
+
+    const auto res = blockchain->submitTransaction(tx);
+    CPPUNIT_ASSERT_MESSAGE("Initial fanout transaction failed", std::get<0>(res));
+
+    consensus->mineBlock(true, ECDSAPubKey);
+
+    // Try spending the output using the script
+    CryptoKernel::Blockchain::output p2mrout = *p2mrouts.begin();
+    Json::Value p2pkOutData;
+    p2pkOutData["publicKey"] = crypto.getPublicKey();
+    CryptoKernel::Blockchain::output p2pkout(p2mrout.getValue() - 40000, 0, p2pkOutData);
+
+    Json::Value scriptSpendData;
+
+    // Parse spendProof
+    Json::Value merkleProof;
+    Json::CharReaderBuilder builder;
+    Json::CharReader* reader = builder.newCharReader();
+    std::string errors;
+    bool parsingSuccessful = reader->parse(
+        spendProofs.at(3).c_str(),
+        spendProofs.at(3).c_str() + spendProofs.at(3).size(),
+        &merkleProof,
+        &errors
+    );
+    delete reader;
+    CPPUNIT_ASSERT_MESSAGE("Failed parsing proof json", parsingSuccessful);
+
+    scriptSpendData["merkleProof"] = merkleProof;
+    scriptSpendData["pubKeyOrScript"] = spendScript;
+    scriptSpendData["spendType"] = "script";
+    // This is the data that will satisfy the script!
+    scriptSpendData["preimage"] = "Hello, World";
+
+    CryptoKernel::Blockchain::input p2mrinp(p2mrout.getId(), scriptSpendData);
+    CryptoKernel::Blockchain::transaction p2mrspendtx({p2mrinp}, {p2pkout}, 1530888581);
+    const auto res2 = blockchain->submitTransaction(p2mrspendtx);
+    CPPUNIT_ASSERT_MESSAGE("Spending p2mr output failed", std::get<0>(res2));
 }
 
 void BlockchainTest::testPayToMerkleRootMalformed() {
