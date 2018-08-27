@@ -754,6 +754,7 @@ void BlockchainTest::testPayToMerkleRootScript() {
         "t6dSX0XrH330D86PX8HWemjI1f7sA3yfy3eu4HOJubA="
     };
 
+    // default example script for sha(preimage) hello world
     std::string spendScript = "BCJNGGBAggEBAAD2BRtMdWFTABmTDQoaCgQIBAgIeFYAAQD1aCh3QAFzcmV0dXJuIHNoYTI1Nih0aGlzSW5wdXRbImRhdGEiXVsicHJlaW1hZ2UiXSkgPT0gIjAzNjc1YWM1M2ZmOWNkMTUzNWNjYzdkZmNkZmEyYzQ1OGM1MjE4MzcxZjQxOGRjMTM2ZjJkMTlhYzFmYmU4YTUigADyKQICCwAAAAYAQABGQEAAR4DAAEfAwAAkgAABXwBBAB4AAIADQAAAAwCAACYAAAEmAIAABQAAAAQHrAAlBAqtACAEBa0AJAQJqwAvFEGlAC1RAQAAAAGlABMLCgAPBAAVAAEAkAEAAAAFX0VOVgAAAAA=";
 
     std::vector<std::string> spendProofs = {
@@ -763,7 +764,7 @@ void BlockchainTest::testPayToMerkleRootScript() {
         "{\"leaves\":[\"838ea982f21743fb39bfba0e5118351391c5da23902c4d7274668e5be0acc863\",\"97a3d1eaa28520cfd071c92c70e0403d75facf556033d82428eaa2c06942490f\",\"d5a2a56f15256cea9205b5a49b0b1b3be695b0b570ce20997eb825933cf9f14f\",\"bb7e85f4193838c48cec68b1bd6b73f0db5e980015e020f0b52e6f2b56c8c3d9\"],\"position\":2}"
     };
 
-    std::string merkleRoot = "bb7e85f4193838c48cec68b1bd6b73f0db5e980015e020f0b52e6f2b56c8c3d9";
+    std::string merkleRoot = "50145d8b0f8657036bf48482b0571a501fd82156f2dbe4d18bee87e83932aa57";
 
     const auto ECDSAPubKey = crypto.getPublicKey();
 
@@ -801,7 +802,7 @@ void BlockchainTest::testPayToMerkleRootScript() {
     CryptoKernel::Blockchain::output p2mrout = *p2mrouts.begin();
     Json::Value p2pkOutData;
     p2pkOutData["publicKey"] = crypto.getPublicKey();
-    CryptoKernel::Blockchain::output p2pkout(p2mrout.getValue() - 40000, 0, p2pkOutData);
+    CryptoKernel::Blockchain::output p2pkout(p2mrout.getValue() - 90000, 0, p2pkOutData);
 
     Json::Value scriptSpendData;
 
@@ -829,6 +830,23 @@ void BlockchainTest::testPayToMerkleRootScript() {
     CryptoKernel::Blockchain::transaction p2mrspendtx({p2mrinp}, {p2pkout}, 1530888581);
     const auto res2 = blockchain->submitTransaction(p2mrspendtx);
     CPPUNIT_ASSERT_MESSAGE("Spending p2mr output failed", std::get<0>(res2));
+
+    // Verify that wrong preimage returns false;
+
+    CryptoKernel::Blockchain::output p2mrout2 = *std::next(p2mrouts.begin(),1);
+    Json::Value p2pkOutData2;
+    p2pkOutData2["publicKey"] = crypto.getPublicKey();
+    CryptoKernel::Blockchain::output p2pkout2(p2mrout2.getValue() - 90000, 1, p2pkOutData2);
+
+    scriptSpendData["preimage"] = "Hello, World False";
+
+    CryptoKernel::Blockchain::input p2mrinp2(p2mrout2.getId(), scriptSpendData);
+    CryptoKernel::Blockchain::transaction p2mrspendtx2({p2mrinp2}, {p2pkout2}, 1530888581);
+
+
+
+    const auto res3 = blockchain->submitTransaction(p2mrspendtx2);
+    CPPUNIT_ASSERT_MESSAGE("Spending p2mr with wrong preimage did not fail", !std::get<0>(res3));
 }
 
 void BlockchainTest::testPayToMerkleRootMalformed() {

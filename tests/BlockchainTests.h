@@ -35,7 +35,7 @@ private:
             virtual std::string getCoinbaseOwner(const std::string& publicKey);
             virtual uint64_t getBlockReward(const uint64_t height);
     };
-
+ 
 
     void testVerifyMalformedSignature();
     void testListUnspentOutputsFromCoinbase();
@@ -47,6 +47,7 @@ private:
     void testPayToMerkleRoot();
     void testPayToMerkleRootScript();
     void testPayToMerkleRootMalformed();
+
     
     std::unique_ptr<CryptoKernel::Blockchain> blockchain;
     std::unique_ptr<CryptoKernel::Log> log;
