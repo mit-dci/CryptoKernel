@@ -49,11 +49,26 @@ public:
     */
     bool evaluateValid(Storage::Transaction* dbTx,
                        const CryptoKernel::Blockchain::transaction& tx);
-
+    
+    /**
+    * Evaluate a single input scripts in the given transaction to determine if the transaction
+    * is valid according to the contract rules
+    *
+    * @param dbTx the transaction representing the current blockchain state
+    * @param tx the transaction to be verified
+    * @param inp the input that spends the contract
+    * @return the return value of the script
+    */
+   bool evaluateScriptValid(Storage::Transaction* dbTx,
+        const CryptoKernel::Blockchain::transaction& tx,
+        const CryptoKernel::Blockchain::input& inp, 
+        std::string script);
 private:
     void setupEnvironment(Storage::Transaction* dbTx,
                           const CryptoKernel::Blockchain::transaction& tx,
                           const CryptoKernel::Blockchain::input& input);
+  
+
     std::unique_ptr<sel::State> state;
     std::unique_ptr<int> ud;
     lua_State* luaState;

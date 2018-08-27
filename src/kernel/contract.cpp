@@ -107,29 +107,37 @@ bool CryptoKernel::ContractRunner::evaluateValid(Storage::Transaction* dbTx,
                     blockchain->utxos->get(dbTx, inp.getOutputId().toString()));
         const Json::Value data = out.getData();
         if(!data["contract"].empty()) {
-            setupEnvironment(dbTx, tx, inp);
-            if(!(*state.get()).Load("./sandbox.lua")) {
-                throw std::runtime_error("Failed to load sandbox.lua");
-            }
-
-            bool result = false;
-            std::string errorMessage = "";
-
-            state->HandleExceptionsWith([&](int, std::string msg, std::exception_ptr) {
-                                                errorMessage = msg; 
-                                                result = false;
-                                            });
-
-            sel::tie(result, errorMessage) = (*state.get())["verifyTransaction"](base64_decode(
-                                                 data["contract"].asString()));
-
-            if(errorMessage != "") {
-                throw std::runtime_error(errorMessage);
-            }
-
-            return result;
+            return this->evaluateScriptValid(dbTx, tx, inp, data["contract"].asString());
         }
     }
 
     return true;
+}
+
+bool CryptoKernel::ContractRunner::evaluateScriptValid(Storage::Transaction* dbTx,
+        const CryptoKernel::Blockchain::transaction& tx,
+        const CryptoKernel::Blockchain::input& inp, 
+        std::string script) {
+            
+    setupEnvironment(dbTx, tx, inp);
+    if(!(*state.get()).Load("./sandbox.lua")) {
+        throw std::runtime_error("Failed to load sandbox.lua");
+    }
+
+    bool result = false;
+    std::string errorMessage = "";
+
+    state->HandleExceptionsWith([&](int, std::string msg, std::exception_ptr) {
+                                        errorMessage = msg; 
+                                        result = false;
+                                    });
+
+    sel::tie(result, errorMessage) = (*state.get())["verifyTransaction"](base64_decode(
+                                            script));
+
+    if(errorMessage != "") {
+        throw std::runtime_error(errorMessage);
+    }
+
+    return result;
 }
