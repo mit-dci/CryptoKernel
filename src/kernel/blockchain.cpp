@@ -324,7 +324,7 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::verifyTransaction(Storage::Tran
                 return std::make_tuple(false, true);
             }
 
-            if(spendData["signature"].empty() || !spendData["signature"].isString()) {
+            if(spendData["spendType"].asString() == "pubkey" && (spendData["signature"].empty() || !spendData["signature"].isString())) {
                 log->printf(LOG_LEVEL_INFO,
                             "blockchain::verifyTransaction(): Could not verify input signature");
                 return std::make_tuple(false, true);
@@ -355,15 +355,17 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::verifyTransaction(Storage::Tran
             if(proofNode->getMerkleRoot().toString() != outData["merkleRoot"].asString()) {
                 log->printf(LOG_LEVEL_INFO,
                             "blockchain::verifyTransaction(): Merkle proof does not match outData merkle root");
+
                 return std::make_tuple(false, true);             
             }
 
 
             if(spendData["spendType"].asString() == "script") {
-                // TODO: Add pay-to-script logic
-                log->printf(LOG_LEVEL_INFO,
-                        "blockchain::verifyTransaction(): Pay-to-merkletree does not (yet) support scripts.");
+                CryptoKernel::ContractRunner lvm(this);
+                if(!lvm.evaluateScriptValid(dbTransaction, tx, inp, spendData["pubKeyOrScript"].asString())) {
+                    log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): P2MAST Script returned false");
                 return std::make_tuple(false, true);  
+                }
             } else if (spendData["spendType"].asString() == "pubkey") {
                 // Verify if the signature is valid for the given pubkey
                 // We already checked that that pub key is allowed to spend
@@ -493,18 +495,26 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::verifyTransaction(Storage::Tran
         }
     }
 
+    std::cout << "Starting contractrunner" << std::endl;
+
     CryptoKernel::ContractRunner lvm(this);
     if(!lvm.evaluateValid(dbTransaction, tx)) {
+        std::cout << "Script returned false" << std::endl;
+
         log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Script returned false");
         return std::make_tuple(false, true);
     }
 
     if(!consensus->verifyTransaction(dbTransaction, tx)) {
+        std::cout << "Custom rules failed" << std::endl;
+
         log->printf(LOG_LEVEL_INFO,
                     "blockchain::verifyTransaction(): Could not verify custom rules");
         return std::make_tuple(false, true);
     }
 
+    log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Verified succesfully");
+       
     return std::make_tuple(true, false);
 }
 
