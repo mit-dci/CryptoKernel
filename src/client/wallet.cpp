@@ -261,9 +261,10 @@ void CryptoKernel::Wallet::rewindTx(const CryptoKernel::Blockchain::transaction&
                 } catch(const WalletException& e) {
                     continue;
                 }
+
+                const Txo newTxo = Txo(out.getId().toString(), out.getValue());
+                utxos->put(walletTx, out.getId().toString(), newTxo.toJson());
             }
-            const Txo newTxo = Txo(out.getId().toString(), out.getValue());
-            utxos->put(walletTx, out.getId().toString(), newTxo.toJson());
         }
     }
 }
@@ -773,6 +774,32 @@ std::tuple<std::set<CryptoKernel::Blockchain::transaction>, std::set<CryptoKerne
         }
     }
     return returning;
+}
+
+std::string CryptoKernel::Wallet::signMessage(const std::string& message,
+                                              const std::string& publicKey,
+                                              const std::string& password) {
+    std::lock_guard<std::recursive_mutex> lock(walletLock);
+
+    if(!checkPassword(password)) {
+        throw WalletException("Incorrect wallet password");
+    }
+
+    const Account acc = getAccountByKey(publicKey);
+    
+    std::string privKey;
+
+    for(const auto& key : acc.getKeys()) {
+        if(key.pubKey == publicKey) {
+            privKey = key.privKey->decrypt(password);
+            break;
+        }
+    }
+
+    CryptoKernel::Crypto crypto;
+    crypto.setPrivateKey(privKey);
+
+    return crypto.sign(message);
 }
 
 CryptoKernel::Blockchain::transaction

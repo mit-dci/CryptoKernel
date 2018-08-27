@@ -84,8 +84,9 @@ WORKDIR ../
 RUN wget https://www.lua.org/ftp/lua-5.3.4.tar.gz && \
     tar xzvf lua-5.3.4.tar.gz
 WORKDIR lua-5.3.4
-RUN make generic CC="$CC -std=gnu99" AR="$AR rcu" && \
-    make local && cp -r install/* /usr/local/mingw
+RUN make mingw CC=$CC && \
+    cp src/lua53.dll /usr/local/mingw/lib/liblua.dll && \
+    cp src/*.h /usr/local/mingw/include/
 
 WORKDIR ../
 
@@ -105,6 +106,7 @@ RUN wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha1
 COPY ./cryptokernel /cryptokernel
 
 RUN cp lua-lz4/lz4.dll cryptokernel
+RUN cp /usr/local/mingw/lib/liblua.dll cryptokernel/lua53.dll
 
 RUN git clone https://github.com/metalicjames/cschnorr.git
 WORKDIR cschnorr

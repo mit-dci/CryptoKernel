@@ -384,3 +384,17 @@ std::string CryptoServer::getoutputsetid(const Json::Value& outputs) {
     return CryptoKernel::MerkleNode::makeMerkleTree(outputIds)->getMerkleRoot()
            .toString();
 }
+
+std::string CryptoServer::signmessage(const std::string& message,
+                                      const std::string& publickey,
+                                      const std::string& password) {
+    if(wallet != nullptr) {
+        try {
+            return wallet->signMessage(message, publickey, password);
+        } catch(const CryptoKernel::Wallet::WalletException& e) {
+            return e.what();
+        }
+    } else {
+        return noWalletError;
+    }
+}
