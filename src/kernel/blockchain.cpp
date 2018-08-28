@@ -30,6 +30,7 @@
 #include "ckmath.h"
 #include "contract.h"
 #include "schnorr.h"
+#include "merkletree.h"
 
 CryptoKernel::Blockchain::Blockchain(CryptoKernel::Log* GlobalLog,
                                      const std::string& dbDir) {
@@ -96,6 +97,7 @@ bool CryptoKernel::Blockchain::loadChain(CryptoKernel::Consensus* consensus,
 
     return true;
 }
+
 
 CryptoKernel::Blockchain::~Blockchain() {
 
@@ -924,6 +926,62 @@ void CryptoKernel::Blockchain::emptyDB() {
     blockdb.reset();
     CryptoKernel::Storage::destroy(dbDir);
     blockdb.reset(new CryptoKernel::Storage(dbDir, false, 20, true));
+}
+
+void CryptoKernel::Blockchain::reindexDB() {
+    // Reset the blockdb to a fresh new database
+    std::string reindexDir = dbDir + ".reindex";
+
+    log->printf(LOG_LEVEL_INFO, "reindexDB(): Creating new block database at " + reindexDir);
+
+    blockdb.reset();
+    blockdb.reset(new CryptoKernel::Storage(reindexDir, false, 20, true));
+
+    // Get a reference to the old database containing the blocks
+    std::unique_ptr<Storage> oldDb;
+    oldDb.reset(new CryptoKernel::Storage(dbDir, false, 20, true));
+
+    // Get the blocks from the old database one by one, and submit them into
+    // the new database
+    int height = 0;
+    while(true) {
+        height++;
+        log->printf(LOG_LEVEL_INFO, "reindexDB(): Reindexing block " + std::to_string(height));
+
+        std::unique_ptr<Storage::Transaction> dbTx(oldDb->beginReadOnly());
+        try {
+            block blk = getBlockByHeight(dbTx.get(), height);
+            submitBlock(blk, height == 1);
+        } catch(const NotFoundException& e) {
+            log->printf(LOG_LEVEL_INFO, "reindexDB(): Block " + std::to_string(height) + " not found, assume done");
+
+            break;
+        }
+    }
+
+    log->printf(LOG_LEVEL_INFO, "reindexDB(): Reindexed all " + std::to_string(height-1) + " blocks.");
+
+    // Done reindexing. Swap the directories
+    // First rename old directory
+    log->printf(LOG_LEVEL_INFO, "reindexDB(): Moving old block dir to " + dbDir + ".old");
+    oldDb.reset();
+    CryptoKernel::Storage::rename(dbDir, dbDir + ".old");
+
+    // Rename the new blockdata to dbDir
+    log->printf(LOG_LEVEL_INFO, "reindexDB(): Moving reindexed data into " + dbDir);
+    blockdb.reset();
+    CryptoKernel::Storage::rename(reindexDir, dbDir);
+    
+    // Load the blockdata from the dbDir
+    log->printf(LOG_LEVEL_INFO, "reindexDB(): Loading reindexed block dir");
+    blockdb.reset(new CryptoKernel::Storage(dbDir, false, 20, true));
+
+    // Drop the old data
+    log->printf(LOG_LEVEL_INFO, "reindexDB(): Destroying old block dir");
+    CryptoKernel::Storage::destroy(dbDir + ".old");
+
+    log->printf(LOG_LEVEL_INFO, "reindexDB(): Complete");
+
 }
 
 CryptoKernel::Storage::Transaction* CryptoKernel::Blockchain::getTxHandle() {

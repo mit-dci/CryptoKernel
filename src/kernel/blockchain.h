@@ -355,6 +355,7 @@ public:
 
     unsigned int mempoolCount() const;
     unsigned int mempoolSize() const;
+    void reindexDB();
 
 private:
     std::unique_ptr<Storage::Table> blocks;
