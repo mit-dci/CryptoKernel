@@ -15,7 +15,8 @@ namespace CryptoKernel {
         public:
             MulticoinLoader(const std::string& configFile,
                             Log* log,
-                            bool* running);
+                            bool* running,
+                            bool reindex);
             ~MulticoinLoader();
 
         private:

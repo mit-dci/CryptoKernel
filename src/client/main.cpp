@@ -65,13 +65,14 @@ int main(int argc, char* argv[]) {
         ofs.close();
     }
 
-    if(argc < 2) {
+    if(argc < 2 || (argc == 2 && std::string(argv[1]) == "reindex")) {
         CryptoKernel::Log log("CryptoKernel.log", config["verbose"].asBool());
-
+        
+        bool reindex = (argc == 2);
         running = true;
         std::signal(SIGINT, [](int signal) { running = false; });
 
-        CryptoKernel::MulticoinLoader loader("./config.json", &log, &running);
+        CryptoKernel::MulticoinLoader loader("./config.json", &log, &running, reindex);
 
         if(!config["verbose"].asBool()) {
             std::cout << "ck daemon started" << std::endl;
@@ -193,6 +194,8 @@ int main(int argc, char* argv[]) {
                 } else {
                     std::cout << "Usage: dumpprivkeys [accountname]" << std::endl;
                 }
+            } else if (command == "reindex") {
+                
             } else {
                 std::cout << "CryptoKernel - Blockchain Development Toolkit - v" << version << "\n\n"
                           << "[-p [port]]\n\n"

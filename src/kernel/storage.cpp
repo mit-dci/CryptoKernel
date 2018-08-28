@@ -96,6 +96,11 @@ bool CryptoKernel::Storage::destroy(const std::string& filename) {
     return true;
 }
 
+bool CryptoKernel::Storage::rename(const std::string& filename, const std::string& newFilename) {
+    std::rename(filename.c_str(), newFilename.c_str());
+    return true;
+}
+
 CryptoKernel::Storage::Transaction* CryptoKernel::Storage::begin() {
     return new Transaction(this);
 }

@@ -156,6 +156,15 @@ public:
     */
     static bool destroy(const std::string& filename);
 
+
+    /**
+     * Renames a levelDB folder
+     * @param filename the directory of the database to rename
+     * @param newFilename the new directory name to rename to
+     * @return true if succesful, false otherwise
+     */
+    static bool rename(const std::string& filename, const std::string& newFilename);
+
     /**
     * Converts a string to a Json::Value
     *

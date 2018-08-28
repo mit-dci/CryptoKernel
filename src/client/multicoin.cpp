@@ -39,6 +39,10 @@ CryptoKernel::MulticoinLoader::MulticoinLoader(const std::string& configFile,
         newCoin->blockchain->loadChain(newCoin->consensusAlgo.get(),
                                       coin["genesisblock"].asString());
 
+        if(reindex) {
+            newCoin->blockchain->reindexDB();
+        }
+
         newCoin->consensusAlgo->start();
 
         newCoin->network.reset(new Network(log, newCoin->blockchain.get(),
