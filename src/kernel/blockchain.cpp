@@ -30,6 +30,7 @@
 #include "ckmath.h"
 #include "contract.h"
 #include "schnorr.h"
+#include "merkletree.h"
 
 CryptoKernel::Blockchain::Blockchain(CryptoKernel::Log* GlobalLog,
                                      const std::string& dbDir) {
@@ -298,6 +299,93 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::verifyTransaction(Storage::Tran
             }
         }
 
+        // Pay-to-merkleroot: Provide the script / pub key and merkle proof + signature
+        // If the scripthash/keyhash is contained in the merkle tree, it's considered a
+        // valid spend.
+        if(!outData["merkleRoot"].empty() && outData["contract"].empty()) {
+            const Json::Value spendData = inp.getData();
+            
+            // Common sense checks
+            if(!spendData["spendType"].isString()) {
+                log->printf(LOG_LEVEL_INFO,
+                    "blockchain::verifyTransaction(): pay-to-merkleroot spendData is malformed (invalid spendType)");
+                return std::make_tuple(false, true);
+            }
+
+            if(!spendData["pubKeyOrScript"].isString()) {
+                log->printf(LOG_LEVEL_INFO,
+                    "blockchain::verifyTransaction(): pay-to-merkleroot spendData is malformed (invalid pubKeyOrScript)");
+                return std::make_tuple(false, true);
+            }
+
+            if(!spendData["merkleProof"].isObject()) {
+                log->printf(LOG_LEVEL_INFO,
+                    "blockchain::verifyTransaction(): pay-to-merkleroot spendData is malformed (invalid merkleProof)");
+                return std::make_tuple(false, true);
+            }
+
+            if(spendData["spendType"].asString() == "pubkey" && (spendData["signature"].empty() || !spendData["signature"].isString())) {
+                log->printf(LOG_LEVEL_INFO,
+                            "blockchain::verifyTransaction(): Could not verify input signature");
+                return std::make_tuple(false, true);
+            }
+
+            // Load the merkle proof
+            std::shared_ptr<CryptoKernel::MerkleProof> proof;
+            try {
+                const Json::Value proofJson = spendData["merkleProof"];
+                proof = std::make_shared<CryptoKernel::MerkleProof>(proofJson);
+            } catch (const CryptoKernel::Blockchain::InvalidElementException ex) {
+                log->printf(LOG_LEVEL_INFO,
+                            "blockchain::verifyTransaction(): Could not load merkle proof");
+                return std::make_tuple(false, true);
+            }
+
+            // Verify if the spending script/pubkey hash is the first item in the proof
+            const BigNum& proofValue = proof->leaves.at(0);
+            const BigNum& spendValue = CryptoKernel::BigNum(CryptoKernel::Crypto::sha256(spendData["pubKeyOrScript"].asString()));
+            if(proofValue != spendValue) {
+                log->printf(LOG_LEVEL_INFO,
+                            "blockchain::verifyTransaction(): Merkle proof does not start with the spending script or pubkey's hash");
+                return std::make_tuple(false, true);             
+            }
+
+            // Verify if the proof matches the merkle root
+            std::shared_ptr<CryptoKernel::MerkleNode> proofNode = CryptoKernel::MerkleNode::makeMerkleTreeFromProof(proof);
+            if(proofNode->getMerkleRoot().toString() != outData["merkleRoot"].asString()) {
+                log->printf(LOG_LEVEL_INFO,
+                            "blockchain::verifyTransaction(): Merkle proof does not match outData merkle root");
+
+                return std::make_tuple(false, true);             
+            }
+
+
+            if(spendData["spendType"].asString() == "script") {
+                CryptoKernel::ContractRunner lvm(this);
+                if(!lvm.evaluateScriptValid(dbTransaction, tx, inp, spendData["pubKeyOrScript"].asString())) {
+                    log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): P2MAST Script returned false");
+                return std::make_tuple(false, true);  
+                }
+            } else if (spendData["spendType"].asString() == "pubkey") {
+                // Verify if the signature is valid for the given pubkey
+                // We already checked that that pub key is allowed to spend
+                // the input by the checks above.
+                CryptoKernel::Crypto crypto;
+                crypto.setPublicKey(spendData["pubKeyOrScript"].asString());
+                if(!crypto.verify(out.getId().toString() + outputHash.toString(),
+                                spendData["signature"].asString())) {
+                    log->printf(LOG_LEVEL_INFO,
+                                "blockchain::verifyTransaction(): Could not verify input signature for p2mr output");
+                    return std::make_tuple(false, true);
+                }
+                break;
+            } else {
+                log->printf(LOG_LEVEL_INFO,
+                                "blockchain::verifyTransaction(): Invalid spendType for pay-to-merkletree");
+                return std::make_tuple(false, true);
+            }
+        }
+
         if(!outData["publicKey"].empty() && outData["contract"].empty()) {
             const Json::Value spendData = inp.getData();
             if(spendData["signature"].empty() || !spendData["signature"].isString()) {
@@ -407,18 +495,26 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::verifyTransaction(Storage::Tran
         }
     }
 
+    std::cout << "Starting contractrunner" << std::endl;
+
     CryptoKernel::ContractRunner lvm(this);
     if(!lvm.evaluateValid(dbTransaction, tx)) {
+        std::cout << "Script returned false" << std::endl;
+
         log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Script returned false");
         return std::make_tuple(false, true);
     }
 
     if(!consensus->verifyTransaction(dbTransaction, tx)) {
+        std::cout << "Custom rules failed" << std::endl;
+
         log->printf(LOG_LEVEL_INFO,
                     "blockchain::verifyTransaction(): Could not verify custom rules");
         return std::make_tuple(false, true);
     }
 
+    log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Verified succesfully");
+       
     return std::make_tuple(true, false);
 }
 

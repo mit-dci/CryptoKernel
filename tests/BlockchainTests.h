@@ -15,7 +15,9 @@ class BlockchainTest : public CPPUNIT_NS::TestFixture {
     CPPUNIT_TEST(testAggregateSignatureWithUnsignedFail);
     CPPUNIT_TEST(testAggregateMixSignature);
     CPPUNIT_TEST(testSchnorrMultiSignature);
-
+    CPPUNIT_TEST(testPayToMerkleRoot);
+    CPPUNIT_TEST(testPayToMerkleRootScript);
+    CPPUNIT_TEST(testPayToMerkleRootMalformed);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -33,7 +35,7 @@ private:
             virtual std::string getCoinbaseOwner(const std::string& publicKey);
             virtual uint64_t getBlockReward(const uint64_t height);
     };
-
+ 
 
     void testVerifyMalformedSignature();
     void testListUnspentOutputsFromCoinbase();
@@ -42,7 +44,11 @@ private:
     void testAggregateSignatureWithUnsignedFail();
     void testAggregateMixSignature();
     void testSchnorrMultiSignature();
+    void testPayToMerkleRoot();
+    void testPayToMerkleRootScript();
+    void testPayToMerkleRootMalformed();
 
+    
     std::unique_ptr<CryptoKernel::Blockchain> blockchain;
     std::unique_ptr<CryptoKernel::Log> log;
     std::unique_ptr<CryptoKernel::Consensus::Regtest> consensus;

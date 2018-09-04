@@ -17,10 +17,10 @@ RUN mkdir /tmp/src
 COPY . /tmp/src/
 WORKDIR /tmp/src
 RUN premake5 gmake2 --include-dir=/usr/include/lua5.3
-RUN make config=release_static
 
 USER root
 WORKDIR /tmp/src
+RUN make config=release_static
 RUN mkdir -p /app/bin 
 RUN cp bin/Static/Release/ckd /app/bin
 WORKDIR /app/bin
