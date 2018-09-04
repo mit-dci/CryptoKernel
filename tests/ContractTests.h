@@ -11,6 +11,7 @@ class ContractTest : public CPPUNIT_NS::TestFixture {
 
     CPPUNIT_TEST(testSimpleFail);
     CPPUNIT_TEST(testHelloWorld);
+    CPPUNIT_TEST(testTwoContractInputs);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -31,6 +32,7 @@ private:
 
     void testSimpleFail();
     void testHelloWorld();
+    void testTwoContractInputs();
 
     std::unique_ptr<CryptoKernel::Blockchain> blockchain;
     std::unique_ptr<CryptoKernel::Log> log;

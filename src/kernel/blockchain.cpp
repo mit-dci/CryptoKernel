@@ -495,25 +495,19 @@ std::tuple<bool, bool> CryptoKernel::Blockchain::verifyTransaction(Storage::Tran
         }
     }
 
-    std::cout << "Starting contractrunner" << std::endl;
-
     CryptoKernel::ContractRunner lvm(this);
     if(!lvm.evaluateValid(dbTransaction, tx)) {
-        std::cout << "Script returned false" << std::endl;
-
         log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Script returned false");
         return std::make_tuple(false, true);
     }
 
     if(!consensus->verifyTransaction(dbTransaction, tx)) {
-        std::cout << "Custom rules failed" << std::endl;
-
         log->printf(LOG_LEVEL_INFO,
                     "blockchain::verifyTransaction(): Could not verify custom rules");
         return std::make_tuple(false, true);
     }
 
-    log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Verified succesfully");
+    log->printf(LOG_LEVEL_INFO, "blockchain::verifyTransaction(): Verified successfully");
        
     return std::make_tuple(true, false);
 }

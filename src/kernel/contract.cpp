@@ -107,7 +107,9 @@ bool CryptoKernel::ContractRunner::evaluateValid(Storage::Transaction* dbTx,
                     blockchain->utxos->get(dbTx, inp.getOutputId().toString()));
         const Json::Value data = out.getData();
         if(!data["contract"].empty()) {
-            return this->evaluateScriptValid(dbTx, tx, inp, data["contract"].asString());
+            if(!this->evaluateScriptValid(dbTx, tx, inp, data["contract"].asString())) {
+                return false;
+            }
         }
     }
 
