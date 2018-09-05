@@ -10,7 +10,10 @@ sudo apt-get update && sudo apt-get install -y \
     cmake \
     libhiredis-dev \
     doxygen \
-    libcppunit-dev
+    libcppunit-dev \
+    flex \
+    bison \
+    autoconf
 
 cd /tmp
 wget https://www.openssl.org/source/openssl-1.1.0f.tar.gz
@@ -59,6 +62,19 @@ cd ../
 wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha12/premake-5.0.0-alpha12-linux.tar.gz && \
 tar zxvf premake-5.0.0-alpha12-linux.tar.gz && \
 sudo cp premake5 /usr/bin
+
+git clone https://github.com/rweather/noise-c.git noisec
+cd noisec
+autoreconf -i
+./configure
+make
+cp src/protocol/libnoiseprotocol.a ../src/kernel
+sudo mkdir /usr/local/include/noise/
+sudo cp -r include/noise/* /usr/local/include/noise/
+sudo cp src/keys/*.a /usr/local/lib
+sudo cp src/protobufs/*.a /usr/local/lib
+sudo cp src/protocol/*.a /usr/local/lib
+cd ../
 
 git clone https://github.com/metalicjames/cschnorr.git
 cd cschnorr

@@ -9,6 +9,8 @@
 
 #include "blockchain.h"
 #include "concurrentmap.h"
+#include "NoiseServer.h"
+#include "NoiseClient.h"
 
 namespace CryptoKernel {
 /**
@@ -77,6 +79,8 @@ public:
     */
     uint64_t getCurrentHeight();
 
+    void addConnection(sf::TcpSocket* socket, Json::Value& peerInfo, NoiseCipherState* send_cipher=0, NoiseCipherState* recv_cipher=0);
+
     struct peerStats {
         unsigned int ping;
         bool incoming;
@@ -110,7 +114,7 @@ private:
 		std::vector<CryptoKernel::Blockchain::transaction> getUnconfirmedTransactions();
 		CryptoKernel::Blockchain::block getBlock(const uint64_t height, const std::string& id);
 		std::vector<CryptoKernel::Blockchain::block> getBlocks(const uint64_t start, const uint64_t end);
-    CryptoKernel::Network::peerStats getPeerStats();
+		CryptoKernel::Network::peerStats getPeerStats();
 
 		bool acquire();
 		void release();
@@ -125,6 +129,9 @@ private:
 		Json::Value getCachedInfo();
 		Network::peerStats getPeerStats() const;
 
+		void setSendCipher(NoiseCipherState* cipher);
+		void setRecvCipher(NoiseCipherState* cipher);
+
     	~Connection();
 
     private:
@@ -133,6 +140,12 @@ private:
 		std::mutex peerMutex;
 		std::mutex modMutex;
 		std::mutex infoMutex;
+	};
+
+    struct SocketInfo {
+		sf::TcpSocket* socket;
+		NoiseCipherState* send_cipher = 0;
+		NoiseCipherState* recv_cipher = 0;
 	};
 
     ConcurrentMap<std::string, std::unique_ptr<Connection>> connected;
@@ -162,16 +175,32 @@ private:
     void infoOutgoingConnectionsWrapper();
     std::unique_ptr<std::thread> infoOutgoingConnectionsThread;
 
+    void incomingEncryptionHandshakeFunc();
+    std::unique_ptr<std::thread> incomingEncryptionHandshakeThread;
+
+    void outgoingEncryptionHandshakeFunc();
+	std::unique_ptr<std::thread> outgoingEncryptionHandshakeThread;
+
     sf::TcpListener listener;
 
     ConcurrentMap<std::string, uint64_t> banned;
+    ConcurrentMap<std::string, bool> peersToQuery; // regarding encryption, for now
+    ConcurrentMap<std::string, std::unique_ptr<NoiseClient>> handshakeClients;
+    ConcurrentMap<std::string, std::unique_ptr<NoiseServer>> handshakeServers;
+    ConcurrentMap<std::string, bool> plaintextHosts;
+    ConcurrentMap<std::string, sf::TcpSocket*> sockets;
 
     sf::IpAddress myAddress;
 
     uint64_t bestHeight;
     uint64_t currentHeight;
 
+    sf::SocketSelector selector;
+
+    std::mutex selectorMutex;
+
     unsigned int port;
+    bool encrypt;
 };
 
 class defer {

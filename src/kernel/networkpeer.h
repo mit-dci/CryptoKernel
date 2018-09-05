@@ -11,7 +11,7 @@
 class CryptoKernel::Network::Peer {
 public:
     Peer(sf::TcpSocket* client, CryptoKernel::Blockchain* blockchain,
-         CryptoKernel::Network* network, const bool incoming);
+         CryptoKernel::Network* network, const bool incoming, CryptoKernel::Log* log);
     ~Peer();
 
     Json::Value getInfo();
@@ -24,6 +24,9 @@ public:
                                                            const uint64_t end);
     
     Network::peerStats getPeerStats() const;
+
+    void prepPacket(sf::Packet& packet, std::string data);
+    sf::Packet decryptPacket(sf::Packet& packet);
 
     class NetworkError : std::exception {
     public:
@@ -38,7 +41,11 @@ public:
         std::string msg;
     };
 
+    void setSendCipher(NoiseCipherState* cipher);
+    void setRecvCipher(NoiseCipherState* cipher);
+
 private:
+    CryptoKernel::Log* log;
     sf::TcpSocket* client;
     CryptoKernel::Blockchain* blockchain;
     CryptoKernel::Network* network;
@@ -57,6 +64,9 @@ private:
     std::default_random_engine generator;
     
     Network::peerStats stats;
+
+    NoiseCipherState* send_cipher;
+	NoiseCipherState* recv_cipher;
 };
 
 #endif // NETWORKPEER_H_INCLUDED

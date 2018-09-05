@@ -7,6 +7,13 @@ ENV AR=x86_64-w64-mingw32-ar
 RUN apt update && apt dist-upgrade -y && \
     apt install -y make git cmake g++-mingw-w64-x86-64 \
     binutils-mingw-w64-x86-64 wget
+    
+RUN apt-get install autoconf -y
+RUN apt-get install flex -y
+RUN apt-get install bison -y
+RUN apt-get install pkg-config -y
+
+RUN pkg-config --variable pc_path pkg-config
 
 RUN wget https://github.com/open-source-parsers/jsoncpp/archive/1.8.4.tar.gz \
     && tar -xzvf 1.8.4.tar.gz
@@ -25,6 +32,18 @@ WORKDIR openssl-1.1.0h
 RUN ./Configure mingw64 --prefix=/usr/local/mingw no-shared
 RUN make && make install
 
+WORKDIR ../
+
+RUN wget https://download.libsodium.org/libsodium/releases/libsodium-1.0.13-mingw.tar.gz && \
+    tar xzvf libsodium-1.0.13-mingw.tar.gz
+WORKDIR libsodium-1.0.13-mingw
+RUN pwd
+RUN ls
+RUN find / -name "libsodium.a"
+RUN cp /libsodium-win64/lib/libsodium.a /usr/local/mingw/lib
+RUN export PKG_CONFIG_PATH=/usr/local/mingw/lib
+RUN pkg-config --list-all
+RUN cp /libsodium-win64/lib/pkgconfig/libsodium.pc /usr/local/lib/x86_64-linux-gnu/pkgconfig/libsodium.pc
 WORKDIR ../
 
 RUN wget https://curl.haxx.se/download/curl-7.59.0.tar.gz && \
@@ -114,6 +133,28 @@ RUN premake5 gmake2 --os=windows --include-dir=/usr/local/mingw/include && make 
     mkdir /usr/local/mingw/include/cschnorr/ && \
     cp src/*.h /usr/local/mingw/include/cschnorr/ && \
     cp bin/Static/Release/cschnorr.lib /usr/local/mingw/lib
+WORKDIR ../
+
+#RUN apt-get install libssl-dev -y
+
+#RUN whereis libcrypto
+
+#RUN cp /usr/lib/x86_64-linux-gnu/libcrypto.a /usr/local/mingw/lib
+
+RUN find / -name "libcrypto.a"
+
+# https://stackoverflow.com/questions/16488629/undefined-references-when-building-openssl
+RUN git clone https://github.com/lhorgan/noise-c.git noisec
+WORKDIR noisec
+RUN autoreconf -i
+RUN ./configure --with-openssl --with-libsodium --host=x86_64-w64-mingw32 --prefix=/usr/local/mingw
+RUN make
+# RUN cp src/protocol/libnoiseprotocol.a ../cryptokernel/src/kernel
+RUN mkdir /usr/local/mingw/include/noise/
+RUN cp -r include/noise/* /usr/local/mingw/include/noise/
+RUN cp src/keys/*.a /usr/local/mingw/lib
+RUN cp src/protobufs/*.a /usr/local/mingw/lib
+RUN cp src/protocol/*.a /usr/local/mingw/lib
 WORKDIR ../
 
 WORKDIR cryptokernel

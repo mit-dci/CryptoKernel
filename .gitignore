@@ -29,3 +29,10 @@ Default/*
 .project
 core
 vgcore.*
+*.ldb
+core.*
+CURRENT
+LOCK
+LOG
+LOG.old
+MANIFEST*

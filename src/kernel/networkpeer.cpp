@@ -4,7 +4,7 @@
 #include "networkpeer.h"
 
 CryptoKernel::Network::Peer::Peer(sf::TcpSocket* client, CryptoKernel::Blockchain* blockchain,
-                                  CryptoKernel::Network* network, const bool incoming) {
+                                  CryptoKernel::Network* network, const bool incoming, CryptoKernel::Log* log) {
     this->client = client;
     this->blockchain = blockchain;
     this->network = network;
@@ -22,12 +22,27 @@ CryptoKernel::Network::Peer::Peer(sf::TcpSocket* client, CryptoKernel::Blockchai
     client->setBlocking(true);
 
     requestThread.reset(new std::thread(&CryptoKernel::Network::Peer::requestFunc, this));
+
+    send_cipher = 0;
+    recv_cipher = 0;
+
+    this->log = log;
+}
+
+void CryptoKernel::Network::Peer::setSendCipher(NoiseCipherState* cipher) {
+	this->send_cipher = cipher;
+}
+
+void CryptoKernel::Network::Peer::setRecvCipher(NoiseCipherState* cipher) {
+	this->recv_cipher = cipher;
 }
 
 CryptoKernel::Network::Peer::~Peer() {
     running = false;
     client->disconnect();
     requestThread->join();
+	noise_cipherstate_free(send_cipher);
+	noise_cipherstate_free(recv_cipher);
     delete client;
 }
 
@@ -41,7 +56,7 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request) {
     requests[nonce] = true;
 
     sf::Packet packet;
-    packet << CryptoKernel::Storage::toString(modifiedRequest, false);
+    prepPacket(packet, CryptoKernel::Storage::toString(modifiedRequest, false));
 
     const uint64_t startTime = std::chrono::duration_cast<std::chrono::milliseconds>
                                (std::chrono::system_clock::now().time_since_epoch()).count();
@@ -52,7 +67,7 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request) {
     }
 
     clientMutex.lock();
-    stats.transferUp += packet.getDataSize();
+    stats.transferUp += 5;//packet.getDataSize(); todo fix this!!!!
     clientMutex.unlock();
 
     {
@@ -80,16 +95,17 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request) {
 
 void CryptoKernel::Network::Peer::send(const Json::Value& response) {
     sf::Packet packet;
-    packet << CryptoKernel::Storage::toString(response, false);
+    prepPacket(packet, CryptoKernel::Storage::toString(response, false));
 
     const auto status = client->send(packet);
+
     if(status != sf::Socket::Done) {
         running = false;
         throw NetworkError("failed to send packet. Res: " + std::to_string(status));
     }
 
     clientMutex.lock();
-    stats.transferUp += packet.getDataSize();
+    stats.transferUp += 5;//packet.getDataSize(); todo fix this too!!
     clientMutex.unlock();
 }
 
@@ -98,12 +114,14 @@ void CryptoKernel::Network::Peer::requestFunc() {
     uint64_t startTime = static_cast<uint64_t>(std::time(nullptr));
 
     while(running) {
-        sf::Packet packet;
+        sf::Packet* packet = new sf::Packet;
 
         sf::SocketSelector selector;
         selector.add(*client);
         if(selector.wait(sf::seconds(1))) {
+        	sf::Packet packet;
             const auto status = client->receive(packet);
+
             if(status == sf::Socket::Done) {
                 nRequests++;
 
@@ -119,7 +137,9 @@ void CryptoKernel::Network::Peer::requestFunc() {
                 }
 
                 std::string requestString;
-                packet >> requestString;
+
+                sf::Packet decryptedPacket = decryptPacket(packet);
+                decryptedPacket >> requestString;
 
                 // If this breaks, request will be null
                 const Json::Value request = CryptoKernel::Storage::toJson(requestString); // but this is the response....
@@ -349,6 +369,41 @@ std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Peer::getBlo
     }
 
     return returning;
+}
+
+void CryptoKernel::Network::Peer::prepPacket(sf::Packet& packet, std::string data) {
+	if(send_cipher && recv_cipher) {
+		NoiseBuffer mbuf;
+		mbuf.data = (uint8_t*)data.c_str();
+		mbuf.size = data.size();
+		mbuf.max_size = 65536;
+		noise_cipherstate_encrypt(send_cipher, &mbuf);
+
+		packet.append(mbuf.data, mbuf.size);
+	}
+	else {
+		packet << data;
+	}
+}
+
+sf::Packet CryptoKernel::Network::Peer::decryptPacket(sf::Packet& packet) {
+	std::string data;
+	if(send_cipher && recv_cipher) {
+		NoiseBuffer mbuf;
+		mbuf.data = (uint8_t*)malloc(packet.getDataSize());
+		memcpy(mbuf.data, packet.getData(), packet.getDataSize());
+		mbuf.size = packet.getDataSize();
+		mbuf.max_size = 65536;
+		noise_cipherstate_decrypt(recv_cipher, &mbuf);
+		data.assign((const char*)mbuf.data);
+	}
+	else {
+		packet >> data;
+	}
+	sf::Packet decryptedPacket;
+	decryptedPacket << data;
+
+	return decryptedPacket;
 }
 
 CryptoKernel::Network::peerStats CryptoKernel::Network::Peer::getPeerStats() const {
