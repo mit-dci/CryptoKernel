@@ -164,8 +164,6 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
 	memcpy(&seed, seedBuf, sizeof(seedBuf) / 8);
     std::srand(seed);
 
-    listener.setBlocking(false);
-
     // Start connection thread
     connectionThread.reset(new std::thread(&CryptoKernel::Network::connectionFunc, this));
 
@@ -571,6 +569,7 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 						}
 					}
 
+                    it->second->setInfo("version", info["version"].asString());
 					it->second->setInfo("height", info["tipHeight"].asUInt64());
 
 					// update connected stats
@@ -641,10 +640,10 @@ void CryptoKernel::Network::networkFunc() {
         for(auto key : keys) {
         	auto it = connected.find(key);
         	if(it != connected.end() && it->second->acquire()) {
+                defer d([&]{it->second->release();});
         		if(it->second->getInfo("height").asUInt64() > bestHeight) {
 					bestHeight = it->second->getInfo("height").asUInt64();
 				}
-        		it->second->release();
         	}
         }
 
@@ -803,8 +802,15 @@ void CryptoKernel::Network::networkFunc() {
 
 void CryptoKernel::Network::connectionFunc() {
     while(running) {
+        sf::SocketSelector selector;
+        selector.add(listener);
         sf::TcpSocket* client = new sf::TcpSocket();
-        if(listener.accept(*client) == sf::Socket::Done) {
+        if(selector.wait(sf::seconds(2))) {
+            if(listener.accept(*client) != sf::Socket::Done) {
+                delete client;
+                continue;
+            }
+
             if(connected.contains(client->getRemoteAddress().toString())) {
                 log->printf(LOG_LEVEL_INFO,
                             "Network(): Incoming connection duplicates existing connection for " +
@@ -863,7 +869,6 @@ void CryptoKernel::Network::connectionFunc() {
 
         } else {
             delete client;
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
     }
 }
@@ -879,6 +884,7 @@ void CryptoKernel::Network::broadcastTransactions(const
 	for(std::string key : keys) {
 		auto it = connected.find(key);
 		if(it != connected.end() && it->second->acquire()) {
+            defer d([&]{it->second->release();});
 			try {
 				it->second->sendTransactions(transactions);
 			} catch(const Peer::NetworkError& err) {
@@ -894,12 +900,12 @@ void CryptoKernel::Network::broadcastBlock(const CryptoKernel::Blockchain::block
     for(std::string key : keys) {
     	auto it = connected.find(key);
     	if(it != connected.end() && it->second->acquire()) {
+            defer d([&]{it->second->release();});
     		try {
 				it->second->sendBlock(block);
 			} catch(const Peer::NetworkError& err) {
 				log->printf(LOG_LEVEL_WARN, "Network::broadcastBlock(): Failed to contact peer: " + std::string(err.what()));
 			}
-			it->second->release();
     	}
     }
 }
@@ -926,9 +932,7 @@ void CryptoKernel::Network::changeScore(const std::string& url, const uint64_t s
 
 std::set<std::string> CryptoKernel::Network::getConnectedPeers() {
     std::set<std::string> peerUrls;
-    std::vector<std::string> keys = connected.keys();
-    std::random_shuffle(keys.begin(), keys.end());
-    for(auto& peer : keys) {
+    for(const auto& peer : connected.keys()) {
     	peerUrls.insert(peer);
     }
 

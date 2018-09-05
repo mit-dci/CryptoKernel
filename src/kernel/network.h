@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <thread>
+#include <functional>
 
 #include <SFML/Network.hpp>
 

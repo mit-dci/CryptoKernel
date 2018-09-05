@@ -48,6 +48,24 @@ void CryptoTest::testSignVerify() {
 }
 
 /**
+* Tests that verifying invalid texts / signatures / malformed signatures fail
+*/
+void CryptoTest::testSignVerifyInvalid() {
+    const std::string privateKey = crypto->getPrivateKey();
+    const std::string publicKey = crypto->getPublicKey();
+
+    const std::string signature = crypto->sign(plainText);
+
+    CPPUNIT_ASSERT(signature.size() > 0);
+    // Valid sig, not matching the input
+    CPPUNIT_ASSERT(!crypto->verify("invalid plain text", signature));
+
+    // Valid text, invalid sig
+    CPPUNIT_ASSERT(!crypto->verify(plainText, "MzA0NTAyMjEwMGVlYmQyOGRmMjljZGYwNGUwODI5ZmZiZmU2ZmFlZTg1YTUxNGI3MjE4YmYxM2RlNjhkM2E0OGMzNGFmMmQxNGUwMjIwMWY2ZDBhN2Y0ZWNmYmUyMjRlMjI1YmFjYTYyOWFhYzYwMDk3MWQwNmQ3Y2Q2ZDNjYzkwZDVkZDExZGFlZTB3OQ=="));
+
+}
+
+/**
 * Tests passing key to class
 */
 void CryptoTest::testPassingKeys() {
