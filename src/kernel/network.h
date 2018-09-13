@@ -9,6 +9,8 @@
 
 #include "blockchain.h"
 #include "concurrentmap.h"
+#include "NoiseServer.h"
+#include "NoiseClient.h"
 
 namespace CryptoKernel {
 /**
@@ -162,6 +164,23 @@ private:
     void infoOutgoingConnectionsWrapper();
     std::unique_ptr<std::thread> infoOutgoingConnectionsThread;
 
+    void incomingEncryptionHandshakeWrapper();
+    void incomingEncryptionHandshakeFunc(sf::TcpListener& ls, sf::SocketSelector& selector);
+    std::unique_ptr<std::thread> incomingEncryptionHandshakeThread;
+
+    void outgoingEncryptionHandshakeWrapper();
+    void outgoingEncryptionHandshakeFunc();
+
+    void receiveNoisePackets(sf::SocketSelector& selector);
+
+    void addToNoisePool(std::shared_ptr<sf::TcpSocket> socket);
+
+	std::unique_ptr<std::thread> outgoingEncryptionHandshakeThread;
+
+    std::mutex handshakeMutex;
+    ConcurrentMap<std::string, std::unique_ptr<NoiseClient>> handshakeClients;
+    ConcurrentMap<std::string, std::unique_ptr<NoiseServer>> handshakeServers;
+    ConcurrentMap<std::string, bool> peersToQuery; // (regarding encyrption preference)
     sf::TcpListener listener;
 
     ConcurrentMap<std::string, uint64_t> banned;
