@@ -48,10 +48,13 @@ public:
 	void writeInfo();
 	void setHandshakeComplete(bool complete, bool success);
 	bool getHandshakeComplete();
-	void receivePacket(sf::Packet packet);
 	bool getHandshakeSuccess();
 
-	virtual ~NoiseClient();
+    void receiveWrapper();
+	void receivePacket(sf::Packet& packet);
+    std::unique_ptr<std::thread> receiveThread;
+
+    virtual ~NoiseClient();
 };
 
 #endif /* SRC_KERNEL_NOISECLIENT_H_ */

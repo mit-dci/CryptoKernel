@@ -63,6 +63,7 @@ NoiseClient::NoiseClient(std::shared_ptr<sf::TcpSocket> server, std::string ipAd
 
 	log->printf(LOG_LEVEL_INFO, "Noise(): Client, starting writeInfo.");
 	writeInfoThread.reset(new std::thread(&NoiseClient::writeInfo, this)); // start the write info thread
+    receiveThread.reset(new std::thread(&NoiseClient::receiveWrapper, this));
 }
 
 void NoiseClient::writeInfo() {
@@ -200,7 +201,27 @@ void NoiseClient::writeInfo() {
 	setHandshakeComplete(true, ok);
 }
 
-void NoiseClient::receivePacket(sf::Packet packet) {
+void NoiseClient::receiveWrapper() {
+    log->printf(LOG_LEVEL_INFO, "Noise(): Client, receive wrapper starting.");
+    sf::SocketSelector selector;
+    selector.add(*server.get());
+    bool quitThread = false;
+
+    while(!quitThread)
+    if(selector.wait(sf::seconds(2))) {
+        sf::Packet packet;
+        const auto status = server->receive(packet);
+        if(status == sf::Socket::Done) {
+            receivePacket(packet);
+        }
+        else {
+            log->printf(LOG_LEVEL_INFO, "Noise(): Client encountered error receiving packet");
+            quitThread = true;
+        }
+    }
+}
+
+void NoiseClient::receivePacket(sf::Packet& packet) {
 	log->printf(LOG_LEVEL_INFO, "Noise(): Client receiving a packet.");
 
 	handshakeMutex.lock();

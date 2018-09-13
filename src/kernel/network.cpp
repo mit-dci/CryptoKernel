@@ -547,53 +547,12 @@ void CryptoKernel::Network::incomingEncryptionHandshakeWrapper() {
 
 void CryptoKernel::Network::incomingEncryptionHandshakeFunc(sf::TcpListener& ls, sf::SocketSelector& selector) {
 	if(selector.wait(sf::seconds(2))) {
-		if(selector.isReady(ls)) {
+		if(selector.isReady(ls)) { // don't need this outer if anymore
 			std::shared_ptr<sf::TcpSocket> client(new sf::TcpSocket);
 			if(ls.accept(*client.get()) == sf::Socket::Done) {
 				std::string addr = client->getRemoteAddress().toString();
 				log->printf(LOG_LEVEL_INFO, "Network(): Connection accepted from " + addr);
 				addToNoisePool(client);
-			}
-		}
-		else {
-			receiveNoisePackets(selector);
-		}
-	}
-}
-
-void CryptoKernel::Network::receiveNoisePackets(sf::SocketSelector& selector) {
-	std::vector<std::string> nccKeys = handshakeServers.keys(); // this should not contain any of the same things as handshakeClients
-	for(std::string key : nccKeys) {
-		auto it = handshakeServers.find(key);
-		if(selector.isReady(*it->second->client.get())) {
-			log->printf(LOG_LEVEL_INFO, "Network(): " + it->second->client->getRemoteAddress().toString() + " is ready with data.");
-			// The client has sent some data, we can receive it
-			sf::Packet packet;
-			if(it->second->client->receive(packet) == sf::Socket::Done) {
-				it->second->receivePacket(packet);
-			}
-			else {
-				log->printf(LOG_LEVEL_INFO, "Network(): Something went wrong receiving packet from hs server " + it->first + ", disconnecting it.");
-				selector.remove(*it->second->client.get());
-				handshakeServers.erase(it->first);
-			}
-		}
-	}
-
-	log->printf(LOG_LEVEL_INFO, "Network(): About to loop through handshake client keys.");
-	std::vector<std::string> ncsKeys = handshakeClients.keys(); // this should not contain any of the same things as handshakeServers
-	for(std::string key : ncsKeys) {
-		auto it = handshakeClients.find(key);
-		if(selector.isReady(*it->second->server.get())) {
-			log->printf(LOG_LEVEL_INFO, "Network(): " + key + " is ready with data.");
-			sf::Packet packet;
-			if(it->second->server->receive(packet) == sf::Socket::Done) {
-				it->second->receivePacket(packet);
-			}
-			else {
-				log->printf(LOG_LEVEL_INFO, "Network(): Something went wrong receiving packet from hs client " + it->first + ", disconnecting it.");
-				selector.remove(*it->second->server.get());
-				handshakeClients.erase(it->first);
 			}
 		}
 	}

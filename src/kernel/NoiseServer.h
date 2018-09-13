@@ -47,11 +47,14 @@ public:
 	NoiseServer(std::shared_ptr<sf::TcpSocket> client, uint64_t port, CryptoKernel::Log* log);
 
 	void writeInfo();
-	void receivePacket(sf::Packet packet);
 	void setHandshakeComplete(bool complete, bool success);
 	bool getHandshakeComplete();
 	bool getHandshakeSuccess();
 	int initializeHandshake(NoiseHandshakeState* handshake, const NoiseProtocolId* nid, const void* prologue, size_t prologue_len);
+
+	void receiveWrapper();
+	void receivePacket(sf::Packet packet);
+	std::unique_ptr<std::thread> receiveThread;
 
 	virtual ~NoiseServer();
 };

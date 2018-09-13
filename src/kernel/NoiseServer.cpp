@@ -64,6 +64,7 @@ NoiseServer::NoiseServer(std::shared_ptr<sf::TcpSocket> client, uint64_t port, C
 	prologue.dh = DH_25519;
 
 	writeInfoThread.reset(new std::thread(&NoiseServer::writeInfo, this)); // start the write info thread
+    receiveThread.reset(new std::thread(&NoiseServer::receiveWrapper, this));
 }
 
 void NoiseServer::writeInfo() {
@@ -132,6 +133,26 @@ void NoiseServer::writeInfo() {
 	handshake = 0;
 
 	setHandshakeComplete(true, ok);
+}
+
+void NoiseServer::receiveWrapper() {
+    log->printf(LOG_LEVEL_INFO, "Noise(): Server, receive wrapper starting.");
+    sf::SocketSelector selector;
+    selector.add(*client.get());
+    bool quitThread = false;
+
+    while(!quitThread)
+    if(selector.wait(sf::seconds(2))) {
+        sf::Packet packet;
+        const auto status = client->receive(packet);
+        if(status == sf::Socket::Done) {
+            receivePacket(packet);
+        }
+        else {
+            log->printf(LOG_LEVEL_INFO, "Noise(): Server encountered error receiving packet");
+            quitThread = true;
+        }
+    }
 }
 
 void NoiseServer::receivePacket(sf::Packet packet) {
