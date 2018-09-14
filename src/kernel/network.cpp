@@ -596,7 +596,7 @@ void CryptoKernel::Network::addToNoisePool(std::shared_ptr<sf::TcpSocket> socket
 		}
 		else {
 			log->printf(LOG_LEVEL_INFO, "Network(): Added connection to handshake clients: " + addr);
-			handshakeClients.at(addr).reset(new NoiseClient(socket, socket->getRemoteAddress().toString(), 88, log));
+			handshakeClients.at(addr).reset(new NoiseClient(socket, addr, 88, log));
 		}
 	}
 }
