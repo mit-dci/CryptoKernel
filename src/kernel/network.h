@@ -127,6 +127,9 @@ private:
 		Json::Value getCachedInfo();
 		Network::peerStats getPeerStats() const;
 
+        void setSendCipher(NoiseCipherState* cipher);
+		void setRecvCipher(NoiseCipherState* cipher);
+
     	~Connection();
 
     private:
@@ -174,14 +177,19 @@ private:
 
     void addToNoisePool(std::shared_ptr<sf::TcpSocket> socket);
 
+    void postHandshakeConnect();
+
     std::mutex handshakeMutex;
     ConcurrentMap<std::string, std::unique_ptr<NoiseClient>> handshakeClients;
     ConcurrentMap<std::string, std::unique_ptr<NoiseServer>> handshakeServers;
     ConcurrentMap<std::string, bool> peersToQuery; // (regarding encyrption preference)
+    ConcurrentMap<std::string, std::unique_ptr<Connection>> connectedPending; // connections we've made but aren't yet ready to use
     sf::TcpListener listener;
 
     ConcurrentMap<std::string, uint64_t> banned;
 
+    void addConnection(sf::TcpSocket* socket, Json::Value& peerInfo, NoiseCipherState* send_cipher=0, NoiseCipherState* recv_cipher=0);
+    
     sf::IpAddress myAddress;
 
     uint64_t bestHeight;

@@ -4,7 +4,7 @@
 #include "networkpeer.h"
 
 CryptoKernel::Network::Peer::Peer(sf::TcpSocket* client, CryptoKernel::Blockchain* blockchain,
-                                  CryptoKernel::Network* network, const bool incoming) {
+                                  CryptoKernel::Network* network, const bool incoming, CryptoKernel::Log* log) {
     this->client = client;
     this->blockchain = blockchain;
     this->network = network;
@@ -21,7 +21,20 @@ CryptoKernel::Network::Peer::Peer(sf::TcpSocket* client, CryptoKernel::Blockchai
 
     client->setBlocking(true);
 
+    send_cipher = 0;
+    recv_cipher = 0;
+
+    this->log = log;
+
     requestThread.reset(new std::thread(&CryptoKernel::Network::Peer::requestFunc, this));
+}
+
+void CryptoKernel::Network::Peer::setSendCipher(NoiseCipherState* cipher) {
+	this->send_cipher = cipher;
+}
+
+void CryptoKernel::Network::Peer::setRecvCipher(NoiseCipherState* cipher) {
+	this->recv_cipher = cipher;
 }
 
 CryptoKernel::Network::Peer::~Peer() {

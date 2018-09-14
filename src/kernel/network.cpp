@@ -100,6 +100,14 @@ Json::Value& CryptoKernel::Network::Connection::getInfo(std::string key) {
 	return this->info[key];
 }
 
+void CryptoKernel::Network::Connection::setSendCipher(NoiseCipherState* cipher) {
+	peer->setSendCipher(cipher);
+}
+
+void CryptoKernel::Network::Connection::setRecvCipher(NoiseCipherState* cipher) {
+	peer->setRecvCipher(cipher);
+}
+
 CryptoKernel::Network::Connection::~Connection() {
     std::lock_guard<std::mutex> pm(peerMutex);
     std::lock_guard<std::mutex> im(infoMutex);
@@ -269,22 +277,53 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 		log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + peerIp);
 		if(socket->connect(peerIp, port, sf::seconds(3)) == sf::Socket::Done) {
 			log->printf(LOG_LEVEL_INFO, "Network(): Successfully connected to " + peerIp);
-			/*Connection* connection = new Connection;
-			connection->setPeer(new Peer(socket, blockchain, this, false));
+			Connection* connection = new Connection;
+			connection->setPeer(new Peer(socket, blockchain, this, false, log));
 
 			peerData["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
 			peerData["score"] = 0;
 
 			connection->setInfo(peerData);
 
-			connected.at(peerIp).reset(connection);*/
-			peersToQuery.insert(std::make_pair(peerIp, socket));
+			connectedPending.at(peerIp).reset(connection);
+			
+			peersToQuery.insert(std::make_pair(peerIp, true));
 		}
 		else {
 			log->printf(LOG_LEVEL_WARN, "Network(): Failed to connect to " + peerIp);
 			delete socket;
 		}
 	}
+}
+
+void CryptoKernel::Network::postHandshakeConnect() {
+	while(running) {
+		std::vector<std::string> keys = handshakeClients.keys();
+		std::random_shuffle(keys.begin(), keys.end());
+		for(std::string key: keys) {
+			auto it = handshakeClients.find(key);
+			if(it != handshakeClients.end()) {
+				if(it->second->getHandshakeSuccess()) {
+					
+				}
+			}
+		}
+	}
+}
+
+void CryptoKernel::Network::addConnection(sf::TcpSocket* socket, Json::Value& peerInfo, NoiseCipherState* send_cipher, NoiseCipherState* recv_cipher) {
+	Connection* connection = new Connection;
+	connection->setPeer(new Peer(socket, blockchain, this, false, log));
+
+	peerInfo["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
+	peerInfo["score"] = 0;
+
+	connection->setInfo(peerInfo);
+
+	connection->setSendCipher(send_cipher);
+	connection->setRecvCipher(recv_cipher);
+
+	connected.at(socket->getRemoteAddress().toString()).reset(connection);
 }
 
 void CryptoKernel::Network::infoOutgoingConnections() {
@@ -662,11 +701,11 @@ void CryptoKernel::Network::connectionFunc() {
             Connection* connection = new Connection();
 			connection->acquire();
 			defer d([&]{connection->release();});
-            connection->setPeer(new Peer(client, blockchain, this, true));
+            connection->setPeer(new Peer(client, blockchain, this, true, log));
 
             Json::Value info;
 
-            try {
+            /*try {
                 info = connection->getInfo();
             } catch(const Peer::NetworkError& e) {
                 log->printf(LOG_LEVEL_WARN, "Network(): Failed to get information from connecting peer: " + std::string(e.what()));
@@ -681,18 +720,18 @@ void CryptoKernel::Network::connectionFunc() {
                 log->printf(LOG_LEVEL_WARN, "Network(): Incoming peer sent invalid info message");
                 delete connection;
                 continue;
-            }
+            }*/
 
             const std::time_t result = std::time(nullptr);
 
             connection->setInfo("lastseen", static_cast<uint64_t>(result));
             connection->setInfo("score", 0);
 
-            connected.at(client->getRemoteAddress().toString()).reset(connection);
+            connectedPending.at(client->getRemoteAddress().toString()).reset(connection);
 
-            std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
+            /*std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
             peers->put(dbTx.get(), client->getRemoteAddress().toString(), connection->getCachedInfo());
-            dbTx->commit();
+            dbTx->commit();*/
         } else {
             delete client;
         }
