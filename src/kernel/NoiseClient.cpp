@@ -328,4 +328,5 @@ NoiseClient::~NoiseClient() {
 	}
 	writeInfoThread->join();
 	receiveThread->join();
+	log->printf(LOG_LEVEL_INFO, "Cleaned up noise client");
 }
