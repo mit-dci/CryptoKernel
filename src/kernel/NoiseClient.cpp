@@ -327,4 +327,5 @@ NoiseClient::~NoiseClient() {
 		setHandshakeComplete(true, false);
 	}
 	writeInfoThread->join();
+	receiveThread->join();
 }

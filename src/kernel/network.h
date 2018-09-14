@@ -170,10 +170,9 @@ private:
 
     void outgoingEncryptionHandshakeWrapper();
     void outgoingEncryptionHandshakeFunc();
+	std::unique_ptr<std::thread> outgoingEncryptionHandshakeThread;
 
     void addToNoisePool(std::shared_ptr<sf::TcpSocket> socket);
-
-	std::unique_ptr<std::thread> outgoingEncryptionHandshakeThread;
 
     std::mutex handshakeMutex;
     ConcurrentMap<std::string, std::unique_ptr<NoiseClient>> handshakeClients;

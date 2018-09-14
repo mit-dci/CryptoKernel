@@ -303,4 +303,5 @@ NoiseServer::~NoiseServer() {
 		setHandshakeComplete(true, false);
 	}
 	writeInfoThread->join();
+	receiveThread->join();
 }

@@ -164,18 +164,25 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
     //networkThread.reset(new std::thread(&CryptoKernel::Network::networkFunc, this));
 
     // Start peer thread
-   	//makeOutgoingConnectionsThread.reset(new std::thread(&CryptoKernel::Network::makeOutgoingConnectionsWrapper, this));
+   	makeOutgoingConnectionsThread.reset(new std::thread(&CryptoKernel::Network::makeOutgoingConnectionsWrapper, this));
 
     // Start peer thread
     //infoOutgoingConnectionsThread.reset(new std::thread(&CryptoKernel::Network::infoOutgoingConnectionsWrapper, this));
+
+	incomingEncryptionHandshakeThread.reset(new std::thread(&CryptoKernel::Network::incomingEncryptionHandshakeWrapper, this));
+	outgoingEncryptionHandshakeThread.reset(new std::thread(&CryptoKernel::Network::outgoingEncryptionHandshakeWrapper, this));
 }
 
 CryptoKernel::Network::~Network() {
     running = false;
     //connectionThread->join();
     //networkThread->join();
-    //makeOutgoingConnectionsThread->join();
+    makeOutgoingConnectionsThread->join();
     //infoOutgoingConnectionsThread->join();
+
+	incomingEncryptionHandshakeThread->join();
+	outgoingEncryptionHandshakeThread->join();
+
     listener.close();
 }
 
@@ -216,7 +223,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 
 		Json::Value peerInfo = it->value();
 
-		if(connected.contains(it->key())) {
+		if(connected.contains(it->key()) || peersToQuery.contains(it->key())) { // TODO, REMOVE OR, PROBABLY MAYBE
 			continue;
 		}
 
@@ -261,7 +268,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 		log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + peerIp);
 		if(socket->connect(peerIp, port, sf::seconds(3)) == sf::Socket::Done) {
 			log->printf(LOG_LEVEL_INFO, "Network(): Successfully connected to " + peerIp);
-			Connection* connection = new Connection;
+			/*Connection* connection = new Connection;
 			connection->setPeer(new Peer(socket, blockchain, this, false));
 
 			peerData["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
@@ -269,7 +276,8 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 
 			connection->setInfo(peerData);
 
-			connected.at(peerIp).reset(connection);
+			connected.at(peerIp).reset(connection);*/
+			peersToQuery.insert(std::make_pair(peerIp, socket));
 		}
 		else {
 			log->printf(LOG_LEVEL_WARN, "Network(): Failed to connect to " + peerIp);
