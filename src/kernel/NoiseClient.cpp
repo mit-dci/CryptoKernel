@@ -207,7 +207,7 @@ void NoiseClient::receiveWrapper() {
     selector.add(*server.get());
     bool quitThread = false;
 
-    while(!quitThread)
+    while(!quitThread && !getHandshakeComplete())
     if(selector.wait(sf::seconds(2))) {
         sf::Packet packet;
         const auto status = server->receive(packet);
