@@ -223,7 +223,8 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 
 		Json::Value peerInfo = it->value();
 
-		if(connected.contains(it->key()) || peersToQuery.contains(it->key())) { // TODO, REMOVE OR, PROBABLY MAYBE
+		if(connected.contains(it->key()) || peersToQuery.contains(it->key()) 
+			|| handshakeServers.contains(it->key()) || handshakeClients.contains(it->key())) { // TODO, REMOVE OR, PROBABLY MAYBE
 			continue;
 		}
 
@@ -586,9 +587,9 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 			//plaintextHosts.insert(addr, true);
 			continue;
 		}
-		peersToQuery.erase(addr);
 		client->setBlocking(false);
 		addToNoisePool(client);
+		peersToQuery.erase(addr);
 	}
 }
 
