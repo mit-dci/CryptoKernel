@@ -307,8 +307,8 @@ void CryptoKernel::Network::postHandshakeConnect() {
 			auto it = handshakeClients.find(key);
 			if(it != handshakeClients.end()) {
 				if(it->second->getHandshakeSuccess()) {
-					transferConnection(key, it->second->send_cipher, it->second->recv_cipher);
-					handshakeClients.erase(key);
+					//transferConnection(key, it->second->send_cipher, it->second->recv_cipher);
+					//handshakeClients.erase(key);
 				}
 			}
 		}
@@ -319,8 +319,8 @@ void CryptoKernel::Network::postHandshakeConnect() {
 			auto it = handshakeServers.find(key);
 			if(it != handshakeServers.end()) {
 				if(it->second->getHandshakeSuccess()) {
-					transferConnection(key, it->second->sendCipher, it->second->recvCipher);
-					handshakeServers.erase(key);
+					//transferConnection(key, it->second->sendCipher, it->second->recvCipher);
+					//handshakeServers.erase(key);
 				}
 			}
 		}
