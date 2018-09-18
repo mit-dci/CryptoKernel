@@ -371,6 +371,7 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 	std::random_shuffle(keys.begin(), keys.end());
 	for(auto key: keys) {
 		auto it = connected.find(key);
+		log->printf(LOG_LEVEL_INFO, "Querying " + key + " for info");
 		if(it != connected.end() && it->second->acquire()) {
 			try {
 				const Json::Value info = it->second->getInfo();
@@ -456,6 +457,7 @@ void CryptoKernel::Network::networkFunc() {
         for(auto key : keys) {
         	auto it = connected.find(key);
         	if(it != connected.end() && it->second->acquire()) {
+				log->printf(LOG_LEVEL_INFO, "Looking at " + key);
                 defer d([&]{it->second->release();});
         		if(it->second->getInfo("height").asUInt64() > bestHeight) {
 					bestHeight = it->second->getInfo("height").asUInt64();
