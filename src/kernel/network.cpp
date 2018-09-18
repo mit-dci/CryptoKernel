@@ -338,7 +338,7 @@ void CryptoKernel::Network::postHandshakeConnect() {
 void CryptoKernel::Network::transferConnection(std::string addr, NoiseCipherState* send_cipher, NoiseCipherState* recv_cipher) {
 	log->printf(LOG_LEVEL_INFO, "Transferring connection for " + addr);
 	auto it = connectedPending.find(addr);
-	if(it != connectedPending.end()) {
+	if(it != connectedPending.end() && it->second->acquire()) {
 		log->printf(LOG_LEVEL_INFO, "CONNECTION VERSION 1: " + it->second->getPeerStats().version);
 		Connection* connection = std::move(it->second.get());
 		log->printf(LOG_LEVEL_INFO, "CONNECTION VERSION 2: " + connection->getPeerStats().version);
@@ -346,6 +346,8 @@ void CryptoKernel::Network::transferConnection(std::string addr, NoiseCipherStat
 		connectedPending.erase(addr);
 
 		log->printf(LOG_LEVEL_INFO, "Transferred connection for " + addr);
+
+		it->second->release();
 	}
 
 	/*Connection* connection = new Connection;
