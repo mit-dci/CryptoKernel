@@ -374,6 +374,9 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 	for(auto key: keys) {
 		auto it = connected.find(key);
 		log->printf(LOG_LEVEL_INFO, "Querying " + key + " for info");
+		if(it != connected.end()) {
+			log->printf(LOG_LEVEL_INFO, "it isn't he end");
+		}
 		if(it != connected.end() && it->second->acquire()) {
 			log->printf(LOG_LEVEL_INFO, "The querying process for " + key + " can begin.");
 			try {
