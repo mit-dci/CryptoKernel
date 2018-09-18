@@ -241,7 +241,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 		if(connected.contains(it->key()) || connectedPending.contains(it->key())) {
 			continue;
 		}
-		log->printf(LOG_LEVEL_INFO, "Welp, it appears that nothing contains " + it->key());
+		//log->printf(LOG_LEVEL_INFO, "Welp, it appears that nothing contains " + it->key());
 
 		std::time_t result = std::time(nullptr);
 
