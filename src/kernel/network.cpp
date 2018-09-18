@@ -333,7 +333,11 @@ void CryptoKernel::Network::transferConnection(std::string addr, NoiseCipherStat
 	log->printf(LOG_LEVEL_INFO, "Transferring connection for " + addr);
 	auto it = connectedPending.find(addr);
 	if(it != connectedPending.end()) {
-		connected.at(addr).reset(std::move(it->second.get()));
+		Connection* connection = std::move(it->second.get());
+		log->printf(LOG_LEVEL_INFO, "CONNECTION VERSION: " + connection->getPeerStats().version);
+		connectedPending.erase(addr);
+		connected.at(addr).reset(connection);
+
 		log->printf(LOG_LEVEL_INFO, "Transferred connection for " + addr);
 	}
 
@@ -662,7 +666,7 @@ void CryptoKernel::Network::addToNoisePool(std::shared_ptr<sf::TcpSocket> socket
 
 	std::string addr = socket->getRemoteAddress().toString();
 
-	if(!handshakeServers.contains(addr) && !handshakeClients.contains(addr)) {
+	if(!handshakeServers.contains(addr) && !handshakeClients.contains(addr) && !connected.contains(addr)) {
 		if(addr < myAddress.toString()) {
 			log->printf(LOG_LEVEL_INFO, "Network(): Adding a noise client (to handshakeServers), " + addr);
 			handshakeServers.at(addr).reset(new NoiseServer(socket, 8888, log));
