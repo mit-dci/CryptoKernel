@@ -333,6 +333,13 @@ void CryptoKernel::Network::postHandshakeConnect() {
 			}
 		}
 
+		keys = plaintextHosts.keys();
+		std::random_shuffle(keys.begin(), keys.end());
+		for(std::string key: keys) {
+			transferConnection(key);
+			plaintextHosts.erase(key);
+		}
+
 		std::this_thread::sleep_for(std::chrono::milliseconds(200)); // arbitrary
 	}
 }
@@ -341,29 +348,16 @@ void CryptoKernel::Network::transferConnection(std::string addr, NoiseCipherStat
 	log->printf(LOG_LEVEL_INFO, "Transferring connection for " + addr);
 	auto it = connectedPending.find(addr);
 	if(it->second && it != connectedPending.end() && it->second->acquire()) {
-		log->printf(LOG_LEVEL_INFO, "CONNECTION VERSION 1: " + it->second->getPeerStats().version);
 		Connection* connection = it->second.get();
+		connection->setSendCipher(send_cipher);
+		connection->setRecvCipher(recv_cipher);
 		it->second.release();
-		log->printf(LOG_LEVEL_INFO, "CONNECTION VERSION 2: " + connection->getPeerStats().version);
 		connected.at(addr).reset(connection);
 		connectedPending.erase(addr);
 		connection->release();
 
 		log->printf(LOG_LEVEL_INFO, "Transferred connection for " + addr);
 	}
-
-	/*Connection* connection = new Connection;
-	connection->setPeer(new Peer(socket, blockchain, this, false, log));
-
-	peerInfo["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
-	peerInfo["score"] = 0;
-
-	connection->setInfo(peerInfo);
-
-	connection->setSendCipher(send_cipher);
-	connection->setRecvCipher(recv_cipher);
-
-	connected.at(socket->getRemoteAddress().toString()).reset(connection);*/
 }
 
 void CryptoKernel::Network::infoOutgoingConnections() {
@@ -669,7 +663,7 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 		if(client->connect(addr, port + 1, sf::seconds(3)) != sf::Socket::Done) {
 			log->printf(LOG_LEVEL_INFO, "Network(): Couldn't query " + addr + " for encryption preference (it likely doesn't support encryption).");
 			peersToQuery.erase(addr);
-			//plaintextHosts.insert(addr, true);
+			plaintextHosts.insert(addr, true);
 			continue;
 		}
 		client->setBlocking(false);

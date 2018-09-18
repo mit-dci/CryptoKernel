@@ -183,6 +183,7 @@ private:
     std::mutex handshakeMutex;
     ConcurrentMap<std::string, std::unique_ptr<NoiseClient>> handshakeClients;
     ConcurrentMap<std::string, std::unique_ptr<NoiseServer>> handshakeServers;
+    ConcurrentMap<std::string, bool> plaintextHosts;
     ConcurrentMap<std::string, bool> peersToQuery; // (regarding encyrption preference)
     ConcurrentMap<std::string, std::unique_ptr<Connection>> connectedPending; // connections we've made but aren't yet ready to use
     sf::TcpListener listener;
