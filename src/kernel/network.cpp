@@ -285,6 +285,8 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 		if(socket->connect(peerIp, port, sf::seconds(3)) == sf::Socket::Done) {
 			log->printf(LOG_LEVEL_INFO, "Network(): Successfully connected to " + peerIp);
 			Connection* connection = new Connection;
+			connection->acquire();
+			defer d([&]{connection->release();});
 			connection->setPeer(new Peer(socket, blockchain, this, false, log));
 
 			peerData["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
@@ -343,11 +345,10 @@ void CryptoKernel::Network::transferConnection(std::string addr, NoiseCipherStat
 		Connection* connection = std::move(it->second.get());
 		log->printf(LOG_LEVEL_INFO, "CONNECTION VERSION 2: " + connection->getPeerStats().version);
 		connected.at(addr).reset(connection);
+		it->second->release();
 		connectedPending.erase(addr);
 
 		log->printf(LOG_LEVEL_INFO, "Transferred connection for " + addr);
-
-		it->second->release();
 	}
 
 	/*Connection* connection = new Connection;
