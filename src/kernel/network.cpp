@@ -346,7 +346,7 @@ void CryptoKernel::Network::transferConnection(std::string addr, NoiseCipherStat
 		log->printf(LOG_LEVEL_INFO, "CONNECTION VERSION 2: " + connection->getPeerStats().version);
 		connected.at(addr).reset(connection);
 		it->second->release();
-		connectedPending.erase(addr);
+		//connectedPending.erase(addr);
 
 		log->printf(LOG_LEVEL_INFO, "Transferred connection for " + addr);
 	}
