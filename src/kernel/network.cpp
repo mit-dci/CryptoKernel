@@ -234,8 +234,11 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 
 		Json::Value peerInfo = it->value();
 
-		if(connected.contains(it->key()) || peersToQuery.contains(it->key()) 
+		/*if(connected.contains(it->key()) || peersToQuery.contains(it->key()) 
 			|| handshakeServers.contains(it->key()) || handshakeClients.contains(it->key())) { // TODO, REMOVE OR, PROBABLY MAYBE
+			continue;
+		}*/
+		if(connected.contains(it->key()) || connectedPending.contains(it->key())) {
 			continue;
 		}
 		log->printf(LOG_LEVEL_INFO, "Welp, it appears that nothing contains " + it->key());
