@@ -238,6 +238,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 			|| handshakeServers.contains(it->key()) || handshakeClients.contains(it->key())) { // TODO, REMOVE OR, PROBABLY MAYBE
 			continue;
 		}
+		log->printf(LOG_LEVEL_INFO, "Welp, it appears that nothing contains " + it->key());
 
 		std::time_t result = std::time(nullptr);
 
@@ -308,8 +309,8 @@ void CryptoKernel::Network::postHandshakeConnect() {
 			if(it != handshakeClients.end()) {
 				if(it->second->getHandshakeSuccess()) {
 					log->printf(LOG_LEVEL_INFO, "Connection to " + key + " succeeded (client)");
-					//transferConnection(key, it->second->send_cipher, it->second->recv_cipher);
-					//handshakeClients.erase(key);
+					transferConnection(key, it->second->send_cipher, it->second->recv_cipher);
+					handshakeClients.erase(key);
 				}
 			}
 		}
@@ -321,8 +322,8 @@ void CryptoKernel::Network::postHandshakeConnect() {
 			if(it != handshakeServers.end()) {
 				if(it->second->getHandshakeSuccess()) {
 					log->printf(LOG_LEVEL_INFO, "Connection to " + key + " succeeded (server)");
-					//transferConnection(key, it->second->sendCipher, it->second->recvCipher);
-					//handshakeServers.erase(key);
+					transferConnection(key, it->second->sendCipher, it->second->recvCipher);
+					handshakeServers.erase(key);
 				}
 			}
 		}
@@ -692,7 +693,7 @@ void CryptoKernel::Network::connectionFunc() {
                 continue;
             }
 
-            if(connected.contains(client->getRemoteAddress().toString())) {
+            if(connected.contains(client->getRemoteAddress().toString()) || connectedPending.contains(client->getRemoteAddress().toString())) {
                 log->printf(LOG_LEVEL_INFO,
                             "Network(): Incoming connection duplicates existing connection for " +
                             client->getRemoteAddress().toString());
