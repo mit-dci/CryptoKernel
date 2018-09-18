@@ -166,16 +166,16 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
     std::srand(seed);
 
     // Start connection thread
-    //connectionThread.reset(new std::thread(&CryptoKernel::Network::connectionFunc, this));
+    connectionThread.reset(new std::thread(&CryptoKernel::Network::connectionFunc, this));
 
     // Start management thread
-    //networkThread.reset(new std::thread(&CryptoKernel::Network::networkFunc, this));
+    networkThread.reset(new std::thread(&CryptoKernel::Network::networkFunc, this));
 
     // Start peer thread
    	makeOutgoingConnectionsThread.reset(new std::thread(&CryptoKernel::Network::makeOutgoingConnectionsWrapper, this));
 
     // Start peer thread
-    //infoOutgoingConnectionsThread.reset(new std::thread(&CryptoKernel::Network::infoOutgoingConnectionsWrapper, this));
+    infoOutgoingConnectionsThread.reset(new std::thread(&CryptoKernel::Network::infoOutgoingConnectionsWrapper, this));
 
 	incomingEncryptionHandshakeThread.reset(new std::thread(&CryptoKernel::Network::incomingEncryptionHandshakeWrapper, this));
 	outgoingEncryptionHandshakeThread.reset(new std::thread(&CryptoKernel::Network::outgoingEncryptionHandshakeWrapper, this));
@@ -185,10 +185,10 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
 
 CryptoKernel::Network::~Network() {
     running = false;
-    //connectionThread->join();
-    //networkThread->join();
+    connectionThread->join();
+    networkThread->join();
     makeOutgoingConnectionsThread->join();
-    //infoOutgoingConnectionsThread->join();
+    infoOutgoingConnectionsThread->join();
 
 	incomingEncryptionHandshakeThread->join();
 	outgoingEncryptionHandshakeThread->join();
