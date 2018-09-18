@@ -342,11 +342,12 @@ void CryptoKernel::Network::transferConnection(std::string addr, NoiseCipherStat
 	auto it = connectedPending.find(addr);
 	if(it != connectedPending.end() && it->second->acquire()) {
 		log->printf(LOG_LEVEL_INFO, "CONNECTION VERSION 1: " + it->second->getPeerStats().version);
-		Connection* connection = std::move(it->second.get());
+		Connection* connection = it->second.get();
+		it->second.release();
 		log->printf(LOG_LEVEL_INFO, "CONNECTION VERSION 2: " + connection->getPeerStats().version);
 		connected.at(addr).reset(connection);
-		it->second->release();
-		//connectedPending.erase(addr);
+		connectedPending.erase(addr);
+		connection->release();
 
 		log->printf(LOG_LEVEL_INFO, "Transferred connection for " + addr);
 	}
