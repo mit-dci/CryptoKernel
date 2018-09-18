@@ -179,6 +179,8 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
 
 	incomingEncryptionHandshakeThread.reset(new std::thread(&CryptoKernel::Network::incomingEncryptionHandshakeWrapper, this));
 	outgoingEncryptionHandshakeThread.reset(new std::thread(&CryptoKernel::Network::outgoingEncryptionHandshakeWrapper, this));
+
+	postHandshakeConnectThread.reset(new std::thread(&CryptoKernel::Network::postHandshakeConnect, this));
 }
 
 CryptoKernel::Network::~Network() {
@@ -190,6 +192,7 @@ CryptoKernel::Network::~Network() {
 
 	incomingEncryptionHandshakeThread->join();
 	outgoingEncryptionHandshakeThread->join();
+	postHandshakeConnectThread->join();
 
     listener.close();
 }
@@ -301,18 +304,34 @@ void CryptoKernel::Network::postHandshakeConnect() {
 		std::vector<std::string> keys = handshakeClients.keys();
 		std::random_shuffle(keys.begin(), keys.end());
 		for(std::string key: keys) {
-			auto it = handshakeClients.find(key);
-			if(it != handshakeClients.end()) {
-				if(it->second->getHandshakeSuccess()) {
-					
+			auto itc = handshakeClients.find(key);
+			if(itc != handshakeClients.end()) {
+				if(itc->second->getHandshakeSuccess()) {
+					transferConnection(key, itc->second->send_cipher, itc->second->recv_cipher);
 				}
+				continue;
+			}
+			
+			auto its = handshakeServers.find(key);
+			if(its != handshakeServers.end()) {
+				if(its->second->getHandshakeSuccess()) {
+					transferConnection(key, itc->second->send_cipher, itc->second->recv_cipher);
+				}
+				continue;
 			}
 		}
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(200)); // arbitrary
 	}
 }
 
-void CryptoKernel::Network::addConnection(sf::TcpSocket* socket, Json::Value& peerInfo, NoiseCipherState* send_cipher, NoiseCipherState* recv_cipher) {
-	Connection* connection = new Connection;
+void CryptoKernel::Network::transferConnection(std::string addr, NoiseCipherState* send_cipher, NoiseCipherState* recv_cipher) {
+	auto it = connectedPending.find(addr);
+	if(it != connectedPending.end()) {
+		it->second.swap(connected.at(addr));
+	}
+
+	/*Connection* connection = new Connection;
 	connection->setPeer(new Peer(socket, blockchain, this, false, log));
 
 	peerInfo["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
@@ -323,7 +342,7 @@ void CryptoKernel::Network::addConnection(sf::TcpSocket* socket, Json::Value& pe
 	connection->setSendCipher(send_cipher);
 	connection->setRecvCipher(recv_cipher);
 
-	connected.at(socket->getRemoteAddress().toString()).reset(connection);
+	connected.at(socket->getRemoteAddress().toString()).reset(connection);*/
 }
 
 void CryptoKernel::Network::infoOutgoingConnections() {

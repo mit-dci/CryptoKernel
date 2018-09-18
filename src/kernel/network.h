@@ -178,6 +178,7 @@ private:
     void addToNoisePool(std::shared_ptr<sf::TcpSocket> socket);
 
     void postHandshakeConnect();
+    std::unique_ptr<std::thread> postHandshakeConnectThread;
 
     std::mutex handshakeMutex;
     ConcurrentMap<std::string, std::unique_ptr<NoiseClient>> handshakeClients;
@@ -188,7 +189,7 @@ private:
 
     ConcurrentMap<std::string, uint64_t> banned;
 
-    void addConnection(sf::TcpSocket* socket, Json::Value& peerInfo, NoiseCipherState* send_cipher=0, NoiseCipherState* recv_cipher=0);
+    void transferConnection(std::string addr, NoiseCipherState* send_cipher=0, NoiseCipherState* recv_cipher=0);
     
     sf::IpAddress myAddress;
 
