@@ -768,6 +768,7 @@ void CryptoKernel::Network::connectionFunc() {
             connection->setInfo("score", 0);
 
             connectedPending.at(client->getRemoteAddress().toString()).reset(connection);
+			peersToQuery.insert(std::make_pair(client->getRemoteAddress().toString(), true));
 
             /*std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
             peers->put(dbTx.get(), client->getRemoteAddress().toString(), connection->getCachedInfo());
