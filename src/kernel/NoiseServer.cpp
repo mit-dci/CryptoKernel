@@ -302,6 +302,7 @@ NoiseServer::~NoiseServer() {
 	if(!getHandshakeComplete()) {
 		setHandshakeComplete(true, false);
 	}
+	client->disconnect();
 	writeInfoThread->join();
 	receiveThread->join();
 	log->printf(LOG_LEVEL_INFO, "Cleaned up noise server");
