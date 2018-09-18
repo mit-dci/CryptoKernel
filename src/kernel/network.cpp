@@ -180,7 +180,7 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
 	incomingEncryptionHandshakeThread.reset(new std::thread(&CryptoKernel::Network::incomingEncryptionHandshakeWrapper, this));
 	outgoingEncryptionHandshakeThread.reset(new std::thread(&CryptoKernel::Network::outgoingEncryptionHandshakeWrapper, this));
 
-	//postHandshakeConnectThread.reset(new std::thread(&CryptoKernel::Network::postHandshakeConnect, this));
+	postHandshakeConnectThread.reset(new std::thread(&CryptoKernel::Network::postHandshakeConnect, this));
 }
 
 CryptoKernel::Network::~Network() {
@@ -192,7 +192,7 @@ CryptoKernel::Network::~Network() {
 
 	incomingEncryptionHandshakeThread->join();
 	outgoingEncryptionHandshakeThread->join();
-	//postHandshakeConnectThread->join();
+	postHandshakeConnectThread->join();
 
     listener.close();
 }
