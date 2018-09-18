@@ -304,20 +304,24 @@ void CryptoKernel::Network::postHandshakeConnect() {
 		std::vector<std::string> keys = handshakeClients.keys();
 		std::random_shuffle(keys.begin(), keys.end());
 		for(std::string key: keys) {
-			auto itc = handshakeClients.find(key);
-			if(itc != handshakeClients.end()) {
-				if(itc->second->getHandshakeSuccess()) {
-					transferConnection(key, itc->second->send_cipher, itc->second->recv_cipher);
+			auto it = handshakeClients.find(key);
+			if(it != handshakeClients.end()) {
+				if(it->second->getHandshakeSuccess()) {
+					transferConnection(key, it->second->send_cipher, it->second->recv_cipher);
+					handshakeClients.erase(key);
 				}
-				continue;
 			}
-			
-			auto its = handshakeServers.find(key);
-			if(its != handshakeServers.end()) {
-				if(its->second->getHandshakeSuccess()) {
-					transferConnection(key, itc->second->send_cipher, itc->second->recv_cipher);
+		}
+
+		keys = handshakeServers.keys();
+		std::random_shuffle(keys.begin(), keys.end());
+		for(std::string key: keys) {
+			auto it = handshakeServers.find(key);
+			if(it != handshakeServers.end()) {
+				if(it->second->getHandshakeSuccess()) {
+					transferConnection(key, it->second->sendCipher, it->second->recvCipher);
+					handshakeServers.erase(key);
 				}
-				continue;
 			}
 		}
 
@@ -326,6 +330,7 @@ void CryptoKernel::Network::postHandshakeConnect() {
 }
 
 void CryptoKernel::Network::transferConnection(std::string addr, NoiseCipherState* send_cipher, NoiseCipherState* recv_cipher) {
+	log->printf(LOG_LEVEL_INFO, "Transferring connection for " + addr);
 	auto it = connectedPending.find(addr);
 	if(it != connectedPending.end()) {
 		it->second.swap(connected.at(addr));
