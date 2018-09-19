@@ -312,6 +312,7 @@ void CryptoKernel::Network::postHandshakeConnect() {
 		for(std::string key: keys) {
 			auto it = handshakeClients.find(key);
 			if(it != handshakeClients.end()) {
+				std::lock_guard<std::mutex> hsm(handshakeMutex);
 				if(it->second->getHandshakeSuccess()) {
 					log->printf(LOG_LEVEL_INFO, "Connection to " + key + " succeeded (client)");
 					transferConnection(key, it->second->send_cipher, it->second->recv_cipher);
@@ -330,6 +331,7 @@ void CryptoKernel::Network::postHandshakeConnect() {
 		for(std::string key: keys) {
 			auto it = handshakeServers.find(key);
 			if(it != handshakeServers.end()) {
+				std::lock_guard<std::mutex> hsm(handshakeMutex);
 				if(it->second->getHandshakeSuccess()) {
 					log->printf(LOG_LEVEL_INFO, "Connection to " + key + " succeeded (server)");
 					transferConnection(key, it->second->sendCipher, it->second->recvCipher);
@@ -684,11 +686,13 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 }
 
 void CryptoKernel::Network::addToNoisePool(sf::TcpSocket* socket) {
-	log->printf(LOG_LEVEL_INFO, "adding " + socket->getRemoteAddress().toString() + " to noise");
+	//log->printf(LOG_LEVEL_INFO, "adding " + socket->getRemoteAddress().toString() + " to noise");
 
 	std::lock_guard<std::mutex> hsm(handshakeMutex);
 
 	std::string addr = socket->getRemoteAddress().toString();
+
+	log->printf(LOG_LEVEL_INFO, "adding " + addr + " to noise");
 
 	if(!handshakeServers.contains(addr) && !handshakeClients.contains(addr) && !connected.contains(addr)) {
 		log->printf(LOG_LEVEL_INFO, "We made it through the handshake membership test.");
