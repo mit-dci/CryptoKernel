@@ -318,6 +318,10 @@ void CryptoKernel::Network::postHandshakeConnect() {
 					//handshakeClients.clear();
 					handshakeClients.erase(key);
 				}
+				else if(it->second->getHandshakeComplete()) {
+					// handshake failed
+					handshakeClients.erase(key);
+				}
 			}
 		}
 
@@ -330,6 +334,10 @@ void CryptoKernel::Network::postHandshakeConnect() {
 					log->printf(LOG_LEVEL_INFO, "Connection to " + key + " succeeded (server)");
 					transferConnection(key, it->second->sendCipher, it->second->recvCipher);
 					//handshakeServers.clear();
+					handshakeServers.erase(key);
+				}
+				else if(it->second->getHandshakeComplete() && !it->second->getHandshakeSuccess()) {
+					// handshake failed
 					handshakeServers.erase(key);
 				}
 			}
