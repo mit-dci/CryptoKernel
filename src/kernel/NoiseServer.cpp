@@ -74,6 +74,10 @@ void NoiseServer::writeInfo() {
 	unsigned int ok = 1;
 
 	while(!getHandshakeComplete()) { // it might fail in another thread, and so become "complete"
+		while(!receivedPubKey) {
+			continue;
+		}
+		
 		handshakeMutex.lock();
 		int action = noise_handshakestate_get_action(handshake);
 		handshakeMutex.unlock();
