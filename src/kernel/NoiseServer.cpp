@@ -157,7 +157,7 @@ void NoiseServer::receiveWrapper() {
 
     while(!quitThread && !getHandshakeComplete()) {
 		log->printf(LOG_LEVEL_INFO, "server waiting for packet.... " + client->getRemoteAddress().toString());
-		if(selector.wait(sf::seconds(2))) {
+		if(selector.isReady(*client)) {
 			sf::Packet packet;
 			const auto status = client->receive(packet);
 			if(status == sf::Socket::Done) {
