@@ -199,7 +199,7 @@ void NoiseServer::receivePacket(sf::Packet packet) {
 		/* Set all keys that are needed by the client's requested echo protocol */
 		if(ok) {
 			std::lock_guard<std::mutex> hm(handshakeMutex);
-			if (!initializeHandshake(handshake, &nid, &prologue, sizeof(prologue))) {
+			if (!initializeHandshake(handshake, sizeof(prologue))) {
 				log->printf(LOG_LEVEL_WARN, "Noise(): Server, couldn't initialize handshake");
 				setHandshakeComplete(true, false);
 				return;
@@ -237,13 +237,13 @@ void NoiseServer::receivePacket(sf::Packet packet) {
 }
 
 /* Initialize's the handshake with all necessary keys */
-int NoiseServer::initializeHandshake(NoiseHandshakeState* handshake, const NoiseProtocolId* nid, const void* prologue, size_t prologueLen) {
+int NoiseServer::initializeHandshake(NoiseHandshakeState* handshake, size_t prologueLen) {
 	NoiseDHState *dh;
 	int dhId;
 	int err;
 
 	/* Set the prologue first */
-	err = noise_handshakestate_set_prologue(handshake, prologue, prologueLen);
+	err = noise_handshakestate_set_prologue(handshake, &prologue, prologueLen);
 	if(err != NOISE_ERROR_NONE) {
 		log->printf(LOG_LEVEL_WARN, "Noise(): Server, prologue error: " + noiseUtil.errToString(err));
 		return 0;

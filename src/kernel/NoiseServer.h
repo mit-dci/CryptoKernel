@@ -52,7 +52,7 @@ public:
 	void setHandshakeComplete(bool complete, bool success);
 	bool getHandshakeComplete();
 	bool getHandshakeSuccess();
-	int initializeHandshake(NoiseHandshakeState* handshake, const NoiseProtocolId* nid, const void* prologue, size_t prologue_len);
+	int initializeHandshake(NoiseHandshakeState* handshake, size_t prologue_len);
 
 	void receiveWrapper();
 	void receivePacket(sf::Packet packet);
