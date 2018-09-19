@@ -206,24 +206,24 @@ void NoiseClient::writeInfo() {
 
 void NoiseClient::receiveWrapper() {
     log->printf(LOG_LEVEL_INFO, "Noise(): Client, receive wrapper starting. " + server->getRemoteAddress().toString());
-    sf::SocketSelector selector;
-    selector.add(*server);
     bool quitThread = false;
 
-    while(!quitThread && !getHandshakeComplete())
-    if(selector.wait(sf::seconds(2))) {
-        sf::Packet packet;
-        const auto status = server->receive(packet);
-        if(status == sf::Socket::Done) {
-            receivePacket(packet);
-        }
-        else {
-            log->printf(LOG_LEVEL_INFO, "Noise(): Client encountered error receiving packet " + server->getRemoteAddress().toString());
-            quitThread = true;
-        }
-    }
+    while(!quitThread && !getHandshakeComplete()) {
+		sf::SocketSelector selector;
+    	selector.add(*server);
 
-	selector.remove(*server);
+		if(selector.wait(sf::seconds(1))) {
+			sf::Packet packet;
+			const auto status = server->receive(packet);
+			if(status == sf::Socket::Done) {
+				receivePacket(packet);
+			}
+			else {
+				log->printf(LOG_LEVEL_INFO, "Noise(): Client encountered error receiving packet " + server->getRemoteAddress().toString());
+				quitThread = true;
+			}
+		}
+	}
 }
 
 void NoiseClient::receivePacket(sf::Packet& packet) {
