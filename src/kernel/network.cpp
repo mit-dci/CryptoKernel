@@ -205,7 +205,7 @@ void CryptoKernel::Network::makeOutgoingConnectionsWrapper() {
 			std::this_thread::sleep_for(std::chrono::seconds(20)); // stop looking for a while
 		}
 		else {
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			std::this_thread::sleep_for(std::chrono::milliseconds(4000));
 		}
 	}
 }
@@ -373,10 +373,10 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 		auto it = connected.find(key);
 		log->printf(LOG_LEVEL_INFO, "Querying " + key + " for info");
 		if(it != connected.end()) {
-			log->printf(LOG_LEVEL_INFO, "it isn't the end");
+			//log->printf(LOG_LEVEL_INFO, "it isn't the end");
 		}
 		if(it != connected.end() && it->second->acquire()) {
-			log->printf(LOG_LEVEL_INFO, "The querying process for " + key + " can begin.");
+			//log->printf(LOG_LEVEL_INFO, "The querying process for " + key + " can begin.");
 			try {
 				const Json::Value info = it->second->getInfo();
 				try {
