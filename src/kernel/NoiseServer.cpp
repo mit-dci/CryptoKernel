@@ -63,13 +63,13 @@ NoiseServer::NoiseServer(sf::TcpSocket* client, uint64_t port, CryptoKernel::Log
 	prologue.hash = HASH_SHA256;
 	prologue.dh = DH_25519;
 
-	nid = (NoiseProtocolId*)malloc(sizeof(NoiseProtocolId));
+	//nid = (NoiseProtocolId*)malloc(sizeof(NoiseProtocolId));
 
-	nid->prefix_id = NOISE_PREFIX_STANDARD;
-	nid->pattern_id = NOISE_PATTERN_XX;
-	nid->cipher_id = NOISE_CIPHER_AESGCM;
-	nid->dh_id = NOISE_DH_CURVE25519;
-	nid->hash_id = NOISE_HASH_SHA256;
+	nid.prefix_id = NOISE_PREFIX_STANDARD;
+	nid.pattern_id = NOISE_PATTERN_XX;
+	nid.cipher_id = NOISE_CIPHER_AESGCM;
+	nid.dh_id = NOISE_DH_CURVE25519;
+	nid.hash_id = NOISE_HASH_SHA256;
 
 	writeInfoThread.reset(new std::thread(&NoiseServer::writeInfo, this)); // start the write info thread
     receiveThread.reset(new std::thread(&NoiseServer::receiveWrapper, this));
@@ -186,7 +186,7 @@ void NoiseServer::receivePacket(sf::Packet packet) {
 		if(ok) {
 			std::lock_guard<std::mutex> hc(handshakeMutex);
 			err = noise_handshakestate_new_by_id
-				(&handshake, nid, NOISE_ROLE_RESPONDER);
+				(&handshake, &nid, NOISE_ROLE_RESPONDER);
 			if(err != NOISE_ERROR_NONE) {
 				log->printf(LOG_LEVEL_INFO, "Noise(): Server, create handshake: " + noiseUtil.errToString(err));
 				setHandshakeComplete(true, false);
@@ -197,7 +197,7 @@ void NoiseServer::receivePacket(sf::Packet packet) {
 		/* Set all keys that are needed by the client's requested echo protocol */
 		if(ok) {
 			std::lock_guard<std::mutex> hm(handshakeMutex);
-			if (!initializeHandshake(handshake, nid, &prologue, sizeof(prologue))) {
+			if (!initializeHandshake(handshake, &nid, &prologue, sizeof(prologue))) {
 				log->printf(LOG_LEVEL_WARN, "Noise(): Server, couldn't initialize handshake");
 				setHandshakeComplete(true, false);
 				return;
@@ -309,7 +309,7 @@ NoiseServer::~NoiseServer() {
 	if(!getHandshakeComplete()) {
 		setHandshakeComplete(true, false);
 	}
-	free(nid);
+	//free(nid);
 	client->disconnect();
 	delete client;
 	writeInfoThread->join();

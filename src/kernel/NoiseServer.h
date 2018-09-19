@@ -43,7 +43,7 @@ public:
 	bool handshakeSuccess;
 	std::mutex handshakeCompleteMutex;
 
-	NoiseProtocolId* nid;
+	NoiseProtocolId nid;
 
 public:
 	NoiseServer(sf::TcpSocket* client, uint64_t port, CryptoKernel::Log* log);
