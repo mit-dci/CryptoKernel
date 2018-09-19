@@ -153,10 +153,10 @@ void NoiseServer::receiveWrapper() {
     log->printf(LOG_LEVEL_INFO, "Noise(): Server, receive wrapper starting. " + client->getRemoteAddress().toString());
     bool quitThread = false;
 
-    while(!quitThread && !getHandshakeComplete()) {
-		sf::SocketSelector selector;
-    	selector.add(*client);
+	sf::SocketSelector selector;
+	selector.add(*client);
 
+    while(!quitThread && !getHandshakeComplete()) {
 		log->printf(LOG_LEVEL_INFO, "server waiting for packet.... " + client->getRemoteAddress().toString());
 		if(selector.wait(sf::seconds(1))) {
 			if(selector.isReady(*client)) {
@@ -176,6 +176,8 @@ void NoiseServer::receiveWrapper() {
 			}
 		}
 	}
+
+	selector.remove(*client);
 }
 
 void NoiseServer::receivePacket(sf::Packet packet) {
