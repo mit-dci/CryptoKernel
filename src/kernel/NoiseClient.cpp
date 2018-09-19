@@ -160,6 +160,9 @@ void NoiseClient::writeInfo() {
 					ok = 0;
 					continue;
 				}
+				else {
+					log->printf(LOG_LEVEL_INFO, "Noise(): Client successfully sent packet to " + server->getRemoteAddress().toString());
+				}
 			}
 			else if(action != NOISE_ACTION_READ_MESSAGE) {
 				log->printf(LOG_LEVEL_INFO, "Noise(): Client, either the handshake succeeded, or it failed");

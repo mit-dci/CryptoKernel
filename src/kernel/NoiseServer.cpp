@@ -155,18 +155,20 @@ void NoiseServer::receiveWrapper() {
     selector.add(*client);
     bool quitThread = false;
 
-    while(!quitThread && !getHandshakeComplete())
-    if(selector.wait(sf::seconds(2))) {
-        sf::Packet packet;
-        const auto status = client->receive(packet);
-        if(status == sf::Socket::Done) {
-            receivePacket(packet);
-        }
-        else {
-            log->printf(LOG_LEVEL_INFO, "Noise(): Server encountered error receiving packet");
-            quitThread = true;
-        }
-    }
+    while(!quitThread && !getHandshakeComplete()) {
+		log->printf(LOG_LEVEL_INFO, "server waiting for packet....");
+		if(selector.wait(sf::seconds(2))) {
+			sf::Packet packet;
+			const auto status = client->receive(packet);
+			if(status == sf::Socket::Done) {
+				receivePacket(packet);
+			}
+			else {
+				log->printf(LOG_LEVEL_INFO, "Noise(): Server encountered error receiving packet");
+				quitThread = true;
+			}
+		}
+	}
 
 	selector.remove(*client);
 }
