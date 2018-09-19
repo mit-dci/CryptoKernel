@@ -163,6 +163,10 @@ void NoiseServer::receiveWrapper() {
 			if(status == sf::Socket::Done) {
 				receivePacket(packet);
 			}
+			else if(status == sf::Socket::Disconnected) {
+				log->printf(LOG_LEVEL_INFO, "Noise(): Server, " + client->getRemoteAddress().toString() + " disconnected.");
+				quitThread = true;
+			}
 			else {
 				log->printf(LOG_LEVEL_INFO, "Noise(): Server encountered error receiving packet" + client->getRemoteAddress().toString());
 				quitThread = true;
