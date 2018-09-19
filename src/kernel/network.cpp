@@ -668,6 +668,7 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 			plaintextHosts.insert(addr, true);
 			continue;
 		}
+		log->printf(LOG_LEVEL_INFO, "Connection attempt to " + addr + " is complete.");
 		client->setBlocking(false);
 		addToNoisePool(client);
 		peersToQuery.erase(addr);
@@ -675,11 +676,14 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 }
 
 void CryptoKernel::Network::addToNoisePool(sf::TcpSocket* socket) {
+	log->printf(LOG_LEVEL_INFO, "adding " + socket->getRemoteAddress().toString() + " to noise");
+
 	std::lock_guard<std::mutex> hsm(handshakeMutex);
 
 	std::string addr = socket->getRemoteAddress().toString();
 
 	if(!handshakeServers.contains(addr) && !handshakeClients.contains(addr) && !connected.contains(addr)) {
+		log->printf(LOG_LEVEL_INFO, "We made it through the handshake membership test.");
 		if(addr < myAddress.toString()) {
 			log->printf(LOG_LEVEL_INFO, "Network(): Adding a noise client (to handshakeServers), " + addr);
 			handshakeServers.at(addr).reset(new NoiseServer(socket, 8888, log));
@@ -688,6 +692,9 @@ void CryptoKernel::Network::addToNoisePool(sf::TcpSocket* socket) {
 			log->printf(LOG_LEVEL_INFO, "Network(): Added connection to handshake clients: " + addr);
 			handshakeClients.at(addr).reset(new NoiseClient(socket, addr, 88, log));
 		}
+	}
+	else {
+		log->printf(LOG_LEVEL_INFO, "Woops. " + addr + " is already in something.");
 	}
 }
 
