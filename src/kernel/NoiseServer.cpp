@@ -65,11 +65,13 @@ NoiseServer::NoiseServer(sf::TcpSocket* client, uint64_t port, CryptoKernel::Log
 
 	//nid = (NoiseProtocolId*)malloc(sizeof(NoiseProtocolId));
 
+	memset(&nid, 0, sizeof(NoiseProtocolId));
 	nid.prefix_id = NOISE_PREFIX_STANDARD;
 	nid.pattern_id = NOISE_PATTERN_XX;
 	nid.cipher_id = NOISE_CIPHER_AESGCM;
 	nid.dh_id = NOISE_DH_CURVE25519;
 	nid.hash_id = NOISE_HASH_SHA256;
+	nid.hybrid_id = NOISE_DH_NONE;
 
 	writeInfoThread.reset(new std::thread(&NoiseServer::writeInfo, this)); // start the write info thread
     receiveThread.reset(new std::thread(&NoiseServer::receiveWrapper, this));
