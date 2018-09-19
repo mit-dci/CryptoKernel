@@ -669,7 +669,7 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 			continue;
 		}
 		log->printf(LOG_LEVEL_INFO, "Connection attempt to " + addr + " is complete.");
-		client->setBlocking(false);
+		//client->setBlocking(false); abc
 		addToNoisePool(client);
 		peersToQuery.erase(addr);
 	}
