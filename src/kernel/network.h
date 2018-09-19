@@ -175,7 +175,7 @@ private:
     void outgoingEncryptionHandshakeFunc();
 	std::unique_ptr<std::thread> outgoingEncryptionHandshakeThread;
 
-    void addToNoisePool(std::shared_ptr<sf::TcpSocket> socket);
+    void addToNoisePool(sf::TcpSocket* socket);
 
     void postHandshakeConnect();
     std::unique_ptr<std::thread> postHandshakeConnectThread;

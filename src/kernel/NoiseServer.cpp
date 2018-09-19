@@ -22,7 +22,7 @@
 
 #include "NoiseServer.h"
 
-NoiseServer::NoiseServer(std::shared_ptr<sf::TcpSocket> client, uint64_t port, CryptoKernel::Log* log) {
+NoiseServer::NoiseServer(sf::TcpSocket* client, uint64_t port, CryptoKernel::Log* log) {
 	sendCipher = 0;
 	recvCipher = 0;
 
@@ -142,7 +142,7 @@ void NoiseServer::writeInfo() {
 void NoiseServer::receiveWrapper() {
     log->printf(LOG_LEVEL_INFO, "Noise(): Server, receive wrapper starting.");
     sf::SocketSelector selector;
-    selector.add(*client.get());
+    selector.add(*client);
     bool quitThread = false;
 
     while(!quitThread && !getHandshakeComplete())
@@ -157,6 +157,8 @@ void NoiseServer::receiveWrapper() {
             quitThread = true;
         }
     }
+
+	selector.remove(*client);
 }
 
 void NoiseServer::receivePacket(sf::Packet packet) {
@@ -307,6 +309,7 @@ NoiseServer::~NoiseServer() {
 		setHandshakeComplete(true, false);
 	}
 	client->disconnect();
+	delete client;
 	writeInfoThread->join();
 	receiveThread->join();
 	log->printf(LOG_LEVEL_INFO, "Cleaned up noise server");

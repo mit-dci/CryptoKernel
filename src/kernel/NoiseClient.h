@@ -16,7 +16,7 @@
 
 class NoiseClient {
 public:
-	std::shared_ptr<sf::TcpSocket> server;
+	sf::TcpSocket* server;
 	CryptoKernel::Log* log;
 	std::string ipAddress;
 	uint64_t port;
@@ -41,7 +41,7 @@ public:
 	NoiseUtil noiseUtil;
 
 public:
-	NoiseClient(std::shared_ptr<sf::TcpSocket> server, std::string ipAddress, uint64_t port, CryptoKernel::Log* log);
+	NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t port, CryptoKernel::Log* log);
 
 	int getProtocolId(Prologue* id, const char* name);
 	int initializeHandshake(NoiseHandshakeState *handshake, const void *prologue, size_t prologue_len);

@@ -636,8 +636,8 @@ void CryptoKernel::Network::incomingEncryptionHandshakeWrapper() {
 void CryptoKernel::Network::incomingEncryptionHandshakeFunc(sf::TcpListener& ls, sf::SocketSelector& selector) {
 	if(selector.wait(sf::seconds(2))) {
 		if(selector.isReady(ls)) { // don't need this outer if anymore
-			std::shared_ptr<sf::TcpSocket> client(new sf::TcpSocket);
-			if(ls.accept(*client.get()) == sf::Socket::Done) {
+			sf::TcpSocket* client = new sf::TcpSocket();
+			if(ls.accept(*client) == sf::Socket::Done) {
 				std::string addr = client->getRemoteAddress().toString();
 				log->printf(LOG_LEVEL_INFO, "Network(): Connection accepted from " + addr);
 				addToNoisePool(client);
@@ -657,7 +657,7 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 	std::random_shuffle(addresses.begin(), addresses.end());
 
 	for(std::string addr : addresses) {
-		std::shared_ptr<sf::TcpSocket> client(new sf::TcpSocket());
+		sf::TcpSocket* client = new sf::TcpSocket();
 		//client->setBlocking(false); // Ultimately, it would be better to do this HERE instead of below, but it makes things more complicated
 		log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + addr + " to query encryption preference.");
 		if(client->connect(addr, port + 1, sf::seconds(3)) != sf::Socket::Done) {
@@ -672,7 +672,7 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 	}
 }
 
-void CryptoKernel::Network::addToNoisePool(std::shared_ptr<sf::TcpSocket> socket) {
+void CryptoKernel::Network::addToNoisePool(sf::TcpSocket* socket) {
 	std::lock_guard<std::mutex> hsm(handshakeMutex);
 
 	std::string addr = socket->getRemoteAddress().toString();

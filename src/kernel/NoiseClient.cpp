@@ -24,7 +24,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-NoiseClient::NoiseClient(std::shared_ptr<sf::TcpSocket> server, std::string ipAddress, uint64_t port, CryptoKernel::Log* log) {
+NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t port, CryptoKernel::Log* log) {
 	this->server = server;
 	this->log = log;
 	this->ipAddress = ipAddress;
@@ -204,7 +204,7 @@ void NoiseClient::writeInfo() {
 void NoiseClient::receiveWrapper() {
     log->printf(LOG_LEVEL_INFO, "Noise(): Client, receive wrapper starting.");
     sf::SocketSelector selector;
-    selector.add(*server.get());
+    selector.add(*server);
     bool quitThread = false;
 
     while(!quitThread && !getHandshakeComplete())
@@ -219,6 +219,8 @@ void NoiseClient::receiveWrapper() {
             quitThread = true;
         }
     }
+
+	selector.remove(*server);
 }
 
 void NoiseClient::receivePacket(sf::Packet& packet) {
@@ -327,6 +329,7 @@ NoiseClient::~NoiseClient() {
 		setHandshakeComplete(true, false);
 	}
 	server->disconnect();
+	delete server;
 	writeInfoThread->join();
 	receiveThread->join();
 	log->printf(LOG_LEVEL_INFO, "Cleaned up noise client");

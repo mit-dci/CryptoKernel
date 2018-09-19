@@ -19,7 +19,7 @@ public:
 	uint8_t clientKey25519[CURVE25519_KEY_LEN];
 	uint8_t serverKey25519[CURVE25519_KEY_LEN];
 
-	std::shared_ptr<sf::TcpSocket> client;
+	sf::TcpSocket* client;
 	CryptoKernel::Log* log;
 	uint64_t port;
 
@@ -44,7 +44,7 @@ public:
 	std::mutex handshakeCompleteMutex;
 
 public:
-	NoiseServer(std::shared_ptr<sf::TcpSocket> client, uint64_t port, CryptoKernel::Log* log);
+	NoiseServer(sf::TcpSocket* client, uint64_t port, CryptoKernel::Log* log);
 
 	void writeInfo();
 	void setHandshakeComplete(bool complete, bool success);
