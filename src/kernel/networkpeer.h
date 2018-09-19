@@ -23,6 +23,9 @@ public:
     std::vector<CryptoKernel::Blockchain::block> getBlocks(const uint64_t start,
                                                            const uint64_t end);
     
+    void prepPacket(sf::Packet& packet, std::string data);
+    sf::Packet decryptPacket(sf::Packet& packet);
+
     Network::peerStats getPeerStats() const;
 
     class NetworkError : std::exception {
