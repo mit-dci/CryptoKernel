@@ -706,9 +706,9 @@ void CryptoKernel::Network::addToNoisePool(sf::TcpSocket* socket) {
 		}
 	}
 	else {
-		log->printf(LOG_LEVEL_INFO, "Woops. " + addr + " is already inis already in something something.");
-		socket->disconnect();
-		delete socket;
+		log->printf(LOG_LEVEL_INFO, "Woops. " + addr + " is already in something.");
+		//socket->disconnect();
+		//delete socket;
 	}
 }
 
