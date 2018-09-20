@@ -15,46 +15,42 @@
 #include "log.h"
 
 class NoiseClient {
-public:
+private:
 	sf::TcpSocket* server;
 	CryptoKernel::Log* log;
 	std::string ipAddress;
 	uint64_t port;
-
+	std::string addr;
 	std::string clientPrivateKey;
-
 	uint8_t clientKey25519[CURVE25519_KEY_LEN];
-
 	std::mutex handshakeMutex;
-
 	NoiseHandshakeState* handshake;
 	Prologue prologue;
 	std::unique_ptr<std::thread> writeInfoThread;
 	bool sentId;
 	bool handshakeComplete;
 	bool handshakeSuccess;
-
-	NoiseCipherState* send_cipher;
-	NoiseCipherState* recv_cipher;
 	std::mutex handshakeCompleteMutex;
-
 	NoiseUtil noiseUtil;
-
-public:
-	NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t port, CryptoKernel::Log* log);
+	std::unique_ptr<std::thread> receiveThread;
 
 	int getProtocolId(Prologue* id, const char* name);
 	int initializeHandshake(NoiseHandshakeState *handshake, const void *prologue, size_t prologue_len);
 	void writeInfo();
 	void setHandshakeComplete(bool complete, bool success);
+    void receiveWrapper();
+	void receivePacket(sf::Packet& packet);
+
+public:
+	NoiseClient(sf::TcpSocket* server, CryptoKernel::Log* log);
+
 	bool getHandshakeComplete();
 	bool getHandshakeSuccess();
 
-    void receiveWrapper();
-	void receivePacket(sf::Packet& packet);
-    std::unique_ptr<std::thread> receiveThread;
+	virtual ~NoiseClient();
 
-    virtual ~NoiseClient();
+	NoiseCipherState* send_cipher;
+	NoiseCipherState* recv_cipher;
 };
 
 #endif /* SRC_KERNEL_NOISECLIENT_H_ */

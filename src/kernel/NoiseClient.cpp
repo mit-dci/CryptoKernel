@@ -24,7 +24,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t port, CryptoKernel::Log* log) {
+NoiseClient::NoiseClient(sf::TcpSocket* server, CryptoKernel::Log* log) {
 	this->server = server;
 	this->log = log;
 	this->ipAddress = ipAddress;
@@ -40,10 +40,8 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t 
 	handshakeComplete = false;
 	handshakeSuccess = false;
 
-	log->printf(LOG_LEVEL_INFO, "Noise(): Client started " + server->getRemoteAddress().toString());
-
 	if(noise_init() != NOISE_ERROR_NONE) {
-		log->printf(LOG_LEVEL_WARN, "Noise initialization failed " + server->getRemoteAddress().toString());
+		log->printf(LOG_LEVEL_WARN, "Noise(): Client (of " + addr + "), Noise initialization failed");
 		return;
 	}
 
@@ -57,17 +55,17 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, std::string ipAddress, uint64_t 
 	/* Create a HandshakeState object for the protocol */
 	int err = noise_handshakestate_new_by_name(&handshake, protocol.c_str(), NOISE_ROLE_INITIATOR);
 	if(err != NOISE_ERROR_NONE) {
-		log->printf(LOG_LEVEL_WARN, "Client, error: " + noiseUtil.errToString(err) + " " + server->getRemoteAddress().toString());
+		log->printf(LOG_LEVEL_WARN, "Client (of " + addr + "), error: " + noiseUtil.errToString(err));
 		return;
 	}
 
-	log->printf(LOG_LEVEL_INFO, "Noise(): Client, starting writeInfo. " + server->getRemoteAddress().toString());
+	log->printf(LOG_LEVEL_INFO, "Noise(): Client (of " + addr + "), starting writeInfo.");
 	writeInfoThread.reset(new std::thread(&NoiseClient::writeInfo, this)); // start the write info thread
     receiveThread.reset(new std::thread(&NoiseClient::receiveWrapper, this));
 }
 
 void NoiseClient::writeInfo() {
-	log->printf(LOG_LEVEL_INFO, "Noise(): Client writing info " + server->getRemoteAddress().toString());
+	log->printf(LOG_LEVEL_INFO, "Noise(): Client (of " + addr + ") writing info.");
 
 	int action;
 	NoiseBuffer mbuf;
@@ -82,14 +80,13 @@ void NoiseClient::writeInfo() {
 
 	while(!getHandshakeComplete()) { // it might fail in another thread, and so become "complete"
 		if(server->getRemoteAddress() == sf::IpAddress::None) {
-			log->printf(LOG_LEVEL_WARN, "Noise(): Client, the remote port has been invalidated " + server->getRemoteAddress().toString());
+			log->printf(LOG_LEVEL_WARN, "Noise(): Client (of " + addr + "), the remote port has been invalidated");
 			setHandshakeComplete(true, false);
 			ok = 0;
 			continue;
 		}
 
 		if(!sentPubKey) { // we need to share our public key over the network
-			log->printf(LOG_LEVEL_INFO, "Noise(): Client sending public key to " + server->getRemoteAddress().toString() + " " + server->getRemoteAddress().toString());
 			sf::Packet pubKeyPacket;
 			if(!noiseUtil.loadPublicKey("keys/client_key_25519.pub", clientKey25519, sizeof(clientKey25519))) {
 				uint8_t* privKey = 0;
@@ -108,7 +105,7 @@ void NoiseClient::writeInfo() {
 
 			handshakeMutex.lock();
 			if(!initializeHandshake(handshake, &prologue, sizeof(prologue))) { // now that we have keys, initialize handshake
-				log->printf(LOG_LEVEL_WARN, "Noise(): Client, error initializing handshake. " + server->getRemoteAddress().toString());
+				log->printf(LOG_LEVEL_WARN, "Noise(): Client (of " + addr + "), error initializing handshake.");
 				ok = 0;
 				handshakeMutex.unlock();
 				setHandshakeComplete(true, false);
@@ -125,7 +122,7 @@ void NoiseClient::writeInfo() {
 			sentPubKey = true;
 			err = noise_handshakestate_start(handshake);
 			if(err != NOISE_ERROR_NONE) {
-				log->printf(LOG_LEVEL_WARN, "Noise(): Client start handshake error, " + noiseUtil.errToString(err) + " " + server->getRemoteAddress().toString());
+				log->printf(LOG_LEVEL_WARN, "Noise(): Client (of " + addr + "), start handshake error, " + noiseUtil.errToString(err));
 				setHandshakeComplete(true, false);
 				ok = 0;
 				continue;
@@ -143,7 +140,7 @@ void NoiseClient::writeInfo() {
 				err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
 				handshakeMutex.unlock();
 				if(err != NOISE_ERROR_NONE) {
-					log->printf(LOG_LEVEL_WARN, "Noise(): Client, handshake failed on write message: " + noiseUtil.errToString(err) + " " + server->getRemoteAddress().toString());
+					log->printf(LOG_LEVEL_WARN, "Noise(): Client (of " + addr + "), handshake failed on write message: " + noiseUtil.errToString(err));
 					setHandshakeComplete(true, false);
 					ok = 0;
 					continue;
@@ -151,21 +148,21 @@ void NoiseClient::writeInfo() {
 				message[0] = (uint8_t)(mbuf.size >> 8);
 				message[1] = (uint8_t)mbuf.size;
 
-				log->printf(LOG_LEVEL_INFO, "Noise(): Client sending a packet. " + server->getRemoteAddress().toString());
+				log->printf(LOG_LEVEL_INFO, "Noise(): Client (of " + addr + "), sending a packet.");
 				sf::Packet packet;
 				packet.append(message, mbuf.size + 2);
 				if(server->send(packet) != sf::Socket::Done) {
-					log->printf(LOG_LEVEL_WARN, "Noise(): Client couldn't send packet. " + server->getRemoteAddress().toString());
+					log->printf(LOG_LEVEL_WARN, "Noise(): Client (of " + addr + ") couldn't send packet.");
 					setHandshakeComplete(true, false);
 					ok = 0;
 					continue;
 				}
 				else {
-					log->printf(LOG_LEVEL_INFO, "Noise(): Client successfully sent packet to " + server->getRemoteAddress().toString() + " " + server->getRemoteAddress().toString());
+					log->printf(LOG_LEVEL_INFO, "Noise(): Client (of " + addr + "), successfully sent packet to");
 				}
 			}
 			else if(action != NOISE_ACTION_READ_MESSAGE) {
-				log->printf(LOG_LEVEL_INFO, "Noise(): Client, either the handshake succeeded, or it failed " + server->getRemoteAddress().toString());
+				log->printf(LOG_LEVEL_INFO, "Noise(): Client (of " + addr + "), either the handshake succeeded, or it failed");
 				break;
 			}
 		}
@@ -176,7 +173,7 @@ void NoiseClient::writeInfo() {
 	/* If the action is not "split", then the handshake has failed */
 	handshakeMutex.lock();
 	if(ok && noise_handshakestate_get_action(handshake) != NOISE_ACTION_SPLIT) {
-		log->printf(LOG_LEVEL_WARN, "Noise(): Client, protocol handshake failed " + server->getRemoteAddress().toString());
+		log->printf(LOG_LEVEL_WARN, "Noise(): Client (of " + addr + "), protocol handshake failed");
 		ok = 0;
 	}
 	handshakeMutex.unlock();
@@ -187,7 +184,7 @@ void NoiseClient::writeInfo() {
 		err = noise_handshakestate_split(handshake, &send_cipher, &recv_cipher);
 		handshakeMutex.unlock();
 		if(err != NOISE_ERROR_NONE) {
-			log->printf(LOG_LEVEL_WARN, "Noise(): Client, split failed: " + noiseUtil.errToString(err) + " " + server->getRemoteAddress().toString());
+			log->printf(LOG_LEVEL_WARN, "Noise(): Client (of " + addr + "), split failed: " + noiseUtil.errToString(err));
 			ok = 0;
 		}
 	}
@@ -205,7 +202,7 @@ void NoiseClient::writeInfo() {
 }
 
 void NoiseClient::receiveWrapper() {
-    log->printf(LOG_LEVEL_INFO, "Noise(): Client, receive wrapper starting. " + server->getRemoteAddress().toString());
+    log->printf(LOG_LEVEL_INFO, "Noise(): Client (of " + addr + "), receive wrapper starting.");
     bool quitThread = false;
 
 	sf::SocketSelector selector;
@@ -219,7 +216,7 @@ void NoiseClient::receiveWrapper() {
 				receivePacket(packet);
 			}
 			else {
-				log->printf(LOG_LEVEL_INFO, "Noise(): Client encountered error receiving packet " + server->getRemoteAddress().toString());
+				log->printf(LOG_LEVEL_INFO, "Noise(): Client (of " + addr + ") encountered error receiving packet.");
 				quitThread = true;
 				setHandshakeComplete(true, false);
 			}
@@ -230,7 +227,7 @@ void NoiseClient::receiveWrapper() {
 }
 
 void NoiseClient::receivePacket(sf::Packet& packet) {
-	log->printf(LOG_LEVEL_INFO, "Noise(): Client receiving a packet. " + server->getRemoteAddress().toString());
+	log->printf(LOG_LEVEL_INFO, "Noise(): Client (of " + addr + ") receiving a packet.");
 
 	handshakeMutex.lock();
 	int action = noise_handshakestate_get_action(handshake);
@@ -242,7 +239,7 @@ void NoiseClient::receivePacket(sf::Packet& packet) {
 	uint8_t message[MAX_MESSAGE_LEN + 2];
 
 	if(action == NOISE_ACTION_READ_MESSAGE) {
-		log->printf(LOG_LEVEL_INFO, "Noise(): Client reading a message. " + server->getRemoteAddress().toString());
+		log->printf(LOG_LEVEL_INFO, "Noise(): Client (of " + addr + ") reading a message.");
  
 		message_size = packet.getDataSize();
 		memcpy(message, packet.getData(), packet.getDataSize());
@@ -252,7 +249,7 @@ void NoiseClient::receivePacket(sf::Packet& packet) {
 		err = noise_handshakestate_read_message(handshake, &mbuf, NULL);
 		handshakeMutex.unlock();
 		if(err != NOISE_ERROR_NONE) {
-			log->printf(LOG_LEVEL_WARN, "Noise(): Client, read handshake " + noiseUtil.errToString(err) + " " + server->getRemoteAddress().toString());
+			log->printf(LOG_LEVEL_WARN, "Noise(): Client (of " + addr + "), read handshake " + noiseUtil.errToString(err));
 			setHandshakeComplete(true, false);
 		}
 	}
@@ -260,7 +257,7 @@ void NoiseClient::receivePacket(sf::Packet& packet) {
 
 void NoiseClient::setHandshakeComplete(bool complete, bool success) {
 	if(success) {
-		log->printf(LOG_LEVEL_INFO, "Noise(): Client handshake succeeded " + server->getRemoteAddress().toString());
+		log->printf(LOG_LEVEL_INFO, "Noise(): Client (of " + addr + ") handshake succeeded.");
 	}
 	
 	std::lock_guard<std::mutex> hcm(handshakeCompleteMutex);
@@ -288,7 +285,7 @@ int NoiseClient::initializeHandshake(NoiseHandshakeState* handshake, const void*
 	/* Set the prologue first */
 	err = noise_handshakestate_set_prologue(handshake, prologue, prologue_len);
 	if(err != NOISE_ERROR_NONE) {
-		log->printf(LOG_LEVEL_INFO, "Noise(): Client prologue: " + noiseUtil.errToString(err) + " " + server->getRemoteAddress().toString());
+		log->printf(LOG_LEVEL_INFO, "Noise(): Client (of " + addr + "), prologue: " + noiseUtil.errToString(err));
 		return 0;
 	}
 
@@ -301,23 +298,23 @@ int NoiseClient::initializeHandshake(NoiseHandshakeState* handshake, const void*
 			keyLen = noise_dhstate_get_private_key_length(dh);
 			key = (uint8_t*)malloc(keyLen);
 			if(!key) {
-				log->printf(LOG_LEVEL_INFO, "Noise(): Client, could not allocate space for key. " + server->getRemoteAddress().toString());
+				log->printf(LOG_LEVEL_INFO, "Noise(): Client (of " + addr + "), could not allocate space for key.");
 				return 0;
 			}
 			if(!noiseUtil.loadPrivateKey(clientPrivateKey.c_str(), key, keyLen)) {
-				log->printf(LOG_LEVEL_WARN, "Noise(): Client, could not load private key. " + server->getRemoteAddress().toString());
+				log->printf(LOG_LEVEL_WARN, "Noise(): Client (of " + addr + "), could not load private key.");
 				noise_free(key, keyLen);
 				return 0;
 			}
 			err = noise_dhstate_set_keypair_private(dh, key, keyLen);
 			noise_free(key, keyLen);
 			if(err != NOISE_ERROR_NONE) {
-				log->printf(LOG_LEVEL_WARN, "Noise(): Set client private key " + noiseUtil.errToString(err) + " " + server->getRemoteAddress().toString());
+				log->printf(LOG_LEVEL_WARN, "Noise(): Set client (of " + addr + ") private key " + noiseUtil.errToString(err));
 				return 0;
 			}
 		}
 		else {
-			log->printf(LOG_LEVEL_WARN, "Noise(): Client private key required but not provided. " + server->getRemoteAddress().toString());
+			log->printf(LOG_LEVEL_WARN, "Noise(): Client (of " + addr + ") private key required but not provided.");
 			return 0;
 		}
 	}
@@ -325,12 +322,11 @@ int NoiseClient::initializeHandshake(NoiseHandshakeState* handshake, const void*
 	// we are not using a remote public key for the server, but it would be initialized right here
 
 	/* Ready to go */
-	log->printf(LOG_LEVEL_INFO, "Noise(): Client handshake initialization successful! " + server->getRemoteAddress().toString());
 	return 1;
 }
 
 NoiseClient::~NoiseClient() {
-	log->printf(LOG_LEVEL_INFO, "Cleaning up noise client " + server->getRemoteAddress().toString());
+	log->printf(LOG_LEVEL_INFO, "Cleaning up noise client (of " + addr + ")");
 	if(!getHandshakeComplete()) {
 		setHandshakeComplete(true, false);
 	}
@@ -338,5 +334,5 @@ NoiseClient::~NoiseClient() {
 	delete server;
 	writeInfoThread->join();
 	receiveThread->join();
-	log->printf(LOG_LEVEL_INFO, "Cleaned up noise client " + server->getRemoteAddress().toString());
+	log->printf(LOG_LEVEL_INFO, "Cleaned up noise client (of " + addr + ")");
 }
