@@ -221,6 +221,7 @@ void NoiseClient::receiveWrapper() {
 			else {
 				log->printf(LOG_LEVEL_INFO, "Noise(): Client encountered error receiving packet " + server->getRemoteAddress().toString());
 				quitThread = true;
+				setHandshakeComplete(true, false);
 			}
 		}
 	}

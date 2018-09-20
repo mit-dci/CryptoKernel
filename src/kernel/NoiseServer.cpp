@@ -168,10 +168,12 @@ void NoiseServer::receiveWrapper() {
 				else if(status == sf::Socket::Disconnected) {
 					log->printf(LOG_LEVEL_INFO, "Noise(): Server, " + client->getRemoteAddress().toString() + " disconnected.");
 					quitThread = true;
+					setHandshakeComplete(true, false);
 				}
 				else {
 					log->printf(LOG_LEVEL_INFO, "Noise(): Server encountered error receiving packet" + client->getRemoteAddress().toString());
 					quitThread = true;
+					setHandshakeComplete(true, false);
 				}
 			}
 		}
