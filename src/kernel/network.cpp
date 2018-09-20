@@ -319,9 +319,10 @@ void CryptoKernel::Network::postHandshakeConnect() {
 					//handshakeClients.clear();
 					handshakeClients.erase(key);
 				}
-				else if(it->second->getHandshakeComplete()) {
+				else if(it->second->getHandshakeComplete() && !it->second->getHandshakeSuccess()) {
 					// handshake failed
 					handshakeClients.erase(key);
+					connectedPending.erase(key);
 				}
 			}
 		}
@@ -341,6 +342,7 @@ void CryptoKernel::Network::postHandshakeConnect() {
 				else if(it->second->getHandshakeComplete() && !it->second->getHandshakeSuccess()) {
 					// handshake failed
 					handshakeServers.erase(key);
+					connectedPending.erase(key);
 				}
 			}
 		}
