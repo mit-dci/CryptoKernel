@@ -30,6 +30,8 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, CryptoKernel::Log* log) {
 	this->ipAddress = ipAddress;
 	this->port = port;
 
+	addr = server->getRemoteAddress().toString();
+
 	clientPrivateKey = "keys/client_key_25519";
 
 	send_cipher = 0;
@@ -65,8 +67,6 @@ NoiseClient::NoiseClient(sf::TcpSocket* server, CryptoKernel::Log* log) {
 }
 
 void NoiseClient::writeInfo() {
-	log->printf(LOG_LEVEL_INFO, "Noise(): Client (of " + addr + ") writing info.");
-
 	int action;
 	NoiseBuffer mbuf;
 	int err, ok;
@@ -115,7 +115,7 @@ void NoiseClient::writeInfo() {
 
 			pubKeyPacket.append(clientKey25519, sizeof(clientKey25519));
 
-			if(server->send(pubKeyPacket) != sf::Socket::Done) {
+			if(server->send(pubKeyPacket) != sf::Socket::Done) { // not useful right now, but could be if we go non-blocking
 				continue; // keep sending the public key until it goes through
 			}
 
