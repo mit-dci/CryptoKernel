@@ -25,7 +25,8 @@ public:
     PoW(const uint64_t blockTarget,
         CryptoKernel::Blockchain* blockchain,
         const bool miner,
-        const std::string& pubKey);
+        const std::string& pubKey,
+        CryptoKernel::Log* log);
 
     virtual ~PoW();
 
@@ -97,6 +98,7 @@ public:
     virtual void start();
 protected:
     CryptoKernel::Blockchain* blockchain;
+    CryptoKernel::Log* log;
     uint64_t blockTarget;
     struct consensusData {
         BigNum totalWork;
@@ -119,7 +121,8 @@ public:
     KGW_SHA256(const uint64_t blockTarget,
                CryptoKernel::Blockchain* blockchain,
                const bool miner,
-               const std::string& pubKey);
+               const std::string& pubKey,
+               CryptoKernel::Log* log);
 
     /**
     * Uses SHA256 to calculate the hash
@@ -162,7 +165,8 @@ class Consensus::PoW::KGW_LYRA2REV2 : public Consensus::PoW::KGW_SHA256 {
         KGW_LYRA2REV2(const uint64_t blockTarget,
                       CryptoKernel::Blockchain* blockchain,
                       const bool miner,
-                      const std::string& pubKey);
+                      const std::string& pubKey,
+                      CryptoKernel::Log* log);
 
         /**
         * Uses Lyra2REv2 to calculate the hash

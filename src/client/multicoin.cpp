@@ -109,7 +109,8 @@ std::unique_ptr<CryptoKernel::Consensus> CryptoKernel::MulticoinLoader::getConse
                new Consensus::PoW::KGW_LYRA2REV2(params["blocktime"].asUInt64(),
                                                  blockchain,
                                                  config["miner"].asBool(),
-                                                 config["pubKey"].asString()));
+                                                 config["pubKey"].asString(),
+                                                 log));
     } else {
         throw std::runtime_error("Unknown consensus algorithm " + name);
     }

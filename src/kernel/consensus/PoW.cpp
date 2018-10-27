@@ -8,11 +8,13 @@
 CryptoKernel::Consensus::PoW::PoW(const uint64_t blockTarget,
                                   CryptoKernel::Blockchain* blockchain,
                                   const bool miner,
-                                  const std::string& pubKey) {
+                                  const std::string& pubKey,
+                                  CryptoKernel::Log* log) {
     this->blockTarget = blockTarget;
     this->blockchain = blockchain;
     running = miner;
-    this->pubKey = pubKey;    
+    this->pubKey = pubKey;
+    this->log = log;
 }
 
 CryptoKernel::Consensus::PoW::~PoW() {
@@ -55,6 +57,8 @@ void CryptoKernel::Consensus::PoW::miner() {
             t = std::time(0);
             time2 = static_cast<uint64_t> (t);
             if((time2 - now) % 20 == 0 && (time2 - now) > 0) {
+                const auto hashrate = (count / 20.0f) / 1000;
+                log->printf(LOG_LEVEL_INFO, "Consensus::PoW::miner(): current block is stale, generating a new one. HR: " + std::to_string(hashrate) + " KH/s");
                 Block = blockchain->generateVerifyingBlock(pubKey);
                 previousBlock = blockchain->getBlockDB(Block.getPreviousBlockId().toString());
                 target = CryptoKernel::BigNum(Block.getConsensusData()["target"].asString());
@@ -78,7 +82,11 @@ void CryptoKernel::Consensus::PoW::miner() {
         Block.setConsensusData(consensusData);
 
         if(running) {
-            blockchain->submitBlock(Block);
+            log->printf(LOG_LEVEL_INFO, "Consensus::PoW::miner(): found a block! Submitting to blockchain");
+            const auto res = blockchain->submitBlock(Block);
+            if(!std::get<0>(res)) {
+                log->printf(LOG_LEVEL_WARN, "Consensus::PoW::miner(): mined block was rejected by blockchain");
+            }
         }
     }
 }
@@ -177,8 +185,9 @@ Json::Value CryptoKernel::Consensus::PoW::generateConsensusData(
 CryptoKernel::Consensus::PoW::KGW_SHA256::KGW_SHA256(const uint64_t blockTarget,
                                                      CryptoKernel::Blockchain* blockchain,
                                                      const bool miner,
-                                                     const std::string& pubKey) :
-CryptoKernel::Consensus::PoW(blockTarget, blockchain, miner, pubKey) {
+                                                     const std::string& pubKey,
+                                                     CryptoKernel::Log* log) :
+CryptoKernel::Consensus::PoW(blockTarget, blockchain, miner, pubKey, log) {
 
 }
 
@@ -307,8 +316,9 @@ bool CryptoKernel::Consensus::PoW::KGW_SHA256::submitBlock(Storage::Transaction*
 CryptoKernel::Consensus::PoW::KGW_LYRA2REV2::KGW_LYRA2REV2(const uint64_t blockTarget,
                                                            CryptoKernel::Blockchain* blockchain,
                                                            const bool miner,
-                                                           const std::string& pubKey)
-: KGW_SHA256(blockTarget, blockchain, miner, pubKey) {}
+                                                           const std::string& pubKey,
+                                                           CryptoKernel::Log* log)
+: KGW_SHA256(blockTarget, blockchain, miner, pubKey, log) {}
 
 CryptoKernel::BigNum CryptoKernel::Consensus::PoW::KGW_LYRA2REV2::powFunction(const std::string& inputString) {
     char* output = new char[32];
