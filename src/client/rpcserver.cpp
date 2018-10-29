@@ -43,7 +43,7 @@ void CryptoServer::setWallet(CryptoKernel::Wallet* Wallet,
 Json::Value CryptoServer::getinfo() {
     Json::Value returning;
 
-    returning["rpc_version"] = "0.0.2";
+    returning["rpc_version"] = "0.1.0";
     returning["ck_version"] = version;
 
     std::stringstream buffer;
