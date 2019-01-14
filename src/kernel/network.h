@@ -82,6 +82,7 @@ public:
     struct peerStats {
         unsigned int ping;
         bool incoming;
+        bool encrypted;
         uint64_t connectedSince;
         uint64_t transferUp;
         uint64_t transferDown;

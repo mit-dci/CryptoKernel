@@ -18,11 +18,12 @@ CryptoKernel::Network::Peer::Peer(sf::TcpSocket* client, CryptoKernel::Blockchai
     stats.transferUp = 0;
     stats.transferDown = 0;
     stats.incoming = incoming;
+    stats.encrypted = false;
 
     client->setBlocking(true);
 
-    send_cipher = 0;
-    recv_cipher = 0;
+    send_cipher = nullptr;
+    recv_cipher = nullptr;
 
     this->log = log;
 
@@ -31,10 +32,18 @@ CryptoKernel::Network::Peer::Peer(sf::TcpSocket* client, CryptoKernel::Blockchai
 
 void CryptoKernel::Network::Peer::setSendCipher(NoiseCipherState* cipher) {
 	this->send_cipher = cipher;
+
+    if(this->send_cipher != nullptr && this->recv_cipher != nullptr) {
+        stats.encrypted = true;
+    }
 }
 
 void CryptoKernel::Network::Peer::setRecvCipher(NoiseCipherState* cipher) {
 	this->recv_cipher = cipher;
+
+    if(this->send_cipher != nullptr && this->recv_cipher != nullptr) {
+        stats.encrypted = true;
+    }
 }
 
 CryptoKernel::Network::Peer::~Peer() {
