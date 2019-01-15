@@ -131,7 +131,10 @@ void CryptoKernel::Network::Peer::requestFunc() {
                             response["data"]["version"] = version;
                             response["data"]["tipHeight"] = network->getCurrentHeight();
                             for(const auto& peer : network->getConnectedPeers()) {
-                                response["data"]["peers"].append(peer);
+                                sf::IpAddress addr(peer);
+                                if(addr != sf::IpAddress::None && addr != sf::IpAddress::LocalHost) {
+                                    response["data"]["peers"].append(peer);
+                                }
                             }
                             response["nonce"] = request["nonce"].asUInt64();
                             send(response);
