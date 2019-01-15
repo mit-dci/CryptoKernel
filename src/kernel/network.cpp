@@ -329,7 +329,7 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 							}
 						} else {
 							changeScore(it->first, 10);
-							throw Peer::NetworkError("peer sent a malformed peer IP address");
+							throw Peer::NetworkError("peer sent a malformed peer IP address: \"" + addr.toString() + "\"");
 						}
 					}
 				} catch(const Json::Exception& e) {
