@@ -664,6 +664,10 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 		addToNoisePool(client);
 		peersToQuery.erase(addr);
 	}
+
+	if(addresses.empty()) {
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
 }
 
 void CryptoKernel::Network::addToNoisePool(sf::TcpSocket* socket) {
