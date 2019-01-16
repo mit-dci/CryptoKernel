@@ -583,7 +583,6 @@ void CryptoKernel::Network::connectionFunc() {
                         std::to_string(client->getRemotePort()));
             Connection* connection = new Connection();
 			connection->acquire();
-			defer d([&]{connection->release();});
             connection->setPeer(new Peer(client, blockchain, this, true));
 
             Json::Value info;
@@ -592,6 +591,7 @@ void CryptoKernel::Network::connectionFunc() {
                 info = connection->getInfo();
             } catch(const Peer::NetworkError& e) {
                 log->printf(LOG_LEVEL_WARN, "Network(): Failed to get information from connecting peer: " + std::string(e.what()));
+                connection->release();
                 delete connection;
                 continue;
             }
@@ -601,6 +601,7 @@ void CryptoKernel::Network::connectionFunc() {
                 connection->setInfo("version", info["version"].asString());
             } catch(const Json::Exception& e) {
                 log->printf(LOG_LEVEL_WARN, "Network(): Incoming peer sent invalid info message");
+                connection->release();
                 delete connection;
                 continue;
             }
@@ -615,6 +616,8 @@ void CryptoKernel::Network::connectionFunc() {
             std::unique_ptr<Storage::Transaction> dbTx(networkdb->begin());
             peers->put(dbTx.get(), client->getRemoteAddress().toString(), connection->getCachedInfo());
             dbTx->commit();
+
+            connection->release();
         } else {
             delete client;
         }
