@@ -72,7 +72,9 @@ public:
 	}
 
 	void erase(KEY key) {
+		mapMutex.lock();
 		map.erase(key);
+		mapMutex.unlock();
 	}
 
 	void erase(typename std::map<KEY, VAL>::iterator it) {

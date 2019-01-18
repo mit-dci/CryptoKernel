@@ -115,16 +115,13 @@ private:
 		std::vector<CryptoKernel::Blockchain::block> getBlocks(const uint64_t start, const uint64_t end);
         CryptoKernel::Network::peerStats getPeerStats();
 
-		bool acquire();
-		void release();
-
 		void setPeer(Peer* peer);
 		void setInfo(Json::ArrayIndex& key, Json::Value& value);
 		void setInfo(std::string key, uint64_t value);
 		void setInfo(std::string key, std::string value);
 		void setInfo(Json::Value info);
-		Json::Value& getInfo(Json::ArrayIndex& key);
-		Json::Value& getInfo(std::string key);
+		Json::Value getInfo(Json::ArrayIndex& key);
+		Json::Value getInfo(std::string key);
 		Json::Value getCachedInfo();
 		Network::peerStats getPeerStats() const;
 
@@ -139,9 +136,12 @@ private:
 		std::mutex peerMutex;
 		std::mutex modMutex;
 		std::mutex infoMutex;
+        
+        bool acquire();
+		void release();
 	};
 
-    ConcurrentMap<std::string, std::unique_ptr<Connection>> connected;
+    ConcurrentMap<std::string, std::shared_ptr<Connection>> connected;
     std::recursive_mutex connectedMutex;
 
     ConcurrentMap<std::string, peerStats> connectedStats;
@@ -182,11 +182,11 @@ private:
     std::unique_ptr<std::thread> postHandshakeConnectThread;
 
     std::mutex handshakeMutex;
-    ConcurrentMap<std::string, std::unique_ptr<NoiseClient>> handshakeClients;
-    ConcurrentMap<std::string, std::unique_ptr<NoiseServer>> handshakeServers;
+    ConcurrentMap<std::string, std::shared_ptr<NoiseClient>> handshakeClients;
+    ConcurrentMap<std::string, std::shared_ptr<NoiseServer>> handshakeServers;
     ConcurrentMap<std::string, bool> plaintextHosts;
     ConcurrentMap<std::string, bool> peersToQuery; // (regarding encyrption preference)
-    ConcurrentMap<std::string, std::unique_ptr<Connection>> connectedPending; // connections we've made but aren't yet ready to use
+    ConcurrentMap<std::string, std::shared_ptr<Connection>> connectedPending; // connections we've made but aren't yet ready to use
     sf::TcpListener listener;
 
     ConcurrentMap<std::string, uint64_t> banned;

@@ -67,6 +67,8 @@ private:
 
     NoiseCipherState* send_cipher;
 	NoiseCipherState* recv_cipher;
+
+    sf::SocketSelector selector;
 };
 
 #endif // NETWORKPEER_H_INCLUDED

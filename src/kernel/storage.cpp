@@ -41,11 +41,11 @@ CryptoKernel::Storage::Storage(const std::string& filename, const bool sync, con
 
     this->sync = sync;
 
-    readLock.lock();
     writeLock.lock();
+    readLock.lock();
     leveldb::Status dbstatus = leveldb::DB::Open(options, filename, &db);
-    writeLock.unlock();
     readLock.unlock();
+    writeLock.unlock();
 
     if(!dbstatus.ok()) {
         throw std::runtime_error("Failed to open the database");
@@ -53,11 +53,11 @@ CryptoKernel::Storage::Storage(const std::string& filename, const bool sync, con
 }
 
 CryptoKernel::Storage::~Storage() {
-    readLock.lock();
     writeLock.lock();
+    readLock.lock();
     delete db;
-    writeLock.unlock();
     readLock.unlock();
+    writeLock.unlock();
 }
 
 Json::Value CryptoKernel::Storage::toJson(const std::string& json) {

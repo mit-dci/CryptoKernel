@@ -68,11 +68,11 @@ bool CryptoKernel::Log::printf(int loglevel, std::string message) {
 
     stagingstream << message << "\n";
 
+    logfilemutex.lock();
     if(fPrintToConsole) {
         std::cout << stagingstream.str() << std::flush;
     }
 
-    logfilemutex.lock();
     logfile << stagingstream.str();
     logfilemutex.unlock();
 

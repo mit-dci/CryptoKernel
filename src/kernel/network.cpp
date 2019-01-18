@@ -90,21 +90,23 @@ void CryptoKernel::Network::Connection::setInfo(Json::Value info) {
 	this->info = info;
 }
 
-Json::Value& CryptoKernel::Network::Connection::getInfo(Json::ArrayIndex& key) {
+Json::Value CryptoKernel::Network::Connection::getInfo(Json::ArrayIndex& key) {
 	std::lock_guard<std::mutex> im(infoMutex);
 	return this->info[key];
 }
 
-Json::Value& CryptoKernel::Network::Connection::getInfo(std::string key) {
+Json::Value CryptoKernel::Network::Connection::getInfo(std::string key) {
 	std::lock_guard<std::mutex> im(infoMutex);
 	return this->info[key];
 }
 
 void CryptoKernel::Network::Connection::setSendCipher(NoiseCipherState* cipher) {
+	std::lock_guard<std::mutex> pm(peerMutex);
 	peer->setSendCipher(cipher);
 }
 
 void CryptoKernel::Network::Connection::setRecvCipher(NoiseCipherState* cipher) {
+	std::lock_guard<std::mutex> pm(peerMutex);
 	peer->setRecvCipher(cipher);
 }
 
@@ -237,7 +239,6 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 		if(connected.contains(it->key()) || connectedPending.contains(it->key())) {
 			continue;
 		}
-		//log->printf(LOG_LEVEL_INFO, "Welp, it appears that nothing contains " + it->key());
 
 		std::time_t result = std::time(nullptr);
 
@@ -280,8 +281,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 		if(socket->connect(peerIp, port, sf::seconds(3)) == sf::Socket::Done) {
 			log->printf(LOG_LEVEL_INFO, "Network(): Successfully connected to " + peerIp);
 			Connection* connection = new Connection;
-			connection->acquire();
-			defer d([&]{connection->release();});
+
 			connection->setPeer(new Peer(socket, blockchain, this, false, log));
 
 			peerData["lastseen"] = static_cast<uint64_t>(std::time(nullptr));
@@ -289,7 +289,7 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 
 			connection->setInfo(peerData);
 
-			connectedPending.at(peerIp).reset(connection);
+			connectedPending.insert(peerIp, std::shared_ptr<Connection>(connection));
 			
 			peersToQuery.insert(std::make_pair(peerIp, true));
 		}
@@ -351,14 +351,13 @@ void CryptoKernel::Network::postHandshakeConnect() {
 
 void CryptoKernel::Network::transferConnection(std::string addr, NoiseCipherState* send_cipher, NoiseCipherState* recv_cipher) {
 	auto it = connectedPending.find(addr);
-	if(it->second && it != connectedPending.end() && it->second->acquire()) {
+	if(it->second && it != connectedPending.end()) {
+		log->printf(LOG_LEVEL_INFO, "Network(): Transferring " + addr + " from pending to connected");
 		Connection* connection = it->second.get();
 		connection->setSendCipher(send_cipher);
 		connection->setRecvCipher(recv_cipher);
-		it->second.release();
-		connected.at(addr).reset(connection);
+		connected.insert(addr, it->second);
 		connectedPending.erase(addr);
-		connection->release();
 	}
 }
 
@@ -371,7 +370,7 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 	std::random_shuffle(keys.begin(), keys.end());
 	for(auto key: keys) {
 		auto it = connected.find(key);
-		if(it != connected.end() && it->second->acquire()) {
+		if(it != connected.end()) {
 			try {
 				const Json::Value info = it->second->getInfo();
 				try {
@@ -429,11 +428,9 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 
 				peers->put(dbTx.get(), it->first, it->second->getCachedInfo());
 				connectedStats.erase(it->first);
-				it->second->release();
 				connected.erase(it);
 				continue;
 			}
-			it->second->release();
 		}
 	}
 
@@ -455,8 +452,7 @@ void CryptoKernel::Network::networkFunc() {
         std::random_shuffle(keys.begin(), keys.end());
         for(auto key : keys) {
         	auto it = connected.find(key);
-        	if(it != connected.end() && it->second->acquire()) {
-                defer d([&]{it->second->release();});
+        	if(it != connected.end()) {
         		if(it->second->getInfo("height").asUInt64() > bestHeight) {
 					bestHeight = it->second->getInfo("height").asUInt64();
 				}
@@ -480,8 +476,7 @@ void CryptoKernel::Network::networkFunc() {
             std::random_shuffle(keys.begin(), keys.end());
 			for(auto key : keys) {
 				auto it = connected.find(key);
-				if(it != connected.end() && it->second->acquire()) {
-                    defer d([&]{it->second->release();});
+				if(it != connected.end()) {
 					if(it->second->getInfo("height").asUInt64() > currentHeight) {
 						std::list<CryptoKernel::Blockchain::block> blocks;
 
@@ -587,7 +582,7 @@ void CryptoKernel::Network::networkFunc() {
 								const auto blockResult = blockchain->submitBlock(*rit);
 
 								if(std::get<1>(blockResult)) {
-									changeScore(peer, 50);
+									changeScore(peer, 250);
 								}
 
 								if(!std::get<0>(blockResult)) {
@@ -654,9 +649,9 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 
 	for(std::string addr : addresses) {
 		sf::TcpSocket* client = new sf::TcpSocket();
-		log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + addr + " to query encryption preference.");
+		log->printf(LOG_LEVEL_INFO, "Network(): Attempting to connect to " + addr + " to query encryption preference");
 		if(client->connect(addr, port + 1, sf::seconds(3)) != sf::Socket::Done) {
-			log->printf(LOG_LEVEL_INFO, "Network(): Couldn't query " + addr + " for encryption preference (it likely doesn't support encryption).");
+			log->printf(LOG_LEVEL_INFO, "Network(): Couldn't query " + addr + " for encryption preference (it likely doesn't support encryption)");
 			peersToQuery.erase(addr);
 			plaintextHosts.insert(addr, true);
 			continue;
@@ -680,11 +675,11 @@ void CryptoKernel::Network::addToNoisePool(sf::TcpSocket* socket) {
 	if(!handshakeServers.contains(addr) && !handshakeClients.contains(addr) && !connected.contains(addr)) {
 		if(addr < myAddress.toString()) {
 			log->printf(LOG_LEVEL_INFO, "Network(): Adding a noise client (to handshakeServers), " + addr);
-			handshakeServers.at(addr).reset(new NoiseServer(socket, log));
+			handshakeServers.insert(addr, std::shared_ptr<NoiseServer>(new NoiseServer(socket, log)));
 		}
 		else {
 			log->printf(LOG_LEVEL_INFO, "Network(): Added connection to handshake clients: " + addr);
-			handshakeClients.at(addr).reset(new NoiseClient(socket, log));
+			handshakeClients.insert(addr, std::shared_ptr<NoiseClient>(new NoiseClient(socket, log)));
 		}
 	}
 	else {
@@ -705,34 +700,36 @@ void CryptoKernel::Network::connectionFunc() {
                 continue;
             }
 
-            if(connected.contains(client->getRemoteAddress().toString()) || connectedPending.contains(client->getRemoteAddress().toString())) {
+			const sf::IpAddress addr(client->getRemoteAddress());
+
+            if(connected.contains(addr.toString()) || connectedPending.contains(addr.toString())) {
                 log->printf(LOG_LEVEL_INFO,
                             "Network(): Incoming connection duplicates existing connection for " +
-                            client->getRemoteAddress().toString());
+                            addr.toString());
                 client->disconnect();
                 delete client;
                 continue;
             }
 
-            const auto it = banned.find(client->getRemoteAddress().toString());
+            const auto it = banned.find(addr.toString());
             if(it != banned.end()) {
                 if(it->second > static_cast<uint64_t>(std::time(nullptr))) {
                     log->printf(LOG_LEVEL_INFO,
-                                "Network(): Incoming connection " + client->getRemoteAddress().toString() + " is banned");
+                                "Network(): Incoming connection " + addr.toString() + " is banned");
                     client->disconnect();
                     delete client;
                     continue;
                 }
             }
 
-            sf::IpAddress addr(client->getRemoteAddress());
+            
 
             if(addr == sf::IpAddress::getLocalAddress()
                     || addr == myAddress
                     || addr == sf::IpAddress::LocalHost
                     || addr == sf::IpAddress::None) {
                 log->printf(LOG_LEVEL_INFO,
-                            "Network(): Incoming connection " + client->getRemoteAddress().toString() +
+                            "Network(): Incoming connection " + addr.toString() +
                             " is connecting to self");
                 client->disconnect();
                 delete client;
@@ -741,11 +738,9 @@ void CryptoKernel::Network::connectionFunc() {
 
 
             log->printf(LOG_LEVEL_INFO,
-                        "Network(): Peer connected from " + client->getRemoteAddress().toString() + ":" +
+                        "Network(): Peer connected from " + addr.toString() + ":" +
                         std::to_string(client->getRemotePort()));
             Connection* connection = new Connection();
-			connection->acquire();
-			defer d([&]{connection->release();});
             connection->setPeer(new Peer(client, blockchain, this, true, log));
 
             Json::Value info;
@@ -754,8 +749,8 @@ void CryptoKernel::Network::connectionFunc() {
             connection->setInfo("lastseen", static_cast<uint64_t>(result));
             connection->setInfo("score", 0);
 
-            connectedPending.at(client->getRemoteAddress().toString()).reset(connection);
-			peersToQuery.insert(std::make_pair(client->getRemoteAddress().toString(), true));
+            connectedPending.insert(addr.toString(), std::shared_ptr<Connection>(connection));
+			peersToQuery.insert(std::make_pair(addr.toString(), true));
         } else {
             delete client;
         }
@@ -772,8 +767,7 @@ void CryptoKernel::Network::broadcastTransactions(const
 	std::random_shuffle(keys.begin(), keys.end());
 	for(std::string key : keys) {
 		auto it = connected.find(key);
-		if(it != connected.end() && it->second->acquire()) {
-            defer d([&]{it->second->release();});
+		if(it != connected.end()) {
 			try {
 				it->second->sendTransactions(transactions);
 			} catch(const Peer::NetworkError& err) {
@@ -788,8 +782,7 @@ void CryptoKernel::Network::broadcastBlock(const CryptoKernel::Blockchain::block
 	std::random_shuffle(keys.begin(), keys.end());
     for(std::string key : keys) {
     	auto it = connected.find(key);
-    	if(it != connected.end() && it->second->acquire()) {
-            defer d([&]{it->second->release();});
+    	if(it != connected.end()) {
     		try {
 				it->second->sendBlock(block);
 			} catch(const Peer::NetworkError& err) {
@@ -821,7 +814,7 @@ void CryptoKernel::Network::changeScore(const std::string& url, const uint64_t s
 
 std::set<std::string> CryptoKernel::Network::getConnectedPeers() {
     std::set<std::string> peerUrls;
-    for(const auto& peer : connected.keys()) {
+    for(const auto& peer : connectedStats.keys()) {
     	peerUrls.insert(peer);
     }
 

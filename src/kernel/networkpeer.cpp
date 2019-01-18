@@ -22,6 +22,8 @@ CryptoKernel::Network::Peer::Peer(sf::TcpSocket* client, CryptoKernel::Blockchai
 
     client->setBlocking(true);
 
+    selector.add(*client);
+
     send_cipher = nullptr;
     recv_cipher = nullptr;
 
@@ -31,6 +33,7 @@ CryptoKernel::Network::Peer::Peer(sf::TcpSocket* client, CryptoKernel::Blockchai
 }
 
 void CryptoKernel::Network::Peer::setSendCipher(NoiseCipherState* cipher) {
+    std::lock_guard<std::mutex> mut(clientMutex);    
 	this->send_cipher = cipher;
 
     if(this->send_cipher != nullptr && this->recv_cipher != nullptr) {
@@ -39,7 +42,8 @@ void CryptoKernel::Network::Peer::setSendCipher(NoiseCipherState* cipher) {
 }
 
 void CryptoKernel::Network::Peer::setRecvCipher(NoiseCipherState* cipher) {
-	this->recv_cipher = cipher;
+	std::lock_guard<std::mutex> mut(clientMutex);    
+    this->recv_cipher = cipher;
 
     if(this->send_cipher != nullptr && this->recv_cipher != nullptr) {
         stats.encrypted = true;
@@ -47,12 +51,18 @@ void CryptoKernel::Network::Peer::setRecvCipher(NoiseCipherState* cipher) {
 }
 
 CryptoKernel::Network::Peer::~Peer() {
+    clientMutex.lock();
     running = false;
-    client->disconnect();
+    clientMutex.unlock();
+
     requestThread->join();
+
+    clientMutex.lock();
+    client->disconnect();
     noise_cipherstate_free(send_cipher);
 	noise_cipherstate_free(recv_cipher);
     delete client;
+    clientMutex.unlock();
 }
 
 Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request) {
@@ -65,13 +75,17 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request) {
     requests[nonce] = true;
 
     sf::Packet packet;
+    clientMutex.lock();
     prepPacket(packet, CryptoKernel::Storage::toString(modifiedRequest, false));
 
     const uint64_t startTime = std::chrono::duration_cast<std::chrono::milliseconds>
                                (std::chrono::system_clock::now().time_since_epoch()).count();
     const auto status = client->send(packet);
+    clientMutex.unlock();
     if(status != sf::Socket::Done) {
+        clientMutex.lock();
         running = false;
+        clientMutex.unlock();
         throw NetworkError("failed to send packet. Res: " + std::to_string(status));
     }
 
@@ -104,6 +118,7 @@ Json::Value CryptoKernel::Network::Peer::sendRecv(const Json::Value& request) {
 
 void CryptoKernel::Network::Peer::send(const Json::Value& response) {
     sf::Packet packet;
+    std::lock_guard<std::mutex> mut(clientMutex);
     prepPacket(packet, CryptoKernel::Storage::toString(response, false));
 
     const auto status = client->send(packet);
@@ -112,39 +127,44 @@ void CryptoKernel::Network::Peer::send(const Json::Value& response) {
         throw NetworkError("failed to send packet. Res: " + std::to_string(status));
     }
 
-    clientMutex.lock();
     stats.transferUp += packet.getDataSize();
-    clientMutex.unlock();
 }
 
 void CryptoKernel::Network::Peer::requestFunc() {
     uint64_t nRequests = 0;
     uint64_t startTime = static_cast<uint64_t>(std::time(nullptr));
 
-    while(running) {
+    while(true) {
+        {
+            std::lock_guard<std::mutex> clientmut(clientMutex);
+            if(!running) {
+                break;
+            }
+        }
         sf::Packet packet;
 
-        sf::SocketSelector selector;
-        selector.add(*client);
         if(selector.wait(sf::seconds(1))) {
+            clientMutex.lock();
             const auto status = client->receive(packet);
+            const auto remoteAddress = client->getRemoteAddress().toString();
+            
             if(status == sf::Socket::Done) {
                 nRequests++;
 
-                clientMutex.lock();
                 stats.transferDown += packet.getDataSize();
-                clientMutex.unlock();
 
                 // Don't allow packets bigger than 50MB
                 if(packet.getDataSize() > 50 * 1024 * 1024) {
-                    network->changeScore(client->getRemoteAddress().toString(), 250);
+                    network->changeScore(remoteAddress, 250);
                     running = false;
+                    clientMutex.unlock();
                     break;
                 }
 
                 std::string requestString;
                 
                 sf::Packet decryptedPacket = decryptPacket(packet);
+                clientMutex.unlock();
                 decryptedPacket >> requestString;
 
                 // If this breaks, request will be null
@@ -172,7 +192,7 @@ void CryptoKernel::Network::Peer::requestFunc() {
                                 if(std::get<0>(txResult)) {
                                     txs.push_back(tx);
                                 } else if(std::get<1>(txResult)) {
-                                    network->changeScore(client->getRemoteAddress().toString(), 50);
+                                    network->changeScore(remoteAddress, 50);
                                 }
                             }
 
@@ -186,7 +206,7 @@ void CryptoKernel::Network::Peer::requestFunc() {
                             // Don't accept blocks that are more than two hours away from the current time
                             const int64_t now = std::time(nullptr);
                             if(std::abs((int)(now - block.getTimestamp())) > 2 * 60 * 60) {
-                                network->changeScore(client->getRemoteAddress().toString(), 50);
+                                network->changeScore(remoteAddress, 50);
                             } else {
                                 try {
                                     blockchain->getBlockDB(block.getId().toString());
@@ -195,7 +215,7 @@ void CryptoKernel::Network::Peer::requestFunc() {
                                     if(std::get<0>(blockResult)) {
                                         network->broadcastBlock(block);
                                     } else if(std::get<1>(blockResult)) {
-                                        network->changeScore(client->getRemoteAddress().toString(), 50);
+                                        network->changeScore(remoteAddress, 50);
                                     }
                                 }
                             }
@@ -255,7 +275,7 @@ void CryptoKernel::Network::Peer::requestFunc() {
                                 send(response);
                             }
                         } else {
-                            network->changeScore(client->getRemoteAddress().toString(), 50);
+                            network->changeScore(remoteAddress, 50);
                         }
                     } else if(!request["nonce"].empty()) {
                         std::lock_guard<std::mutex> lock(clientMutex);
@@ -265,26 +285,31 @@ void CryptoKernel::Network::Peer::requestFunc() {
                             requests.erase(it);
                             responseReady.notify_all();
                         } else {
-                            network->changeScore(client->getRemoteAddress().toString(), 50);
+                            network->changeScore(remoteAddress, 50);
                         }
                     }
                 } catch(const NetworkError& e) {
                     running = false;
                 } catch(const CryptoKernel::Blockchain::InvalidElementException& e) {
-                    network->changeScore(client->getRemoteAddress().toString(), 50);
+                    network->changeScore(remoteAddress, 50);
                 } catch(const Json::Exception& e) {
-                    network->changeScore(client->getRemoteAddress().toString(), 250);
+                    network->changeScore(remoteAddress, 250);
                 }
             } else if(status == sf::Socket::Disconnected || status == sf::Socket::Error) {
                 running = false;   
+                clientMutex.unlock();
+            } else {
+                clientMutex.unlock();
             }
 
             const uint64_t timeElapsed = static_cast<uint64_t>(std::time(nullptr)) - startTime;
             if(timeElapsed >= 30 && (double)nRequests/(double)timeElapsed > 50.0) {
-                network->changeScore(client->getRemoteAddress().toString(), 20);
+                network->changeScore(remoteAddress, 20);
                 nRequests = 0;
                 startTime += timeElapsed;
             }
+        } else {
+            clientMutex.unlock();
         }
     }
 }
