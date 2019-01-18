@@ -37,6 +37,20 @@ public:
 		return res;
 	}
 
+	std::pair<bool, VAL> atMaybe(KEY key) {
+		std::pair<bool, VAL> returning;
+		mapMutex.lock();
+		auto res = map.find(key);
+		if(res != map.end()) {
+			returning = std::make_pair(true, res->second);
+		} else {
+			returning = std::make_pair(false, nullptr);
+		}
+		mapMutex.unlock();
+
+		return returning;
+	}
+
 	bool contains(KEY key) {
 		bool found = false;
 		mapMutex.lock();

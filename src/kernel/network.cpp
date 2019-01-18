@@ -259,7 +259,8 @@ void CryptoKernel::Network::makeOutgoingConnections(bool& wait) {
 		if(addr == sf::IpAddress::getLocalAddress()
 				|| addr == myAddress
 				|| addr == sf::IpAddress::LocalHost
-				|| addr == sf::IpAddress::None) {
+				|| addr == sf::IpAddress::None
+				|| addr == sf::IpAddress::Any) {
 			continue;
 		}
 
@@ -305,14 +306,14 @@ void CryptoKernel::Network::postHandshakeConnect() {
 		std::vector<std::string> keys = handshakeClients.keys();
 		std::random_shuffle(keys.begin(), keys.end());
 		for(std::string key: keys) {
-			auto it = handshakeClients.find(key);
-			if(it != handshakeClients.end()) {
+			auto it = handshakeClients.atMaybe(key);
+			if(it.first) {
 				std::lock_guard<std::mutex> hsm(handshakeMutex);
-				if(it->second->getHandshakeSuccess()) {
-					transferConnection(key, it->second->send_cipher, it->second->recv_cipher);
+				if(it.second->getHandshakeSuccess()) {
+					transferConnection(key, it.second->send_cipher, it.second->recv_cipher);
 					handshakeClients.erase(key);
 				}
-				else if(it->second->getHandshakeComplete() && !it->second->getHandshakeSuccess()) {
+				else if(it.second->getHandshakeComplete() && !it.second->getHandshakeSuccess()) {
 					// handshake failed
 					handshakeClients.erase(key);
 					connectedPending.erase(key);
@@ -323,14 +324,14 @@ void CryptoKernel::Network::postHandshakeConnect() {
 		keys = handshakeServers.keys();
 		std::random_shuffle(keys.begin(), keys.end());
 		for(std::string key: keys) {
-			auto it = handshakeServers.find(key);
-			if(it != handshakeServers.end()) {
+			auto it = handshakeServers.atMaybe(key);
+			if(it.first) {
 				std::lock_guard<std::mutex> hsm(handshakeMutex);
-				if(it->second->getHandshakeSuccess()) {
-					transferConnection(key, it->second->sendCipher, it->second->recvCipher);
+				if(it.second->getHandshakeSuccess()) {
+					transferConnection(key, it.second->sendCipher, it.second->recvCipher);
 					handshakeServers.erase(key);
 				}
-				else if(it->second->getHandshakeComplete() && !it->second->getHandshakeSuccess()) {
+				else if(it.second->getHandshakeComplete() && !it.second->getHandshakeSuccess()) {
 					// handshake failed
 					handshakeServers.erase(key);
 					connectedPending.erase(key);
@@ -350,13 +351,13 @@ void CryptoKernel::Network::postHandshakeConnect() {
 }
 
 void CryptoKernel::Network::transferConnection(std::string addr, NoiseCipherState* send_cipher, NoiseCipherState* recv_cipher) {
-	auto it = connectedPending.find(addr);
-	if(it->second && it != connectedPending.end()) {
+	auto it = connectedPending.atMaybe(addr);
+	if(it.first) {
 		log->printf(LOG_LEVEL_INFO, "Network(): Transferring " + addr + " from pending to connected");
-		Connection* connection = it->second.get();
+		Connection* connection = it.second.get();
 		connection->setSendCipher(send_cipher);
 		connection->setRecvCipher(recv_cipher);
-		connected.insert(addr, it->second);
+		connected.insert(addr, it.second);
 		connectedPending.erase(addr);
 	}
 }
@@ -369,39 +370,39 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 	std::vector<std::string> keys = connected.keys();
 	std::random_shuffle(keys.begin(), keys.end());
 	for(auto key: keys) {
-		auto it = connected.find(key);
-		if(it != connected.end()) {
+		auto it = connected.atMaybe(key);
+		if(it.first) {
 			try {
-				const Json::Value info = it->second->getInfo();
+				const Json::Value info = it.second->getInfo();
 				try {
 					const std::string peerVersion = info["version"].asString();
 					if(peerVersion.substr(0, peerVersion.find(".")) != version.substr(0, version.find("."))) {
 						log->printf(LOG_LEVEL_WARN,
-									"Network(): " + it->first + " has a different major version than us");
+									"Network(): " + key + " has a different major version than us");
 						throw Peer::NetworkError("peer has an incompatible major version");
 					}
 
-					const auto banIt = banned.find(it->first);
+					const auto banIt = banned.find(key);
 					if(banIt != banned.end()) {
 						if(banIt->second > static_cast<uint64_t>(std::time(nullptr))) {
 							log->printf(LOG_LEVEL_WARN,
-										"Network(): Disconnecting " + it->first + " for being banned");
+										"Network(): Disconnecting " + key + " for being banned");
 							throw Peer::NetworkError("peer is banned");
 						}
 					}
 
-                    it->second->setInfo("version", info["version"].asString());
-					it->second->setInfo("height", info["tipHeight"].asUInt64());
+                    it.second->setInfo("version", info["version"].asString());
+					it.second->setInfo("height", info["tipHeight"].asUInt64());
 
 					// update connected stats
-					peerStats stats = it->second->getPeerStats();
-					stats.version = it->second->getInfo("version").asString();
-					stats.blockHeight = it->second->getInfo("height").asUInt64();
-					connectedStats.insert(std::make_pair(it->first, stats));
+					peerStats stats = it.second->getPeerStats();
+					stats.version = it.second->getInfo("version").asString();
+					stats.blockHeight = it.second->getInfo("height").asUInt64();
+					connectedStats.insert(std::make_pair(key, stats));
 
 					for(const Json::Value& peer : info["peers"]) {
 						sf::IpAddress addr(peer.asString());
-						if(addr != sf::IpAddress::None) {
+						if(addr != sf::IpAddress::None && addr != sf::IpAddress::Any) {
 							if(!peers->get(dbTx.get(), addr.toString()).isObject()) {
 								log->printf(LOG_LEVEL_INFO, "Network(): Discovered new peer: " + addr.toString());
 								Json::Value newSeed;
@@ -411,24 +412,24 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 								peers->put(dbTx.get(), addr.toString(), newSeed);
 							}
 						} else {
-							changeScore(it->first, 10);
+							changeScore(key, 10);
 							throw Peer::NetworkError("peer sent a malformed peer IP address: \"" + addr.toString() + "\"");
 						}
 					}
 				} catch(const Json::Exception& e) {
-					changeScore(it->first, 50);
+					changeScore(key, 50);
 					throw Peer::NetworkError("peer sent a malformed info message");
 				}
 
 				const std::time_t result = std::time(nullptr);
-				it->second->setInfo("lastseen", static_cast<uint64_t>(result));
+				it.second->setInfo("lastseen", static_cast<uint64_t>(result));
 			} catch(const Peer::NetworkError& e) {
 				log->printf(LOG_LEVEL_WARN,
-							"Network(): Failed to contact " + it->first + ", disconnecting it for: " + e.what());
+							"Network(): Failed to contact " + key + ", disconnecting it for: " + e.what());
 
-				peers->put(dbTx.get(), it->first, it->second->getCachedInfo());
-				connectedStats.erase(it->first);
-				connected.erase(it);
+				peers->put(dbTx.get(), key, it.second->getCachedInfo());
+				connectedStats.erase(key);
+				connected.erase(key);
 				continue;
 			}
 		}
@@ -451,10 +452,10 @@ void CryptoKernel::Network::networkFunc() {
         std::vector<std::string> keys = connected.keys();
         std::random_shuffle(keys.begin(), keys.end());
         for(auto key : keys) {
-        	auto it = connected.find(key);
-        	if(it != connected.end()) {
-        		if(it->second->getInfo("height").asUInt64() > bestHeight) {
-					bestHeight = it->second->getInfo("height").asUInt64();
+        	auto it = connected.atMaybe(key);
+        	if(it.first) {
+        		if(it.second->getInfo("height").asUInt64() > bestHeight) {
+					bestHeight = it.second->getInfo("height").asUInt64();
 				}
         	}
         }
@@ -475,12 +476,12 @@ void CryptoKernel::Network::networkFunc() {
             keys = connected.keys();
             std::random_shuffle(keys.begin(), keys.end());
 			for(auto key : keys) {
-				auto it = connected.find(key);
-				if(it != connected.end()) {
-					if(it->second->getInfo("height").asUInt64() > currentHeight) {
+				auto it = connected.atMaybe(key);
+				if(it.first) {
+					if(it.second->getInfo("height").asUInt64() > currentHeight) {
 						std::list<CryptoKernel::Blockchain::block> blocks;
 
-						const std::string peerUrl = it->first;
+						const std::string peerUrl = key;
 
 						if(currentHeight == startHeight) {
 							auto nBlocks = 0;
@@ -489,7 +490,7 @@ void CryptoKernel::Network::networkFunc() {
 											"Network(): Downloading blocks " + std::to_string(currentHeight + 1) + " to " +
 											std::to_string(currentHeight + 6));
 								try {
-									const auto newBlocks = it->second->getBlocks(currentHeight + 1, currentHeight + 6);
+									const auto newBlocks = it.second->getBlocks(currentHeight + 1, currentHeight + 6);
 									nBlocks = newBlocks.size();
 									blocks.insert(blocks.end(), newBlocks.rbegin(), newBlocks.rend());
 									if(nBlocks > 0) {
@@ -499,7 +500,7 @@ void CryptoKernel::Network::networkFunc() {
 									}
 								} catch(const Peer::NetworkError& e) {
 									log->printf(LOG_LEVEL_WARN,
-												"Network(): Failed to contact " + it->first + " " + e.what() +
+												"Network(): Failed to contact " + peerUrl + " " + e.what() +
 												" while downloading blocks");
 									break;
 								}
@@ -511,7 +512,7 @@ void CryptoKernel::Network::networkFunc() {
 								} catch(const CryptoKernel::Blockchain::NotFoundException& e) {
 									if(currentHeight == 1) {
 										// This peer has a different genesis block to us
-										changeScore(it->first, 250);
+										changeScore(peerUrl, 250);
 										break;
 									} else {
 										log->printf(LOG_LEVEL_INFO, "Network(): got block h: " + std::to_string(blocks.rbegin()->getHeight()) + " with prevBlock: " + blocks.rbegin()->getPreviousBlockId().toString() + " prev not found");
@@ -537,7 +538,7 @@ void CryptoKernel::Network::networkFunc() {
 
 							auto nBlocks = 0;
 							try {
-								const auto newBlocks = it->second->getBlocks(currentHeight + 1, currentHeight + 6);
+								const auto newBlocks = it.second->getBlocks(currentHeight + 1, currentHeight + 6);
 								nBlocks = newBlocks.size();
 								blocks.insert(blocks.begin(), newBlocks.rbegin(), newBlocks.rend());
 								if(nBlocks > 0) {
@@ -548,7 +549,7 @@ void CryptoKernel::Network::networkFunc() {
 								}
 							} catch(const Peer::NetworkError& e) {
 								log->printf(LOG_LEVEL_WARN,
-											"Network(): Failed to contact " + it->first + " " + e.what() +
+											"Network(): Failed to contact " + peerUrl + " " + e.what() +
 											" while downloading blocks");
 								break;
 							}
@@ -722,12 +723,11 @@ void CryptoKernel::Network::connectionFunc() {
                 }
             }
 
-            
-
             if(addr == sf::IpAddress::getLocalAddress()
                     || addr == myAddress
                     || addr == sf::IpAddress::LocalHost
-                    || addr == sf::IpAddress::None) {
+                    || addr == sf::IpAddress::None
+					|| addr == sf::IpAddress::Any) {
                 log->printf(LOG_LEVEL_INFO,
                             "Network(): Incoming connection " + addr.toString() +
                             " is connecting to self");
@@ -766,10 +766,10 @@ void CryptoKernel::Network::broadcastTransactions(const
 	std::vector<std::string> keys = connected.keys();
 	std::random_shuffle(keys.begin(), keys.end());
 	for(std::string key : keys) {
-		auto it = connected.find(key);
-		if(it != connected.end()) {
+		auto it = connected.atMaybe(key);
+		if(it.first) {
 			try {
-				it->second->sendTransactions(transactions);
+				it.second->sendTransactions(transactions);
 			} catch(const Peer::NetworkError& err) {
 				log->printf(LOG_LEVEL_WARN, "Network::broadcastTransactions(): Failed to contact peer: " + std::string(err.what()));
 			}
@@ -781,10 +781,10 @@ void CryptoKernel::Network::broadcastBlock(const CryptoKernel::Blockchain::block
 	std::vector<std::string> keys = connected.keys();
 	std::random_shuffle(keys.begin(), keys.end());
     for(std::string key : keys) {
-    	auto it = connected.find(key);
-    	if(it != connected.end()) {
+    	auto it = connected.atMaybe(key);
+    	if(it.first) {
     		try {
-				it->second->sendBlock(block);
+				it.second->sendBlock(block);
 			} catch(const Peer::NetworkError& err) {
 				log->printf(LOG_LEVEL_WARN, "Network::broadcastBlock(): Failed to contact peer: " + std::string(err.what()));
 			}
