@@ -655,6 +655,7 @@ void CryptoKernel::Network::outgoingEncryptionHandshakeFunc() {
 			log->printf(LOG_LEVEL_INFO, "Network(): Couldn't query " + addr + " for encryption preference (it likely doesn't support encryption)");
 			peersToQuery.erase(addr);
 			plaintextHosts.insert(addr, true);
+            delete client;
 			continue;
 		}
 		addToNoisePool(client);
