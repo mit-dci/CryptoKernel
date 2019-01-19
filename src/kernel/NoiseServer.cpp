@@ -320,7 +320,12 @@ NoiseServer::~NoiseServer() {
 	//free(nid);
 	client->disconnect();
 	delete client;
-	writeInfoThread->join();
-	receiveThread->join();
+	if(writeInfoThread) {
+		writeInfoThread->join();
+	}
+
+	if(receiveThread) {
+		receiveThread->join();
+	}
 	log->printf(LOG_LEVEL_INFO, "Cleaned up noise server for " + addr);
 }
