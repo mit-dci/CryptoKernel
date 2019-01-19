@@ -62,9 +62,7 @@ Roadmap
 - Load external contract code to avoid duplication
 when propagating contracts
 - Standardised address format (not just public keys)
-- Pay to MAST transaction type (includes pay to pubkey hash and pay to script hash)
 - BFT consensus module
 - Raft consensus module
 - Proof of Stake consensus module
 - HD key generation
-- Schnorr signature aggregation for transactions
