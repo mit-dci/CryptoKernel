@@ -10,7 +10,9 @@ sudo apt-get update && sudo apt-get install -y \
     cmake \
     libhiredis-dev \
     doxygen \
-    libcppunit-dev
+    libcppunit-dev \
+    libtool \
+    automake 
 
 cd /tmp
 wget https://www.openssl.org/source/openssl-1.1.0f.tar.gz
