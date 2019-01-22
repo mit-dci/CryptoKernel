@@ -58,6 +58,13 @@ RUN mkdir -p win32-deps/include && make && make install
 
 WORKDIR ../
 
+RUN git clone https://github.com/rweather/noise-c
+WORKDIR noise-c
+RUN ./autogen.sh && ./configure 
+RUN make && make install
+
+WORKDIR ../
+
 RUN git clone https://github.com/bitcoin-core/leveldb
 WORKDIR leveldb
 

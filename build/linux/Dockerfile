@@ -67,6 +67,13 @@ RUN cp /usr/local/lib/libsfml-network-s.a /usr/local/lib/libsfml-network.a && cp
 
 WORKDIR ../
 
+RUN git clone https://github.com/rweather/noise-c
+WORKDIR noise-c
+RUN ./autogen.sh && ./configure 
+RUN make && make install
+
+WORKDIR ../
+
 RUN wget https://www.lua.org/ftp/lua-5.3.4.tar.gz && \
     tar xzvf lua-5.3.4.tar.gz
 WORKDIR lua-5.3.4/src

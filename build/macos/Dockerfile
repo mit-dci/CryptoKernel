@@ -35,6 +35,13 @@ RUN OSXCROSS_MP_INC=1 make && make install
 
 WORKDIR ../
 
+RUN git clone https://github.com/rweather/noise-c
+WORKDIR noise-c
+RUN ./autogen.sh && ./configure 
+RUN make && make install
+
+WORKDIR ../
+
 RUN git clone https://github.com/metalicjames/selene.git
 RUN cp -r selene/include/* /osxcross/target/macports/pkgs/opt/local/include
 
