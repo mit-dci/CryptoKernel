@@ -1,7 +1,6 @@
 sudo apt-get update && sudo apt-get install -y \
     git \
     build-essential \
-    libsfml-dev \
     libleveldb-dev \
     libargtable2-dev \
     libreadline-dev \
@@ -55,6 +54,15 @@ cd noise-c
 ./configure
 make
 sudo make install
+
+cd ../
+git clone https://github.com/SFML/SFML.git
+cd SFML
+cmake . -DBUILD_SHARED_LIBS=NO -DSFML_BUILD_DOC=NO -DSFML_BUILD_AUDIO=NO \
+    -DSFML_BUILD_GRAPHICS=NO -DSFML_BUILD_WINDOW=NO -DSFML_BUILD_EXAMPLES=NO \
+    -DCMAKE_BUILD_TYPE=Release 
+make && sudo make install
+sudo cp /usr/local/lib/libsfml-network-s.a /usr/local/lib/libsfml-network.a && cp /usr/local/lib/libsfml-system-s.a /usr/local/lib/libsfml-system.a
 
 cd ../
 git clone https://github.com/metalicjames/selene.git
