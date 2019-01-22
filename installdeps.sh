@@ -47,6 +47,14 @@ make
 sudo make install
 
 cd ../
+git clone https://github.com/rweather/noise-c
+cd noise-c
+./autogen.sh 
+./configure
+make
+sudo make install
+
+cd ../
 git clone https://github.com/metalicjames/selene.git
 sudo cp -r selene/include/* /usr/local/include
 
