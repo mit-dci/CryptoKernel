@@ -123,6 +123,7 @@ CryptoKernel::Network::Network(CryptoKernel::Log* log,
     this->log = log;
     this->blockchain = blockchain;
     this->port = port;
+	std::lock_guard<std::mutex> lock(heightMutex);
     bestHeight = 0;
     currentHeight = 0;
 
@@ -441,9 +442,11 @@ void CryptoKernel::Network::infoOutgoingConnections() {
 void CryptoKernel::Network::networkFunc() {
     std::unique_ptr<std::thread> blockProcessor;
     bool failure = false;
-    uint64_t currentHeight = blockchain->getBlockDB("tip").getHeight();
-    this->currentHeight = currentHeight;
-    uint64_t startHeight = currentHeight;
+	heightMutex.lock();
+	uint64_t currentHeight = blockchain->getBlockDB("tip").getHeight();
+	this->currentHeight = currentHeight;
+	uint64_t startHeight = currentHeight;
+	heightMutex.unlock();
 
     while(running) {
         //Determine best chain
@@ -460,10 +463,12 @@ void CryptoKernel::Network::networkFunc() {
         	}
         }
 
+		heightMutex.lock();
         if(this->currentHeight > bestHeight) {
             bestHeight = this->currentHeight;
         }
         this->bestHeight = bestHeight;
+		heightMutex.unlock();
 
         log->printf(LOG_LEVEL_INFO,
                     "Network(): Current height: " + std::to_string(currentHeight) + ", best height: " +
@@ -566,7 +571,9 @@ void CryptoKernel::Network::networkFunc() {
 								log->printf(LOG_LEVEL_WARN, "Network(): Failure processing blocks");
 								blocks.clear();
 								currentHeight = blockchain->getBlockDB("tip").getHeight();
+								heightMutex.lock();
 								this->currentHeight = currentHeight;
+								heightMutex.unlock();
 								startHeight = currentHeight;
 								bestHeight = currentHeight;
 								failure = false;
@@ -603,7 +610,9 @@ void CryptoKernel::Network::networkFunc() {
             std::this_thread::sleep_for(std::chrono::milliseconds(20000));
             currentHeight = blockchain->getBlockDB("tip").getHeight();
             startHeight = currentHeight;
-            this->currentHeight = currentHeight;
+            heightMutex.lock();
+			this->currentHeight = currentHeight;
+			heightMutex.unlock();
         }
     }
 
@@ -794,6 +803,7 @@ void CryptoKernel::Network::broadcastBlock(const CryptoKernel::Blockchain::block
 }
 
 double CryptoKernel::Network::syncProgress() {
+	std::lock_guard<std::mutex> lock(heightMutex);
     return (double)(currentHeight)/(double)(bestHeight);
 }
 
@@ -823,6 +833,7 @@ std::set<std::string> CryptoKernel::Network::getConnectedPeers() {
 }
 
 uint64_t CryptoKernel::Network::getCurrentHeight() {
+	std::lock_guard<std::mutex> lock(heightMutex);
     return currentHeight;
 }
 

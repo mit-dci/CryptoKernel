@@ -195,6 +195,7 @@ private:
     
     sf::IpAddress myAddress;
 
+    std::mutex heightMutex;
     uint64_t bestHeight;
     uint64_t currentHeight;
 

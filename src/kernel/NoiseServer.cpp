@@ -82,20 +82,24 @@ void NoiseServer::writeInfo() {
 	unsigned int ok = 1;
 
 	while(!getHandshakeComplete()) { // it might fail in another thread, and so become "complete"
-		if(!receivedPubKey) {
-			continue;
+		int action;
+		{
+			std::lock_guard<std::mutex> lock(handshakeMutex);
+
+			if(!receivedPubKey) {
+				continue;
+			}
+
+			action = noise_handshakestate_get_action(handshake);
 		}
-		
-		handshakeMutex.lock();
-		int action = noise_handshakestate_get_action(handshake);
-		handshakeMutex.unlock();
+
 		if(action == NOISE_ACTION_WRITE_MESSAGE) {
 			log->printf(LOG_LEVEL_INFO, "Noise(): Server writing message. " + addr + " " + addr);
 			/* Write the next handshake message with a zero-length payload */
-			noise_buffer_set_output(mbuf, message + 2, sizeof(message) - 2);
 			handshakeMutex.lock();
+			noise_buffer_set_output(mbuf, message + 2, sizeof(message) - 2);
 			int err = noise_handshakestate_write_message(handshake, &mbuf, NULL);
-			handshakeMutex.unlock();
+			
 			if (err != NOISE_ERROR_NONE) {
 				log->printf(LOG_LEVEL_WARN, "Noise(): Server, error writing message: " + noiseUtil.errToString(err) + " " + addr);
 				setHandshakeComplete(true, false);
@@ -106,6 +110,7 @@ void NoiseServer::writeInfo() {
 
 			sf::Packet packet;
 			packet.append(message, mbuf.size + 2);
+			handshakeMutex.unlock();
 
 			if(client->send(packet) != sf::Socket::Done) {
 				log->printf(LOG_LEVEL_WARN, "Noise(): Server (for " + addr + "), something went wrong sending packet to client");
@@ -182,8 +187,10 @@ void NoiseServer::receivePacket(sf::Packet packet) {
 	int err;
 	uint8_t message[MAX_MESSAGE_LEN + 2];
 
+	handshakeMutex.lock();
 	if(!receivedPubKey) {
 		receivedPubKey = true;
+		handshakeMutex.unlock();
 		log->printf(LOG_LEVEL_INFO, "Noise(): Server for " + addr + " received a packet, hopefully the public key.");
 		memcpy(clientKey25519, packet.getData(), packet.getDataSize());
 
@@ -224,7 +231,6 @@ void NoiseServer::receivePacket(sf::Packet packet) {
 		}
 	}
 	else {
-		std::lock_guard<std::mutex> hm(handshakeMutex);
 		int action = noise_handshakestate_get_action(handshake);
 		if(action == NOISE_ACTION_READ_MESSAGE) {
 			log->printf(LOG_LEVEL_INFO, "Noise(): Server, reading message. " + addr);
@@ -236,9 +242,9 @@ void NoiseServer::receivePacket(sf::Packet packet) {
 			if (err != NOISE_ERROR_NONE) {
 				log->printf(LOG_LEVEL_WARN, "Noise(): Server for " + addr + ", read handshake error: " + noiseUtil.errToString(err));
 				setHandshakeComplete(true, false);
-				return;
 			}
 		}
+		handshakeMutex.unlock();
 	}
 }
 
@@ -317,9 +323,7 @@ NoiseServer::~NoiseServer() {
 	if(!getHandshakeComplete()) {
 		setHandshakeComplete(true, false);
 	}
-	//free(nid);
-	client->disconnect();
-	delete client;
+
 	if(writeInfoThread) {
 		writeInfoThread->join();
 	}
@@ -327,5 +331,9 @@ NoiseServer::~NoiseServer() {
 	if(receiveThread) {
 		receiveThread->join();
 	}
+
+	client->disconnect();
+	delete client;
+
 	log->printf(LOG_LEVEL_INFO, "Cleaned up noise server for " + addr);
 }

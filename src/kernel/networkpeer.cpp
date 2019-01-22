@@ -13,6 +13,7 @@ CryptoKernel::Network::Peer::Peer(sf::TcpSocket* client, CryptoKernel::Blockchai
     const time_t t = std::time(0);
     generator.seed(static_cast<uint64_t> (t));
 
+    std::lock_guard<std::mutex> lock(clientMutex);
     stats.connectedSince = t;
     stats.ping = 0;
     stats.transferUp = 0;
@@ -311,8 +312,6 @@ void CryptoKernel::Network::Peer::requestFunc() {
                 nRequests = 0;
                 startTime += timeElapsed;
             }
-        } else {
-            clientMutex.unlock();
         }
     }
 }
@@ -438,6 +437,7 @@ std::vector<CryptoKernel::Blockchain::block> CryptoKernel::Network::Peer::getBlo
     return returning;
 }
 
-CryptoKernel::Network::peerStats CryptoKernel::Network::Peer::getPeerStats() const {
+CryptoKernel::Network::peerStats CryptoKernel::Network::Peer::getPeerStats() {
+    std::lock_guard<std::mutex> lock(clientMutex);
     return stats;
 }

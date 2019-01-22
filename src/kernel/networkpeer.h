@@ -26,7 +26,7 @@ public:
     void prepPacket(sf::Packet& packet, std::string data);
     sf::Packet decryptPacket(sf::Packet& packet);
 
-    Network::peerStats getPeerStats() const;
+    Network::peerStats getPeerStats();
 
     class NetworkError : std::exception {
     public:

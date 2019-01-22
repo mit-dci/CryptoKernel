@@ -44,7 +44,9 @@ CryptoKernel::Log::~Log() {
 bool CryptoKernel::Log::printf(int loglevel, std::string message) {
     std::chrono::system_clock::time_point today = std::chrono::system_clock::now();
     time_t tt = std::chrono::system_clock::to_time_t(today);
+    logfilemutex.lock();
     std::string t(ctime(&tt));
+    logfilemutex.unlock();
     std::ostringstream stagingstream;
     stagingstream << t.substr(0, t.length() - 1) << " ";
 
