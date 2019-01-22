@@ -11,7 +11,9 @@ sudo apt-get update && sudo apt-get install -y \
     doxygen \
     libcppunit-dev \
     libtool \
-    automake 
+    automake \
+    flex \
+    bison
 
 cd /tmp
 wget https://www.openssl.org/source/openssl-1.1.0f.tar.gz
