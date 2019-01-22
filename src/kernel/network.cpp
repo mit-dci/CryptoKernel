@@ -643,7 +643,7 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc(sf::TcpListener& ls,
 				log->printf(LOG_LEVEL_INFO, "Network(): Connection accepted from " + addr);
 				addToNoisePool(client);
 			} else {
-				log->printf(LOG_LEVEL_WARN, "Network(): Failed to accept connection from " + addr);
+				log->printf(LOG_LEVEL_WARN, "Network(): Failed to accept incoming connection");
 				delete client;
 			}
 		}
