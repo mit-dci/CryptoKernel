@@ -642,6 +642,9 @@ void CryptoKernel::Network::incomingEncryptionHandshakeFunc(sf::TcpListener& ls,
 				std::string addr = client->getRemoteAddress().toString();
 				log->printf(LOG_LEVEL_INFO, "Network(): Connection accepted from " + addr);
 				addToNoisePool(client);
+			} else {
+				log->printf(LOG_LEVEL_WARN, "Network(): Failed to accept connection from " + addr);
+				delete client;
 			}
 		}
 	}
