@@ -64,7 +64,7 @@ cmake . -DBUILD_SHARED_LIBS=NO -DSFML_BUILD_DOC=NO -DSFML_BUILD_AUDIO=NO \
     -DSFML_BUILD_GRAPHICS=NO -DSFML_BUILD_WINDOW=NO -DSFML_BUILD_EXAMPLES=NO \
     -DCMAKE_BUILD_TYPE=Release 
 make && sudo make install
-sudo cp /usr/local/lib/libsfml-network-s.a /usr/local/lib/libsfml-network.a && cp /usr/local/lib/libsfml-system-s.a /usr/local/lib/libsfml-system.a
+sudo cp /usr/local/lib/libsfml-network-s.a /usr/local/lib/libsfml-network.a && sudo cp /usr/local/lib/libsfml-system-s.a /usr/local/lib/libsfml-system.a
 
 cd ../
 git clone https://github.com/metalicjames/selene.git
