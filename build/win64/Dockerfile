@@ -62,7 +62,7 @@ RUN git clone https://github.com/rweather/noise-c
 WORKDIR noise-c
 ADD error_correction.c.patch .
 RUN git apply error_correction.c.patch
-RUN ./autogen.sh && ./configure --host=x86_64-linux
+RUN ./autogen.sh && ./configure --host=x86_64-linux --prefix=/usr/local/mingw
 RUN make && make install
 
 WORKDIR ../
