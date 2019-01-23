@@ -19,7 +19,6 @@ private:
 	sf::TcpSocket* server;
 	CryptoKernel::Log* log;
 	std::string ipAddress;
-	uint64_t port;
 	std::string addr;
 	std::string clientPrivateKey;
 	uint8_t clientKey25519[CURVE25519_KEY_LEN];

@@ -28,7 +28,6 @@ NoiseServer::NoiseServer(sf::TcpSocket* client, CryptoKernel::Log* log) {
 
 	this->client = client;
 	this->log = log;
-	this->port = port;
 
 	addr = client->getRemoteAddress().toString();
 

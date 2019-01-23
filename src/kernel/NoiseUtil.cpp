@@ -237,7 +237,7 @@ std::string NoiseUtil::errToString(int err) {
 	char* buf = new char[4096];
 	noise_strerror(err, buf, 4096);
 	std::string errString(buf);
-	delete buf;
+	delete[] buf;
 	return errString;
 }
 

@@ -20,7 +20,6 @@ public:
 	uint8_t serverKey25519[CURVE25519_KEY_LEN];
 	sf::TcpSocket* client;
 	CryptoKernel::Log* log;
-	uint64_t port;
 	bool receivedId;
 	bool receivedPubKey;
 	size_t messageSize;
