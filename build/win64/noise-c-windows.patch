@@ -24,6 +24,19 @@ index 16e681b..97e2737 100644
  	poly1305_state_internal_t *st = (poly1305_state_internal_t *)ctx;
  	unsigned short t0,t1,t2,t3,t4,t5,t6,t7;
  	size_t i;
+diff --git a/src/crypto/donna/poly1305-donna-32.h b/src/crypto/donna/poly1305-donna-32.h
+index 6a570f0..35c1c9c 100644
+--- a/src/crypto/donna/poly1305-donna-32.h
++++ b/src/crypto/donna/poly1305-donna-32.h
+@@ -42,7 +42,7 @@ U32TO8(unsigned char *p, unsigned long v) {
+ }
+ 
+ void
+-poly1305_init(poly1305_context *ctx, const unsigned char key[32]) {
++noise_poly1305_init(poly1305_context *ctx, const unsigned char key[32]) {
+ 	poly1305_state_internal_t *st = (poly1305_state_internal_t *)ctx;
+ 
+ 	/* r &= 0xffffffc0ffffffc0ffffffc0fffffff */
 diff --git a/src/crypto/donna/poly1305-donna-64.h b/src/crypto/donna/poly1305-donna-64.h
 index 016f5b3..4c205cd 100644
 --- a/src/crypto/donna/poly1305-donna-64.h
