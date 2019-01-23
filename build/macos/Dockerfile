@@ -37,7 +37,7 @@ WORKDIR ../
 
 RUN git clone https://github.com/rweather/noise-c
 WORKDIR noise-c
-RUN ./autogen.sh && ./configure --prefix=/osxcross/target/macports/pkgs/opt/local --host=x86_64-linux 
+RUN ./autogen.sh && alias ar=$AR && ./configure --prefix=/osxcross/target/macports/pkgs/opt/local --host=x86_64-linux 
 RUN make && make install
 
 WORKDIR ../
