@@ -69,6 +69,8 @@ WORKDIR ../
 
 RUN git clone https://github.com/rweather/noise-c
 WORKDIR noise-c
+ADD noise-c-linux.patch .
+RUN git apply noise-c-linux.patch
 RUN ./autogen.sh && ./configure 
 RUN make && make install
 
