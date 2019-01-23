@@ -1,0 +1,13 @@
+diff --git a/configure.ac b/configure.ac
+index ee63091..1d09ade 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -69,6 +69,8 @@ examples/echo/echo-keygen/Makefile
+ examples/echo/echo-server/Makefile
+ doc/Makefile])
+ 
++AC_ARG_VAR([AR], [Specifies the archiver to use])
++
+ AC_ARG_WITH([libsodium],
+   [AS_HELP_STRING([--with-libsodium],
+     [use libsodium for crypto @<:@default=check@:>@])],
