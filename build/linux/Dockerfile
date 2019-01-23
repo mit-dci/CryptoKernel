@@ -1,7 +1,7 @@
 FROM ubuntu:16.04
 
 RUN apt update && apt dist-upgrade -y && \
-    apt install -y make git cmake wget build-essential
+    apt install -y make git cmake wget build-essential automake libtool bison flex
 
 RUN wget https://github.com/open-source-parsers/jsoncpp/archive/1.8.4.tar.gz \
     && tar -xzvf 1.8.4.tar.gz
