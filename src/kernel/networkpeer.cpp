@@ -385,7 +385,7 @@ sf::Packet CryptoKernel::Network::Peer::decryptPacket(sf::Packet& packet) {
 		mbuf.size = packet.getDataSize();
 		mbuf.max_size = 65536;
 		noise_cipherstate_decrypt(recv_cipher, &mbuf);
-		data.assign((const char*)mbuf.data);
+		data.assign((const char*)mbuf.data, mbuf.size);
 	}
 	else {
 		packet >> data;
