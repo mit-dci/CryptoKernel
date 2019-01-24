@@ -197,6 +197,9 @@ CryptoKernel::Network::~Network() {
 	outgoingEncryptionHandshakeThread->join();
 	postHandshakeConnectThread->join();
 
+	connectedPending.clear();
+	connected.clear();
+
     listener.close();
 }
 
