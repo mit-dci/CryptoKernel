@@ -1,24 +1,19 @@
-/*
- * Copyright (C) 2016 Southern Storm Software, Pty Ltd.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included
- * in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
- * DEALINGS IN THE SOFTWARE.
- */
+/*  CryptoKernel - A library for creating blockchain based digital currency
+    Copyright (C) 2019  Luke Horgan, James Lovejoy
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #include "NoiseServer.h"
 
@@ -80,12 +75,19 @@ void NoiseServer::writeInfo() {
 	uint8_t message[MAX_MESSAGE_LEN + 2];
 	unsigned int ok = 1;
 
+	unsigned int count = 0;
+
 	while(!getHandshakeComplete()) { // it might fail in another thread, and so become "complete"
 		int action;
 		{
 			std::lock_guard<std::mutex> lock(handshakeMutex);
 
 			if(!receivedPubKey) {
+				count++;
+				if(count > 6000) {
+					break;
+				}
+				std::this_thread::sleep_for(std::chrono::milliseconds(20));
 				continue;
 			}
 
@@ -159,23 +161,21 @@ void NoiseServer::receiveWrapper() {
 
     while(!quitThread && !getHandshakeComplete()) {
 		if(selector.wait(sf::seconds(1))) {
-			//if(selector.isReady(*client)) {
-				sf::Packet packet;
-				const auto status = client->receive(packet);
-				if(status == sf::Socket::Done) {
-					receivePacket(packet);
-				}
-				else if(status == sf::Socket::Disconnected) {
-					log->printf(LOG_LEVEL_INFO, "Noise(): Server, " + addr + " disconnected.");
-					quitThread = true;
-					setHandshakeComplete(true, false);
-				}
-				else {
-					log->printf(LOG_LEVEL_INFO, "Noise(): Server for " +  addr + " encountered error receiving packet.");
-					quitThread = true;
-					setHandshakeComplete(true, false);
-				}
-			//}
+			sf::Packet packet;
+			const auto status = client->receive(packet);
+			if(status == sf::Socket::Done) {
+				receivePacket(packet);
+			}
+			else if(status == sf::Socket::Disconnected) {
+				log->printf(LOG_LEVEL_INFO, "Noise(): Server, " + addr + " disconnected.");
+				quitThread = true;
+				setHandshakeComplete(true, false);
+			}
+			else {
+				log->printf(LOG_LEVEL_INFO, "Noise(): Server for " +  addr + " encountered error receiving packet.");
+				quitThread = true;
+				setHandshakeComplete(true, false);
+			}
 		}
 	}
 
