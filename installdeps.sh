@@ -5,7 +5,6 @@ sudo apt-get update && sudo apt-get install -y \
     libargtable2-dev \
     libreadline-dev \
     libcurl4-gnutls-dev \
-    liblua5.3-dev \
     cmake \
     libhiredis-dev \
     doxygen \
@@ -65,6 +64,11 @@ cmake . -DBUILD_SHARED_LIBS=NO -DSFML_BUILD_DOC=NO -DSFML_BUILD_AUDIO=NO \
     -DCMAKE_BUILD_TYPE=Release 
 make && sudo make install
 sudo cp /usr/local/lib/libsfml-network-s.a /usr/local/lib/libsfml-network.a && sudo cp /usr/local/lib/libsfml-system-s.a /usr/local/lib/libsfml-system.a
+
+cd ../
+git clone https://github.com/lhorgan/luack
+git checkout 43e9e17984e4e992ac2dd0510ac15ebd22f38fdc
+make linux && sudo make install
 
 cd ../
 git clone https://github.com/metalicjames/selene.git
