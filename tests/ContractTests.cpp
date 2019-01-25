@@ -189,3 +189,103 @@ void ContractTest::testTwoContractInputs() {
     const auto res2 = blockchain->submitTransaction(contractspendtx);
     CPPUNIT_ASSERT_MESSAGE("Spending contract output succeeded. Shouldn't have.", !std::get<0>(res2));
 }
+
+void ContractTest::testToString() {
+    CryptoKernel::Crypto crypto(true);
+    const auto ECDSAPubKey = crypto.getPublicKey();
+
+    consensus->mineBlock(true, ECDSAPubKey);
+
+    const auto outs = blockchain->getUnspentOutputs(ECDSAPubKey);
+    const auto& out = *outs.begin();
+
+    // First, spend our newly acquired coinbase output to
+    // a pay-to-merkleroot output
+    Json::Value outData;
+    
+    // local hello = {} return tostring(hello) == \"table\"
+    outData["contract"] = "BCJNGGBAgqsAAAD2BRtMdWFTABmTDQoaCgQIBAgIeFYAAQDxFyh3QAEzbG9jYWwgaGVsbG8gPSB7fSByZXR1cm4gdG9zdHJpbmcoGwDFKSA9PSAidGFibGUiQAD0JQEDCgAAAAsAAABGAEAAgAAAAGSAAAFfQMAAHgAAgENAAABDAIAAZgAAASYAgAACAAAABAlXACEEBk0AEAFHAAFNABMKCgAPBAAVEQaYABcBOgBQBV9FTlYAAAAA"; 
+    
+    CryptoKernel::Blockchain::output contractOutput(out.getValue() - 90000, 0, outData);
+
+    const std::string outputSetId = CryptoKernel::Blockchain::transaction::getOutputSetId({contractOutput}).toString();
+
+    Json::Value spendData;
+    spendData["signature"] = crypto.sign(out.getId().toString() + outputSetId);
+
+    CryptoKernel::Blockchain::input inp(out.getId(), spendData);
+    CryptoKernel::Blockchain::transaction tx({inp}, {contractOutput}, 1530888581);
+
+    const auto res = blockchain->submitTransaction(tx);
+    CPPUNIT_ASSERT_MESSAGE("Initial contract transaction failed", std::get<0>(res));
+
+    consensus->mineBlock(true, ECDSAPubKey);
+
+    // Try spending from the contract output back to our key. First try with invalid preimage. Should fail
+    Json::Value p2pkOutData;
+    p2pkOutData["publicKey"] = crypto.getPublicKey();
+    CryptoKernel::Blockchain::output p2pkout(contractOutput.getValue() - 40000, 0, p2pkOutData);
+
+    Json::Value spendData2; // empty
+    CryptoKernel::Blockchain::input contractin(contractOutput.getId(), Json::nullValue);
+    CryptoKernel::Blockchain::transaction contractspendtx({contractin}, {p2pkout}, 1530888581);
+
+    const auto res2 = blockchain->submitTransaction(contractspendtx);
+    CPPUNIT_ASSERT_MESSAGE("Spending contract output failed. Shouldn't have.", std::get<0>(res2));
+}
+
+void ContractTest::testTableIterationOrder() {
+    auto runtest = [&]{
+        CryptoKernel::Crypto crypto(true);
+        const auto ECDSAPubKey = crypto.getPublicKey();
+
+        consensus->mineBlock(true, ECDSAPubKey);
+
+        const auto outs = blockchain->getUnspentOutputs(ECDSAPubKey);
+        const auto& out = *outs.begin();
+
+        // First, spend our newly acquired coinbase output to
+        // a pay-to-merkleroot output
+        Json::Value outData;
+        
+        // "hello = {} hello[\"test1\"] = 1 hello[\"test2\"] = 2 hello[\"test3\"] = 3 hello[\"test4\"] = 4 hello[\"test5\"] = 5 res = {} for k, v in pairs(hello) do table.insert(res, v) end return (res[1] == 3 and res[2] == 1 and res[3] == 2 and res[4] == 5 and res[5] == 4)"
+        outData["contract"] = "BCJNGGBAghoCAAD2BRtMdWFTABmTDQoaCgQIBAgIeFYAAQDxASh3QAH9aGVsbG8gPSB7fSALANhbInRlc3QxIl0gPSAxEwARMhMAGDITABEzEwAYMxMAETQTABg0EwARNRMAUjUgcmVzaADxA2ZvciBrLCB2IGluIHBhaXJzKC4A8BYpIGRvIHRhYmxlLmluc2VydChyZXMsIHYpIGVuZCByZXR1cm4gFABQWzFdID14ABFhGAAxc1syEAAVMRAAETMQABUyEAARNBAAFTUQABE1EAAlNCkKAfIGAQgxAAAACwAAAAgAAIAGAEAACoDACAAyAMGBEAAiwYIQACLCgxAAIsKEMADxL4CFBgBDAEYAQAAkAAEBHgABgEZBQwBHgcMChsFCAMABAAJkQYABKYAAAKoA/n8GwEIAB4BAAB+AQQAewAOAEACiAEEAH4BAAB7AAhAAUIBBAB8AIAATASAAk0IAH4BCAB7AACAA8RFCAF8AQgAeAACAA0AAAAMAgAAmAAABJgCAAA8AAAAEBlABIQQGygEjEwHlAAIQADkyEwIQADkzEwMQADk0EwQQADQ1EwUQAGEEcmVzBAayASEEBqkBIgQHqgEAYwACZwATMQoADwQArQD1ACAQKKoC8QRnZW5lcmF0b3IpEQAAABkAAAAMGABVc3RhdGUUABEOFAB1Y29udHJvbBYAcAJrEgAAABcKABR2CgCQAQAAAAVfRU5WAAAAAA=="; 
+        
+        CryptoKernel::Blockchain::output contractOutput(out.getValue() - 90000, 0, outData);
+
+        const std::string outputSetId = CryptoKernel::Blockchain::transaction::getOutputSetId({contractOutput}).toString();
+
+        Json::Value spendData;
+        spendData["signature"] = crypto.sign(out.getId().toString() + outputSetId);
+
+        CryptoKernel::Blockchain::input inp(out.getId(), spendData);
+        CryptoKernel::Blockchain::transaction tx({inp}, {contractOutput}, 1530888581);
+
+        const auto res = blockchain->submitTransaction(tx);
+        CPPUNIT_ASSERT_MESSAGE("Initial contract transaction failed", std::get<0>(res));
+
+        consensus->mineBlock(true, ECDSAPubKey);
+
+        // Try spending from the contract output back to our key. First try with invalid preimage. Should fail
+        Json::Value p2pkOutData;
+        p2pkOutData["publicKey"] = crypto.getPublicKey();
+        CryptoKernel::Blockchain::output p2pkout(contractOutput.getValue() - 40000, 0, p2pkOutData);
+
+        Json::Value spendData2; // empty
+        CryptoKernel::Blockchain::input contractin(contractOutput.getId(), Json::nullValue);
+        CryptoKernel::Blockchain::transaction contractspendtx({contractin}, {p2pkout}, 1530888581);
+
+        const auto res2 = blockchain->submitTransaction(contractspendtx);
+        CPPUNIT_ASSERT_MESSAGE("Spending contract output failed. Shouldn't have.", std::get<0>(res2));
+    };
+
+    runtest();
+
+    // run the test multiple times to check order is consistent
+    for(int i = 0; i < 10; i++) {
+        tearDown();
+        setUp();
+
+        runtest();
+    }
+}
