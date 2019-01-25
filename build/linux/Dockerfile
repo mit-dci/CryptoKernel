@@ -76,9 +76,10 @@ RUN make && make install
 
 WORKDIR ../
 
-RUN wget https://www.lua.org/ftp/lua-5.3.4.tar.gz && \
-    tar xzvf lua-5.3.4.tar.gz
-WORKDIR lua-5.3.4/src
+RUN git clone https://github.com/lhorgan/luack
+WORKDIR luack
+RUN git checkout 43e9e17984e4e992ac2dd0510ac15ebd22f38fdc
+WORKDIR src
 RUN make liblua.a SYSCFLAGS="-DLUA_USE_LINUX" && cp liblua.a /usr/local/lib/liblua5.3.a && \
     mkdir /usr/include/lua5.3 && cp -r *.h /usr/include/lua5.3
 

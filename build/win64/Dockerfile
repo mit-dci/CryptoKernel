@@ -90,9 +90,9 @@ RUN cp /usr/local/mingw/lib/libsfml-network-s.a /usr/local/mingw/lib/libsfml-net
 
 WORKDIR ../
 
-RUN wget https://www.lua.org/ftp/lua-5.3.4.tar.gz && \
-    tar xzvf lua-5.3.4.tar.gz
-WORKDIR lua-5.3.4
+RUN git clone https://github.com/lhorgan/luack
+WORKDIR luack
+RUN git checkout 43e9e17984e4e992ac2dd0510ac15ebd22f38fdc
 RUN make mingw CC=$CC && \
     cp src/lua53.dll /usr/local/mingw/lib/liblua.dll && \
     cp src/*.h /usr/local/mingw/include/

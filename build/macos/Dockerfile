@@ -11,7 +11,7 @@ RUN SDK_VERSION=10.11 UNATTENDED=1 ./build.sh
 ENV PATH="/osxcross/target/bin:${PATH}"
 ENV MACOSX_DEPLOYMENT_TARGET=10.9
 
-RUN UNATTENDED=1 osxcross-macports install lua jsoncpp-devel leveldb curl libmicrohttpd sfml
+RUN UNATTENDED=1 osxcross-macports install jsoncpp-devel leveldb curl libmicrohttpd sfml
 
 WORKDIR ../
 
@@ -41,6 +41,13 @@ ADD noise-c-macos.patch .
 RUN git apply noise-c-macos.patch
 RUN ./autogen.sh && ./configure --prefix=/osxcross/target/macports/pkgs/opt/local --host=x86_64-linux 
 RUN make && make install
+
+WORKDIR ../
+
+RUN git clone https://github.com/lhorgan/luack
+WORKDIR luack
+RUN git checkout 43e9e17984e4e992ac2dd0510ac15ebd22f38fdc
+WORKDIR make macosx && make install
 
 WORKDIR ../
 
