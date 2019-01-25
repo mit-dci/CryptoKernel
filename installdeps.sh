@@ -67,6 +67,7 @@ sudo cp /usr/local/lib/libsfml-network-s.a /usr/local/lib/libsfml-network.a && s
 
 cd ../
 git clone https://github.com/lhorgan/luack
+cd luack
 git checkout 43e9e17984e4e992ac2dd0510ac15ebd22f38fdc
 make linux && sudo make install
 
