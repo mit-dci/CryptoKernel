@@ -88,7 +88,7 @@ git clone https://github.com/metalicjames/cschnorr.git
 cd cschnorr
 premake5 gmake2
 make cschnorr
-sudo mkdir /usr/local/include/cschnorr/
+sudo mkdir -p /usr/local/include/cschnorr/
 sudo cp src/*.h /usr/local/include/cschnorr/
 sudo cp bin/Static/Debug/libcschnorr.a /usr/local/lib
 sudo ldconfig
