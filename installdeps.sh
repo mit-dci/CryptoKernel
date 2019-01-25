@@ -5,7 +5,6 @@ sudo apt-get update && sudo apt-get install -y \
     libargtable2-dev \
     libreadline-dev \
     libcurl4-gnutls-dev \
-    liblua5.3-dev \
     cmake \
     libhiredis-dev \
     doxygen \
@@ -67,6 +66,13 @@ make && sudo make install
 sudo cp /usr/local/lib/libsfml-network-s.a /usr/local/lib/libsfml-network.a && sudo cp /usr/local/lib/libsfml-system-s.a /usr/local/lib/libsfml-system.a
 
 cd ../
+git clone https://github.com/lhorgan/luack
+cd luack
+git checkout 43e9e17984e4e992ac2dd0510ac15ebd22f38fdc
+make linux && sudo make install
+sudo ln -s /usr/local/lib/liblua.a /usr/local/lib/liblua5.3.a
+
+cd ../
 git clone https://github.com/metalicjames/selene.git
 sudo cp -r selene/include/* /usr/local/include
 
@@ -84,7 +90,7 @@ git clone https://github.com/metalicjames/cschnorr.git
 cd cschnorr
 premake5 gmake2
 make cschnorr
-sudo mkdir /usr/local/include/cschnorr/
+sudo mkdir -p /usr/local/include/cschnorr/
 sudo cp src/*.h /usr/local/include/cschnorr/
 sudo cp bin/Static/Debug/libcschnorr.a /usr/local/lib
 sudo ldconfig
