@@ -1,9 +1,19 @@
-/*
- * ConcurrentMap.h
- *
- *  Created on: Jul 11, 2018
- *      Author: Luke Horgan
- */
+/*  CryptoKernel - A library for creating blockchain based digital currency
+    Copyright (C) 2019  Luke Horgan, James Lovejoy
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #ifndef CONCMAP_H_
 #define CONCMAP_H_
@@ -35,6 +45,20 @@ public:
 		VAL& res = map[key];
 		mapMutex.unlock();
 		return res;
+	}
+
+	std::pair<bool, VAL> atMaybe(KEY key) {
+		std::pair<bool, VAL> returning;
+		mapMutex.lock();
+		auto res = map.find(key);
+		if(res != map.end()) {
+			returning = std::make_pair(true, res->second);
+		} else {
+			returning = std::make_pair(false, nullptr);
+		}
+		mapMutex.unlock();
+
+		return returning;
 	}
 
 	bool contains(KEY key) {
@@ -72,7 +96,9 @@ public:
 	}
 
 	void erase(KEY key) {
+		mapMutex.lock();
 		map.erase(key);
+		mapMutex.unlock();
 	}
 
 	void erase(typename std::map<KEY, VAL>::iterator it) {

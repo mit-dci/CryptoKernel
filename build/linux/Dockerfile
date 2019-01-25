@@ -1,7 +1,7 @@
 FROM ubuntu:16.04
 
 RUN apt update && apt dist-upgrade -y && \
-    apt install -y make git cmake wget build-essential
+    apt install -y make git cmake wget build-essential automake libtool bison flex
 
 RUN wget https://github.com/open-source-parsers/jsoncpp/archive/1.8.4.tar.gz \
     && tar -xzvf 1.8.4.tar.gz
@@ -64,6 +64,15 @@ RUN cmake . -DBUILD_SHARED_LIBS=NO -DSFML_BUILD_DOC=NO -DSFML_BUILD_AUDIO=NO \
     -DCMAKE_BUILD_TYPE=Release 
 RUN make && make install
 RUN cp /usr/local/lib/libsfml-network-s.a /usr/local/lib/libsfml-network.a && cp /usr/local/lib/libsfml-system-s.a /usr/local/lib/libsfml-system.a
+
+WORKDIR ../
+
+RUN git clone https://github.com/rweather/noise-c
+WORKDIR noise-c
+ADD noise-c-linux.patch .
+RUN git apply noise-c-linux.patch
+RUN ./autogen.sh && ./configure 
+RUN make && make install
 
 WORKDIR ../
 

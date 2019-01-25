@@ -1,6 +1,6 @@
 FROM ubuntu:18.04
 
-RUN apt update && apt dist-upgrade -y && apt install -y clang git make wget cmake
+RUN apt update && apt dist-upgrade -y && apt install -y clang git make wget cmake libtool automake bison flex
 
 RUN git clone https://github.com/tpoechtrager/osxcross.git
 WORKDIR osxcross
@@ -32,6 +32,15 @@ RUN wget https://github.com/cinemast/libjson-rpc-cpp/archive/v1.1.0.tar.gz && ta
 WORKDIR libjson-rpc-cpp-1.1.0
 RUN cmake . -DBUILD_SHARED_LIBS=NO -DBUILD_STATIC_LIBS=YES -DCOMPILE_TESTS=NO -DCOMPILE_STUBGEN=NO -DCOMPILE_EXAMPLES=NO -DCMAKE_SYSTEM_NAME=Darwin -DCMAKE_C_COMPILER=$CC -DCMAKE_AR=/osxcross/target/bin/$AR -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/osxcross/target/macports/pkgs/opt/local -DCMAKE_INCLUDE_PATH=/osxcross/target/macports/pkgs/opt/local/include -DREDIS_CLIENT=NO -DREDIS_SERVER=NO -DWITH_COVERAGE=NO 
 RUN OSXCROSS_MP_INC=1 make && make install
+
+WORKDIR ../
+
+RUN git clone https://github.com/rweather/noise-c
+WORKDIR noise-c
+ADD noise-c-macos.patch .
+RUN git apply noise-c-macos.patch
+RUN ./autogen.sh && ./configure --prefix=/osxcross/target/macports/pkgs/opt/local --host=x86_64-linux 
+RUN make && make install
 
 WORKDIR ../
 

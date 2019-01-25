@@ -1,7 +1,6 @@
 sudo apt-get update && sudo apt-get install -y \
     git \
     build-essential \
-    libsfml-dev \
     libleveldb-dev \
     libargtable2-dev \
     libreadline-dev \
@@ -10,7 +9,11 @@ sudo apt-get update && sudo apt-get install -y \
     cmake \
     libhiredis-dev \
     doxygen \
-    libcppunit-dev
+    libcppunit-dev \
+    libtool \
+    automake \
+    flex \
+    bison
 
 cd /tmp
 wget https://www.openssl.org/source/openssl-1.1.0f.tar.gz
@@ -45,6 +48,23 @@ cd libjson-rpc-cpp*
 cmake . -DBUILD_SHARED_LIBS=NO -DBUILD_STATIC_LIBS=YES -DCOMPILE_TESTS=NO -DCOMPILE_STUBGEN=NO -DCOMPILE_EXAMPLES=NO
 make
 sudo make install
+
+cd ../
+git clone https://github.com/rweather/noise-c
+cd noise-c
+./autogen.sh 
+./configure
+make
+sudo make install
+
+cd ../
+git clone https://github.com/SFML/SFML.git
+cd SFML
+cmake . -DBUILD_SHARED_LIBS=NO -DSFML_BUILD_DOC=NO -DSFML_BUILD_AUDIO=NO \
+    -DSFML_BUILD_GRAPHICS=NO -DSFML_BUILD_WINDOW=NO -DSFML_BUILD_EXAMPLES=NO \
+    -DCMAKE_BUILD_TYPE=Release 
+make && sudo make install
+sudo cp /usr/local/lib/libsfml-network-s.a /usr/local/lib/libsfml-network.a && sudo cp /usr/local/lib/libsfml-system-s.a /usr/local/lib/libsfml-system.a
 
 cd ../
 git clone https://github.com/metalicjames/selene.git

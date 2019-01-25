@@ -9,6 +9,8 @@
 
 #include "blockchain.h"
 #include "concurrentmap.h"
+#include "NoiseServer.h"
+#include "NoiseClient.h"
 
 namespace CryptoKernel {
 /**
@@ -80,6 +82,7 @@ public:
     struct peerStats {
         unsigned int ping;
         bool incoming;
+        bool encrypted;
         uint64_t connectedSince;
         uint64_t transferUp;
         uint64_t transferDown;
@@ -110,20 +113,20 @@ private:
 		std::vector<CryptoKernel::Blockchain::transaction> getUnconfirmedTransactions();
 		CryptoKernel::Blockchain::block getBlock(const uint64_t height, const std::string& id);
 		std::vector<CryptoKernel::Blockchain::block> getBlocks(const uint64_t start, const uint64_t end);
-    CryptoKernel::Network::peerStats getPeerStats();
-
-		bool acquire();
-		void release();
+        CryptoKernel::Network::peerStats getPeerStats();
 
 		void setPeer(Peer* peer);
 		void setInfo(Json::ArrayIndex& key, Json::Value& value);
 		void setInfo(std::string key, uint64_t value);
 		void setInfo(std::string key, std::string value);
 		void setInfo(Json::Value info);
-		Json::Value& getInfo(Json::ArrayIndex& key);
-		Json::Value& getInfo(std::string key);
+		Json::Value getInfo(Json::ArrayIndex& key);
+		Json::Value getInfo(std::string key);
 		Json::Value getCachedInfo();
 		Network::peerStats getPeerStats() const;
+
+        void setSendCipher(NoiseCipherState* cipher);
+		void setRecvCipher(NoiseCipherState* cipher);
 
     	~Connection();
 
@@ -133,9 +136,12 @@ private:
 		std::mutex peerMutex;
 		std::mutex modMutex;
 		std::mutex infoMutex;
+        
+        bool acquire();
+		void release();
 	};
 
-    ConcurrentMap<std::string, std::unique_ptr<Connection>> connected;
+    ConcurrentMap<std::string, std::shared_ptr<Connection>> connected;
     std::recursive_mutex connectedMutex;
 
     ConcurrentMap<std::string, peerStats> connectedStats;
@@ -162,12 +168,34 @@ private:
     void infoOutgoingConnectionsWrapper();
     std::unique_ptr<std::thread> infoOutgoingConnectionsThread;
 
+    void incomingEncryptionHandshakeWrapper();
+    void incomingEncryptionHandshakeFunc(sf::TcpListener& ls, sf::SocketSelector& selector);
+    std::unique_ptr<std::thread> incomingEncryptionHandshakeThread;
+
+    void outgoingEncryptionHandshakeWrapper();
+    void outgoingEncryptionHandshakeFunc();
+	std::unique_ptr<std::thread> outgoingEncryptionHandshakeThread;
+
+    void addToNoisePool(sf::TcpSocket* socket);
+
+    void postHandshakeConnect();
+    std::unique_ptr<std::thread> postHandshakeConnectThread;
+
+    std::mutex handshakeMutex;
+    ConcurrentMap<std::string, std::shared_ptr<NoiseClient>> handshakeClients;
+    ConcurrentMap<std::string, std::shared_ptr<NoiseServer>> handshakeServers;
+    ConcurrentMap<std::string, bool> plaintextHosts;
+    ConcurrentMap<std::string, bool> peersToQuery; // (regarding encyrption preference)
+    ConcurrentMap<std::string, std::shared_ptr<Connection>> connectedPending; // connections we've made but aren't yet ready to use
     sf::TcpListener listener;
 
     ConcurrentMap<std::string, uint64_t> banned;
 
+    void transferConnection(std::string addr, NoiseCipherState* send_cipher=0, NoiseCipherState* recv_cipher=0);
+    
     sf::IpAddress myAddress;
 
+    std::mutex heightMutex;
     uint64_t bestHeight;
     uint64_t currentHeight;
 

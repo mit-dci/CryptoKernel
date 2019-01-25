@@ -6,7 +6,7 @@ ENV AR=x86_64-w64-mingw32-ar
 
 RUN apt update && apt dist-upgrade -y && \
     apt install -y make git cmake g++-mingw-w64-x86-64 \
-    binutils-mingw-w64-x86-64 wget
+    binutils-mingw-w64-x86-64 wget bison flex libtool automake
 
 RUN wget https://github.com/open-source-parsers/jsoncpp/archive/1.8.4.tar.gz \
     && tar -xzvf 1.8.4.tar.gz
@@ -55,6 +55,15 @@ RUN cmake -E env CXXFLAGS="-DCURL_STATICLIB" cmake . -DBUILD_SHARED_LIBS=NO \
     -DCMAKE_INSTALL_PREFIX=/usr/local/mingw -DREDIS_CLIENT=NO -DREDIS_SERVER=NO \
     -DWITH_COVERAGE=NO
 RUN mkdir -p win32-deps/include && make && make install
+
+WORKDIR ../
+
+RUN git clone https://github.com/rweather/noise-c
+WORKDIR noise-c
+ADD noise-c-windows.patch .
+RUN git apply noise-c-windows.patch
+RUN ./autogen.sh && ./configure --host=x86_64-linux --prefix=/usr/local/mingw
+RUN make && make install
 
 WORKDIR ../
 

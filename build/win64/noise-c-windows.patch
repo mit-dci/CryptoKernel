@@ -1,0 +1,140 @@
+diff --git a/src/backend/ref/cipher-chachapoly.c b/src/backend/ref/cipher-chachapoly.c
+index 9ea6a11..472a8b4 100644
+--- a/src/backend/ref/cipher-chachapoly.c
++++ b/src/backend/ref/cipher-chachapoly.c
+@@ -68,7 +68,7 @@ static void noise_chachapoly_setup(NoiseChaChaPolyState *st, uint64_t n)
+     /* Encrypt an initial block to create the Poly1305 key */
+     memset(st->block, 0, 64);
+     chacha_encrypt_bytes(&(st->chacha), st->block, st->block, 64);
+-    poly1305_init(&(st->poly1305), st->block);
++    noise_poly1305_init(&(st->poly1305), st->block);
+     noise_clean(st->block, sizeof(st->block));
+ }
+ 
+diff --git a/src/crypto/donna/poly1305-donna-16.h b/src/crypto/donna/poly1305-donna-16.h
+index 16e681b..97e2737 100644
+--- a/src/crypto/donna/poly1305-donna-16.h
++++ b/src/crypto/donna/poly1305-donna-16.h
+@@ -38,7 +38,7 @@ U16TO8(unsigned char *p, unsigned short v) {
+ }
+ 
+ void
+-poly1305_init(poly1305_context *ctx, const unsigned char key[32]) {
++noise_poly1305_init(poly1305_context *ctx, const unsigned char key[32]) {
+ 	poly1305_state_internal_t *st = (poly1305_state_internal_t *)ctx;
+ 	unsigned short t0,t1,t2,t3,t4,t5,t6,t7;
+ 	size_t i;
+diff --git a/src/crypto/donna/poly1305-donna-32.h b/src/crypto/donna/poly1305-donna-32.h
+index 6a570f0..35c1c9c 100644
+--- a/src/crypto/donna/poly1305-donna-32.h
++++ b/src/crypto/donna/poly1305-donna-32.h
+@@ -42,7 +42,7 @@ U32TO8(unsigned char *p, unsigned long v) {
+ }
+ 
+ void
+-poly1305_init(poly1305_context *ctx, const unsigned char key[32]) {
++noise_poly1305_init(poly1305_context *ctx, const unsigned char key[32]) {
+ 	poly1305_state_internal_t *st = (poly1305_state_internal_t *)ctx;
+ 
+ 	/* r &= 0xffffffc0ffffffc0ffffffc0fffffff */
+diff --git a/src/crypto/donna/poly1305-donna-64.h b/src/crypto/donna/poly1305-donna-64.h
+index 016f5b3..4c205cd 100644
+--- a/src/crypto/donna/poly1305-donna-64.h
++++ b/src/crypto/donna/poly1305-donna-64.h
+@@ -73,7 +73,7 @@ U64TO8(unsigned char *p, unsigned long long v) {
+ }
+ 
+ void
+-poly1305_init(poly1305_context *ctx, const unsigned char key[32]) {
++noise_poly1305_init(poly1305_context *ctx, const unsigned char key[32]) {
+ 	poly1305_state_internal_t *st = (poly1305_state_internal_t *)ctx;
+ 	unsigned long long t0,t1;
+ 
+diff --git a/src/crypto/donna/poly1305-donna-8.h b/src/crypto/donna/poly1305-donna-8.h
+index ac5d5ae..de53bde 100644
+--- a/src/crypto/donna/poly1305-donna-8.h
++++ b/src/crypto/donna/poly1305-donna-8.h
+@@ -25,7 +25,7 @@ typedef struct poly1305_state_internal_t {
+ } poly1305_state_internal_t;
+ 
+ void
+-poly1305_init(poly1305_context *ctx, const unsigned char key[32]) {
++noise_poly1305_init(poly1305_context *ctx, const unsigned char key[32]) {
+ 	poly1305_state_internal_t *st = (poly1305_state_internal_t *)ctx;
+ 	size_t i;
+ 
+diff --git a/src/crypto/donna/poly1305-donna.c b/src/crypto/donna/poly1305-donna.c
+index c1e3c74..8cacd4c 100644
+--- a/src/crypto/donna/poly1305-donna.c
++++ b/src/crypto/donna/poly1305-donna.c
+@@ -63,7 +63,7 @@ poly1305_update(poly1305_context *ctx, const unsigned char *m, size_t bytes) {
+ void
+ poly1305_auth(unsigned char mac[16], const unsigned char *m, size_t bytes, const unsigned char key[32]) {
+ 	poly1305_context ctx;
+-	poly1305_init(&ctx, key);
++	noise_poly1305_init(&ctx, key);
+ 	poly1305_update(&ctx, m, bytes);
+ 	poly1305_finish(&ctx, mac);
+ }
+@@ -164,7 +164,7 @@ poly1305_power_on_self_test(void) {
+ 
+ 	for (i = 0; i < sizeof(mac); i++)
+ 		mac[i] = 0;
+-	poly1305_init(&ctx, nacl_key);
++	noise_poly1305_init(&ctx, nacl_key);
+ 	poly1305_update(&ctx, nacl_msg +   0, 32);
+ 	poly1305_update(&ctx, nacl_msg +  32, 64);
+ 	poly1305_update(&ctx, nacl_msg +  96, 16);
+@@ -184,7 +184,7 @@ poly1305_power_on_self_test(void) {
+ 	poly1305_auth(mac, wrap_msg, sizeof(wrap_msg), wrap_key);
+ 	result &= poly1305_verify(wrap_mac, mac);
+ 
+-	poly1305_init(&total_ctx, total_key);
++	noise_poly1305_init(&total_ctx, total_key);
+ 	for (i = 0; i < 256; i++) {
+ 		/* set key and message to 'i,i,i..' */
+ 		for (j = 0; j < sizeof(all_key); j++)
+diff --git a/src/crypto/donna/poly1305-donna.h b/src/crypto/donna/poly1305-donna.h
+index 94e2353..4261fa8 100644
+--- a/src/crypto/donna/poly1305-donna.h
++++ b/src/crypto/donna/poly1305-donna.h
+@@ -8,7 +8,7 @@ typedef struct poly1305_context {
+ 	unsigned char opaque[136];
+ } poly1305_context;
+ 
+-void poly1305_init(poly1305_context *ctx, const unsigned char key[32]);
++void noise_poly1305_init(poly1305_context *ctx, const unsigned char key[32]);
+ void poly1305_update(poly1305_context *ctx, const unsigned char *m, size_t bytes);
+ void poly1305_finish(poly1305_context *ctx, unsigned char mac[16]);
+ void poly1305_auth(unsigned char mac[16], const unsigned char *m, size_t bytes, const unsigned char key[32]);
+diff --git a/src/crypto/newhope/error_correction.c b/src/crypto/newhope/error_correction.c
+index 88b9fe5..40fd13a 100644
+--- a/src/crypto/newhope/error_correction.c
++++ b/src/crypto/newhope/error_correction.c
+@@ -2,7 +2,7 @@
+ 
+ //See paper for details on the error reconciliation
+ 
+-static int32_t abs(int32_t v)
++static int32_t newhope_abs(int32_t v)
+ {
+   int32_t mask = v >> 31;
+   return (v ^ mask) - mask;
+@@ -29,7 +29,7 @@ static int32_t f(int32_t *v0, int32_t *v1, uint32_t x)
+   r = t & 1;
+   *v1 = (t>>1)+r;
+ 
+-  return abs(x-((*v0)*2*PARAM_Q));
++  return newhope_abs(x-((*v0)*2*PARAM_Q));
+ }
+ 
+ static int32_t g(int32_t x)
+@@ -49,7 +49,7 @@ static int32_t g(int32_t x)
+ 
+   t *= 8*PARAM_Q;
+ 
+-  return abs(t - x);
++  return newhope_abs(t - x);
+ }
+ 
+ 

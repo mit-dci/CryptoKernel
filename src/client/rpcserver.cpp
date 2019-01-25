@@ -341,6 +341,7 @@ Json::Value CryptoServer::getpeerinfo() {
         Json::Value stat;
         stat["ping"] = stats.second.ping;
         stat["incoming"] = stats.second.incoming;
+        stat["encrypted"] = stats.second.encrypted;
         stat["connectedSince"] = stats.second.connectedSince;
         stat["transferUp"] = stats.second.transferUp;
         stat["transferDown"] = stats.second.transferDown;
