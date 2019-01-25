@@ -11,7 +11,7 @@ RUN SDK_VERSION=10.11 UNATTENDED=1 ./build.sh
 ENV PATH="/osxcross/target/bin:${PATH}"
 ENV MACOSX_DEPLOYMENT_TARGET=10.9
 
-RUN UNATTENDED=1 osxcross-macports install jsoncpp-devel leveldb curl libmicrohttpd sfml
+RUN UNATTENDED=1 osxcross-macports install jsoncpp-devel leveldb curl libmicrohttpd sfml readline
 
 WORKDIR ../
 
