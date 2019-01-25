@@ -28,7 +28,6 @@
 #include "storage.h"
 
 CryptoKernel::Storage::Storage(const std::string& filename, const bool sync, const unsigned int cache, const bool bloom) {
-    leveldb::Options options;
     options.create_if_missing = true;
 
     if(cache > 0) {
@@ -56,6 +55,8 @@ CryptoKernel::Storage::~Storage() {
     writeLock.lock();
     readLock.lock();
     delete db;
+    delete options.block_cache;
+    delete options.filter_policy;
     readLock.unlock();
     writeLock.unlock();
 }

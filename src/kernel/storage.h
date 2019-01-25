@@ -179,6 +179,7 @@ private:
     std::mutex readLock;
     std::mutex writeLock;
     bool sync;
+    leveldb::Options options;
 };
 }
 

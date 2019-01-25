@@ -199,6 +199,8 @@ CryptoKernel::Network::~Network() {
 
 	connectedPending.clear();
 	connected.clear();
+	handshakeClients.clear();
+	handshakeServers.clear();
 
     listener.close();
 }
