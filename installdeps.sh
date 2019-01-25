@@ -70,6 +70,7 @@ git clone https://github.com/lhorgan/luack
 cd luack
 git checkout 43e9e17984e4e992ac2dd0510ac15ebd22f38fdc
 make linux && sudo make install
+sudo ln -s /usr/local/lib/liblua.a /usr/local/lib/liblua5.3.a
 
 cd ../
 git clone https://github.com/metalicjames/selene.git
