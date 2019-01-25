@@ -47,7 +47,7 @@ WORKDIR ../
 RUN git clone https://github.com/lhorgan/luack
 WORKDIR luack
 RUN git checkout 43e9e17984e4e992ac2dd0510ac15ebd22f38fdc
-WORKDIR make macosx && make install
+RUN make macosx && make install
 
 WORKDIR ../
 
