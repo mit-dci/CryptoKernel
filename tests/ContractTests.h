@@ -14,6 +14,9 @@ class ContractTest : public CPPUNIT_NS::TestFixture {
     CPPUNIT_TEST(testTwoContractInputs);
     CPPUNIT_TEST(testToString);
     CPPUNIT_TEST(testTableIterationOrder);
+    CPPUNIT_TEST(testSimpleError);
+    CPPUNIT_TEST(testMemoryLimit);
+    CPPUNIT_TEST(testInstructionLimit);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -37,6 +40,9 @@ private:
     void testTwoContractInputs();
     void testToString();
     void testTableIterationOrder();
+    void testSimpleError();
+    void testMemoryLimit();
+    void testInstructionLimit();
 
     std::unique_ptr<CryptoKernel::Blockchain> blockchain;
     std::unique_ptr<CryptoKernel::Log> log;

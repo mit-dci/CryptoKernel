@@ -52,7 +52,7 @@ void* CryptoKernel::ContractRunner::l_alloc_restricted(void* ud, void* ptr, size
         return NULL;
     } else {
         if (*used + (nsize - osize) > memoryLimit) {/* too much memory in use */
-            throw std::runtime_error("Memory limit reached");
+            throw CryptoKernel::Blockchain::InvalidElementException("Memory limit reached");
         }
         ptr = realloc(ptr, nsize);
         if (ptr) {/* reallocation successful? */
@@ -119,7 +119,7 @@ bool CryptoKernel::ContractRunner::evaluateValid(Storage::Transaction* dbTx,
 bool CryptoKernel::ContractRunner::evaluateScriptValid(Storage::Transaction* dbTx,
         const CryptoKernel::Blockchain::transaction& tx,
         const CryptoKernel::Blockchain::input& inp, 
-        std::string script) {
+        const std::string& script) {
             
     setupEnvironment(dbTx, tx, inp);
     if(!(*state.get()).Load("./sandbox.lua")) {
@@ -134,8 +134,12 @@ bool CryptoKernel::ContractRunner::evaluateScriptValid(Storage::Transaction* dbT
                                         result = false;
                                     });
 
-    sel::tie(result, errorMessage) = (*state.get())["verifyTransaction"](base64_decode(
-                                            script));
+    try {
+        sel::tie(result, errorMessage) = (*state.get())["verifyTransaction"](base64_decode(
+                                                script));
+    } catch(const CryptoKernel::Blockchain::InvalidElementException& e) {
+        return false;
+    }
 
     if(errorMessage != "") {
         throw std::runtime_error(errorMessage);

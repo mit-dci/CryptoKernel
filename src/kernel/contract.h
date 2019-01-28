@@ -62,7 +62,7 @@ public:
    bool evaluateScriptValid(Storage::Transaction* dbTx,
         const CryptoKernel::Blockchain::transaction& tx,
         const CryptoKernel::Blockchain::input& inp, 
-        std::string script);
+        const std::string& script);
 private:
     void setupEnvironment(Storage::Transaction* dbTx,
                           const CryptoKernel::Blockchain::transaction& tx,
