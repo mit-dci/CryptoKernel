@@ -143,7 +143,6 @@ bool CryptoKernel::ContractRunner::evaluateScriptValid(Storage::Transaction* dbT
 
     if(errorMessage != "") {
         throw std::runtime_error(errorMessage);
-
     }
 
     return result;
