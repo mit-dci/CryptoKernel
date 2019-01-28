@@ -833,7 +833,7 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateVerifyingBlock
     const std::string& publicKey) {
     std::unique_ptr<Storage::Transaction> dbTx(blockdb->beginReadOnly());
 
-    const std::set<transaction> blockTransactions = getUnconfirmedTransactions();
+    std::set<transaction> blockTransactions = getUnconfirmedTransactions();
 
     uint64_t height;
     BigNum previousBlockId;
@@ -856,9 +856,10 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateVerifyingBlock
             value += calculateTransactionFee(dbTx.get(), tx);
         } catch(const CryptoKernel::Blockchain::InvalidElementException& e) {
             // rare case: the mempool was rescanned and some txs we have are now invalid.
-            // For now just try again. In the future the mempool should be in the database
-            // so the mempool and current unspent state are always consistent.
-            return generateVerifyingBlock(publicKey);
+            // For now just return an empty block. In the future the mempool should be in 
+            // the database so the mempool and current unspent state are always consistent.
+            blockTransactions.clear();
+            break;
         }
     }
 
