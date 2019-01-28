@@ -852,7 +852,14 @@ CryptoKernel::Blockchain::block CryptoKernel::Blockchain::generateVerifyingBlock
     uint64_t value = getBlockReward(height);
 
     for(const transaction& tx : blockTransactions) {
-        value += calculateTransactionFee(dbTx.get(), tx);
+        try {
+            value += calculateTransactionFee(dbTx.get(), tx);
+        } catch(const CryptoKernel::Blockchain::InvalidElementException& e) {
+            // rare case: the mempool was rescanned and some txs we have are now invalid.
+            // For now just try again. In the future the mempool should be in the database
+            // so the mempool and current unspent state are always consistent.
+            return generateVerifyingBlock(publicKey);
+        }
     }
 
     const std::string pubKey = getCoinbaseOwner(publicKey);
