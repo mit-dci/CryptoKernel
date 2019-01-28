@@ -137,13 +137,14 @@ bool CryptoKernel::ContractRunner::evaluateScriptValid(Storage::Transaction* dbT
     try {
         sel::tie(result, errorMessage) = (*state.get())["verifyTransaction"](base64_decode(
                                                 script));
-
-        if(errorMessage != "") {
-            return false;
-        }
-
-        return result;
     } catch(const CryptoKernel::Blockchain::InvalidElementException& e) {
         return false;
     }
+
+    if(errorMessage != "") {
+        throw std::runtime_error(errorMessage);
+
+    }
+
+    return result;
 }
