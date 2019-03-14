@@ -82,8 +82,8 @@ make
 sudo cp lz4.so /usr/lib
 
 cd ../
-wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha12/premake-5.0.0-alpha12-linux.tar.gz && \
-tar zxvf premake-5.0.0-alpha12-linux.tar.gz && \
+wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha13/premake-5.0.0-alpha13-linux.tar.gz && \
+tar zxvf premake-5.0.0-alpha13-linux.tar.gz && \
 sudo cp premake5 /usr/bin
 
 git clone https://github.com/metalicjames/cschnorr.git
