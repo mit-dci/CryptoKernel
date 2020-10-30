@@ -79,7 +79,7 @@ sudo cp -r selene/include/* /usr/local/include
 git clone https://github.com/metalicjames/lua-lz4.git
 cd lua-lz4
 make
-sudo cp lz4.so /usr/lib
+sudo cp lz4.so /usr/lib && cp lz4.so ../
 
 cd ../
 wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha13/premake-5.0.0-alpha13-linux.tar.gz && \
